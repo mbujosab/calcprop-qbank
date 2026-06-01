@@ -1,3 +1,6 @@
+# Copyright (C) 2020-2026  Marcos Bujosa
+# GNU General Public License v3 or later — see <https://www.gnu.org/licenses/>
+
 from qbank import *
 p = ProblemaTipo([
       "Considere ",

@@ -1,4 +1,5 @@
 #+TITLE: qbank — módulo de generación de preguntas (parte quiz)
+#+AUTHOR: Andrés Bujosa, Marcos Bujosa
 #+LANGUAGE: es
 #+OPTIONS: toc:t num:t H:4
 #+STARTUP: overview
@@ -19,6 +20,24 @@
 
 #+LATEX_HEADER: \usepackage{etoolbox}
 #+LATEX_HEADER: \AtBeginEnvironment{verbatim}{\footnotesize}
+
+# ─── Copyright ──────────────────────────────────────────────────────────────
+# Copyright (C) 2020-2026  Andrés Bujosa, Marcos Bujosa
+#
+# This file is part of calcprop-qbank.
+#
+# calcprop-qbank is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# calcprop-qbank is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # ─── TeXinfo export ────────────────────────────────────────────────
 # +TEXINFO_FILENAME: CalcPropQuiz.texi
@@ -53,6 +72,25 @@
   :END:
 
 El módulo completo está compuesto varios fragmentos de código se son descritos en los siguientes capítulos.
+#+begin_src python :tangle src/qbank/_quiz.py :exports none
+# Copyright (C) 2020-2026  Andrés Bujosa, Marcos Bujosa
+#
+# This file is part of calcprop-qbank.
+#
+# calcprop-qbank is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# calcprop-qbank is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#+end_src
+
 #+NAME: qbank/_quiz.py
 #+begin_src python :tangle src/qbank/_quiz.py :noweb no-export
 from calcprop import *

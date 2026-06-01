@@ -4,6 +4,10 @@
 #+OPTIONS: toc:2 num:t
 #+STARTUP: overview
 
+# ─── Copyright ──────────────────────────────────────────────────────────────
+# Copyright (C) 2020-2026  Andrés Bujosa, Marcos Bujosa (_quiz) / Marcos Bujosa (_export)
+# GNU General Public License v3 or later — see <https://www.gnu.org/licenses/>
+
 # ─── Configuración de org-babel ───────────────────────────────────
 #+PROPERTY: header-args:python :python python3
 #+PROPERTY: header-args:python :python /home/marcos/SynologyDrive/ReposGH/Docencia/qbank/.venv/bin/python3 :session *qbank*
