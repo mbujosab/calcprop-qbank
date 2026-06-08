@@ -14,6 +14,7 @@
 
 # ─── LaTeX export ────────────────────────────────────────────────
 #+LATEX_CLASS: report
+# +LATEX_CLASS: article
 #+LATEX_CLASS_OPTIONS: [10pt,a4paper]
 
 #+LATEX_HEADER: \usepackage{fontspec}          % para fuentes Unicode
@@ -28,6 +29,8 @@
 #+LATEX_HEADER: \newunicodechar{✗}{$\times$}
 #+LATEX_HEADER: \usepackage{etoolbox}
 #+LATEX_HEADER: \AtBeginEnvironment{verbatim}{\small}
+
+#+latex: \maketitle
 
 * Introducción
 
@@ -368,7 +371,6 @@ Variante 3:
   Si aprueban todos eres buen profesor ✗
 #+end_example
 
-
 * Exportar a AMC (LaTeX)
 
 Las funciones AMC generan el código LaTeX compatible con Auto Multiple Choice.
@@ -522,16 +524,16 @@ sudo apt install texlive-latex-extra
 
 ** Funciones disponibles
 
-| Función                        | Descripción                                                      |
-|--------------------------------+------------------------------------------------------------------|
-| =QuizMoodle=                   | Genera =.tex= con preguntas de opción múltiple estándar.         |
-| =QuizMoodleLastCh=             | Igual, pero añade «Las demás opciones son falsas» al final.      |
-| =QuizMoodleProfe=              | Versión con puntuación proporcional (fracción por ítem correcto).|
-| =QuizVFMoodle=                 | Para preguntas generadas con =ProblemaVF=.                       |
-| =QuizVFMoodleLastCh=           | Como =QuizVFMoodle= con opción final.                            |
-| =QuizMoodleConVariables=       | Permite plantillas Jinja2 para valores numéricos variables.       |
-| =QuizMoodleLastChConVariables= | Igual, con opción final.                                         |
-| =QuizMoodleProfeConVariables=  | Versión profe con plantillas Jinja2.                             |
+| Función                        | Descripción                                                 |
+|--------------------------------+-------------------------------------------------------------|
+| =QuizMoodle=                   | Genera =.tex= con preguntas de opción múltiple estándar.    |
+| =QuizMoodleLastCh=             | Igual, pero añade «Las demás opciones son falsas» al final. |
+| =QuizMoodleProfe=              | Versión para facilitar la revisión por parte del profesor.  |
+| =QuizMoodleConVariables=       | Permite plantillas Jinja2 para valores numéricos variables. |
+| =QuizMoodleLastChConVariables= | Igual, con opción final.                                    |
+| =QuizMoodleProfeConVariables=  | Versión profe con plantillas Jinja2.                        |
+| =QuizVFMoodle=                 | Para preguntas Verdadero/Falso generadas con =ProblemaVF=.  |
+| =QuizVFMoodleLastCh=           | Como =QuizVFMoodle= con opción final (*sobra*).             |
 
 ** Firma común
 
@@ -548,7 +550,15 @@ QuizMoodle(nombre, directorio, problema, opc=["", ""])
 
 ** Ejemplo Moodle completo
 
-#+begin_src python
+Creamos el directorio donde vamos aguardar el ejemplo:
+
+#+begin_src bash :results silent
+mkdir -p ejemplosManual
+#+end_src
+
+El siguiente código genera el fichero de LaTeX:
+
+#+begin_src python :results silent
 from qbank import *
 
 p = ProblemaTipo([
@@ -568,22 +578,24 @@ p = ProblemaTipo([
     ],
 ])
 
-QuizMoodleLastCh("EjemploMoodle", "salida/", p)
+QuizMoodleLastCh("EjemploMoodle", "ejemplosManual/", p)
 #+end_src
 
-Esto crea =salida/EjemploMoodle.tex=. Para obtener el =.xml=:
+Esto crea =salida/EjemploMoodle.tex=. Para obtener el =.xml= y una versión =.pdf= del conjunto de preguntas basta ejecutar:
 
-#+begin_src bash
-cd salida
+#+begin_src bash :results silent
+cd ejemplosManual
 pdflatex EjemploMoodle.tex
 #+end_src
 
-Se generan =EjemploMoodle.xml= (para importar en Moodle) y =EjemploMoodle.pdf=
+Se generan [[file:ejemplosManual/EjemploMoodle-moodle.xml][=EjemploMoodle-moodle.xml=]] (para importar en Moodle) y [[file:ejemplosManual/EjemploMoodle.pdf][=EjemploMoodle.pdf=]]
 (vista previa del aspecto de las preguntas).
 
 ** Ejemplo con =ProblemaVF= para Moodle
 
-#+begin_src python
+El siguiente código genera el fichero de LaTeX:
+
+#+begin_src python :results silent
 from qbank import *
 
 enunciado = "Indique qué afirmaciones son verdaderas:"
@@ -592,15 +604,23 @@ banco = [
     ("Todo alumno que sabe aprueba",         True),
     ("Si suspenden todos es frustrante",     True),
     ("Si aprueban todos eres buen profesor", False),
+    ("Las eñes son letras frecuentes en inglés", False),
 ]
 
 b = [(codchar(texto), correcto) for texto, correcto in banco]
-GenVar = iter(ProblemaVF(codchar(enunciado), b, 3))  # 3 ítems por variante
+GenVar = iter(ProblemaVF(codchar(enunciado), b, 2))  # 2 ítems por variante
 
-QuizVFMoodleLastCh("EjemploVF", "salida/", GenVar, num=4)  # 4 variantes
+QuizVFMoodleLastCh("EjemploVF", "ejemplosManual/", GenVar, num=5)  # 5 variantes
 #+end_src
 
-Nota: =codchar()= convierte los caracteres con tilde y la ñ a secuencias LaTeX
+Para obtener el =.xml= y una versión =.pdf= del conjunto de preguntas basta ejecutar:
+
+#+begin_src bash :results silent
+cd ejemplosManual
+pdflatex EjemploVF.tex
+#+end_src
+
+/Nota/: =codchar()= convierte los caracteres con tilde y la ñ a secuencias LaTeX
 (p.ej. =á= → =\'a=). Es necesario para Moodle porque el =.tex= usa codificación OT1.
 
 * Referencia rápida de la API

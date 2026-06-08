@@ -17,8 +17,10 @@
 #+LATEX_HEADER: \setmainfont{Latin Modern Roman} % o cualquier otra que quieras
 #+LATEX_HEADER: \usepackage[spanish]{babel}
 
-#+LATEX_HEADER: \usepackage{etoolbox}
+#+LATEX_HEADER: \usepackage{etoolbox}          % para reducir las fuentes de salidas verbatim
 #+LATEX_HEADER: \AtBeginEnvironment{verbatim}{\footnotesize}
+
+#+LATEX_HEADER: \usepackage{pdfpages}          % para inportar páginas pdf
 
 # ─── Copyright ──────────────────────────────────────────────────────────────
 # Copyright (C) 2020-2026  Marcos Bujosa
@@ -1010,3 +1012,92 @@ directorio = "../ejemplos/"
 QuizVFMoodleLastCh(nombre, directorio, GenVar, 4)
 #+end_src
 
+* Ejemplos de preguntas
+
+** Ejemplos con AMC
+
+*** Ejemplo con un único enunciado y sin cálculo proposicional
+
+#+name: Prb-L-02-AjusteMCOdeMLS-pendiente
+#+BEGIN_SRC python :results none
+nombre="L-02-AjusteMCOdeMLS-pendiente"
+p = [ r"En el ajuste MCO:\; $\ajusteMLS$,\; el parámetro $\widehat{\beta_2}$ es",
+  [
+    Cuestion(r"la covarianza entre $\Vect{x}$ e $\Vect{y}$, dividida por la varianza de $\Vect{X}$.", True),
+    
+    Cuestion(
+        r"$\frac{N^{-1}\sum(x_n-\media{\Vect{x}})(y_n-\media{\Vect{y}})}{N^{-1}\sum(x_n-\media{\Vect{x}})^2}" +
+        r"=\frac{\dotprod{(\Vect{x}-\Media{\Vect{x}})}{(\Vect{y}-\Media{\Vect{y}})}}"
+        +     r"{\dotprod{(\Vect{x}-\Media{\Vect{x}})}{(\Vect{x}-\Media{\Vect{x}})}}$.",
+                                                                                                      True),
+      
+    Cuestion(r"la covarianza entre $\Vect{x}$ e $\Vect{y}$, dividida por la varianza de $\Vect{y}$.",False),
+    
+    Cuestion(
+        r"$\frac{N^{-1}\sum(x_n-\media{\Vect{x}})(y_n-\media{\Vect{y}})}{N^{-1}\sum(y_n-\media{\Vect{y}})^2}" +
+        r"=\frac{\dotprod{(\Vect{x}-\Media{\Vect{x}})}{(\Vect{y}-\Media{\Vect{y}})}}"
+        +     r"{\dotprod{(\Vect{y}-\Media{\Vect{y}})}{(\Vect{y}-\Media{\Vect{y}})}}$.",             False),
+      
+    Cuestion(r"la varianza de $\Vect{x}$ dividida por la covarianza entre $\Vect{x}$ e $\Vect{y}$.", False),
+      
+    Cuestion(
+        r"$\frac{N^{-1}\sum(x_n-\media{\Vect{x}})^2}{N^{-1}\sum(x_n-\media{\Vect{x}})(y_n-\media{\Vect{y}})}" +
+        r"=\frac{\dotprod{(\Vect{x}-\Media{\Vect{x}})}{(\Vect{x}-\Media{\Vect{x}})}}"
+        +     r"{\dotprod{(\Vect{x}-\Media{\Vect{x}})}{(\Vect{y}-\Media{\Vect{y}})}}$.",             False),
+
+    Cuestion(r"cero si la covarianza entre $\Vect{x}$ e $\Vect{y}$ es cero",                          True),
+  ],
+  [
+    Cuestion(r"la correlación $\corr{\Vect{x}}{\Vect{y}}$ multiplicada por " +
+             r"la desviación típica $\dt{\Vect{y}}$ y dividida por $\dt{\Vect{x}}$.",                 True),   
+    Cuestion(r"la correlación $\corr{\Vect{x}}{\Vect{y}}$ multiplicada por " +
+             r"la desviación típica $\dt{\Vect{x}}$ y dividida por $\dt{\Vect{y}}$.",                False),    
+    Cuestion(r"la correlación $\corr{\Vect{x}}{\Vect{y}}$ multiplicada por " +
+             r"la varianza $\var{\Vect{y}}$ y dividida por $\var{\Vect{x}}$.",                       False),
+    Cuestion(r"la covarianza entre $\Vect{x}$ e $\Vect{y}$ si la varianza de $\Vect{x}$ es uno.",     True),    
+    Cuestion(r"la covarianza entre $\Vect{x}$ e $\Vect{y}$ si la varianza de $\Vect{y}$ es uno.",    False),
+  ],
+  [
+    Cuestion(r"uno si la covarianza entre $\Vect{x}$ e $\Vect{y}$ es uno",                           False),
+    
+    Cuestion(r"indeterminado si la varianza de $\Vect{y}$ es cero",                                  False),
+      
+    Cuestion(r"indeterminado si la varianza de $\Vect{x}$ es cero",                                   True),
+    
+    Cuestion(r"la inversa de la varianza de $\Vect{x}$ " +
+             r"si la covarianza entre $\Vect{x}$ e $\Vect{y}$ es uno",                                True),
+    
+    Cuestion(r"la inversa de la varianza de $\Vect{x}$ " +
+             r"si la covarianza entre $\Vect{x}$ e $\Vect{y}$ es cero",                              False),
+  ],
+]
+#+END_SRC
+
+#+LATEX: \includepdf[pages=-,scale=1,pagecommand={},]{./bancoPreguntas/L-02-AjusteMCOdeMLS-pendiente.pdf}
+#+LATEX: \clearpage
+
+
+****** Versión para el profesor                                    :noexport:
+#+NAME: L-02-AjusteMCOdeMLS-pendiente-profe.py
+#+BEGIN_SRC python :noweb no-export :results silent :session Profe   :tangle L-02-AjusteMCOdeMLS-pendiente-profe.py
+from qbank import *
+directorio  = "bancoPreguntas/"
+<<Prb-L-02-AjusteMCOdeMLS-pendiente>>
+preguntas = {}; mc=1;
+preguntas[nombre] = ProblemaTipoProfe( p );
+<<Creación del fichero .xml para el Profe>>
+<<Creación del fichero .tex para AMC con multicol para el Profe>>
+#+END_SRC
+
+
+#+name: Creación del fichero .tex para AMC con multicol para el Profe
+#+BEGIN_SRC python :results none :noweb no-export :exports code
+with open(directorio + nombre + ".tex","w") as f:
+    for var in preguntas[nombre]:
+        f.write( AMCmcProfe(nombre, var[0], var[1], var[2], mc) )
+carpeta = "AMCfilesProfe"        
+<<Movemos el .tex a la carpeta>>
+#+END_SRC
+
+
+** Ejemplos con Moodle
