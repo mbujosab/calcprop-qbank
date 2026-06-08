@@ -94,7 +94,9 @@ El módulo completo está compuesto varios fragmentos de código se son descrito
 #+NAME: qbank/_quiz.py
 #+begin_src python :tangle src/qbank/_quiz.py :noweb no-export
 from calcprop import *
+from string import Template
 
+<<Funciones auxiliares para setup paramétrico>>
 <<Metodo auxiliar para juntar cuestiones en formato para profe>>
 <<Definición de la clase Marcador>>
 <<Definición de la clase Supuesto>>
@@ -102,6 +104,8 @@ from calcprop import *
 <<Definición de la clase ProblemaTipo>>
 <<Definición de la clase ProblemaTipoProfe>>
 <<Definición de la clase ProblemaVF>>
+
+<<Interfaz gráfica para el diseño visual de la lista de listas de ejercicios>>
 #+end_src
 
 *** Uso del módulo
@@ -113,6 +117,29 @@ Para usar este módulo, primero se debe ejecutar
 #+BEGIN_SRC jupyter-python :results silent
 from qbank import *
 #+END_SRC
+
+
+** Funciones auxiliares para =setup= paramétrico
+   :PROPERTIES:
+   :UNNUMBERED: t
+   :END:
+
+Las funciones =_ns_eval= y =_ns_interp= permiten que los atributos de =Supuesto= y =Cuestion= (enunciado, semántica, precondición) sean valores directos *o callables* que reciben el namespace generado por el =setup= de =ProblemaTipo=.
+
+- =_ns_eval(val, ns)= :: si =val= es callable, lo invoca con =ns= y devuelve el resultado; si no, devuelve =val= tal cual.
+- =_ns_interp(s, ns)= :: interpola en la cadena =s= los marcadores =@variable= usando el diccionario =ns=. Usa =string.Template.safe_substitute= con delimitador =@= (en lugar del =\$= estándar, para evitar conflictos con el modo matemático de \LaTeX{}). Los marcadores desconocidos y las llaves ={...}= de \LaTeX{} no se ven afectados. Para obtener una arroba literal en el texto, escribe =@@=.
+
+#+NAME: Funciones auxiliares para setup paramétrico
+#+begin_src python :noweb yes
+class _NsTemplate(Template):
+    delimiter = '@'
+
+def _ns_eval(val, ns):
+    return val(ns) if callable(val) else val
+
+def _ns_interp(s, ns):
+    return _NsTemplate(s).safe_substitute(ns) if ns else s
+#+end_src
 
 
 ** Clase =Marcador=
@@ -320,8 +347,9 @@ Si la precondición de alguna de las opciones elegidas es =False= (o resulta ref
 #+NAME: Definición de la clase ProblemaTipo
 #+begin_src python :noweb no-export
 class ProblemaTipo:
-    def __init__(self, supuestos_y_cuestiones):
+    def __init__(self, supuestos_y_cuestiones, setup=None):
         self.e = supuestos_y_cuestiones
+        self.setup = setup
 
     <<Método __iter__ para la clase ProblemaTipo>>
     <<Método __next__ para la clase ProblemaTipo>>
@@ -365,6 +393,7 @@ def __next__(self):
         except StopIteration:
             raise StopIteration
 
+        ns = self.setup() if self.setup else {}
         enunciado    = ""
         hipotesis    = []
         cuestiones   = []
@@ -387,24 +416,28 @@ El fragmento de código =<<Tratamiento en función del tipo de componente>>= pro
 #+NAME: Tratamiento en función del tipo de componente
 #+begin_src python :noweb yes
 if isinstance(componente, str):
-    enunciado = enunciado + componente
+    enunciado = enunciado + _ns_interp(componente, ns)
 
 elif isinstance(componente, Supuesto):
-    if test(componente.p, hipotesis):
-        enunciado = enunciado +  componente.e
-        hipotesis = hipotesis + [componente.s]
+    precond = _ns_eval(componente.p, ns)
+    if test(precond, hipotesis):
+        enunciado = enunciado + _ns_interp(_ns_eval(componente.e, ns), ns)
+        hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
     else:
         print('\n Supuesto: '   + str(componente.e) \
             + ' rechazado por ' + str(componente.p) + '\n')
         break
 
 elif isinstance(componente, Cuestion):
-    if test(componente.p, hipotesis):
+    precond   = _ns_eval(componente.p, ns)
+    semantica = _ns_eval(componente.s, ns)
+    texto     = _ns_interp(_ns_eval(componente.e, ns), ns)
+    if test(precond, hipotesis):
         cuestiones = cuestiones + \
-            [(componente.e,(True if test(componente.s, hipotesis) else False),1,componente.x)]
+            [(texto, (True if test(semantica, hipotesis) else False), 1, componente.x)]
     else:
         cuestiones = cuestiones + \
-            [(componente.e,'rechazada por ' + str(componente.p),0,componente.x)]
+            [(texto, 'rechazada por ' + str(componente.p), 0, componente.x)]
         print('\n Cuestion: '   + str(componente.e) \
             + ' rechazada por ' + str(componente.p) + '\n')
         break
@@ -652,8 +685,9 @@ Tan solo hay dos diferencias en el código de la clase =ProblemaTipoProfe= respe
 #+NAME: Definición de la clase ProblemaTipoProfe
 #+begin_src python :noweb no-export
 class ProblemaTipoProfe:
-    def __init__(self, supuestos_y_cuestiones):
+    def __init__(self, supuestos_y_cuestiones, setup=None):
         self.e = CuestionesJuntas(supuestos_y_cuestiones)
+        self.setup = setup
 
     <<Método __iter__ para la clase ProblemaTipo>>
     <<Método __next__ para la clase ProblemaTipoProfe>>
@@ -673,6 +707,7 @@ def __next__(self):
         except StopIteration:
             raise StopIteration
 
+        ns = self.setup() if self.setup else {}
         enunciado     = ""
         hipotesis     = []
         cuestiones    = []
@@ -693,24 +728,28 @@ def __next__(self):
 #+NAME: Tratamiento en función del tipo de componente para la versión del Profe
 #+begin_src python :noweb yes
 if isinstance(componente, str):
-    enunciado = enunciado + componente
+    enunciado = enunciado + _ns_interp(componente, ns)
 
 elif isinstance(componente, Supuesto):
-    if test(componente.p, hipotesis):
-        enunciado = enunciado +  componente.e
-        hipotesis = hipotesis + [componente.s]
+    precond = _ns_eval(componente.p, ns)
+    if test(precond, hipotesis):
+        enunciado = enunciado + _ns_interp(_ns_eval(componente.e, ns), ns)
+        hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
     else:
         print('\n Supuesto: '   + str(componente.e) \
             + ' rechazado por ' + str(componente.p) + '\n')
         break
 
 elif isinstance(componente, Cuestion):
-    if test(componente.p, hipotesis):
+    precond   = _ns_eval(componente.p, ns)
+    semantica = _ns_eval(componente.s, ns)
+    texto     = _ns_interp(_ns_eval(componente.e, ns), ns)
+    if test(precond, hipotesis):
         cuestiones = cuestiones + \
-            [(componente.e,(True if test(componente.s, hipotesis) else False),1,componente.x)]
+            [(texto, (True if test(semantica, hipotesis) else False), 1, componente.x)]
     else:
         cuestiones = cuestiones + \
-            [(componente.e,'rechazada por ' + str(componente.p),0)]
+            [(texto, 'rechazada por ' + str(componente.p), 0)]
 
 #+end_src
 
@@ -850,6 +889,7 @@ class ProblemaVF():
         cuestiones = sample(self.c, self.NumPreguntas)
         self.contador += 1
         return (str(self.contador), self.e, cuestiones)
+    
 #+end_src
 
 **** Métodos de la clase =ProblemaVF=
@@ -975,6 +1015,7 @@ Con esto, hemos desarrollado un procedimiento para generar una amplia variedad d
 *** ¿Qué nos falta?
 
 Falta dar formato a lo que hemos desarrollado para ser usado con los estudiantes. El módulo =CalcProp-export= nos permitirá crear bancos de preguntas en formato \LaTeX{}, que podrán ser utilizados con [[https://www.auto-multiple-choice.net/][Auto Multiple Choice (AMC)]], así como también generar bancos en formato =xml= para su empleo en el entorno Moodle mediante el paquete de \LaTeX{} [[https://ctan.org/pkg/moodle][moodle]], específicamente para cuestiones de [[https://docs.moodle.org/502/en/Question_types][opción múltiple]].
+
 
 
 * COMMENT otros

@@ -16,6 +16,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from calcprop import *
+from string import Template
+
+class _NsTemplate(Template):
+    delimiter = '@'
+
+def _ns_eval(val, ns):
+    return val(ns) if callable(val) else val
+
+def _ns_interp(s, ns):
+    return _NsTemplate(s).safe_substitute(ns) if ns else s
 
 def CuestionesJuntas(lista):
     def CreaLista(t):
@@ -29,6 +39,7 @@ def CuestionesJuntas(lista):
         else:
             p.extend(CreaLista(e))
     return p
+
 class Marcador:
     def __init__(self, data):
         self.data = data
@@ -62,6 +73,7 @@ class Supuesto:
     def __repr__(self):
         """Método de representación"""
         return 'Cuestión( Enunciado: ' + self.e + '; Semántica: ' + self.s + '; Precondición: ' + self.p + ')'
+
 class Cuestion:
     def __init__(self, enunciado, semantica, precond=True, exp=""):
         self.e = enunciado
@@ -72,9 +84,11 @@ class Cuestion:
     def __repr__(self):
         """Método de representación"""
         return 'Cuestión( Enunciado: ' + self.e + '; Semántica: ' + self.s + '; Precondición: ' + self.p + ')'
+
 class ProblemaTipo:
-    def __init__(self, supuestos_y_cuestiones):
+    def __init__(self, supuestos_y_cuestiones, setup=None):
         self.e = supuestos_y_cuestiones
+        self.setup = setup
 
     def __iter__(self):
         self.l    = [x if isinstance(x,list) else [x] for x in self.e]
@@ -82,6 +96,7 @@ class ProblemaTipo:
         self.i    = iter(Marcador([len(x) for x in self.l]))
         self.c    = 0
         return self
+
     def __next__(self):
         self.c += 1
         while True:
@@ -89,41 +104,48 @@ class ProblemaTipo:
                 variante = next(self.i)
             except StopIteration:
                 raise StopIteration
-    
+
+            ns = self.setup() if self.setup else {}
             enunciado    = ""
             hipotesis    = []
             cuestiones   = []
-    
+
             for n in range(self.long+1):
                 if n == self.long:
                     return (str(self.c), enunciado, cuestiones)
-    
+
                 componente = self.l[n][variante[n]]
                 if isinstance(componente, str):
-                    enunciado = enunciado + componente
-                
+                    enunciado = enunciado + _ns_interp(componente, ns)
+
                 elif isinstance(componente, Supuesto):
-                    if test(componente.p, hipotesis):
-                        enunciado = enunciado +  componente.e
-                        hipotesis = hipotesis + [componente.s]
+                    precond = _ns_eval(componente.p, ns)
+                    if test(precond, hipotesis):
+                        enunciado = enunciado + _ns_interp(_ns_eval(componente.e, ns), ns)
+                        hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
                     else:
                         print('\n Supuesto: '   + str(componente.e) \
                             + ' rechazado por ' + str(componente.p) + '\n')
                         break
-                
+
                 elif isinstance(componente, Cuestion):
-                    if test(componente.p, hipotesis):
+                    precond   = _ns_eval(componente.p, ns)
+                    semantica = _ns_eval(componente.s, ns)
+                    texto     = _ns_interp(_ns_eval(componente.e, ns), ns)
+                    if test(precond, hipotesis):
                         cuestiones = cuestiones + \
-                            [(componente.e,(True if test(componente.s, hipotesis) else False),1,componente.x)]
+                            [(texto, (True if test(semantica, hipotesis) else False), 1, componente.x)]
                     else:
                         cuestiones = cuestiones + \
-                            [(componente.e,'rechazada por ' + str(componente.p),0,componente.x)]
+                            [(texto, 'rechazada por ' + str(componente.p), 0, componente.x)]
                         print('\n Cuestion: '   + str(componente.e) \
                             + ' rechazada por ' + str(componente.p) + '\n')
                         break
+
 class ProblemaTipoProfe:
-    def __init__(self, supuestos_y_cuestiones):
+    def __init__(self, supuestos_y_cuestiones, setup=None):
         self.e = CuestionesJuntas(supuestos_y_cuestiones)
+        self.setup = setup
 
     def __iter__(self):
         self.l    = [x if isinstance(x,list) else [x] for x in self.e]
@@ -131,6 +153,7 @@ class ProblemaTipoProfe:
         self.i    = iter(Marcador([len(x) for x in self.l]))
         self.c    = 0
         return self
+
     def __next__(self):
         self.c += 1
         while True:
@@ -138,36 +161,41 @@ class ProblemaTipoProfe:
                 variante = next(self.i)
             except StopIteration:
                 raise StopIteration
-    
+
+            ns = self.setup() if self.setup else {}
             enunciado     = ""
             hipotesis     = []
             cuestiones    = []
-    
+
             for n in range(self.long+1):
                 if n == self.long:
                     return (str(self.c), enunciado, cuestiones)
-    
+
                 componente = self.l[n][variante[n]]
                 if isinstance(componente, str):
-                    enunciado = enunciado + componente
-                
+                    enunciado = enunciado + _ns_interp(componente, ns)
+
                 elif isinstance(componente, Supuesto):
-                    if test(componente.p, hipotesis):
-                        enunciado = enunciado +  componente.e
-                        hipotesis = hipotesis + [componente.s]
+                    precond = _ns_eval(componente.p, ns)
+                    if test(precond, hipotesis):
+                        enunciado = enunciado + _ns_interp(_ns_eval(componente.e, ns), ns)
+                        hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
                     else:
                         print('\n Supuesto: '   + str(componente.e) \
                             + ' rechazado por ' + str(componente.p) + '\n')
                         break
-                
+
                 elif isinstance(componente, Cuestion):
-                    if test(componente.p, hipotesis):
+                    precond   = _ns_eval(componente.p, ns)
+                    semantica = _ns_eval(componente.s, ns)
+                    texto     = _ns_interp(_ns_eval(componente.e, ns), ns)
+                    if test(precond, hipotesis):
                         cuestiones = cuestiones + \
-                            [(componente.e,(True if test(componente.s, hipotesis) else False),1,componente.x)]
+                            [(texto, (True if test(semantica, hipotesis) else False), 1, componente.x)]
                     else:
                         cuestiones = cuestiones + \
-                            [(componente.e,'rechazada por ' + str(componente.p),0)]
-                
+                            [(texto, 'rechazada por ' + str(componente.p), 0)]
+
 from random import sample
 class ProblemaVF():
     def __init__(self, enunciado, cuestiones, NumPreguntas):
