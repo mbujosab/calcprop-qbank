@@ -1018,6 +1018,871 @@ Falta dar formato a lo que hemos desarrollado para ser usado con los estudiantes
 
 
 
+* Serialización y persistencia en formato JSON
+
+El módulo =qbank._json= permite guardar y cargar objetos =ProblemaTipo= y =ProblemaVF= en ficheros JSON. Esto facilita compartir bancos de preguntas, usarlos desde el editor visual o persistirlos entre sesiones sin tener que reescribir el código Python en cada ocasión.
+
+** Estructura del módulo =qbank._json=
+   :PROPERTIES:
+   :UNNUMBERED: t
+   :END:
+
+El módulo completo está compuesto por varios fragmentos de código que se describen en las subsecciones siguientes.
+
+#+begin_src python :tangle src/qbank/_json.py :exports none
+# Copyright (C) 2020-2026  Marcos Bujosa
+#
+# This file is part of calcprop-qbank.
+#
+# calcprop-qbank is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# calcprop-qbank is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+"""
+Serialización y deserialización de problemas qbank en formato JSON.
+"""
+#+end_src
+
+#+NAME: qbank/_json.py
+#+begin_src python :tangle src/qbank/_json.py :noweb no-export
+import json as _json
+import calcprop as _calcprop_mod
+from qbank._quiz import Supuesto, Cuestion, ProblemaTipo, ProblemaVF
+
+__all__ = [
+    'problema_from_dict',
+    'problema_to_dict',
+    'load_problema',
+    'save_problema',
+    'load_banco',
+    'save_banco',
+]
+
+<<Espacio de nombres calcprop para JSON>>
+<<Evaluación de expresiones JSON>>
+<<Función setup desde string>>
+<<Componente desde dict JSON>>
+<<Slot desde JSON>>
+<<Slot a JSON>>
+<<Problema desde dict JSON>>
+<<Problema a dict JSON>>
+<<Cargar y guardar problema JSON>>
+<<Cargar y guardar banco JSON>>
+#+end_src
+
+
+** Formato JSON
+
+Un =ProblemaTipo= se representa con la siguiente estructura:
+
+#+begin_example
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "identificador_opcional",
+  "setup": null,
+  "componentes": [
+    "texto fijo del enunciado",
+    {"tipo": "Supuesto", "enunciado": "A ", "semantica": "v('A')", "precond": "True"},
+    [
+      {"tipo": "Supuesto", "enunciado": "alt1 ", "semantica": "v('A')"},
+      {"tipo": "Supuesto", "enunciado": "alt2 ", "semantica": "v('B')"}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "¿A?", "semantica": "v('A')",
+       "precond": "True", "exp": ""}
+    ]
+  ]
+}
+#+end_example
+
+El campo =componentes= es una lista cuyos elementos pueden ser:
+
+- *Cadena de texto*: texto fijo que aparece en todas las variantes.
+- *Dict*: un único =Supuesto= o =Cuestion= (equivale a una lista de un elemento).
+- *Lista de dicts*: varias alternativas de las que =ProblemaTipo= elige una por variante.
+
+Los campos =semantica= y =precond= se almacenan como *cadenas de texto*. Al deserializar se evalúan con =eval()= en el espacio de nombres de =calcprop=, lo que permite expresiones como ="v('A') & v('B')"=, los booleanos literales =True= y =False=, o lambdas para semánticas paramétricas (="lambda ns: ns['x'] > 0"=).
+
+Un =ProblemaVF= tiene un formato más simple:
+
+#+begin_example
+{
+  "version": "1",
+  "tipo": "ProblemaVF",
+  "nombre": "identificador_opcional",
+  "enunciado": "Marque las verdaderas:",
+  "NumPreguntas": 3,
+  "cuestiones": [
+    {"texto": "Afirmación 1", "respuesta": true},
+    {"texto": "Afirmación 2", "respuesta": false}
+  ]
+}
+#+end_example
+
+Un banco con múltiples problemas agrupa varios dicts bajo la clave ="banco"=:
+
+#+begin_example
+{
+  "version": "1",
+  "banco": [ {problema1}, {problema2}, ... ]
+}
+#+end_example
+
+
+** Evaluación de expresiones en el espacio de nombres de =calcprop=
+
+Las semánticas y precondiciones se guardan en JSON como cadenas de texto y se recuperan evaluándolas con =eval()= en el espacio de nombres del módulo =calcprop=. Así, expresiones como =v('A') & v('B')= se resuelven correctamente al deserializar.
+
+El espacio de nombres se construye una sola vez al importar el módulo:
+
+#+NAME: Espacio de nombres calcprop para JSON
+#+begin_src python :noweb yes
+_EVAL_NS = vars(_calcprop_mod).copy()
+#+end_src
+
+La función =_eval_expr= gestiona los casos especiales (booleanos literales) antes de delegar en =eval=, evitando así que ="True"= se evalúe como el nombre Python =True= solo si el usuario ha escrito exactamente esa cadena:
+
+#+NAME: Evaluación de expresiones JSON
+#+begin_src python :noweb yes
+def _eval_expr(expr):
+    """Evalúa una expresión (string o bool) en el namespace de calcprop."""
+    if isinstance(expr, bool):
+        return expr
+    if expr == "True":
+        return True
+    if expr == "False":
+        return False
+    return eval(expr, _EVAL_NS)
+#+end_src
+
+
+** Función de =setup= desde código Python
+
+Cuando el campo =setup= no es =null=, contiene el código Python (como cadena) que se ejecuta al comienzo de cada iteración de =ProblemaTipo=. La función =_make_setup_fn= lo convierte en un callable que devuelve el diccionario de variables definidas, excluyendo las que empiezan por guión bajo (convención para internas de Python):
+
+#+NAME: Función setup desde string
+#+begin_src python :noweb yes
+def _make_setup_fn(code_str):
+    """Crea un callable setup() a partir de código Python en string."""
+    def setup():
+        ns = {}
+        exec(code_str, ns)
+        return {k: v for k, v in ns.items() if not k.startswith('_')}
+    return setup
+#+end_src
+
+Por ejemplo, si el JSON contiene:
+
+#+begin_example
+"setup": "import random\nx = random.randint(1, 9)\ny = random.randint(1, 9)"
+#+end_example
+
+en cada iteración se ejecuta ese código y las variables =x= e =y= quedan disponibles para interpolar en los textos del problema mediante =@x= e =@y=.
+
+
+** Deserialización de componentes
+
+La función =_componente_from_dict= crea un objeto =Supuesto= o =Cuestion= a partir de un dict JSON. Además de evaluar la semántica y la precondición, adjunta al objeto un atributo =_json= con los datos originales en formato de cadena. Ese atributo permite la serialización inversa (=problema_to_dict=) sin pérdida de información: el valor de cadena de la expresión se conserva tal como fue escrito por el usuario, sin que la evaluación lo destruya.
+
+#+NAME: Componente desde dict JSON
+#+begin_src python :noweb yes
+def _componente_from_dict(d):
+    tipo          = d.get("tipo")
+    enunciado     = d["enunciado"]
+    semantica_str = d["semantica"]
+    precond_str   = d.get("precond", "True")
+
+    semantica = _eval_expr(semantica_str)
+    precond   = _eval_expr(precond_str)
+
+    if tipo == "Supuesto":
+        obj = Supuesto(enunciado, semantica, precond)
+        obj._json = {"tipo": "Supuesto", "enunciado": enunciado,
+                     "semantica": semantica_str, "precond": precond_str}
+    elif tipo == "Cuestion":
+        exp = d.get("exp", "")
+        obj = Cuestion(enunciado, semantica, precond, exp)
+        obj._json = {"tipo": "Cuestion", "enunciado": enunciado,
+                     "semantica": semantica_str, "precond": precond_str, "exp": exp}
+    else:
+        raise ValueError(f"Tipo de componente desconocido: {tipo!r}")
+    return obj
+#+end_src
+
+La función =_slot_from_json= despacha en función del tipo de cada elemento del slot (cadena, dict único o lista de dicts):
+
+#+NAME: Slot desde JSON
+#+begin_src python :noweb yes
+def _slot_from_json(slot):
+    if isinstance(slot, str):
+        return slot
+    elif isinstance(slot, dict):
+        return _componente_from_dict(slot)
+    elif isinstance(slot, list):
+        return [_slot_from_json(item) for item in slot]
+    else:
+        raise ValueError(f"Componente JSON inválido: {slot!r}")
+#+end_src
+
+
+** Serialización de componentes
+
+La función =_slot_to_json= recorre el problema en sentido inverso. Para los objetos =Supuesto= y =Cuestion= recupera el atributo =_json= adjunto durante la carga. Si el objeto fue creado directamente en Python (sin pasar por =problema_from_dict=), no tiene ese atributo y la serialización falla con un mensaje explicativo que orienta al usuario hacia la causa del error:
+
+#+NAME: Slot a JSON
+#+begin_src python :noweb yes
+def _slot_to_json(slot):
+    if isinstance(slot, str):
+        return slot
+    elif isinstance(slot, (Supuesto, Cuestion)):
+        if not hasattr(slot, '_json'):
+            raise ValueError(
+                f"El componente '{slot.e}' no fue creado desde JSON. "
+                "problema_to_dict() solo funciona con problemas cargados mediante "
+                "load_problema() o problema_from_dict().")
+        return slot._json
+    elif isinstance(slot, list):
+        return [_slot_to_json(item) for item in slot]
+    else:
+        raise ValueError(f"Tipo no serializable: {type(slot)}")
+#+end_src
+
+
+** Serialización de problemas completos
+
+Las funciones públicas =problema_from_dict= y =problema_to_dict= realizan la conversión bidireccional entre dicts Python y objetos =ProblemaTipo= / =ProblemaVF=.
+
+=problema_from_dict= distingue el tipo de problema por el campo ="tipo"= del dict, reconstruye los componentes llamando a =_slot_from_json= para cada uno, y convierte el campo ="setup"= (si no es =null=) en un callable mediante =_make_setup_fn=. Los metadatos =_nombre= y =_setup_str= se guardan como atributos del objeto para que =problema_to_dict= pueda recuperarlos sin necesidad de solicitarlos de nuevo al usuario.
+
+#+NAME: Problema desde dict JSON
+#+begin_src python :noweb yes
+def problema_from_dict(d):
+    """Crea un ProblemaTipo o ProblemaVF a partir de un dict JSON."""
+    tipo = d.get("tipo")
+
+    if tipo == "ProblemaTipo":
+        componentes = [_slot_from_json(s) for s in d["componentes"]]
+        setup_str   = d.get("setup")
+        setup       = _make_setup_fn(setup_str) if setup_str else None
+        p = ProblemaTipo(componentes, setup=setup)
+        p._nombre    = d.get("nombre", "")
+        p._setup_str = setup_str
+        return p
+
+    elif tipo == "ProblemaVF":
+        enunciado  = d["enunciado"]
+        cuestiones = [(c["texto"], c["respuesta"]) for c in d["cuestiones"]]
+        num        = d["NumPreguntas"]
+        p = ProblemaVF(enunciado, cuestiones, num)
+        p._nombre = d.get("nombre", "")
+        return p
+
+    else:
+        raise ValueError(f"Tipo de problema desconocido: {tipo!r}")
+#+end_src
+
+La función inversa, =problema_to_dict=, admite siempre objetos =ProblemaVF= (sus datos son directamente serializables). Para =ProblemaTipo= delega en =_slot_to_json=, que requiere que los componentes lleven el atributo =_json=.
+
+#+NAME: Problema a dict JSON
+#+begin_src python :noweb yes
+def problema_to_dict(problema):
+    """Serializa un ProblemaTipo o ProblemaVF a dict.
+
+    Para ProblemaTipo, requiere que los componentes (Supuesto/Cuestion) hayan
+    sido creados con problema_from_dict() o load_problema(). ProblemaVF siempre
+    puede serializarse.
+    """
+    if isinstance(problema, ProblemaTipo):
+        componentes = [_slot_to_json(s) for s in problema.e]
+        return {
+            "version":     "1",
+            "tipo":        "ProblemaTipo",
+            "nombre":      getattr(problema, '_nombre', ''),
+            "setup":       getattr(problema, '_setup_str', None),
+            "componentes": componentes,
+        }
+    elif isinstance(problema, ProblemaVF):
+        return {
+            "version":      "1",
+            "tipo":         "ProblemaVF",
+            "nombre":       getattr(problema, '_nombre', ''),
+            "enunciado":    problema.e,
+            "NumPreguntas": problema.NumPreguntas,
+            "cuestiones":   [{"texto": t, "respuesta": r} for t, r in problema.c],
+        }
+    else:
+        raise ValueError(f"Tipo no soportado: {type(problema)}")
+#+end_src
+
+
+** Lectura y escritura de ficheros
+
+Las funciones de alto nivel abren y cierran los ficheros JSON y delegan en las funciones de conversión.
+
+=load_problema= detecta si el fichero contiene un banco (clave ="banco"=) y en ese caso devuelve un error indicando al usuario que debe usar =load_banco=. Esto evita silenciosamente cargar solo el primer problema cuando el usuario ha pasado un banco por error.
+
+#+NAME: Cargar y guardar problema JSON
+#+begin_src python :noweb yes
+def load_problema(filepath):
+    """Carga un único problema desde un fichero JSON."""
+    with open(filepath, 'r', encoding='utf-8') as f:
+        d = _json.load(f)
+    if "banco" in d:
+        raise ValueError(f"{filepath!r} contiene un banco de problemas. Usa load_banco().")
+    return problema_from_dict(d)
+
+
+def save_problema(problema, filepath):
+    """Guarda un único problema en un fichero JSON."""
+    d = problema_to_dict(problema)
+    with open(filepath, 'w', encoding='utf-8') as f:
+        _json.dump(d, f, ensure_ascii=False, indent=2)
+#+end_src
+
+=load_banco= acepta tanto ficheros de banco (con ="banco"=) como ficheros de problema individual, en cuyo caso devuelve una lista de un elemento. =save_banco= acepta tanto listas como diccionarios (cuyas claves se ignoran, usándose solo los valores).
+
+#+NAME: Cargar y guardar banco JSON
+#+begin_src python :noweb yes
+def load_banco(filepath):
+    """Carga un banco de problemas desde un fichero JSON.
+    Devuelve una lista de ProblemaTipo / ProblemaVF."""
+    with open(filepath, 'r', encoding='utf-8') as f:
+        d = _json.load(f)
+    if "banco" in d:
+        return [problema_from_dict(p) for p in d["banco"]]
+    else:
+        return [problema_from_dict(d)]
+
+
+def save_banco(problemas, filepath):
+    """Guarda una lista (o dict) de problemas en un fichero JSON de banco."""
+    items = list(problemas.values() if isinstance(problemas, dict) else problemas)
+    banco = [problema_to_dict(p) for p in items]
+    d = {"version": "1", "banco": banco}
+    with open(filepath, 'w', encoding='utf-8') as f:
+        _json.dump(d, f, ensure_ascii=False, indent=2)
+#+end_src
+
+
+** Ejemplo de uso
+
+El siguiente ejemplo crea un =ProblemaTipo= desde un dict, lo itera, lo guarda en disco y lo recarga comprobando que el ciclo completo de serialización es transparente:
+
+#+begin_src jupyter-python
+from qbank import problema_from_dict, save_problema, load_problema
+
+d = {
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "ejemplo_json",
+  "setup": None,
+  "componentes": [
+    "Considere ",
+    [
+      {"tipo": "Supuesto", "enunciado": "A ", "semantica": "v('A')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "B ", "semantica": "v('B')", "precond": "True"}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "¿A?", "semantica": "v('A')",
+       "precond": "True", "exp": ""}
+    ]
+  ]
+}
+
+p = problema_from_dict(d)
+for etiqueta, enunciado, cuestiones in p:
+    print(etiqueta, enunciado, cuestiones)
+#+end_src
+
+#+begin_src jupyter-python
+save_problema(p, "/tmp/ejemplo.json")
+p2 = load_problema("/tmp/ejemplo.json")
+for etiqueta, enunciado, cuestiones in p2:
+    print(etiqueta, enunciado, cuestiones)
+#+end_src
+
+
+* Editor visual de problemas en Jupyter
+
+El módulo =qbank._widgets= proporciona =ProblemaTipoEditor=, un formulario interactivo basado en =ipywidgets= que permite construir, visualizar y guardar objetos =ProblemaTipo= desde un notebook de Jupyter sin escribir la estructura de listas a mano.
+
+** Dependencias e instalación
+
+El módulo requiere el paquete =ipywidgets=. Si no está disponible, la importación falla silenciosamente: el bloque =try/except= de =qbank.__init__= hace que el resto del paquete siga funcionando con normalidad.
+
+Para instalarlo en el entorno virtual:
+
+#+begin_example
+pip install "calcprop-qbank[jupyter]"
+#+end_example
+
+En *JupyterLab ≥ 4* es necesario que la extensión =@jupyter-widgets/jupyterlab-manager= aparezca como habilitada en =jupyter labextension list=. Si los widgets muestran su representación textual (=VBox(children=...=) en lugar del formulario), el síntoma es que JupyterLab no está escaneando el directorio =share/jupyter/labextensions= del entorno virtual. La solución consiste en crear un enlace simbólico al directorio de extensiones del usuario:
+
+#+begin_example
+mkdir -p ~/.local/share/jupyter/labextensions/@jupyter-widgets
+ln -sfn /ruta/.venv/share/jupyter/labextensions/@jupyter-widgets/jupyterlab-manager \
+    ~/.local/share/jupyter/labextensions/@jupyter-widgets/jupyterlab-manager
+#+end_example
+
+Tras reiniciar JupyterLab, =jupyter labextension list= debe mostrar la extensión como habilitada.
+
+
+** Estructura del módulo =qbank._widgets=
+   :PROPERTIES:
+   :UNNUMBERED: t
+   :END:
+
+#+begin_src python :tangle src/qbank/_widgets.py :exports none
+# Copyright (C) 2020-2026  Marcos Bujosa
+#
+# This file is part of calcprop-qbank.
+#
+# calcprop-qbank is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# calcprop-qbank is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+"""
+Editor visual de ProblemaTipo para Jupyter (ipywidgets).
+
+Uso básico::
+
+    from qbank import ProblemaTipoEditor
+
+    # Editor vacío
+    editor = ProblemaTipoEditor()
+
+    # Editor cargado desde fichero JSON
+    editor = ProblemaTipoEditor('mi_ejercicio.json')
+
+    # Editor cargado desde un problema ya en memoria
+    p = load_problema('mi_ejercicio.json')
+    editor = ProblemaTipoEditor(p)
+
+    # Obtener el problema editado
+    p = editor.to_problema()
+"""
+#+end_src
+
+#+NAME: qbank/_widgets.py
+#+begin_src python :tangle src/qbank/_widgets.py :noweb no-export
+__all__ = ['ProblemaTipoEditor']
+
+try:
+    import ipywidgets as _w
+    from IPython.display import display as _display, clear_output as _clear
+    _HAS_WIDGETS = True
+except ImportError:
+    _HAS_WIDGETS = False
+
+from qbank._quiz import ProblemaTipo
+from qbank._json import problema_from_dict, problema_to_dict, load_problema, save_problema
+
+
+def _need_widgets():
+    if not _HAS_WIDGETS:
+        raise ImportError(
+            "ipywidgets no está instalado. Ejecuta:\n"
+            "  pip install ipywidgets")
+
+
+<<Widget de alternativa>>
+<<Widget de slot>>
+<<Editor principal ProblemaTipoEditor>>
+#+end_src
+
+
+** Widget de alternativa (=_AltWidget=)
+
+El widget =_AltWidget= representa una única alternativa dentro de un slot. Sus campos son:
+
+- =tipo= :: dropdown con valores =Supuesto= / =Cuestion=.
+- =e= (enunciado) :: texto de la alternativa.
+- =s= (semántica) :: expresión calcprop (cadena), o =True= / =False=, o una lambda para problemas paramétricos (="lambda ns: ns['x'] > 0"=).
+- =p= (precondición) :: expresión calcprop; por defecto =True=.
+- =x= (explicación) :: texto de feedback para Moodle; solo visible cuando el tipo es =Cuestion=.
+
+El botón ✕ elimina la alternativa de su slot padre invocando el callback =_on_delete=. El método =_sync_exp= oculta o muestra el campo de explicación (y su etiqueta) según el tipo seleccionado. Nótese que la visibilidad debe establecerse a la cadena ='visible'= (y no a =''=), ya que =ipywidgets= valida el valor del atributo =visibility= del Layout.
+
+#+NAME: Widget de alternativa
+#+begin_src python :noweb yes
+# ── Widget de una alternativa (Supuesto o Cuestion) ──────────────────────────
+
+class _AltWidget:
+    def __init__(self, d=None, on_delete=None):
+        if d is None:
+            d = {}
+        self._on_delete = on_delete
+
+        self.tipo = _w.Dropdown(
+            options=['Supuesto', 'Cuestion'],
+            value=d.get('tipo', 'Cuestion'),
+            layout=_w.Layout(width='95px'))
+        self.e = _w.Text(
+            value=d.get('enunciado', ''), placeholder='enunciado',
+            layout=_w.Layout(width='210px'))
+        self.s = _w.Text(
+            value=d.get('semantica', 'True'), placeholder="v('A')",
+            layout=_w.Layout(width='130px'))
+        self.p = _w.Text(
+            value=d.get('precond', 'True'), placeholder='precond',
+            layout=_w.Layout(width='70px'))
+        self.x = _w.Text(
+            value=d.get('exp', ''), placeholder='explicación',
+            layout=_w.Layout(width='120px'))
+        self._exp_lbl = _w.Label('exp:', layout=_w.Layout(width='30px'))
+
+        del_btn = _w.Button(
+            description='✕', button_style='danger',
+            layout=_w.Layout(width='30px', height='28px'))
+        del_btn.on_click(lambda _: self._on_delete(self) if self._on_delete else None)
+        self.tipo.observe(lambda _: self._sync_exp(), names='value')
+        self._sync_exp()
+
+        self.box = _w.HBox([
+            self.tipo,
+            _w.Label('e:', layout=_w.Layout(width='15px')), self.e,
+            _w.Label('s:', layout=_w.Layout(width='15px')), self.s,
+            _w.Label('p:', layout=_w.Layout(width='15px')), self.p,
+            self._exp_lbl, self.x,
+            del_btn,
+        ])
+
+    def _sync_exp(self):
+        vis = 'visible' if self.tipo.value == 'Cuestion' else 'hidden'
+        self.x.layout.visibility = vis
+        self._exp_lbl.layout.visibility = vis
+
+    def to_dict(self):
+        d = {'tipo': self.tipo.value, 'enunciado': self.e.value,
+             'semantica': self.s.value, 'precond': self.p.value}
+        if self.tipo.value == 'Cuestion':
+            d['exp'] = self.x.value
+        return d
+#+end_src
+
+
+** Widget de slot (=_SlotWidget=)
+
+Un slot es uno de los «huecos» estructurales del problema. Puede ser:
+
+- *texto*: texto fijo que aparece igual en todas las variantes (una cadena Python).
+- *alternativas*: una o varias filas =_AltWidget= de las que =ProblemaTipo= elige una por variante.
+
+El dropdown =_tipo_dd= permite cambiar el modo. En modo =alternativas=, el botón =+ alt= añade una nueva fila vacía; el método =_del_alt= (conectado al botón ✕ de cada =_AltWidget=) la elimina. El botón ✕ del slot elimina el slot completo llamando al callback =_on_delete= del editor padre.
+
+El método =update_label= actualiza el número de slot tras añadir o eliminar slots anteriores. El método =to_json= devuelve el slot en el formato esperado por =problema_from_dict=: una cadena si es texto, o una lista de dicts si es alternativas.
+
+#+NAME: Widget de slot
+#+begin_src python :noweb yes
+# ── Widget de un slot (texto | lista de alternativas) ─────────────────────────
+
+class _SlotWidget:
+    def __init__(self, data=None, on_delete=None, index=0):
+        self._on_delete = on_delete
+        self._alts = []
+
+        if data is None or isinstance(data, str):
+            tipo_init, text_init, alts_init = 'texto', data or '', []
+        elif isinstance(data, dict):              # single component
+            tipo_init, text_init, alts_init = 'alternativas', '', [data]
+        else:                                     # list of components
+            tipo_init, text_init, alts_init = 'alternativas', '', data
+
+        self._tipo_dd = _w.Dropdown(
+            options=['texto', 'alternativas'], value=tipo_init,
+            layout=_w.Layout(width='110px'))
+        self._lbl = _w.Label(
+            f'Slot {index + 1}', layout=_w.Layout(width='52px'))
+
+        self._text = _w.Text(
+            value=text_init, placeholder='texto del enunciado…',
+            layout=_w.Layout(width='360px'))
+
+        self._alts_box = _w.VBox([])
+        _add_btn = _w.Button(
+            description='+ alt', button_style='info',
+            layout=_w.Layout(width='70px', height='26px'))
+        _add_btn.on_click(lambda _: self._add_alt())
+        self._alts_area = _w.VBox([self._alts_box, _add_btn])
+
+        del_btn = _w.Button(
+            description='✕', button_style='danger',
+            layout=_w.Layout(width='30px', height='28px'))
+        del_btn.on_click(lambda _: self._on_delete(self) if self._on_delete else None)
+
+        self._content = _w.HBox([self._text])
+        self._tipo_dd.observe(self._on_tipo, names='value')
+        self.box = _w.VBox([
+            _w.HBox([self._lbl, self._tipo_dd, self._content, del_btn])
+        ])
+
+        if tipo_init == 'alternativas':
+            self._content.children = [self._alts_area]
+            for a in alts_init:
+                self._add_alt(a)
+
+    def _on_tipo(self, change):
+        self._content.children = (
+            [self._text] if change['new'] == 'texto' else [self._alts_area])
+
+    def _add_alt(self, d=None):
+        alt = _AltWidget(d=d, on_delete=self._del_alt)
+        self._alts.append(alt)
+        self._alts_box.children = [a.box for a in self._alts]
+
+    def _del_alt(self, alt):
+        self._alts = [a for a in self._alts if a is not alt]
+        self._alts_box.children = [a.box for a in self._alts]
+
+    def update_label(self, i):
+        self._lbl.value = f'Slot {i + 1}'
+
+    def to_json(self):
+        if self._tipo_dd.value == 'texto':
+            return self._text.value
+        return [a.to_dict() for a in self._alts]
+#+end_src
+
+
+** Editor principal (=ProblemaTipoEditor=)
+
+=ProblemaTipoEditor= es el widget de nivel superior. Al instanciarse llama a =_display(self._ui)=, lo que hace que el formulario se renderice inmediatamente en la celda del notebook.
+
+El parámetro =source= admite cuatro tipos:
+
+- =None= :: el editor comienza vacío.
+- Cadena de texto :: ruta a un fichero JSON; el fichero se carga con =load_problema= y el campo =filepath= se actualiza automáticamente con la ruta indicada.
+- =dict= :: se interpreta directamente como descripción del problema (en el mismo formato JSON).
+- =ProblemaTipo= :: el objeto (que debe llevar el atributo =_json= en sus componentes, es decir, debe haber sido cargado con =load_problema= o =problema_from_dict=) se serializa con =problema_to_dict= y se muestra en el editor.
+
+Los botones de la barra inferior:
+
+| Botón          | Acción                                                                              |
+|----------------+-------------------------------------------------------------------------------------|
+| =▶ Preview=    | Genera hasta N variantes y las muestra en el área de salida.                        |
+| =💾 Guardar=   | Serializa el estado actual y lo guarda en el fichero indicado en el campo =filepath=. |
+| =📂 Cargar=    | Lee el fichero indicado y actualiza el editor con su contenido.                     |
+| =\{ \} JSON=   | Muestra el JSON equivalente al estado actual del editor en el área de salida.       |
+
+El método =to_dict()= devuelve el dict JSON del estado actual del editor. El método =to_problema()= devuelve un =ProblemaTipo= listo para iterar, construyéndolo con =problema_from_dict(self.to_dict())=.
+
+#+NAME: Editor principal ProblemaTipoEditor
+#+begin_src python :noweb yes
+# ── Editor principal ───────────────────────────────────────────────────────────
+
+class ProblemaTipoEditor:
+    """Editor visual de ProblemaTipo para Jupyter.
+
+    Parameters
+    ----------
+    source : str | dict | ProblemaTipo | None
+        Fuente inicial. Puede ser la ruta a un fichero JSON, un dict,
+        un objeto ProblemaTipo (creado con load_problema), o None para
+        empezar un problema nuevo.
+    """
+
+    def __init__(self, source=None):
+        _need_widgets()
+        self._slots = []
+
+        # ── Cabecera ──
+        self._nombre = _w.Text(
+            value='', placeholder='nombre del ejercicio',
+            layout=_w.Layout(width='320px'))
+        self._setup = _w.Textarea(
+            value='', placeholder='código Python del setup (opcional)',
+            layout=_w.Layout(width='520px', height='58px'))
+
+        header = _w.VBox([
+            _w.HBox([_w.Label('Nombre:', layout=_w.Layout(width='65px')),
+                     self._nombre]),
+            _w.HBox([_w.Label('Setup:', layout=_w.Layout(width='65px')),
+                     self._setup]),
+        ])
+
+        # ── Zona de slots ──
+        self._slots_box = _w.VBox([])
+        add_slot_btn = _w.Button(
+            description='+ slot', button_style='success',
+            layout=_w.Layout(width='85px'))
+        add_slot_btn.on_click(lambda _: self._add_slot())
+
+        # ── Controles inferiores ──
+        self._filepath = _w.Text(
+            value='problema.json', placeholder='ruta del fichero JSON',
+            layout=_w.Layout(width='260px'))
+        self._n_prev = _w.BoundedIntText(
+            value=5, min=1, max=100,
+            layout=_w.Layout(width='55px'))
+
+        prev_btn  = _w.Button(description='▶ Preview',  button_style='primary',
+                               layout=_w.Layout(width='105px'))
+        save_btn  = _w.Button(description='💾 Guardar', layout=_w.Layout(width='95px'))
+        load_btn  = _w.Button(description='📂 Cargar',  layout=_w.Layout(width='95px'))
+        json_btn  = _w.Button(description='{ } JSON',   layout=_w.Layout(width='95px'))
+
+        prev_btn.on_click(self._on_preview)
+        save_btn.on_click(self._on_save)
+        load_btn.on_click(self._on_load)
+        json_btn.on_click(self._on_show_json)
+
+        self._out = _w.Output()
+
+        self._ui = _w.VBox([
+            header,
+            _w.HTML('<hr style="margin:4px 0">'),
+            self._slots_box,
+            add_slot_btn,
+            _w.HTML('<hr style="margin:4px 0">'),
+            _w.HBox([
+                prev_btn,
+                _w.Label('vars:', layout=_w.Layout(width='32px')),
+                self._n_prev,
+                _w.Label('  '),
+                save_btn, load_btn,
+                _w.Label('  '),
+                self._filepath,
+                _w.Label('  '),
+                json_btn,
+            ]),
+            self._out,
+        ])
+
+        # Carga inicial
+        if source is not None:
+            self._load_source(source)
+
+        _display(self._ui)
+
+    # ── Gestión de slots ──────────────────────────────────────────
+
+    def _add_slot(self, data=None):
+        s = _SlotWidget(data=data, on_delete=self._del_slot,
+                        index=len(self._slots))
+        self._slots.append(s)
+        self._refresh()
+
+    def _del_slot(self, slot):
+        self._slots = [s for s in self._slots if s is not slot]
+        self._refresh()
+
+    def _refresh(self):
+        for i, s in enumerate(self._slots):
+            s.update_label(i)
+        self._slots_box.children = [s.box for s in self._slots]
+
+    # ── Carga de datos ────────────────────────────────────────────
+
+    def _load_source(self, source):
+        if isinstance(source, str):
+            p = load_problema(source)
+            self._filepath.value = source
+            d = problema_to_dict(p)
+        elif isinstance(source, ProblemaTipo):
+            d = problema_to_dict(source)
+        elif isinstance(source, dict):
+            d = source
+        else:
+            raise ValueError(f"Fuente no reconocida: {type(source)}")
+
+        self._nombre.value = d.get('nombre', '')
+        self._setup.value  = d.get('setup', '') or ''
+        self._slots = []
+        for comp in d.get('componentes', []):
+            self._add_slot(data=comp)
+
+    # ── Serialización ─────────────────────────────────────────────
+
+    def to_dict(self):
+        """Devuelve el problema actual como dict JSON."""
+        setup = self._setup.value.strip() or None
+        return {
+            'version':     '1',
+            'tipo':        'ProblemaTipo',
+            'nombre':      self._nombre.value,
+            'setup':       setup,
+            'componentes': [s.to_json() for s in self._slots],
+        }
+
+    def to_problema(self):
+        """Devuelve un ProblemaTipo listo para iterar."""
+        return problema_from_dict(self.to_dict())
+
+    # ── Callbacks de botones ──────────────────────────────────────
+
+    def _on_preview(self, _):
+        with self._out:
+            _clear()
+            try:
+                p   = self.to_problema()
+                n   = self._n_prev.value
+                cnt = 0
+                for var in p:
+                    if cnt >= n:
+                        break
+                    id_, enunciado, cuestiones = var
+                    print(f"── Variante {id_} ──  {enunciado}")
+                    for c in cuestiones:
+                        mark = '✓' if c[1] is True else ('✗' if c[1] is False else '?')
+                        print(f"   {mark} {c[0]}")
+                    cnt += 1
+                if cnt == 0:
+                    print("(sin variantes)")
+            except Exception as exc:
+                print(f"Error: {exc}")
+
+    def _on_save(self, _):
+        with self._out:
+            _clear()
+            try:
+                path = self._filepath.value.strip()
+                p    = problema_from_dict(self.to_dict())
+                save_problema(p, path)
+                print(f"✓ Guardado en {path!r}")
+            except Exception as exc:
+                print(f"Error al guardar: {exc}")
+
+    def _on_load(self, _):
+        with self._out:
+            _clear()
+            try:
+                path = self._filepath.value.strip()
+                self._slots = []
+                self._load_source(path)
+                print(f"✓ Cargado desde {path!r}")
+            except Exception as exc:
+                print(f"Error al cargar: {exc}")
+
+    def _on_show_json(self, _):
+        with self._out:
+            _clear()
+            try:
+                import json
+                print(json.dumps(self.to_dict(), ensure_ascii=False, indent=2))
+            except Exception as exc:
+                print(f"Error: {exc}")
+#+end_src
+
+
 * COMMENT otros
 
 #+BEGIN_SRC jupyter-python :results raw

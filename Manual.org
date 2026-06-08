@@ -371,6 +371,75 @@ Variante 3:
   Si aprueban todos eres buen profesor ✗
 #+end_example
 
+** Preguntas paramétricas con =setup=
+
+El parámetro opcional =setup= de =ProblemaTipo= permite definir problemas cuyos valores numéricos o simbólicos cambian en cada variante. Cuando se proporciona, en cada iteración:
+
+1. Se llama a =setup()= y el dict que devuelve se convierte en el *espacio de nombres* de la variante.
+2. Los textos de los slots que contengan marcadores =@variable= reciben la sustitución correspondiente.
+3. Las semánticas y precondiciones que sean callables (=lambda ns: ...=) se evalúan con ese diccionario.
+
+El delimitador =@= se eligió para evitar conflictos con el modo matemático de \LaTeX{}. Para obtener un arroba literal en el texto, escribe =@@=.
+
+*** Sin =setup=: combinatoria pura
+
+El uso habitual de =ProblemaTipo= (sin =setup=) ya se ha visto en la sección anterior. No hace falta ningún código de setup; los textos son fijos y la variación viene solo de la elección entre alternativas.
+
+*** Con =setup= y valores aleatorios
+
+El siguiente ejemplo genera preguntas en las que los valores numéricos cambian en cada iteración porque el =setup= usa =random=:
+
+#+begin_src python :results silent
+import random
+
+def numeros_aleatorios():
+    a = random.randint(1, 9)
+    b = random.randint(1, 9)
+    return {'a': a, 'b': b, 'suma': a + b}
+
+ejercicio_param = ProblemaTipo(
+    [
+        "Sean $a = @a$ y $b = @b$. ",
+        [
+            Cuestion("$a + b = @suma$", True),
+            Cuestion("$a + b > 10$", lambda ns: ns['a'] + ns['b'] > 10),
+        ],
+    ],
+    setup=numeros_aleatorios,
+)
+#+end_src
+
+En este ejemplo:
+
+- La cadena ="Sean $a = @a$ y $b = @b$. "= interpola =@a= y =@b= con los valores de cada variante.
+- La semántica =True= de la primera =Cuestion= indica que la afirmación «$a + b = @suma$» siempre es correcta (el propio texto incluye ya la respuesta correcta).
+- La semántica =lambda ns: ns['a'] + ns['b'] > 10= se evalúa con los valores de la variante.
+
+*Importante:* cuando =setup= devuelve valores distintos en cada llamada (como aquí, con =random=), el iterador no tiene fin. Controla externamente cuántas variantes generas con un =break=, =itertools.islice= o un =range= acotado.
+
+*** Con =setup= y valores fijos
+
+Si el =setup= devuelve siempre el mismo diccionario, la combinatoria sigue siendo finita pero los textos usan los parámetros fijos para componer el enunciado. Esto es útil para parametrizar el mismo tipo de pregunta con constantes que se definen una sola vez:
+
+#+begin_src python :results silent
+def parametros_fijos():
+    return {'n': 3, 'k': 2}
+
+ejercicio_fijo = ProblemaTipo(
+    [
+        "Considere una matriz de $@n \\times @k$. ",
+        [
+            Supuesto("con rango máximo. ", v("MaxRk")),
+            Supuesto("con rango deficiente. ", -v("MaxRk")),
+        ],
+        [
+            Cuestion("Tiene $@k$ columnas linealmente independientes.", v("MaxRk")),
+        ],
+    ],
+    setup=parametros_fijos,
+)
+#+end_src
+
 * Exportar a AMC (LaTeX)
 
 Las funciones AMC generan el código LaTeX compatible con Auto Multiple Choice.
@@ -623,6 +692,128 @@ pdflatex EjemploVF.tex
 /Nota/: =codchar()= convierte los caracteres con tilde y la ñ a secuencias LaTeX
 (p.ej. =á= → =\'a=). Es necesario para Moodle porque el =.tex= usa codificación OT1.
 
+* Editor visual en Jupyter (=ProblemaTipoEditor=)
+
+=ProblemaTipoEditor= es un formulario interactivo para diseñar problemas de tipo =ProblemaTipo= desde un notebook de Jupyter, sin necesidad de escribir la estructura de listas a mano.
+
+** Instalación
+
+El editor requiere =ipywidgets=. Instálalo junto con =calcprop-qbank=:
+
+#+begin_src bash
+pip install "calcprop-qbank[jupyter]"
+#+end_src
+
+En *JupyterLab ≥ 4* es necesario que la extensión =@jupyter-widgets/jupyterlab-manager= esté habilitada. Compruébalo con:
+
+#+begin_src bash
+jupyter labextension list
+#+end_src
+
+Si la extensión no aparece (síntoma: el widget se muestra como texto =VBox(children=...=), ejecuta una sola vez desde el terminal:
+
+#+begin_src bash
+mkdir -p ~/.local/share/jupyter/labextensions/@jupyter-widgets
+ln -sfn $(python -c "import jupyterlab_widgets, os; \
+  print(os.path.dirname(jupyterlab_widgets.__file__))")/labextension \
+  ~/.local/share/jupyter/labextensions/@jupyter-widgets/jupyterlab-manager
+#+end_src
+
+Reinicia JupyterLab para que el cambio surta efecto. (En Jupyter Notebook clásico no hace falta este paso.)
+
+** Uso básico
+
+Abre un notebook con el kernel del entorno donde instalaste =calcprop-qbank=:
+
+#+begin_src python
+from qbank import ProblemaTipoEditor
+#+end_src
+
+Para empezar un problema nuevo:
+
+#+begin_src python
+editor = ProblemaTipoEditor()
+#+end_src
+
+Para cargar un problema desde un fichero JSON existente:
+
+#+begin_src python
+editor = ProblemaTipoEditor('mi_problema.json')
+#+end_src
+
+** Descripción del formulario
+
+El editor tiene tres zonas:
+
+- *Cabecera*: campo =Nombre= (identificador del problema) y campo =Setup= (código Python del setup paramétrico; déjalo vacío si no necesitas valores variables).
+- *Slots*: cada slot es un «componente» del problema. Pulsa =+ slot= para añadir slots. Cada slot puede ser de tipo:
+  - *texto*: texto fijo que aparece igual en todas las variantes.
+  - *alternativas*: una o más filas, cada una con tipo (=Supuesto= / =Cuestion=), enunciado, semántica, precondición y, para =Cuestion=, un campo de explicación/feedback. Pulsa =+ alt= para añadir filas.
+- *Barra inferior*: controles de acción.
+
+| Botón         | Acción                                                                              |
+|---------------+-------------------------------------------------------------------------------------|
+| =▶ Preview=   | Genera hasta N variantes y las muestra en el área de salida.                        |
+| =💾 Guardar=  | Serializa el estado actual y lo guarda en el fichero indicado (campo de texto JSON). |
+| =📂 Cargar=   | Lee el fichero indicado y rellena el editor con su contenido.                       |
+| =\{ \} JSON=  | Muestra el JSON equivalente al estado actual del editor en el área de salida.       |
+
+** Ejemplo sin =setup=
+
+Construir desde el editor el mismo problema del ejemplo de =ProblemaTipo=:
+
+1. Ejecutar =ProblemaTipoEditor()= en una celda.
+2. Dejar el campo =Setup= vacío.
+3. =+ slot= → tipo *texto* → escribir ="Dado que "=.
+4. =+ slot= → tipo *alternativas* → =+ alt= dos veces:
+   - fila 1: tipo =Supuesto=, enunciado =$\\mathcal{A}$ es verdadero, =, semántica =v('A')=
+   - fila 2: tipo =Supuesto=, enunciado =$\\mathcal{B}$ es verdadero, =, semántica =v('B')=
+5. =+ slot= → tipo *texto* → escribir ="indique qué opción es correcta: "=.
+6. =+ slot= → tipo *alternativas* → =+ alt= dos veces:
+   - fila 1: tipo =Cuestion=, enunciado =$\\mathcal{A}$ es verdadero=, semántica =v('A')=
+   - fila 2: tipo =Cuestion=, enunciado =$\\mathcal{B}$ es verdadero=, semántica =v('B')=
+7. Pulsar =▶ Preview= (4 variantes esperadas).
+8. Escribir =mi_problema.json= en el campo de ruta y pulsar =💾 Guardar=.
+
+Una vez guardado, el fichero puede cargarse desde código Python:
+
+#+begin_src python
+from qbank import load_problema
+p = load_problema('mi_problema.json')
+for etiqueta, enunciado, cuestiones in p:
+    print(etiqueta, enunciado)
+#+end_src
+
+** Ejemplo con =setup= paramétrico
+
+Para un problema con valores variables, escribe en el campo =Setup= el código que genera los valores por variante:
+
+#+begin_example
+import random
+a = random.randint(1, 9)
+b = random.randint(1, 9)
+suma = a + b
+#+end_example
+
+Luego, en los textos de los slots, usa =@a=, =@b= y =@suma= donde corresponda. Por ejemplo, un slot de tipo *texto* con el contenido ="Sean $a = @a$ y $b = @b$. "= mostrará los valores aleatorios de cada variante.
+
+Las semánticas que dependan de los valores del setup deben escribirse como lambdas:
+
+#+begin_example
+lambda ns: ns['a'] + ns['b'] > 10
+#+end_example
+
+** Obtener el problema desde el editor
+
+Una vez diseñado el problema, puedes obtener el objeto Python directamente desde otra celda:
+
+#+begin_src python
+p = editor.to_problema()   # ProblemaTipo listo para iterar
+d = editor.to_dict()       # dict JSON equivalente
+#+end_src
+
+Con =p= ya puedes llamar a las funciones de exportación (=AMC=, =QuizMoodleLastCh=, etc.) como si hubieras definido el problema a mano.
+
 * Referencia rápida de la API
 
 ** Clases
@@ -630,9 +821,23 @@ pdflatex EjemploVF.tex
 #+begin_example
 Supuesto(enunciado, semantica, precond=True)
 Cuestion(enunciado, semantica, precond=True, exp="")
-ProblemaTipo(lista)          → itera (etiqueta, enunciado, cuestiones)
-ProblemaTipoProfe(lista)     → como ProblemaTipo, sin descartar ítems rechazados
-ProblemaVF(enunciado, lista, n) → itera (etiqueta, enunciado, cuestiones)
+ProblemaTipo(lista, setup=None)      → itera (etiqueta, enunciado, cuestiones)
+ProblemaTipoProfe(lista, setup=None) → como ProblemaTipo, sin descartar ítems rechazados
+ProblemaVF(enunciado, lista, n)      → itera (etiqueta, enunciado, cuestiones)
+ProblemaTipoEditor(source=None)      → editor visual en Jupyter (requiere ipywidgets)
+#+end_example
+
+Los campos =semantica= y =precond= de =Supuesto= y =Cuestion= admiten, además de fórmulas =calcprop=, callables de la forma =lambda ns: ...= para problemas con =setup= paramétrico. Los textos (enunciados) admiten =@variable= para sustituir valores del namespace del =setup=.
+
+** Funciones JSON
+
+#+begin_example
+problema_from_dict(d)              → ProblemaTipo o ProblemaVF
+problema_to_dict(problema)         → dict  (requiere componentes cargados desde JSON)
+load_problema(filepath)            → ProblemaTipo o ProblemaVF
+save_problema(problema, filepath)
+load_banco(filepath)               → lista de problemas
+save_banco(problemas, filepath)    # acepta lista o dict
 #+end_example
 
 ** Funciones AMC
