@@ -15,6 +15,10 @@ requires-python = ">=3.9"
 dependencies = [
     "calcprop>=0.1",
 ]
+
+[project.optional-dependencies]
+jupyter = ["ipywidgets>=8"]
+
 keywords = ["question bank", "multiple choice", "AMC", "Moodle", "propositional calculus", "education"]
 classifiers = [
     "Development Status :: 3 - Alpha",
