@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- This file was generated on 2026-06-02 by pdfLaTeX -->
+<!-- running on *NIX with the package moodle v0.9 -->
+
+<quiz>
+ 
+<question type="category">
+  <category>
+    <text>$course$/top/EjemploMoodle</text>
+  </category>
+</question>
+ 
+<question type="multichoice">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-1]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+  </questiontext>
+  <defaultgrade>1</defaultgrade>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+  <single>false</single>
+  <shuffleanswers>1</shuffleanswers>
+  <answernumbering>abc</answernumbering>
+  <answer fraction="100" format="html">
+    <text><![CDATA[<p>Entonces \(\mathcal {C}\) es verdadero</p>]]></text>
+  </answer>
+  <answer fraction="-100" format="html">
+    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
+  </answer>
+</question>
+<question type="multichoice">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-2]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+  </questiontext>
+  <defaultgrade>1</defaultgrade>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+  <single>false</single>
+  <shuffleanswers>1</shuffleanswers>
+  <answernumbering>abc</answernumbering>
+  <answer fraction="-100" format="html">
+    <text><![CDATA[<p>Entonces \(\mathcal {D}\) es verdadero</p>]]></text>
+  </answer>
+  <answer fraction="100" format="html">
+    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
+  </answer>
+</question>
+<question type="multichoice">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-3]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+  </questiontext>
+  <defaultgrade>1</defaultgrade>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+  <single>false</single>
+  <shuffleanswers>1</shuffleanswers>
+  <answernumbering>abc</answernumbering>
+  <answer fraction="-100" format="html">
+    <text><![CDATA[<p>Entonces \(\mathcal {C}\) es verdadero</p>]]></text>
+  </answer>
+  <answer fraction="100" format="html">
+    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
+  </answer>
+</question>
+<question type="multichoice">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-4]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+  </questiontext>
+  <defaultgrade>1</defaultgrade>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+  <single>false</single>
+  <shuffleanswers>1</shuffleanswers>
+  <answernumbering>abc</answernumbering>
+  <answer fraction="-100" format="html">
+    <text><![CDATA[<p>Entonces \(\mathcal {D}\) es verdadero</p>]]></text>
+  </answer>
+  <answer fraction="100" format="html">
+    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
+  </answer>
+</question>
+<question type="multichoice">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-5]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+  </questiontext>
+  <defaultgrade>1</defaultgrade>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+  <single>false</single>
+  <shuffleanswers>1</shuffleanswers>
+  <answernumbering>abc</answernumbering>
+  <answer fraction="-100" format="html">
+    <text><![CDATA[<p>Entonces \(\mathcal {C}\) es verdadero</p>]]></text>
+  </answer>
+  <answer fraction="100" format="html">
+    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
+  </answer>
+</question>
+<question type="multichoice">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-6]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+  </questiontext>
+  <defaultgrade>1</defaultgrade>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+  <single>false</single>
+  <shuffleanswers>1</shuffleanswers>
+  <answernumbering>abc</answernumbering>
+  <answer fraction="-100" format="html">
+    <text><![CDATA[<p>Entonces \(\mathcal {D}\) es verdadero</p>]]></text>
+  </answer>
+  <answer fraction="100" format="html">
+    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
+  </answer>
+</question>
+<question type="multichoice">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-7]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+  </questiontext>
+  <defaultgrade>1</defaultgrade>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+  <single>false</single>
+  <shuffleanswers>1</shuffleanswers>
+  <answernumbering>abc</answernumbering>
+  <answer fraction="-100" format="html">
+    <text><![CDATA[<p>Entonces \(\mathcal {C}\) es verdadero</p>]]></text>
+  </answer>
+  <answer fraction="100" format="html">
+    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
+  </answer>
+</question>
+<question type="multichoice">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-8]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+  </questiontext>
+  <defaultgrade>1</defaultgrade>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+  <single>false</single>
+  <shuffleanswers>1</shuffleanswers>
+  <answernumbering>abc</answernumbering>
+  <answer fraction="100" format="html">
+    <text><![CDATA[<p>Entonces \(\mathcal {D}\) es verdadero</p>]]></text>
+  </answer>
+  <answer fraction="-100" format="html">
+    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
+  </answer>
+</question>
+ 
+</quiz>

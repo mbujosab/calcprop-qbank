@@ -1,0 +1,40 @@
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "matriz_rango",
+  "setup": "import random\nn = random.randint(3, 5)\nk = random.randint(2, n - 1)",
+  "componentes": [
+    "Considere una matriz $A$ de $@n$ filas y $@k$ columnas. ",
+    [
+      {
+        "tipo": "Supuesto",
+        "enunciado": "Suponga que $A$ tiene rango máximo ($\\mathrm{rg}(A)=@k$). ",
+        "semantica": "v('MaxRk')",
+        "precond": "True"
+      },
+      {
+        "tipo": "Supuesto",
+        "enunciado": "Suponga que $A$ tiene rango deficiente ($\\mathrm{rg}(A)<@k$). ",
+        "semantica": "-v('MaxRk')",
+        "precond": "True"
+      }
+    ],
+    "Indique qué afirmación es correcta: ",
+    [
+      {
+        "tipo": "Cuestion",
+        "enunciado": "Las $@k$ columnas de $A$ son linealmente independientes.",
+        "semantica": "v('MaxRk')",
+        "precond": "True",
+        "exp": ""
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "$A^\\top A$ es invertible.",
+        "semantica": "v('MaxRk')",
+        "precond": "True",
+        "exp": ""
+      }
+    ]
+  ]
+}

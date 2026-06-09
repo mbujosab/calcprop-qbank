@@ -1180,6 +1180,74 @@ Variantes habituales:
 | =QuizMoodleProfe=      | Versión con ítems rechazados visibles (revisión).     |
 | =QuizVFMoodle=         | Para =ProblemaVF= (preguntas de verdadero/falso).     |
 
+*** Paso 4 — Generar múltiples instancias numéricas (problemas con =setup=)
+
+Cuando el problema tiene =setup= con valores aleatorios, iterar una sola vez el
+problema genera tantas variantes como combinaciones estructurales existan (por
+ejemplo, 2 supuestos × 2 cuestiones = 4). Cada variante llama a =setup()= de
+forma independiente, por lo que cada una puede tener distintos valores numéricos.
+
+Hay dos patrones de exportación masiva:
+
+*Opción A — variantes totalmente independientes*
+
+Cada una de las 40 variantes tiene sus propios valores numéricos. Útil cuando
+el banco de preguntas debe ser lo más variado posible.
+
+#+begin_src python
+from qbank import *
+
+p = load_problema("mi_problema.json")
+
+with open("preguntas.tex", "w") as f:
+    for instancia in range(10):
+        for etiqueta, enunciado, cuestiones in p:
+            f.write(AMC("MiCuestionario", f"{instancia+1}-{etiqueta}",
+                        enunciado, cuestiones))
+#+end_src
+
+Las 4 variantes estructurales de cada vuelta del bucle externo no comparten
+necesariamente los mismos valores numéricos entre sí.
+
+*Opción B — lotes: las variantes estructurales comparten los mismos valores*
+
+Dentro de cada lote, las 4 variantes estructurales usan los mismos valores
+numéricos. El =setup= se reemplaza temporalmente por un callable que devuelve
+un dict fijo calculado al inicio del lote.
+
+#+begin_src python
+from qbank import *
+import random
+
+p = load_problema("mi_problema.json")
+d = problema_to_dict(p)          # dict reutilizable
+
+with open("preguntas.tex", "w") as f:
+    for instancia in range(10):
+        n = random.randint(3, 9)
+        k = random.randint(2, n - 1)
+        ns = {'n': n, 'k': k}
+
+        p_lote = problema_from_dict(d)
+        p_lote.setup = lambda ns=ns: ns   # fija n,k para todo el lote
+
+        for etiqueta, enunciado, cuestiones in p_lote:
+            f.write(AMC("MiCuestionario", f"{instancia+1}-{etiqueta}",
+                        enunciado, cuestiones))
+#+end_src
+
+El =lambda ns=ns: ns= captura el valor del dict en el momento de creación
+mediante argumento por defecto, evitando que todas las lambdas apunten al
+mismo último valor de la variable de bucle.
+
+| Opción | Patrón                            | Valores por variante           |
+|--------+-----------------------------------+--------------------------------|
+| A      | =for i in range(10): for v in p:= | Cada variante tiene los suyos  |
+| B      | =p_lote.setup = lambda ns=ns: ns= | Las 4 del lote comparten $(n,k)$ |
+
+Ambos patrones funcionan igual para Moodle: sustituye =AMC= por =QuizMoodleLastCh=
+y adapta el nombre del fichero de salida.
+
 * Referencia rápida de la API
 
 ** Clases
