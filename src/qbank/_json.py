@@ -357,21 +357,32 @@ def _slot_to_python(slot, nivel=1):
     raise ValueError(f"Tipo no convertible a Python: {type(slot)}")
 
 
-def problema_to_python(problema, varname="ejercicio"):
-    """Genera código Python que recrea la lista de listas del problema.
+def _subpregunta_to_python(sp_dict, nivel=1):
+    """Convierte una sub-pregunta JSON al código SubPregunta(...) equivalente."""
+    pad   = "    " * nivel
+    intro = repr(sp_dict["intro"])
+    inner = "\n".join(_slot_to_python(c, nivel + 1) for c in sp_dict["cuestiones"])
+    return f"{pad}SubPregunta({intro}, [\n{inner}\n{pad}]),"
 
+
+def problema_to_python(problema, varname="ejercicio"):
+    """Genera código Python que recrea el problema como listas editables.
+
+    Soporta ProblemaTipo y ProblemaMultiParte.
     El fichero resultante puede abrirse con cualquier editor de texto,
     modificarse y ejecutarse directamente con Python.
     Para problemas con setup, el código del setup queda como función Python
     editable (_setup). Si el setup es un callable sin _setup_str, falla.
     """
-    d = problema_to_dict(problema)
+    d    = problema_to_dict(problema)
+    tipo = d.get("tipo", "ProblemaTipo")
 
-    lines = [
-        "from qbank import Supuesto, Cuestion, ProblemaTipo",
-        "from calcprop import *",
-        "",
-    ]
+    if tipo == "ProblemaMultiParte":
+        imports = "from qbank import Supuesto, Cuestion, SubPregunta, ProblemaMultiParte"
+    else:
+        imports = "from qbank import Supuesto, Cuestion, ProblemaTipo"
+
+    lines = [imports, "from calcprop import *", ""]
 
     setup_str = d.get("setup")
     if setup_str:
@@ -384,16 +395,30 @@ def problema_to_python(problema, varname="ejercicio"):
             "",
         ]
 
-    lines.append(f"{varname} = [")
-    for comp in d["componentes"]:
-        lines.append(_slot_to_python(comp, nivel=1))
-    lines.append("]")
-    lines.append("")
-
     setup_arg = ", setup=_setup" if setup_str else ""
-    lines.append(f"p = ProblemaTipo({varname}{setup_arg})")
-    lines.append("")
 
+    if tipo == "ProblemaMultiParte":
+        lines.append(f"{varname} = [")
+        for comp in d["componentes"]:
+            lines.append(_slot_to_python(comp, nivel=1))
+        lines.append("]")
+        lines.append("")
+        subvar = varname + "_subs"
+        lines.append(f"{subvar} = [")
+        for sp in d["subpreguntas"]:
+            lines.append(_subpregunta_to_python(sp, nivel=1))
+        lines.append("]")
+        lines.append("")
+        lines.append(f"p = ProblemaMultiParte({varname}, {subvar}{setup_arg})")
+    else:
+        lines.append(f"{varname} = [")
+        for comp in d["componentes"]:
+            lines.append(_slot_to_python(comp, nivel=1))
+        lines.append("]")
+        lines.append("")
+        lines.append(f"p = ProblemaTipo({varname}{setup_arg})")
+
+    lines.append("")
     return "\n".join(lines)
 
 
