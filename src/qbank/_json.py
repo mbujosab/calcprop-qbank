@@ -76,6 +76,8 @@ __all__ = [
     'save_problema',
     'load_banco',
     'save_banco',
+    'problema_to_python',
+    'save_problema_py',
 ]
 
 _EVAL_NS = vars(_calcprop_mod).copy()
@@ -270,3 +272,84 @@ def save_banco(problemas, filepath):
     d = {"version": "1", "banco": banco}
     with open(filepath, 'w', encoding='utf-8') as f:
         _json.dump(d, f, ensure_ascii=False, indent=2)
+
+
+# ── Exportación a código Python ───────────────────────────────────────────────
+
+def _slot_to_python(slot, nivel=1):
+    pad = "    " * nivel
+
+    if isinstance(slot, str):
+        return f"{pad}{repr(slot)},"
+
+    elif isinstance(slot, dict):
+        tipo      = slot["tipo"]
+        enunciado = repr(slot["enunciado"])
+        semantica = slot["semantica"]      # cadena evaluable: "v('A')", "True", …
+        precond   = slot.get("precond", "True")
+        exp       = slot.get("exp", "")
+
+        kwargs = []
+        if precond != "True":
+            kwargs.append(f"precond={precond}")
+        if exp:
+            kwargs.append(f"exp={repr(exp)}")
+
+        extra = (", " + ", ".join(kwargs)) if kwargs else ""
+        if tipo == "Supuesto":
+            return f"{pad}Supuesto({enunciado}, {semantica}{extra}),"
+        elif tipo == "Cuestion":
+            return f"{pad}Cuestion({enunciado}, {semantica}{extra}),"
+
+    elif isinstance(slot, list):
+        inner = "\n".join(_slot_to_python(item, nivel + 1) for item in slot)
+        return f"{pad}[\n{inner}\n{pad}],"
+
+    raise ValueError(f"Tipo no convertible a Python: {type(slot)}")
+
+
+def problema_to_python(problema, varname="ejercicio"):
+    """Genera código Python que recrea la lista de listas del problema.
+
+    El fichero resultante puede abrirse con cualquier editor de texto,
+    modificarse y ejecutarse directamente con Python.
+    Para problemas con setup, el código del setup queda como función Python
+    editable (_setup). Si el setup es un callable sin _setup_str, falla.
+    """
+    d = problema_to_dict(problema)
+
+    lines = [
+        "from qbank import Supuesto, Cuestion, ProblemaTipo",
+        "from calcprop import *",
+        "",
+    ]
+
+    setup_str = d.get("setup")
+    if setup_str:
+        lines += ["", "def _setup():"]
+        for line in setup_str.splitlines():
+            lines.append(f"    {line}")
+        lines += [
+            "    _locs = locals()",
+            "    return {k: v for k, v in _locs.items() if not k.startswith('_')}",
+            "",
+        ]
+
+    lines.append(f"{varname} = [")
+    for comp in d["componentes"]:
+        lines.append(_slot_to_python(comp, nivel=1))
+    lines.append("]")
+    lines.append("")
+
+    setup_arg = ", setup=_setup" if setup_str else ""
+    lines.append(f"p = ProblemaTipo({varname}{setup_arg})")
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+def save_problema_py(problema, filepath, varname="ejercicio"):
+    """Guarda el problema como código Python editable en un fichero .py."""
+    code = problema_to_python(problema, varname=varname)
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(code)

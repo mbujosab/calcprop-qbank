@@ -1049,6 +1049,8 @@ __all__ = [
     'save_problema',
     'load_banco',
     'save_banco',
+    'problema_to_python',
+    'save_problema_py',
 ]
 
 <<Espacio de nombres calcprop para JSON>>
@@ -1061,6 +1063,7 @@ __all__ = [
 <<Problema a dict JSON>>
 <<Cargar y guardar problema JSON>>
 <<Cargar y guardar banco JSON>>
+<<Exportación a código Python>>
 #+end_src
 
 
@@ -1438,6 +1441,127 @@ save_problema(p, "./tmp/ejemplo.json")
 p2 = load_problema("./tmp/ejemplo.json")
 for etiqueta, enunciado, cuestiones in p2:
     print(etiqueta, enunciado, cuestiones)
+#+end_src
+
+
+** Exportación a código Python editable
+
+Además de guardar en JSON, es posible convertir un problema a código Python puro: una lista de listas con =Supuesto= y =Cuestion= tal y como se escribiría a mano. El resultado es un fichero =.py= legible y editable con cualquier editor de texto.
+
+*** =_slot_to_python=
+
+Convierte un slot (cadena, =Supuesto=, =Cuestion= o lista de alternativas) al fragmento de código Python equivalente. El parámetro =nivel= controla la indentación (cada nivel añade cuatro espacios).
+
+- Una cadena de texto se escribe como literal Python con =repr()=.
+- Un =Supuesto= o =Cuestion= (representado como dict JSON interno) se escribe como llamada al constructor, omitiendo =precond= cuando vale ="True"= y =exp= cuando está vacío.
+- Una lista de alternativas se escribe como lista Python anidada.
+
+La función recibe el slot en su representación de dict JSON (producida por =_slot_to_json=), no el objeto Python original, porque =problema_to_python= invoca primero =problema_to_dict= para normalizar la representación.
+
+#+NAME: Exportación a código Python
+#+begin_src python :noweb yes
+# ── Exportación a código Python ───────────────────────────────────────────────
+
+def _slot_to_python(slot, nivel=1):
+    pad = "    " * nivel
+
+    if isinstance(slot, str):
+        return f"{pad}{repr(slot)},"
+
+    elif isinstance(slot, dict):
+        tipo      = slot["tipo"]
+        enunciado = repr(slot["enunciado"])
+        semantica = slot["semantica"]      # cadena evaluable: "v('A')", "True", …
+        precond   = slot.get("precond", "True")
+        exp       = slot.get("exp", "")
+
+        kwargs = []
+        if precond != "True":
+            kwargs.append(f"precond={precond}")
+        if exp:
+            kwargs.append(f"exp={repr(exp)}")
+
+        extra = (", " + ", ".join(kwargs)) if kwargs else ""
+        if tipo == "Supuesto":
+            return f"{pad}Supuesto({enunciado}, {semantica}{extra}),"
+        elif tipo == "Cuestion":
+            return f"{pad}Cuestion({enunciado}, {semantica}{extra}),"
+
+    elif isinstance(slot, list):
+        inner = "\n".join(_slot_to_python(item, nivel + 1) for item in slot)
+        return f"{pad}[\n{inner}\n{pad}],"
+
+    raise ValueError(f"Tipo no convertible a Python: {type(slot)}")
+
+
+def problema_to_python(problema, varname="ejercicio"):
+    """Genera código Python que recrea la lista de listas del problema.
+
+    El fichero resultante puede abrirse con cualquier editor de texto,
+    modificarse y ejecutarse directamente con Python.
+    Para problemas con setup, el código del setup queda como función Python
+    editable (_setup). Si el setup es un callable sin _setup_str, falla.
+    """
+    d = problema_to_dict(problema)
+
+    lines = [
+        "from qbank import Supuesto, Cuestion, ProblemaTipo",
+        "from calcprop import *",
+        "",
+    ]
+
+    setup_str = d.get("setup")
+    if setup_str:
+        lines += ["", "def _setup():"]
+        for line in setup_str.splitlines():
+            lines.append(f"    {line}")
+        lines += [
+            "    _locs = locals()",
+            "    return {k: v for k, v in _locs.items() if not k.startswith('_')}",
+            "",
+        ]
+
+    lines.append(f"{varname} = [")
+    for comp in d["componentes"]:
+        lines.append(_slot_to_python(comp, nivel=1))
+    lines.append("]")
+    lines.append("")
+
+    setup_arg = ", setup=_setup" if setup_str else ""
+    lines.append(f"p = ProblemaTipo({varname}{setup_arg})")
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+def save_problema_py(problema, filepath, varname="ejercicio"):
+    """Guarda el problema como código Python editable en un fichero .py."""
+    code = problema_to_python(problema, varname=varname)
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(code)
+#+end_src
+
+*** =problema_to_python= y =save_problema_py=
+
+=problema_to_python= es el punto de entrada público. Invoca =problema_to_dict= para obtener la representación JSON normalizada y luego genera el código Python línea a línea. El resultado es una cadena de texto con un fichero Python completo que:
+
+1. Importa =Supuesto=, =Cuestion=, =ProblemaTipo= de =qbank= y todo de =calcprop=.
+2. Define una función =_setup()= si el problema tiene setup (el cuerpo de la función es exactamente el código Python almacenado en el campo ="setup"= del JSON).
+3. Define la variable =ejercicio= (o el nombre indicado por =varname=) como una lista de listas Python.
+4. Construye =p = ProblemaTipo(ejercicio)= (o con =setup=_setup= si procede).
+
+El patrón =_locs = locals()= en =_setup= es necesario porque en Python 3 una comprensión de lista tiene su propio ámbito; capturar las variables locales antes de la comprensión evita que las variables de iteración las sobreescriban.
+
+=save_problema_py= simplemente escribe la cadena resultante en un fichero.
+
+*Limitaciones*: solo funciona con =ProblemaTipo= (no con =ProblemaVF=). Si el problema tiene un setup definido como función Python (no cargado desde JSON), =problema_to_dict= falla antes de llegar aquí.
+
+*** Ejemplo
+
+#+begin_src jupyter-python
+from qbank import problema_to_python
+
+print(problema_to_python(p))
 #+end_src
 
 

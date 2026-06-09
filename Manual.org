@@ -667,6 +667,60 @@ Nótese que la lógica proposicional y los valores numéricos actúan de forma i
 - Los =setup= definidos como funciones Python (=def= o =lambda=) no se pueden guardar en JSON porque su código fuente no es recuperable. Si necesitas un =setup= paramétrico y también quieres persistirlo, escribe el código del setup como cadena de texto y usa =problema_from_dict= (o el editor visual, que gestiona esto automáticamente).
 - =ProblemaVF= se puede guardar y cargar sin restricciones (sus datos son valores directos).
 
+** Exportar la lista de listas a un fichero =.py= editable
+
+Además de guardar en JSON, es posible exportar cualquier =ProblemaTipo= como código Python puro: exactamente la lista de listas con =Supuesto= y =Cuestion= que se escribiría a mano. El fichero resultante puede abrirse con cualquier editor de texto y ejecutarse directamente con Python.
+
+#+begin_src jupyter-python :results output
+from qbank import *
+
+p = ProblemaTipo([
+    "Dado que ",
+    [
+        Supuesto("$A$ es verdadero, ", v('A')),
+        Supuesto("$B$ es verdadero, ", v('B')),
+    ],
+    "indique qué opción es correcta: ",
+    [
+        Cuestion("$A$ es verdadero.", v('A')),
+        Cuestion("$B$ es verdadero.", v('B')),
+    ],
+])
+
+from qbank import problema_to_python
+print(problema_to_python(p))
+#+end_src
+
+#+RESULTS:
+#+begin_example
+from qbank import Supuesto, Cuestion, ProblemaTipo
+from calcprop import *
+
+ejercicio = [
+    'Dado que ',
+    [
+        Supuesto('$A$ es verdadero, ', v('A')),
+        Supuesto('$B$ es verdadero, ', v('B')),
+    ],
+    'indique qué opción es correcta: ',
+    [
+        Cuestion('$A$ es verdadero.', v('A')),
+        Cuestion('$B$ es verdadero.', v('B')),
+    ],
+]
+
+p = ProblemaTipo(ejercicio)
+#+end_example
+
+Para guardar directamente en un fichero:
+
+#+begin_src jupyter-python :results silent
+from qbank import save_problema_py
+save_problema_py(p, "./tmp/mi_problema.py")
+#+end_src
+
+El fichero =mi_problema.py= es código Python válido que puede editarse y ejecutarse. Si el problema tiene =setup=, la función de generación de valores aleatorios aparece como =def _setup():= en el fichero exportado, con su cuerpo exactamente como fue guardado en el JSON.
+
 * Exportar a AMC (LaTeX)
 
 Las funciones AMC generan el código LaTeX compatible con Auto Multiple Choice.
@@ -1060,11 +1114,13 @@ Los campos =semantica= y =precond= de =Supuesto= y =Cuestion= admiten, además d
 
 #+begin_example
 problema_from_dict(d)              → ProblemaTipo o ProblemaVF
-problema_to_dict(problema)         → dict  (requiere componentes cargados desde JSON)
+problema_to_dict(problema)         → dict
 load_problema(filepath)            → ProblemaTipo o ProblemaVF
 save_problema(problema, filepath)
 load_banco(filepath)               → lista de problemas
 save_banco(problemas, filepath)    # acepta lista o dict
+problema_to_python(problema, varname="ejercicio")  → str  (código Python)
+save_problema_py(problema, filepath, varname="ejercicio")
 #+end_example
 
 ** Funciones AMC
