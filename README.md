@@ -1,5 +1,7 @@
 # qbank — generador de bancos de preguntas de opción múltiple
 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?filepath=ejemplosManual/Demo.ipynb)
+
 Genera variantes de preguntas de opción múltiple cuyas respuestas correctas se determinan automáticamente mediante cálculo proposicional. Combina supuestos e ítems de respuesta por combinatoria, calcula la veracidad o falsedad de cada ítem según las hipótesis activas y exporta el resultado a LaTeX (AMC) o Moodle (XML vía LaTeX).
 
 Construido sobre [`calcprop`](https://github.com/mbujosab/calcprop).
