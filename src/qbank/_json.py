@@ -67,7 +67,8 @@ En semantica y precond se admiten:
 
 import json as _json
 import calcprop as _calcprop_mod
-from qbank._quiz import Supuesto, Cuestion, ProblemaTipo, ProblemaVF
+from qbank._quiz import (Supuesto, Cuestion, ProblemaTipo, ProblemaVF,
+                         SubPregunta, ProblemaMultiParte)
 
 __all__ = [
     'problema_from_dict',
@@ -187,6 +188,22 @@ def problema_from_dict(d):
         p._setup_str = setup_str
         return p
 
+    elif tipo == "ProblemaMultiParte":
+        componentes = [_slot_from_json(s) for s in d["componentes"]]
+        subpreguntas = [
+            SubPregunta(
+                sp["intro"],
+                [_componente_from_dict(c) for c in sp["cuestiones"]]
+            )
+            for sp in d["subpreguntas"]
+        ]
+        setup_str = d.get("setup")
+        setup     = _make_setup_fn(setup_str) if setup_str else None
+        p = ProblemaMultiParte(componentes, subpreguntas, setup=setup)
+        p._nombre    = d.get("nombre", "")
+        p._setup_str = setup_str
+        return p
+
     elif tipo == "ProblemaVF":
         enunciado  = d["enunciado"]
         cuestiones = [(c["texto"], c["respuesta"]) for c in d["cuestiones"]]
@@ -225,6 +242,38 @@ def problema_to_dict(problema):
             "setup":       setup_str,
             "componentes": componentes,
         }
+    elif isinstance(problema, ProblemaMultiParte):
+        componentes = [_slot_to_json(s) for s in problema.componentes]
+        setup_str = getattr(problema, '_setup_str', None)
+        if setup_str is None and problema.setup is not None:
+            raise ValueError(
+                "ProblemaMultiParte tiene un setup callable pero no fue creado desde JSON. "
+                "Escribe el código del setup como cadena y carga el problema con "
+                "problema_from_dict().")
+        subpreguntas = []
+        for sp in problema.subpreguntas:
+            cuestiones_json = []
+            for c in sp.cuestiones:
+                if hasattr(c, '_json'):
+                    cuestiones_json.append(c._json)
+                else:
+                    cuestiones_json.append({
+                        'tipo':      'Cuestion',
+                        'enunciado': c.e,
+                        'semantica': _expr_to_str(c.s, 'semantica'),
+                        'precond':   _expr_to_str(c.p, 'precond'),
+                        'exp':       c.x,
+                    })
+            subpreguntas.append({"intro": sp.intro, "cuestiones": cuestiones_json})
+        return {
+            "version":      "1",
+            "tipo":         "ProblemaMultiParte",
+            "nombre":       getattr(problema, '_nombre', ''),
+            "setup":        setup_str,
+            "componentes":  componentes,
+            "subpreguntas": subpreguntas,
+        }
+
     elif isinstance(problema, ProblemaVF):
         return {
             "version":      "1",

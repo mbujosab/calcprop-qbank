@@ -105,6 +105,7 @@ from string import Template
 <<Definición de la clase ProblemaTipo>>
 <<Definición de la clase ProblemaTipoProfe>>
 <<Definición de la clase ProblemaVF>>
+<<Definición de SubPregunta y ProblemaMultiParte>>
 
 <<Interfaz gráfica para el diseño visual de la lista de listas de ejercicios>>
 #+end_src
@@ -1000,6 +1001,138 @@ Enunciado completo: Marque las verdaderas:
 #+end_example
 
 Como se puede apreciar en el resultado impreso, cada uno de los cinco bloques representa un ejercicio completamente autónomo con un identificador secuencial, conservando el enunciado general e integrando un muestreo dinámico y heterogéneo extraído directamente de la lista de afirmaciones almacenada con el nombre de =banco=.
+
+
+** Clase =SubPregunta= y =ProblemaMultiParte=
+
+Los formatos AMC y Moodle permiten agrupar varias sub-preguntas de opción múltiple bajo un mismo enunciado general. Cada sub-pregunta tiene su propio pequeño intro y su propio bloque de opciones (correctas e incorrectas). Este tipo de pregunta se llama /multi-parte/ (AMC) o /cloze/ (Moodle).
+
+=SubPregunta= es un contenedor simple: un texto introductorio y una lista de =Cuestion= que se evaluarán todas (no se filtra por alternativa como en =ProblemaTipo=, sino que se muestran todas con su marca correcto/incorrecto).
+
+=ProblemaMultiParte= sigue la misma lógica de iteración que =ProblemaTipo=:
+- =componentes= es la lista con strings y =Supuesto= (o listas de ellos) que forma el enunciado común y determina las hipótesis activas.
+- =subpreguntas= es la lista de =SubPregunta=, cada una con un intro y sus cuestiones.
+- Por cada combinación de supuestos se produce una variante: el iterador devuelve =(etiqueta, enunciado_comun, [(intro1, cuestiones1), (intro2, cuestiones2), ...])=.
+
+La diferencia clave respecto a =ProblemaTipo= es que el iterador usa =for...else= para separar limpiamente el bloque de construcción del enunciado (que puede abortar si un Supuesto es rechazado) del bloque de evaluación de las sub-preguntas (que solo se alcanza si el enunciado es válido).
+
+#+NAME: Definición de SubPregunta y ProblemaMultiParte
+#+begin_src python :noweb yes
+class SubPregunta:
+    def __init__(self, intro, cuestiones):
+        self.intro = intro
+        self.cuestiones = cuestiones if isinstance(cuestiones, list) else [cuestiones]
+
+
+class ProblemaMultiParte:
+    def __init__(self, componentes, subpreguntas, setup=None):
+        """
+        componentes:  list de str / Supuesto / list de Supuesto (enunciado común)
+        subpreguntas: list de SubPregunta
+        setup:        callable opcional
+        """
+        self.componentes  = componentes
+        self.subpreguntas = subpreguntas
+        self.setup        = setup
+
+    def __iter__(self):
+        self.l    = [x if isinstance(x, list) else [x] for x in self.componentes]
+        self.long = len(self.l)
+        self.i    = iter(Marcador([len(x) for x in self.l]))
+        self.c    = 0
+        return self
+
+    def __next__(self):
+        self.c += 1
+        while True:
+            try:
+                variante = next(self.i)
+            except StopIteration:
+                raise StopIteration
+
+            ns        = self.setup() if self.setup else {}
+            enunciado = ""
+            hipotesis = []
+
+            for n in range(self.long):
+                componente = self.l[n][variante[n]]
+                if isinstance(componente, str):
+                    enunciado += _ns_interp(componente, ns)
+                elif isinstance(componente, Supuesto):
+                    precond = _ns_eval(componente.p, ns)
+                    if test(precond, hipotesis):
+                        enunciado += _ns_interp(_ns_eval(componente.e, ns), ns)
+                        hipotesis  = hipotesis + [_ns_eval(componente.s, ns)]
+                    else:
+                        print('\n Supuesto: '   + str(componente.e)
+                              + ' rechazado por ' + str(componente.p) + '\n')
+                        break
+            else:
+                subpregs = []
+                for sp in self.subpreguntas:
+                    intro_text = _ns_interp(sp.intro, ns)
+                    cuestiones = []
+                    for c in sp.cuestiones:
+                        precond   = _ns_eval(c.p, ns)
+                        semantica = _ns_eval(c.s, ns)
+                        texto     = _ns_interp(_ns_eval(c.e, ns), ns)
+                        if test(precond, hipotesis):
+                            correcto = True if test(semantica, hipotesis) else False
+                            cuestiones.append((texto, correcto, 1, c.x))
+                    subpregs.append((intro_text, cuestiones))
+                return (str(self.c), enunciado, subpregs)
+#+end_src
+
+*** Ejemplo
+
+#+begin_src jupyter-python :results output
+from qbank import *
+
+p = ProblemaMultiParte(
+    componentes=[
+        'Una desviación típica es un indicador ',
+        [Supuesto('de dispersión. ',       v('Disp')),
+         Supuesto('de tendencia central. ', -v('Disp'))],
+    ],
+    subpreguntas=[
+        SubPregunta('(en cuanto a su objetivo)',
+            [Cuestion('de tendencia central', -v('Disp')),
+             Cuestion('de dispersión',          v('Disp'))]),
+        SubPregunta('(en cuanto a su sensibilidad)',
+            [Cuestion('sensible a valores extremos',  v('Disp')),
+             Cuestion('no muy sensible a extremos',  -v('Disp'))]),
+    ]
+)
+
+for etiqueta, enunciado, subpreguntas in p:
+    print(f'=== Variante {etiqueta} ===')
+    print(f'Enunciado: {enunciado}')
+    for intro, cuestiones in subpreguntas:
+        print(f'  {intro}')
+        for texto, correcto, _, _ in cuestiones:
+            print(f'    {"✓" if correcto else "✗"} {texto}')
+#+end_src
+
+#+RESULTS:
+#+begin_example
+=== Variante 1 ===
+Enunciado: Una desviación típica es un indicador de dispersión.
+  (en cuanto a su objetivo)
+    ✗ de tendencia central
+    ✓ de dispersión
+  (en cuanto a su sensibilidad)
+    ✓ sensible a valores extremos
+    ✗ no muy sensible a extremos
+
+=== Variante 2 ===
+Enunciado: Una desviación típica es un indicador de tendencia central.
+  (en cuanto a su objetivo)
+    ✓ de tendencia central
+    ✗ de dispersión
+  (en cuanto a su sensibilidad)
+    ✗ sensible a valores extremos
+    ✓ no muy sensible a extremos
+#+end_example
 
 
 * Serialización y persistencia en formato JSON

@@ -141,6 +141,73 @@ def AMClastChmc (nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ningun
     s = s + '}\n\n'
     return s
 
+def AMC_multipart(nombre, etiqueta, enunciado, subpreguntas, opc=[""]):
+    """Genera el bloque AMC para una pregunta con enunciado común y sub-preguntas.
+
+    subpreguntas: list de (intro, [(texto, correcto, activa, exp), ...])
+    Cada sub-pregunta produce un bloque \\begin{choices} independiente precedido
+    por \\emph{intro} y envuelto en \\AMCnoCompleteMulti.
+    """
+    InstruccionesAux = opc[0] if opc else ""
+    s  = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
+    s += ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
+    s += '  ' + enunciado + '\n\n'
+    for intro, cuestiones in subpreguntas:
+        s += '  \\emph{' + intro + '}\n'
+        s += '  {\\AMCnoCompleteMulti\n'
+        s += '   \\begin{choices}\n'
+        for c in cuestiones:
+            s += ' ' * 5 + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + c[0] + '}\n'
+        s += '   \\end{choices}\n'
+        s += '  }\n\n'
+    s += ' \\end{questionmult} '
+    s += '}\n\n'
+    return s
+
+
+def _ClozeMultiBlock(nombre, etiqueta, enunciado, subpreguntas):
+    s  = ' \\begin{cloze}{' + nombre + '-' + str(etiqueta) + '}\n'
+    s += '  ' + enunciado + '\n\n'
+    for i, (intro, cuestiones) in enumerate(subpreguntas, 1):
+        s += '  ' + codchar(intro) + '\n'
+        s += ('  \\begin{multi}[multiple, points=' + str(len(cuestiones) - 1)
+              + ']{' + nombre + '-' + str(etiqueta) + '-' + str(i) + '}\n')
+        for c in cuestiones:
+            s += ' ' * 5 + ('\\item* ' if c[1] else '\\item  ') + codchar(c[0]) + '\n'
+        s += '  \\end{multi}\n\n'
+    s += ' \\end{cloze}\n\n'
+    return s
+
+
+def QuizClozeMulti(nombre, directorio, problema, opc=["", ""]):
+    """Genera un fichero .tex con preguntas tipo cloze (multi-parte) para Moodle.
+
+    problema: ProblemaMultiParte o iterable que produzca
+              (etiqueta, enunciado, subpreguntas).
+    Compilar con xelatex para obtener el .xml importable en Moodle.
+    """
+    auxLaTeX = opc[0]
+    s  = "\\documentclass[11pt]{article}\n\n"
+    s += "\\usepackage[cm,headings]{fullpage}\n\n"
+    s += "\\usepackage{moodle}\n\n"
+    s += "\\usepackage{graphicx}\n\n"
+    s += "\\usepackage{fancyvrb}\n\n"
+    s += "\\ifPDFTeX                    % FOR LATEX and PDFLATEX\n"
+    s += "    \\usepackage[utf8]{inputenc}   % necessary\n"
+    s += "    \\usepackage[OT1] {fontenc}    % necessary\n"
+    s += "\\else                        % assuming XELATEX or LUALATEX\n"
+    s += "    \\usepackage{fontspec}\n"
+    s += "\\fi\n\n"
+    s += auxLaTeX + "\n" + "\\newcommand\\peque{}" + "\n\n"
+    s += "\\begin{document}\n\n"
+    s += "\\begin{quiz}{" + nombre + "}\n\n"
+    with open(directorio + nombre + ".tex", "w") as f:
+        f.write(s)
+        for etiqueta, enunciado, subpreguntas in problema:
+            f.write(_ClozeMultiBlock(codchar(nombre), etiqueta, codchar(enunciado), subpreguntas))
+        f.write("\\end{quiz}\n\n\\end{document}\n")
+
+
 def codchar(s):
      s = s.replace("á", "\\'{a}")
      s = s.replace("é", "\\'{e}")
