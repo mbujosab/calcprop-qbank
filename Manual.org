@@ -440,6 +440,147 @@ ejercicio_fijo = ProblemaTipo(
 )
 #+end_src
 
+** Guardar y cargar problemas en formato JSON
+
+=qbank= puede convertir cualquier =ProblemaTipo= a JSON y reconstruirlo después. Esto permite guardar el banco de preguntas en un fichero, compartirlo o cargarlo desde el editor visual sin tener que reescribir el código Python.
+
+*** De lista de listas a JSON
+
+Dado un =ProblemaTipo= creado directamente en Python, basta llamar a =problema_to_dict= para obtener el dict JSON, o a =save_problema= para guardarlo en un fichero:
+
+#+begin_src python :results output :exports both
+from qbank import *
+
+ejercicio = [
+    "Considere ",
+    [
+        Supuesto("$\\mathcal{A}$, ", v("A")),
+        Supuesto("$\\mathcal{B}$, ", v("B")),
+    ],
+    [
+        Supuesto("y que $\\mathcal{A}\\Rightarrow\\mathcal{C}$. ", v("A") >> v("C")),
+        Supuesto("y que $\\mathcal{B}\\Leftrightarrow\\mathcal{D}$. ", v("B") ** v("D")),
+    ],
+    "Conteste: ",
+    [
+        Cuestion("¿Se da $\\mathcal{C}$?", v("C"),
+                 exp="Solo si $\\mathcal{A}$ y $\\mathcal{A}\\Rightarrow\\mathcal{C}$"),
+        Cuestion("¿Se da $\\mathcal{D}$?", v("D")),
+    ],
+]
+
+p = ProblemaTipo(ejercicio)
+
+import json
+d = problema_to_dict(p)
+print(json.dumps(d, ensure_ascii=False, indent=2))
+#+end_src
+
+#+RESULTS:
+#+begin_example
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "",
+  "setup": null,
+  "componentes": [
+    "Considere ",
+    [
+      {
+        "tipo": "Supuesto",
+        "enunciado": "$\\mathcal{A}$, ",
+        "semantica": "v('A')",
+        "precond": "True"
+      },
+      {
+        "tipo": "Supuesto",
+        "enunciado": "$\\mathcal{B}$, ",
+        "semantica": "v('B')",
+        "precond": "True"
+      }
+    ],
+    [
+      {
+        "tipo": "Supuesto",
+        "enunciado": "y que $\\mathcal{A}\\Rightarrow\\mathcal{C}$. ",
+        "semantica": "v('A') >> v('C')",
+        "precond": "True"
+      },
+      {
+        "tipo": "Supuesto",
+        "enunciado": "y que $\\mathcal{B}\\Leftrightarrow\\mathcal{D}$. ",
+        "semantica": "v('B') ** v('D')",
+        "precond": "True"
+      }
+    ],
+    "Conteste: ",
+    [
+      {
+        "tipo": "Cuestion",
+        "enunciado": "¿Se da $\\mathcal{C}$?",
+        "semantica": "v('C')",
+        "precond": "True",
+        "exp": "Solo si $\\mathcal{A}$ y $\\mathcal{A}\\Rightarrow\\mathcal{C}$"
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "¿Se da $\\mathcal{D}$?",
+        "semantica": "v('D')",
+        "precond": "True",
+        "exp": ""
+      }
+    ]
+  ]
+}
+#+end_example
+
+Para guardar en un fichero:
+
+#+begin_src python :results silent
+save_problema(p, "ejemplosManual/ejercicio.json")
+#+end_src
+
+*** De JSON a lista de listas
+
+Para recuperar el problema, =load_problema= devuelve un =ProblemaTipo= listo para iterar:
+
+#+begin_src python :results output :exports both
+p2 = load_problema("ejemplosManual/ejercicio.json")
+
+for etiqueta, enunciado, cuestiones in p2:
+    print(f"Variante {etiqueta}: {enunciado}")
+    for texto, correcto, activa, exp in cuestiones:
+        marca = "✓" if correcto else "✗"
+        print(f"  {marca} {texto}")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Variante 1: Considere $\mathcal{A}$, y que $\mathcal{A}\Rightarrow\mathcal{C}$. Conteste:
+  ✓ ¿Se da $\mathcal{C}$?
+Variante 2: Considere $\mathcal{A}$, y que $\mathcal{A}\Rightarrow\mathcal{C}$. Conteste:
+  ✗ ¿Se da $\mathcal{D}$?
+Variante 3: Considere $\mathcal{A}$, y que $\mathcal{B}\Leftrightarrow\mathcal{D}$. Conteste:
+  ✗ ¿Se da $\mathcal{C}$?
+Variante 4: Considere $\mathcal{A}$, y que $\mathcal{B}\Leftrightarrow\mathcal{D}$. Conteste:
+  ✗ ¿Se da $\mathcal{D}$?
+Variante 5: Considere $\mathcal{B}$, y que $\mathcal{A}\Rightarrow\mathcal{C}$. Conteste:
+  ✗ ¿Se da $\mathcal{C}$?
+Variante 6: Considere $\mathcal{B}$, y que $\mathcal{A}\Rightarrow\mathcal{C}$. Conteste:
+  ✗ ¿Se da $\mathcal{D}$?
+Variante 7: Considere $\mathcal{B}$, y que $\mathcal{B}\Leftrightarrow\mathcal{D}$. Conteste:
+  ✗ ¿Se da $\mathcal{C}$?
+Variante 8: Considere $\mathcal{B}$, y que $\mathcal{B}\Leftrightarrow\mathcal{D}$. Conteste:
+  ✓ ¿Se da $\mathcal{D}$?
+#+end_example
+
+El problema cargado se comporta exactamente igual que el original. También es posible cargar directamente desde un dict sin pasar por fichero, usando =problema_from_dict(d)=.
+
+*** Limitaciones
+
+- Los =setup= definidos como funciones Python (=def= o =lambda=) no se pueden guardar en JSON porque su código fuente no es recuperable. Si necesitas un =setup= paramétrico y también quieres persistirlo, escribe el código del setup como cadena de texto y usa =problema_from_dict= (o el editor visual, que gestiona esto automáticamente).
+- =ProblemaVF= se puede guardar y cargar sin restricciones (sus datos son valores directos).
+
 * Exportar a AMC (LaTeX)
 
 Las funciones AMC generan el código LaTeX compatible con Auto Multiple Choice.
