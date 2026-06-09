@@ -16,9 +16,6 @@ dependencies = [
     "calcprop>=0.1",
 ]
 
-[project.optional-dependencies]
-jupyter = ["ipywidgets>=8"]
-
 keywords = ["question bank", "multiple choice", "AMC", "Moodle", "propositional calculus", "education"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -33,6 +30,9 @@ classifiers = [
     "Topic :: Education",
     "Topic :: Scientific/Engineering :: Mathematics",
 ]
+
+[project.optional-dependencies]
+jupyter = ["ipywidgets>=8"]
 
 [project.urls]
 Homepage = "https://github.com/mbujosab/calcprop-qbank"
