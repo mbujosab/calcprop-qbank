@@ -31,7 +31,7 @@ build/
 # Exportaciones generadas
 *.tex
 *.html
-*.pdf
+# *.pdf
 
 # Salida generada por los ejemplos
 ejemplos/

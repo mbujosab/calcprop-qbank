@@ -20,7 +20,7 @@
 #+LATEX_HEADER: \usepackage{etoolbox}          % para reducir las fuentes de salidas verbatim
 #+LATEX_HEADER: \AtBeginEnvironment{verbatim}{\footnotesize}
 
-#+LATEX_HEADER: \usepackage{pdfpages}          % para inportar páginas pdf
+# +LATEX_HEADER: \usepackage{pdfpages}          % para inportar páginas pdf
 
 # ─── Copyright ──────────────────────────────────────────────────────────────
 # Copyright (C) 2020-2026  Marcos Bujosa
@@ -1108,7 +1108,8 @@ def QuizClozeMulti(nombre, directorio, problema, opc=["", ""]):
         f.write("\\end{quiz}\n\n\\end{document}\n")
 #+end_src
 
-* Ejemplos de preguntas
+
+* COMMENT Ejemplos de preguntas
 
 ** Ejemplos con AMC
 
@@ -1169,7 +1170,8 @@ p = [ r"En el ajuste MCO:\; $\ajusteMLS$,\; el parámetro $\widehat{\beta_2}$ es
 ]
 #+END_SRC
 
-#+LATEX: \includepdf[pages=-,scale=1,pagecommand={},]{./bancoPreguntas/L-02-AjusteMCOdeMLS-pendiente.pdf}
+#+LATEX: 
+# \includepdf[pages=-,scale=1,pagecommand={},]{./bancoPreguntas/L-02-AjusteMCOdeMLS-pendiente.pdf}
 #+LATEX: \clearpage
 
 
