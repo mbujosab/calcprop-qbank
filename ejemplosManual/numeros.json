@@ -1,0 +1,54 @@
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "sumas_y_productos",
+  "setup": "import random\na = random.randint(2, 9)\nb = random.randint(2, 9)\nsuma = a + b\nproducto = a * b",
+  "componentes": [
+    "Sean $a = @a$ y $b = @b$ dos números naturales. Se sabe que ",
+    [
+      {
+        "tipo": "Supuesto",
+        "enunciado": "$a > b$. ",
+        "semantica": "v('A')",
+        "precond": "True"
+      },
+      {
+        "tipo": "Supuesto",
+        "enunciado": "$a < b$. ",
+        "semantica": "-v('A')",
+        "precond": "True"
+      }
+    ],
+    "Indique qué afirmación es correcta: ",
+    [
+      {
+        "tipo": "Cuestion",
+        "enunciado": "$a + b = @suma$",
+        "semantica": "True",
+        "precond": "True",
+        "exp": "Por definición de @suma"
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "$a \\cdot b = @producto$",
+        "semantica": "True",
+        "precond": "True",
+        "exp": "Por definición de @producto"
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "$a - b > 0$",
+        "semantica": "v('A')",
+        "precond": "True",
+        "exp": "Solo si $a > b$"
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "$b - a > 0$",
+        "semantica": "-v('A')",
+        "precond": "True",
+        "exp": "Solo si $a < b$"
+      }
+    ]
+  ]
+}
