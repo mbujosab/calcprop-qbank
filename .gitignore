@@ -35,3 +35,14 @@ build/
 
 # Salida generada por los ejemplos
 ejemplos/
+
+# Jupyter
+.ipynb_checkpoints/
+/Untitled*.ipynb
+
+# Ficheros temporales y de trabajo local
+/tmp/
+00Notas.org
+/*.json
+!ejemplosManual/*.json
+!ejemplosManual/*.ipynb
