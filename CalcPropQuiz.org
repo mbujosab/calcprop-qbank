@@ -2048,16 +2048,18 @@ class ProblemaTipoEditor:
             value=5, min=1, max=100,
             layout=_w.Layout(width='55px'))
 
-        prev_btn  = _w.Button(description='▶ Preview',  button_style='primary',
+        prev_btn  = _w.Button(description='▶ Preview',    button_style='primary',
                                layout=_w.Layout(width='105px'))
-        save_btn  = _w.Button(description='💾 Guardar', layout=_w.Layout(width='95px'))
-        load_btn  = _w.Button(description='📂 Cargar',  layout=_w.Layout(width='95px'))
-        json_btn  = _w.Button(description='{ } JSON',   layout=_w.Layout(width='95px'))
+        save_btn  = _w.Button(description='💾 Guardar',  layout=_w.Layout(width='95px'))
+        load_btn  = _w.Button(description='📂 Cargar',   layout=_w.Layout(width='95px'))
+        json_btn  = _w.Button(description='{ } JSON',    layout=_w.Layout(width='95px'))
+        dl_btn    = _w.Button(description='⬇ Descargar', layout=_w.Layout(width='105px'))
 
         prev_btn.on_click(self._on_preview)
         save_btn.on_click(self._on_save)
         load_btn.on_click(self._on_load)
         json_btn.on_click(self._on_show_json)
+        dl_btn.on_click(self._on_download)
 
         self._out = _w.Output()
 
@@ -2076,7 +2078,7 @@ class ProblemaTipoEditor:
                 _w.Label('  '),
                 self._filepath,
                 _w.Label('  '),
-                json_btn,
+                json_btn, dl_btn,
             ]),
             self._out,
         ])
@@ -2194,6 +2196,27 @@ class ProblemaTipoEditor:
                 print(json.dumps(self.to_dict(), ensure_ascii=False, indent=2))
             except Exception as exc:
                 print(f"Error: {exc}")
+
+    def _on_download(self, _):
+        import json as _j
+        import os
+        from IPython.display import Javascript
+        try:
+            data     = _j.dumps(self.to_dict(), ensure_ascii=False, indent=2)
+            filename = os.path.basename(self._filepath.value.strip() or 'problema.json')
+            js = f"""
+var _b = new Blob([{_j.dumps(data)}], {{type: 'application/json'}});
+var _u = URL.createObjectURL(_b);
+var _a = document.createElement('a');
+_a.href = _u; _a.download = {_j.dumps(filename)};
+document.body.appendChild(_a); _a.click();
+document.body.removeChild(_a); URL.revokeObjectURL(_u);
+"""
+            _display(Javascript(js))
+        except Exception as exc:
+            with self._out:
+                _clear()
+                print(f"Error al descargar: {exc}")
 #+end_src
 
 
