@@ -135,16 +135,37 @@ def _slot_from_json(slot):
         raise ValueError(f"Componente JSON inválido: {slot!r}")
 
 
+def _expr_to_str(val, campo):
+    """Convierte una semántica o precondición al string JSON equivalente.
+
+    Usa repr() sobre objetos calcprop (cuyo repr es evaluable con _eval_expr).
+    Falla con un mensaje claro si val es un callable (lambda de setup paramétrico).
+    """
+    if callable(val):
+        raise ValueError(
+            f"El campo '{campo}' es un callable (lambda). "
+            "Los componentes con semánticas o precondiciones lambda solo pueden "
+            "serializarse si fueron cargados con load_problema() o problema_from_dict().")
+    return repr(val)
+
+
 def _slot_to_json(slot):
     if isinstance(slot, str):
         return slot
     elif isinstance(slot, (Supuesto, Cuestion)):
-        if not hasattr(slot, '_json'):
-            raise ValueError(
-                f"El componente '{slot.e}' no fue creado desde JSON. "
-                "problema_to_dict() solo funciona con problemas cargados mediante "
-                "load_problema() o problema_from_dict().")
-        return slot._json
+        if hasattr(slot, '_json'):
+            return slot._json
+        # Fallback para objetos creados directamente en Python:
+        # repr() de cualquier fórmula calcprop es evaluable por _eval_expr.
+        d = {
+            'tipo':      'Supuesto' if isinstance(slot, Supuesto) else 'Cuestion',
+            'enunciado': slot.e,
+            'semantica': _expr_to_str(slot.s, 'semantica'),
+            'precond':   _expr_to_str(slot.p, 'precond'),
+        }
+        if isinstance(slot, Cuestion):
+            d['exp'] = slot.x
+        return d
     elif isinstance(slot, list):
         return [_slot_to_json(item) for item in slot]
     else:
@@ -179,17 +200,27 @@ def problema_from_dict(d):
 def problema_to_dict(problema):
     """Serializa un ProblemaTipo o ProblemaVF a dict.
 
-    Para ProblemaTipo, requiere que los componentes (Supuesto/Cuestion) hayan
-    sido creados con problema_from_dict() o load_problema(). ProblemaVF siempre
-    puede serializarse.
+    ProblemaTipo con componentes creados directamente en Python se serializa
+    usando repr() sobre las fórmulas calcprop. Si alguna semántica o precondición
+    es un callable (lambda de setup paramétrico), la serialización falla.
+    Los setup definidos como funciones Python (no cargados desde JSON) no pueden
+    serializarse; en ese caso el campo 'setup' queda a null en el JSON resultante.
+    ProblemaVF siempre puede serializarse.
     """
     if isinstance(problema, ProblemaTipo):
         componentes = [_slot_to_json(s) for s in problema.e]
+        setup_str = getattr(problema, '_setup_str', None)
+        if setup_str is None and problema.setup is not None:
+            raise ValueError(
+                "ProblemaTipo tiene un setup callable pero no fue creado desde JSON. "
+                "No es posible serializar un setup definido directamente en Python. "
+                "Escribe el código del setup como cadena y carga el problema con "
+                "problema_from_dict().")
         return {
             "version":     "1",
             "tipo":        "ProblemaTipo",
             "nombre":      getattr(problema, '_nombre', ''),
-            "setup":       getattr(problema, '_setup_str', None),
+            "setup":       setup_str,
             "componentes": componentes,
         }
     elif isinstance(problema, ProblemaVF):

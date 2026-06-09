@@ -17,6 +17,7 @@
 #+LATEX_HEADER: \usepackage{lmodern}           % o mejor, define una fuente explícita
 #+LATEX_HEADER: \setmainfont{Latin Modern Roman} % o cualquier otra que quieras
 #+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage{parskip}
 
 #+LATEX_HEADER: \usepackage{etoolbox}
 #+LATEX_HEADER: \AtBeginEnvironment{verbatim}{\footnotesize}
@@ -55,7 +56,7 @@
 
 
 #+NAME: NombreEnChunksDeCodigo
-#+BEGIN_SRC emacs-lisp :results silent
+#+BEGIN_SRC emacs-lisp :results silent :eval yes
 (setq org-babel-exp-code-template
          (concat "\n#+ATTR_LATEX: :options label=%name\n"
               org-babel-exp-code-template)
@@ -298,7 +299,7 @@ De manera análoga, la clase =Cuestion= define la estructura para almacenar cuat
 
 - =enunciado= :: string que presenta la pregunta en lenguaje humano.
 
-- =semantica= :: proposición =P= tal que =test(P, semantica_de_los_supuestos)= devuelve =True= si es imposible refutarlo a partir de las premisas, es decir, es imposible que =P= sea falso si las premisas son verdad.
+- =semantica= :: proposición =P= tal que =test(P, semantica_de_los_supuestos)= devuelve =True= si no es refutable a partir de las premisas, es decir, es imposible que =P= sea falso si las premisas son verdad.
 
 - =precond= :: es una proposición o bien cualquiera de los valores =True= o =False=.
   El objeto =Cuestion= será incluido en el problema solo si la evaluación de =precond= es =True=.
@@ -674,11 +675,11 @@ En el anterior ejemplo, y aunque existen únicamente cuatro enunciados posibles 
 
 ** Clase =ProblemaTipoProfe=
 
-Para facilitar la revisión y el mantenimiento de cada ejercicio, es preferible poder ver, junto a cada enunciado, el conjunto completo de cuestiones. Esta es la finalidad de la clase =ProblemaTipoProfe=, que presenta todas las cuestiones para cada enunciado, indicando en cada caso si son =True= o =False= (o si serán descartadas). Para alcanzar este objetivo se utiliza el procedimiento auxiliar =CuestionesJuntas=, para creas una sublista para cada =Cuestion= que incluye únicamente dicha cuestión. De este modo, como al iterar se toma un elemento de cada una de las sublistas, se mostrarán todas las cuestiones a la vez.
+Para facilitar la revisión y el mantenimiento de cada ejercicio, es preferible ver el conjunto completo de cuestiones para cada uno de los  enunciados. La clase =ProblemaTipoProfe= lo hace, indicando en cada caso si son =True= o =False= (o si serán descartadas). Para ello utiliza el procedimiento auxiliar =CuestionesJuntas=, que crea una sublista con cada =Cuestion=. De este modo, como al iterar se toma un elemento de cada una de las sublistas, se mostrarán todas las cuestiones a la vez.
 
 *** Implementación
 
-Tan solo hay dos diferencias en el código de la clase =ProblemaTipoProfe= respecto al código de la clase  =ProblemaTipo=. 
+Hay dos diferencias entre el código de la clase =ProblemaTipoProfe= y el la clase  =ProblemaTipo=. 
 - La primera es que en =self.e= cada =Cuestion= aparece como único elemento de una sublista, para así lograr que se ven todas las cuestiones en cada iteración.
 - La segunda diferencia se produce en la definición del método =__next__=, que aquí no oculta las cuestiones que sí son rechazadas cuando usamos =ProblemaTipo=.
 
@@ -696,7 +697,7 @@ class ProblemaTipoProfe:
 
 **** Método =__next__= para la clase =ProblemaTipoProfe=
 
-Aquí la diferencia respecto del =<<Método __next__ para la clase ProblemaTipo>>= es el tratamiento de cada componente, pues aquí no se excluyen las preguntas que serán rechazadas en la versión para el estudiante. Aquí todas las cuestiones son incluidas, pero se da una indicación añadiendo ~'rechazada por'~ más la precondición que ocasiona el rechazo cuando se usa =ProblemaTipo=.
+La diferencia con respecto al =<<Método __next__ para la clase ProblemaTipo>>= es el tratamiento de las componentes; no se excluyen las preguntas que serán rechazadas en la versión para el estudiante, se añade la indicación ~'rechazada por'~ y la precondición que ocasionará el rechazo con la clase =ProblemaTipo=.
 #+NAME: Método __next__ para la clase ProblemaTipoProfe
 #+begin_src python :noweb  no-export
 def __next__(self):
@@ -998,29 +999,12 @@ Enunciado completo: Marque las verdaderas:
 ('Todo alumno que sabe aprueba', True)
 #+end_example
 
-Como se puede apreciar en el resultado impreso, cada uno de los cinco bloques representa un ejercicio completamente autónomo con un identificador secuencial, conservando el enunciado general invariantemente e integrando un muestreo dinámico y heterogéneo extraído directamente de la lista de afirmaciones almacenada con el nombre de =banco=.
-
-
-
-** ¿Y ahora qué?
-
-*** ¿Qué tenemos?
-
-- Contamos con un módulo de cálculo proposicional que determina la veracidad o falsedad de cada enunciado, basada en los supuestos de cada caso particular.
-- Poseemos una metodología para programar ejercicios utilizando listas de sublistas que incluyen textos, supuestos y cuestiones.
-- Tenemos la capacidad de desempaquetar dichas listas mediante =ProblemaTipo=, lo que nos permite generar múltiples ejercicios, con la tranquilidad de que el módulo de cálculo proposicional se encarga de identificar qué opciones son verdaderas y cuáles son falsas, de acuerdo con la composición de los supuestos de cada enunciado.
-
-Con esto, hemos desarrollado un procedimiento para generar una amplia variedad de ejercicios de opción múltiple.
-
-*** ¿Qué nos falta?
-
-Falta dar formato a lo que hemos desarrollado para ser usado con los estudiantes. El módulo =CalcProp-export= nos permitirá crear bancos de preguntas en formato \LaTeX{}, que podrán ser utilizados con [[https://www.auto-multiple-choice.net/][Auto Multiple Choice (AMC)]], así como también generar bancos en formato =xml= para su empleo en el entorno Moodle mediante el paquete de \LaTeX{} [[https://ctan.org/pkg/moodle][moodle]], específicamente para cuestiones de [[https://docs.moodle.org/502/en/Question_types][opción múltiple]].
-
+Como se puede apreciar en el resultado impreso, cada uno de los cinco bloques representa un ejercicio completamente autónomo con un identificador secuencial, conservando el enunciado general e integrando un muestreo dinámico y heterogéneo extraído directamente de la lista de afirmaciones almacenada con el nombre de =banco=.
 
 
 * Serialización y persistencia en formato JSON
 
-El módulo =qbank._json= permite guardar y cargar objetos =ProblemaTipo= y =ProblemaVF= en ficheros JSON. Esto facilita compartir bancos de preguntas, usarlos desde el editor visual o persistirlos entre sesiones sin tener que reescribir el código Python en cada ocasión.
+El módulo =qbank._json= permite guardar y cargar objetos =ProblemaTipo= y =ProblemaVF= en ficheros JSON. Esto facilita compartir bancos de preguntas, o modificarlos en distintas mediante un editor visual sin tener que reescribir el código Python en cada ocasión.
 
 ** Estructura del módulo =qbank._json=
    :PROPERTIES:
@@ -1082,6 +1066,8 @@ __all__ = [
 
 ** Formato JSON
 
+*** Para un =ProblemaTipo=
+
 Un =ProblemaTipo= se representa con la siguiente estructura:
 
 #+begin_example
@@ -1111,7 +1097,9 @@ El campo =componentes= es una lista cuyos elementos pueden ser:
 - *Dict*: un único =Supuesto= o =Cuestion= (equivale a una lista de un elemento).
 - *Lista de dicts*: varias alternativas de las que =ProblemaTipo= elige una por variante.
 
-Los campos =semantica= y =precond= se almacenan como *cadenas de texto*. Al deserializar se evalúan con =eval()= en el espacio de nombres de =calcprop=, lo que permite expresiones como ="v('A') & v('B')"=, los booleanos literales =True= y =False=, o lambdas para semánticas paramétricas (="lambda ns: ns['x'] > 0"=).
+Los campos =semantica= y =precond= se almacenan como *cadenas de texto*. Al deserializar[fn::«Serializar» significa convertir un objeto Python en memoria (un ProblemaTipo, por ejemplo) a un formato que se puede guardar o transmitir —en este caso, JSON. «Deserializar» es la operación inversa: leer ese JSON y reconstruir el objeto Python.] se evalúan con =eval()= en el espacio de nombres (/namespace/)[fn::«Espacio de nombres» es la traducción literal de /namespace/, que en Python significa simplemente el conjunto de variables (nombres y valores) disponibles en un momento dado. Aquí los usaremos en dos contextos distintos: Por una parte en ~_EVAL_NS~; es decir, el diccionario que contiene todas las funciones y variables del módulo =calcprop= (v, test, etc.). Cuando se evalúa la cadena ="v('A') & v('B')"= con =eval()=, se le pasa ese diccionario para que =v= esté disponible. Aquí «espacio de nombres» podría sustituirse por «entorno de evaluación» o simplemente «las funciones de =calcprop= disponibles para ~eval()~ ». Y por otra parte con el =dict= que devuelve =setup()= — por ejemplo ={'a': 3, 'b': 7, 'suma': 10}=. Se llamará «espacio de nombres de la variante» porque es el conjunto de variables que ese problema concreto pone a disposición de los textos =(@a, @b)= y las semánticas ~(lambda ns: ns['a'] + ns['b'] > 10)~. Aquí el término más claro sería simplemente «diccionario de variables» o «variables de la variante».] de =calcprop=, lo que permite expresiones como ="v('A') & v('B')"=, los booleanos literales =True= y =False=, o lambdas para semánticas paramétricas (="lambda ns: ns['x'] > 0"=).
+
+*** Para un =ProblemaVF=
 
 Un =ProblemaVF= tiene un formato más simple:
 
@@ -1168,6 +1156,8 @@ def _eval_expr(expr):
 
 ** Función de =setup= desde código Python
 
+El campo =setup= permitirá realizar cálculos con python para dar valores a preguntas con parámentros.
+
 Cuando el campo =setup= no es =null=, contiene el código Python (como cadena) que se ejecuta al comienzo de cada iteración de =ProblemaTipo=. La función =_make_setup_fn= lo convierte en un callable que devuelve el diccionario de variables definidas, excluyendo las que empiezan por guión bajo (convención para internas de Python):
 
 #+NAME: Función setup desde string
@@ -1188,6 +1178,13 @@ Por ejemplo, si el JSON contiene:
 #+end_example
 
 en cada iteración se ejecuta ese código y las variables =x= e =y= quedan disponibles para interpolar en los textos del problema mediante =@x= e =@y=.
+
+En el ejemplo, =\n= indica un salto de línea en el script de python; es decir. el =setup= anterior se despliega en el script:
+#+begin_example pyhton
+import random
+x = random.randint(1, 9)
+y = random.randint(1, 9)
+#+end_example
 
 
 ** Deserialización de componentes
@@ -1237,20 +1234,43 @@ def _slot_from_json(slot):
 
 ** Serialización de componentes
 
-La función =_slot_to_json= recorre el problema en sentido inverso. Para los objetos =Supuesto= y =Cuestion= recupera el atributo =_json= adjunto durante la carga. Si el objeto fue creado directamente en Python (sin pasar por =problema_from_dict=), no tiene ese atributo y la serialización falla con un mensaje explicativo que orienta al usuario hacia la causa del error:
+La función =_slot_to_json= recorre el problema en sentido inverso. Cuando el objeto tiene el atributo =_json= (cargado desde JSON), lo devuelve directamente. Cuando el objeto fue creado a mano en Python, usa =repr()= sobre la semántica y la precondición: =repr()= de cualquier fórmula =calcprop= produce exactamente la cadena que =_eval_expr= sabe leer (p.ej. =v('A') >> v('C')=), por lo que el round-trip es transparente. Esta propiedad permite serializar problemas escritos directamente en Python sin modificarlos.
+
+La función auxiliar =_expr_to_str= gestiona el caso especial de los callables (lambdas de =setup= paramétrico), cuyo código fuente no es recuperable desde el objeto función:
 
 #+NAME: Slot a JSON
 #+begin_src python :noweb yes
+def _expr_to_str(val, campo):
+    """Convierte una semántica o precondición al string JSON equivalente.
+
+    Usa repr() sobre objetos calcprop (cuyo repr es evaluable con _eval_expr).
+    Falla con un mensaje claro si val es un callable (lambda de setup paramétrico).
+    """
+    if callable(val):
+        raise ValueError(
+            f"El campo '{campo}' es un callable (lambda). "
+            "Los componentes con semánticas o precondiciones lambda solo pueden "
+            "serializarse si fueron cargados con load_problema() o problema_from_dict().")
+    return repr(val)
+
+
 def _slot_to_json(slot):
     if isinstance(slot, str):
         return slot
     elif isinstance(slot, (Supuesto, Cuestion)):
-        if not hasattr(slot, '_json'):
-            raise ValueError(
-                f"El componente '{slot.e}' no fue creado desde JSON. "
-                "problema_to_dict() solo funciona con problemas cargados mediante "
-                "load_problema() o problema_from_dict().")
-        return slot._json
+        if hasattr(slot, '_json'):
+            return slot._json
+        # Fallback para objetos creados directamente en Python:
+        # repr() de cualquier fórmula calcprop es evaluable por _eval_expr.
+        d = {
+            'tipo':      'Supuesto' if isinstance(slot, Supuesto) else 'Cuestion',
+            'enunciado': slot.e,
+            'semantica': _expr_to_str(slot.s, 'semantica'),
+            'precond':   _expr_to_str(slot.p, 'precond'),
+        }
+        if isinstance(slot, Cuestion):
+            d['exp'] = slot.x
+        return d
     elif isinstance(slot, list):
         return [_slot_to_json(item) for item in slot]
     else:
@@ -1291,24 +1311,33 @@ def problema_from_dict(d):
         raise ValueError(f"Tipo de problema desconocido: {tipo!r}")
 #+end_src
 
-La función inversa, =problema_to_dict=, admite siempre objetos =ProblemaVF= (sus datos son directamente serializables). Para =ProblemaTipo= delega en =_slot_to_json=, que requiere que los componentes lleven el atributo =_json=.
+La función inversa, =problema_to_dict=, admite siempre objetos =ProblemaVF= (sus datos son directamente serializables). Para =ProblemaTipo= delega en =_slot_to_json=: los componentes pueden haber sido cargados desde JSON (con atributo =_json=) o creados directamente en Python (en cuyo caso =_slot_to_json= usa =repr()=). La única restricción es que los =setup= definidos como funciones Python no se pueden serializar (su código fuente no es introspectable); en ese caso se lanza un error claro.
 
 #+NAME: Problema a dict JSON
 #+begin_src python :noweb yes
 def problema_to_dict(problema):
     """Serializa un ProblemaTipo o ProblemaVF a dict.
 
-    Para ProblemaTipo, requiere que los componentes (Supuesto/Cuestion) hayan
-    sido creados con problema_from_dict() o load_problema(). ProblemaVF siempre
-    puede serializarse.
+    ProblemaTipo con componentes creados directamente en Python se serializa
+    usando repr() sobre las fórmulas calcprop. Si alguna semántica o precondición
+    es un callable (lambda de setup paramétrico), la serialización falla.
+    Los setup definidos como funciones Python (no cargados desde JSON) no pueden
+    serializarse; en ese caso se lanza un error. ProblemaVF siempre puede serializarse.
     """
     if isinstance(problema, ProblemaTipo):
         componentes = [_slot_to_json(s) for s in problema.e]
+        setup_str = getattr(problema, '_setup_str', None)
+        if setup_str is None and problema.setup is not None:
+            raise ValueError(
+                "ProblemaTipo tiene un setup callable pero no fue creado desde JSON. "
+                "No es posible serializar un setup definido directamente en Python. "
+                "Escribe el código del setup como cadena y carga el problema con "
+                "problema_from_dict().")
         return {
             "version":     "1",
             "tipo":        "ProblemaTipo",
             "nombre":      getattr(problema, '_nombre', ''),
-            "setup":       getattr(problema, '_setup_str', None),
+            "setup":       setup_str,
             "componentes": componentes,
         }
     elif isinstance(problema, ProblemaVF):
@@ -1393,8 +1422,8 @@ d = {
       {"tipo": "Supuesto", "enunciado": "B ", "semantica": "v('B')", "precond": "True"}
     ],
     [
-      {"tipo": "Cuestion", "enunciado": "¿A?", "semantica": "v('A')",
-       "precond": "True", "exp": ""}
+      {"tipo": "Cuestion", "enunciado": "¿A?", "semantica": "v('A')", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "¿B?", "semantica": "v('B')", "precond": "True", "exp": ""}
     ]
   ]
 }
@@ -1405,8 +1434,8 @@ for etiqueta, enunciado, cuestiones in p:
 #+end_src
 
 #+begin_src jupyter-python
-save_problema(p, "/tmp/ejemplo.json")
-p2 = load_problema("/tmp/ejemplo.json")
+save_problema(p, "./tmp/ejemplo.json")
+p2 = load_problema("./tmp/ejemplo.json")
 for etiqueta, enunciado, cuestiones in p2:
     print(etiqueta, enunciado, cuestiones)
 #+end_src
@@ -1881,6 +1910,22 @@ class ProblemaTipoEditor:
             except Exception as exc:
                 print(f"Error: {exc}")
 #+end_src
+
+
+* ¿Y ahora qué?
+
+*** ¿Qué tenemos?
+
+- Contamos con un módulo de cálculo proposicional que determina la veracidad o falsedad de cada enunciado, basada en los supuestos de cada caso particular.
+- Poseemos una metodología para programar ejercicios utilizando listas de sublistas que incluyen textos, supuestos y cuestiones.
+- Tenemos la capacidad de desempaquetar dichas listas mediante =ProblemaTipo=, lo que nos permite generar múltiples ejercicios, con la tranquilidad de que el módulo de cálculo proposicional se encarga de identificar qué opciones son verdaderas y cuáles son falsas, de acuerdo con la composición de los supuestos de cada enunciado.
+
+Con esto, hemos desarrollado un procedimiento para generar un amplio conjunto de variantes de ejercicios de opción múltiple.
+
+*** ¿Qué nos falta?
+
+Falta dar formato a lo que hemos desarrollado para ser usado con los estudiantes. El módulo =CalcProp-export= nos permitirá crear bancos de preguntas en formato \LaTeX{}, que podrán ser utilizados con [[https://www.auto-multiple-choice.net/][Auto Multiple Choice (AMC)]], así como también generar bancos en formato =xml= para su empleo en el entorno Moodle mediante el paquete de \LaTeX{} [[https://ctan.org/pkg/moodle][moodle]], específicamente para cuestiones de [[https://docs.moodle.org/502/en/Question_types][opción múltiple]].
+
 
 
 * COMMENT otros
