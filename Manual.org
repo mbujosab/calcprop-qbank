@@ -576,6 +576,92 @@ Variante 8: Considere $\mathcal{B}$, y que $\mathcal{B}\Leftrightarrow\mathcal{D
 
 El problema cargado se comporta exactamente igual que el original. También es posible cargar directamente desde un dict sin pasar por fichero, usando =problema_from_dict(d)=.
 
+*** Con =setup= paramétrico
+
+Cuando el problema usa =setup=, el código Python del setup debe escribirse como una *cadena de texto* dentro del dict JSON (no como una función Python). De este modo el fichero JSON es autosuficiente: al cargarlo, =load_problema= reconstruye el callable a partir de esa cadena y lo ejecuta al comienzo de cada iteración.
+
+El siguiente ejemplo genera una pregunta sobre rango de matrices en la que las dimensiones $n$ (filas) y $k$ (columnas) cambian en cada variante:
+
+#+begin_src python :results silent
+from qbank import problema_from_dict, save_problema, load_problema
+
+d = {
+    "version": "1",
+    "tipo": "ProblemaTipo",
+    "nombre": "matriz_rango",
+    "setup": (
+        "import random\n"
+        "n = random.randint(3, 5)\n"
+        "k = random.randint(2, n - 1)"
+    ),
+    "componentes": [
+        "Considere una matriz $A$ de $@n$ filas y $@k$ columnas. ",
+        [
+            {
+                "tipo": "Supuesto",
+                "enunciado": "Suponga que $A$ tiene rango máximo ($\\mathrm{rg}(A)=@k$). ",
+                "semantica": "v('MaxRk')",
+                "precond": "True"
+            },
+            {
+                "tipo": "Supuesto",
+                "enunciado": "Suponga que $A$ tiene rango deficiente ($\\mathrm{rg}(A)<@k$). ",
+                "semantica": "-v('MaxRk')",
+                "precond": "True"
+            }
+        ],
+        "Indique qué afirmación es correcta: ",
+        [
+            {
+                "tipo": "Cuestion",
+                "enunciado": "Las $@k$ columnas de $A$ son linealmente independientes.",
+                "semantica": "v('MaxRk')",
+                "precond": "True",
+                "exp": ""
+            },
+            {
+                "tipo": "Cuestion",
+                "enunciado": "$A^\\top A$ es invertible.",
+                "semantica": "v('MaxRk')",
+                "precond": "True",
+                "exp": ""
+            }
+        ]
+    ]
+}
+
+p = problema_from_dict(d)
+save_problema(p, "ejemplosManual/matriz_rango.json")
+#+end_src
+
+La estructura combina 2 supuestos × 2 cuestiones = 4 variantes. En cada una, el =setup= llama a =random.randint= de nuevo, por lo que $n$ y $k$ toman valores distintos. Los marcadores =@n= y =@k= en los textos reciben esos valores; la semántica de las cuestiones (=v('MaxRk')=) la evalúa el motor proposicional en función del supuesto activo:
+
+#+begin_src python :results output :exports both
+import random
+random.seed(7)
+
+p2 = load_problema("ejemplosManual/matriz_rango.json")
+for etiqueta, enunciado, cuestiones in p2:
+    print(f"Variante {etiqueta}: {enunciado}")
+    for texto, correcto, activa, exp in cuestiones:
+        marca = "✓" if correcto else "✗"
+        print(f"  {marca} {texto}")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Variante 1: Considere una matriz $A$ de $4$ filas y $2$ columnas. Suponga que $A$ tiene rango máximo ($\mathrm{rg}(A)=2$). Indique qué afirmación es correcta:
+  ✓ Las $2$ columnas de $A$ son linealmente independientes.
+Variante 2: Considere una matriz $A$ de $4$ filas y $2$ columnas. Suponga que $A$ tiene rango máximo ($\mathrm{rg}(A)=2$). Indique qué afirmación es correcta:
+  ✓ $A^\top A$ es invertible.
+Variante 3: Considere una matriz $A$ de $3$ filas y $2$ columnas. Suponga que $A$ tiene rango deficiente ($\mathrm{rg}(A)<2$). Indique qué afirmación es correcta:
+  ✗ Las $2$ columnas de $A$ son linealmente independientes.
+Variante 4: Considere una matriz $A$ de $4$ filas y $2$ columnas. Suponga que $A$ tiene rango deficiente ($\mathrm{rg}(A)<2$). Indique qué afirmación es correcta:
+  ✗ $A^\top A$ es invertible.
+#+end_example
+
+Nótese que la lógica proposicional y los valores numéricos actúan de forma independiente: =v('MaxRk')= no «sabe» cuánto valen $n$ y $k$; su valor de verdad lo determina exclusivamente el supuesto elegido en cada variante. El =setup= solo aporta los números que aparecen en el texto mediante la interpolación =@variable=. Una vez guardado el fichero, =load_problema= reconstituye el =setup= desde la cadena de código y el problema se comporta exactamente igual que el original.
+
 *** Limitaciones
 
 - Los =setup= definidos como funciones Python (=def= o =lambda=) no se pueden guardar en JSON porque su código fuente no es recuperable. Si necesitas un =setup= paramétrico y también quieres persistirlo, escribe el código del setup como cadena de texto y usa =problema_from_dict= (o el editor visual, que gestiona esto automáticamente).
