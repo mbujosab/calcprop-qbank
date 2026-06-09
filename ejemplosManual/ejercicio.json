@@ -1,36 +1,51 @@
 {
   "version": "1",
   "tipo": "ProblemaTipo",
-  "nombre": "ejemplo",
+  "nombre": "",
   "setup": null,
   "componentes": [
     "Considere ",
     [
       {
         "tipo": "Supuesto",
-        "enunciado": "y que $A$ es verdadero, ",
+        "enunciado": "$\\mathcal{A}$, ",
         "semantica": "v('A')",
         "precond": "True"
       },
       {
         "tipo": "Supuesto",
-        "enunciado": "y que $B$ es verdadero, ",
+        "enunciado": "$\\mathcal{B}$, ",
         "semantica": "v('B')",
         "precond": "True"
       }
     ],
     [
       {
+        "tipo": "Supuesto",
+        "enunciado": "y que $\\mathcal{A}\\Rightarrow\\mathcal{C}$. ",
+        "semantica": "v('A') >> v('C')",
+        "precond": "True"
+      },
+      {
+        "tipo": "Supuesto",
+        "enunciado": "y que $\\mathcal{B}\\Leftrightarrow\\mathcal{D}$. ",
+        "semantica": "v('B') ** v('D')",
+        "precond": "True"
+      }
+    ],
+    "Conteste: ",
+    [
+      {
         "tipo": "Cuestion",
-        "enunciado": "¿A?",
-        "semantica": "v('A')",
+        "enunciado": "¿Se da $\\mathcal{C}$?",
+        "semantica": "v('C')",
         "precond": "True",
-        "exp": ""
+        "exp": "Solo si $\\mathcal{A}$ y $\\mathcal{A}\\Rightarrow\\mathcal{C}$"
       },
       {
         "tipo": "Cuestion",
-        "enunciado": "¿B?",
-        "semantica": "v('B')",
+        "enunciado": "¿Se da $\\mathcal{D}$?",
+        "semantica": "v('D')",
         "precond": "True",
         "exp": ""
       }
