@@ -1095,6 +1095,91 @@ d = editor.to_dict()       # dict JSON equivalente
 
 Con =p= ya puedes llamar a las funciones de exportación (=AMC=, =QuizMoodleLastCh=, etc.) como si hubieras definido el problema a mano.
 
+** Flujo completo: editor → JSON → AMC y Moodle
+
+Este ejemplo muestra el recorrido completo desde el editor visual hasta los ficheros de exportación, pasando por el JSON como punto de guardado intermedio.
+
+*** Paso 1 — Diseñar y guardar desde el editor
+
+Crea el problema en el editor y guárdalo en disco (botón =💾 Guardar= o desde código):
+
+#+begin_src python
+from qbank import ProblemaTipoEditor
+
+editor = ProblemaTipoEditor()
+editor                          # muestra el formulario
+#+end_src
+
+Una vez rellenado el formulario, guarda el fichero:
+
+#+begin_src python
+editor.save("mi_problema.json")
+#+end_src
+
+O bien, si prefieres guardarlo a mano:
+
+#+begin_src python
+from qbank import save_problema
+save_problema(editor.to_problema(), "mi_problema.json")
+#+end_src
+
+*** Paso 2 — Cargar el JSON
+
+En cualquier sesión posterior (o en el mismo notebook, en otra celda):
+
+#+begin_src python
+from qbank import *
+
+p = load_problema("mi_problema.json")
+#+end_src
+
+=p= es un =ProblemaTipo= completamente funcional, idéntico al que se habría obtenido definiendo el problema a mano en Python.
+
+*** Paso 3a — Exportar a AMC
+
+#+begin_src python
+nombre = "MiCuestionario"
+
+with open("preguntas_amc.tex", "w") as f:
+    for etiqueta, enunciado, cuestiones in p:
+        f.write(AMC(nombre, etiqueta, enunciado, cuestiones))
+#+end_src
+
+Variantes habituales:
+
+| Función         | Cuándo usarla                                              |
+|-----------------+------------------------------------------------------------|
+| =AMC=           | Pregunta estándar (solo ítems activos).                   |
+| =AMClastCh=     | Añade «Ninguna de las anteriores» al final.               |
+| =AMCmc=         | Ítems en columnas; requiere =ncols=.                      |
+| =AMClastChmc=   | Multicolumna con «Ninguna de las anteriores».             |
+
+El fichero generado se incluye en el documento principal de AMC con =\input{preguntas_amc.tex}=.
+
+*** Paso 3b — Exportar a Moodle
+
+#+begin_src python
+QuizMoodleLastCh("MiCuestionario", "salida/", p)
+#+end_src
+
+Esto genera =salida/MiCuestionario.tex=. A continuación, compila con LaTeX para obtener el =.xml= importable en Moodle:
+
+#+begin_example
+cd salida
+xelatex MiCuestionario.tex
+#+end_example
+
+El paquete LaTeX =moodle= produce =MiCuestionario.xml= durante la compilación. Ese fichero es el que se importa en Moodle (Banco de preguntas → Importar → Formato Moodle XML).
+
+Variantes habituales:
+
+| Función                | Cuándo usarla                                          |
+|------------------------+--------------------------------------------------------|
+| =QuizMoodle=           | Pregunta estándar.                                    |
+| =QuizMoodleLastCh=     | Añade «Las demás opciones son falsas» al final.       |
+| =QuizMoodleProfe=      | Versión con ítems rechazados visibles (revisión).     |
+| =QuizVFMoodle=         | Para =ProblemaVF= (preguntas de verdadero/falso).     |
+
 * Referencia rápida de la API
 
 ** Clases
