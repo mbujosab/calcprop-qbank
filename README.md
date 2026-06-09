@@ -48,6 +48,37 @@ for etiqueta, enunciado, cuestiones in p:
 
 `ProblemaTipoProfe` muestra todas las cuestiones para cada enunciado (sin descartar), facilitando la revisión del banco.
 
+### Preguntas multi-parte
+
+`ProblemaMultiParte` genera variantes en las que cada enunciado va seguido de varios bloques de sub-preguntas independientes. Es útil para preguntas AMC con múltiples apartados o para el formato cloze de Moodle:
+
+```python
+from qbank import *
+
+subpreguntas = [
+    SubPregunta("¿Cuál es el valor de $A$? ",
+                [Cuestion("Verdadero.", v("A")),
+                 Cuestion("Falso.",    ~v("A"))]),
+    SubPregunta("¿Cuál es el valor de $B$? ",
+                [Cuestion("Verdadero.", v("B")),
+                 Cuestion("Falso.",    ~v("B"))]),
+]
+
+p = ProblemaMultiParte(
+    ["Suponga que ",
+     [Supuesto("$A$ es verdadero, ", v("A")),
+      Supuesto("$B$ es verdadero, ", v("B"))]],
+    subpreguntas,
+)
+
+for etiqueta, enunciado, subs in p:
+    print(f"Variante {etiqueta}: {enunciado}")
+    for intro, cuestiones in subs:
+        print(f"  {intro}")
+        for texto, correcto, activa, exp in cuestiones:
+            print(f"    {'✓' if correcto else '✗'} {texto}")
+```
+
 ### Preguntas paramétricas con `setup`
 
 El parámetro `setup` permite que los valores numéricos o simbólicos cambien en cada variante. El texto de los slots admite marcadores `@variable` para interpolación:
@@ -70,7 +101,7 @@ p = ProblemaTipo(
 
 ### Persistencia en formato JSON
 
-Guarda y carga problemas sin reescribir el código Python:
+Guarda y carga problemas (`ProblemaTipo`, `ProblemaMultiParte`, `ProblemaVF`) sin reescribir el código Python:
 
 ```python
 from qbank import load_problema, save_problema
@@ -96,7 +127,9 @@ p = editor.to_problema()                # obtener el ProblemaTipo
 
 Ver la [guía de instalación de ipywidgets en JupyterLab](Manual.org) si los widgets se muestran como texto en lugar del formulario.
 
-### Exportación
+### Exportación a AMC y Moodle
+
+**Preguntas estándar (`ProblemaTipo`):**
 
 - **AMC (LaTeX)**: `AMC`, `AMClastCh`, `AMCmc`, `AMCmcProfe`, …
 - **Moodle (XML vía LaTeX)**: `QuizMoodle`, `QuizMoodleLastCh`, `QuizVFMoodle`, …
@@ -106,6 +139,29 @@ with open("preguntas.tex", "w") as f:
     for etiqueta, enunciado, cuestiones in p:
         f.write(AMC("MiCuestionario", etiqueta, enunciado, cuestiones))
 ```
+
+**Preguntas multi-parte (`ProblemaMultiParte`):**
+
+- **AMC**: `AMC_multipart` — genera un único `\begin{questionmult}` con un bloque `\begin{choices}` por sub-pregunta.
+- **Moodle cloze**: `QuizClozeMulti` — genera preguntas `\begin{cloze}` con sub-bloques `\begin{multi}` incrustados.
+
+```python
+with open("preguntas.tex", "w") as f:
+    for etiqueta, enunciado, subs in p:
+        f.write(AMC_multipart("MiCuestionario", etiqueta, enunciado, subs))
+```
+
+### Exportación a código Python editable
+
+`problema_to_python` / `save_problema_py` generan un fichero `.py` con la definición del problema como listas editables, tanto para `ProblemaTipo` como para `ProblemaMultiParte`:
+
+```python
+from qbank import save_problema_py
+
+save_problema_py(p, 'mi_problema.py')
+```
+
+El fichero resultante puede abrirse con cualquier editor, modificarse y ejecutarse directamente con Python.
 
 ## Documentación
 
