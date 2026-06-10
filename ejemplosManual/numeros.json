@@ -2,7 +2,7 @@
   "version": "1",
   "tipo": "ProblemaTipo",
   "nombre": "sumas_y_productos",
-  "setup": "import random\na = random.randint(2, 9)\nb = random.randint(2, 9)\nsuma = a + b\nproducto = a * b",
+  "setup": "import random\na = random.randint(1, 9)\nb = random.randint(1, 9)\nsuma = a + b\nproducto = a * b",
   "componentes": [
     "Sean $a = @a$ y $b = @b$ dos números naturales. Se sabe que ",
     [
@@ -23,9 +23,15 @@
         "enunciado": "$a = b$. ",
         "semantica": "True",
         "precond": "lambda ns: ns['a'] == ns['b']"
+      },
+      {
+        "tipo": "Supuesto",
+        "enunciado": "$a \\ne b$. ",
+        "semantica": "True",
+        "precond": "lambda ns: ns['a'] != ns['b']"
       }
     ],
-    "Indique qué afirmación es correcta: ",
+    "Indique qué afirmaciones son correctas: ",
     [
       {
         "tipo": "Cuestion",
@@ -43,6 +49,15 @@
       },
       {
         "tipo": "Cuestion",
+        "enunciado": "$(a-b)*a=a$",
+        "semantica": "lambda ns: ((ns['a'] - ns['b'])*ns['a']) == ns['a']",
+        "precond": "True",
+        "exp": ""
+      }
+    ],
+    [
+      {
+        "tipo": "Cuestion",
         "enunciado": "$a - b > 0$",
         "semantica": "lambda ns: ns['a'] - ns['b'] > 0",
         "precond": "True",
@@ -54,6 +69,13 @@
         "semantica": "lambda ns: ns['b'] - ns['a'] > 0",
         "precond": "True",
         "exp": "Cierto solo si $a < b$"
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "$a=b$",
+        "semantica": "lambda ns: ns['b'] == ns['a'] ",
+        "precond": "True",
+        "exp": ""
       }
     ]
   ]

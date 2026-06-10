@@ -35,6 +35,8 @@ build/
 
 # Salida generada por los ejemplos
 ejemplos/
+ejemplosManual/mis_problemas/
+ejemplosManual/exportaciones/
 
 # Jupyter
 .ipynb_checkpoints/

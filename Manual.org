@@ -490,13 +490,16 @@ rechazado por …=»). De este modo:
 - la corrección de cada cuestión se calcula con los valores reales (=lambda ns: ...=),
   no con una variable proposicional abstracta.
 
-Este es, esencialmente, el problema =numeros.json= que carga en el editor visual el
-notebook de demostración =ejemplosManual/Demo.ipynb= (sección «8.2 Editor cargando un
-ejemplo con setup»). Puedes lanzarlo en el navegador, sin instalar nada, con Binder:
+El problema =numeros.json= que carga el editor visual en el notebook de demostración
+=ejemplosManual/Demo.ipynb= (sección «8.2 Editor cargando un ejemplo con setup») es una
+versión ampliada de esta misma idea: añade el supuesto «$a \ne b$» —para que rara vez se
+descarten todos los supuestos a la vez— y reparte las cuestiones en dos grupos de opciones
+que se combinan (una de cada grupo por variante), además de calcular =@suma= y =@producto=
+en el =setup=. Puedes lanzarlo en el navegador, sin instalar nada, con Binder:
 [[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/ejemplosManual/Demo.ipynb][abrir =Demo.ipynb= en mybinder]].
-Como el =setup= es aleatorio el iterador no tiene fin y el caso «$a = b$» aparece rara
-vez; acota la generación con =itertools.islice= igual que en el resto de ejemplos con
-=setup= aleatorio.
+Como el =setup= es aleatorio, el caso «$a = b$» aparece rara vez; si solo quieres ver unas
+pocas variantes, acota la generación con =itertools.islice= igual que en el resto de
+ejemplos con =setup= aleatorio.
 
 ** Guardar y cargar problemas en formato JSON
 

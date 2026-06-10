@@ -27,6 +27,19 @@ def _ns_eval(val, ns):
 def _ns_interp(s, ns):
     return _NsTemplate(s).safe_substitute(ns) if ns else s
 
+def _fuente_precond(componente):
+    """Representación legible de la precondición de un componente.
+
+    Si el componente se cargó desde JSON, devuelve la cadena de código
+    original (p. ej. ``lambda ns: ns['a'] > ns['b']``); en otro caso usa
+    ``repr()``, que para una lambda definida directamente en Python da algo
+    como ``<function <lambda> at 0x...>``.
+    """
+    j = getattr(componente, '_json', None)
+    if j and j.get('precond') is not None:
+        return j['precond']
+    return repr(componente.p)
+
 def CuestionesJuntas(lista):
     def CreaLista(t):
         return t if isinstance(t, list) else [t]
@@ -125,7 +138,7 @@ class ProblemaTipo:
                         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
                     else:
                         print('\n Supuesto: '   + str(componente.e) \
-                            + ' rechazado por ' + str(componente.p) + '\n')
+                            + ' rechazado por ' + _fuente_precond(componente) + '\n')
                         break
 
                 elif isinstance(componente, Cuestion):
@@ -137,9 +150,9 @@ class ProblemaTipo:
                             [(texto, (True if test(semantica, hipotesis) else False), 1, componente.x)]
                     else:
                         cuestiones = cuestiones + \
-                            [(texto, 'rechazada por ' + str(componente.p), 0, componente.x)]
+                            [(texto, 'rechazada por ' + _fuente_precond(componente), 0, componente.x)]
                         print('\n Cuestion: '   + str(componente.e) \
-                            + ' rechazada por ' + str(componente.p) + '\n')
+                            + ' rechazada por ' + _fuente_precond(componente) + '\n')
                         break
 
 class ProblemaTipoProfe:
@@ -182,7 +195,7 @@ class ProblemaTipoProfe:
                         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
                     else:
                         print('\n Supuesto: '   + str(componente.e) \
-                            + ' rechazado por ' + str(componente.p) + '\n')
+                            + ' rechazado por ' + _fuente_precond(componente) + '\n')
                         break
 
                 elif isinstance(componente, Cuestion):
@@ -194,7 +207,7 @@ class ProblemaTipoProfe:
                             [(texto, (True if test(semantica, hipotesis) else False), 1, componente.x)]
                     else:
                         cuestiones = cuestiones + \
-                            [(texto, 'rechazada por ' + str(componente.p), 0)]
+                            [(texto, 'rechazada por ' + _fuente_precond(componente), 0, componente.x)]
 
 class SubPregunta:
     def __init__(self, intro, cuestiones):
