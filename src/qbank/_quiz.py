@@ -39,7 +39,6 @@ def _fuente_precond(componente):
     if j and j.get('precond') is not None:
         return j['precond']
     return repr(componente.p)
-
 def CuestionesJuntas(lista):
     def CreaLista(t):
         return t if isinstance(t, list) else [t]
@@ -52,7 +51,6 @@ def CuestionesJuntas(lista):
         else:
             p.extend(CreaLista(e))
     return p
-
 class Marcador:
     def __init__(self, data):
         self.data = data
@@ -86,7 +84,6 @@ class Supuesto:
     def __repr__(self):
         """Método de representación"""
         return 'Cuestión( Enunciado: ' + self.e + '; Semántica: ' + self.s + '; Precondición: ' + self.p + ')'
-
 class Cuestion:
     def __init__(self, enunciado, semantica, precond=True, exp=""):
         self.e = enunciado
@@ -97,7 +94,6 @@ class Cuestion:
     def __repr__(self):
         """Método de representación"""
         return 'Cuestión( Enunciado: ' + self.e + '; Semántica: ' + self.s + '; Precondición: ' + self.p + ')'
-
 class ProblemaTipo:
     def __init__(self, supuestos_y_cuestiones, setup=None):
         self.e = supuestos_y_cuestiones
@@ -109,7 +105,6 @@ class ProblemaTipo:
         self.i    = iter(Marcador([len(x) for x in self.l]))
         self.c    = 0
         return self
-
     def __next__(self):
         self.c += 1
         while True:
@@ -117,20 +112,20 @@ class ProblemaTipo:
                 variante = next(self.i)
             except StopIteration:
                 raise StopIteration
-
+    
             ns = self.setup() if self.setup else {}
             enunciado    = ""
             hipotesis    = []
             cuestiones   = []
-
+    
             for n in range(self.long+1):
                 if n == self.long:
                     return (str(self.c), enunciado, cuestiones)
-
+    
                 componente = self.l[n][variante[n]]
                 if isinstance(componente, str):
                     enunciado = enunciado + _ns_interp(componente, ns)
-
+                
                 elif isinstance(componente, Supuesto):
                     precond = _ns_eval(componente.p, ns)
                     if test(precond, hipotesis):
@@ -140,7 +135,7 @@ class ProblemaTipo:
                         print('\n Supuesto: '   + str(componente.e) \
                             + ' rechazado por ' + _fuente_precond(componente) + '\n')
                         break
-
+                
                 elif isinstance(componente, Cuestion):
                     precond   = _ns_eval(componente.p, ns)
                     semantica = _ns_eval(componente.s, ns)
@@ -154,7 +149,6 @@ class ProblemaTipo:
                         print('\n Cuestion: '   + str(componente.e) \
                             + ' rechazada por ' + _fuente_precond(componente) + '\n')
                         break
-
 class ProblemaTipoProfe:
     def __init__(self, supuestos_y_cuestiones, setup=None):
         self.e = CuestionesJuntas(supuestos_y_cuestiones)
@@ -166,7 +160,6 @@ class ProblemaTipoProfe:
         self.i    = iter(Marcador([len(x) for x in self.l]))
         self.c    = 0
         return self
-
     def __next__(self):
         self.c += 1
         while True:
@@ -174,20 +167,20 @@ class ProblemaTipoProfe:
                 variante = next(self.i)
             except StopIteration:
                 raise StopIteration
-
+    
             ns = self.setup() if self.setup else {}
             enunciado     = ""
             hipotesis     = []
             cuestiones    = []
-
+    
             for n in range(self.long+1):
                 if n == self.long:
                     return (str(self.c), enunciado, cuestiones)
-
+    
                 componente = self.l[n][variante[n]]
                 if isinstance(componente, str):
                     enunciado = enunciado + _ns_interp(componente, ns)
-
+                
                 elif isinstance(componente, Supuesto):
                     precond = _ns_eval(componente.p, ns)
                     if test(precond, hipotesis):
@@ -197,7 +190,7 @@ class ProblemaTipoProfe:
                         print('\n Supuesto: '   + str(componente.e) \
                             + ' rechazado por ' + _fuente_precond(componente) + '\n')
                         break
-
+                
                 elif isinstance(componente, Cuestion):
                     precond   = _ns_eval(componente.p, ns)
                     semantica = _ns_eval(componente.s, ns)
@@ -207,8 +200,24 @@ class ProblemaTipoProfe:
                             [(texto, (True if test(semantica, hipotesis) else False), 1, componente.x)]
                     else:
                         cuestiones = cuestiones + \
-                            [(texto, 'rechazada por ' + _fuente_precond(componente), 0, componente.x)]
+                            [(texto, 'rechazada por ' + _fuente_precond(componente), 0)]
+                
+from random import sample
+class ProblemaVF():
+    def __init__(self, enunciado, cuestiones, NumPreguntas):
+        self.e = enunciado
+        self.c = cuestiones
+        self.NumPreguntas = NumPreguntas
 
+    def __iter__(self):
+        self.contador = 0
+        return self
+
+    def __next__(self):
+        cuestiones = sample(self.c, self.NumPreguntas)
+        self.contador += 1
+        return (str(self.contador), self.e, cuestiones)
+    
 class SubPregunta:
     def __init__(self, intro, cuestiones):
         self.intro = intro
@@ -256,7 +265,7 @@ class ProblemaMultiParte:
                         hipotesis  = hipotesis + [_ns_eval(componente.s, ns)]
                     else:
                         print('\n Supuesto: '   + str(componente.e)
-                              + ' rechazado por ' + str(componente.p) + '\n')
+                              + ' rechazado por ' + _fuente_precond(componente) + '\n')
                         break
             else:
                 subpregs = []
@@ -272,20 +281,3 @@ class ProblemaMultiParte:
                             cuestiones.append((texto, correcto, 1, c.x))
                     subpregs.append((intro_text, cuestiones))
                 return (str(self.c), enunciado, subpregs)
-
-
-from random import sample
-class ProblemaVF():
-    def __init__(self, enunciado, cuestiones, NumPreguntas):
-        self.e = enunciado
-        self.c = cuestiones
-        self.NumPreguntas = NumPreguntas
-
-    def __iter__(self):
-        self.contador = 0
-        return self
-
-    def __next__(self):
-        cuestiones = sample(self.c, self.NumPreguntas)
-        self.contador += 1
-        return (str(self.contador), self.e, cuestiones)

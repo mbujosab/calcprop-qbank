@@ -141,6 +141,19 @@ def _ns_eval(val, ns):
 
 def _ns_interp(s, ns):
     return _NsTemplate(s).safe_substitute(ns) if ns else s
+
+def _fuente_precond(componente):
+    """Representación legible de la precondición de un componente.
+
+    Si el componente se cargó desde JSON, devuelve la cadena de código
+    original (p. ej. ``lambda ns: ns['a'] > ns['b']``); en otro caso usa
+    ``repr()``, que para una lambda definida directamente en Python da algo
+    como ``<function <lambda> at 0x...>``.
+    """
+    j = getattr(componente, '_json', None)
+    if j and j.get('precond') is not None:
+        return j['precond']
+    return repr(componente.p)
 #+end_src
 
 
@@ -427,7 +440,7 @@ elif isinstance(componente, Supuesto):
         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
     else:
         print('\n Supuesto: '   + str(componente.e) \
-            + ' rechazado por ' + str(componente.p) + '\n')
+            + ' rechazado por ' + _fuente_precond(componente) + '\n')
         break
 
 elif isinstance(componente, Cuestion):
@@ -439,9 +452,9 @@ elif isinstance(componente, Cuestion):
             [(texto, (True if test(semantica, hipotesis) else False), 1, componente.x)]
     else:
         cuestiones = cuestiones + \
-            [(texto, 'rechazada por ' + str(componente.p), 0, componente.x)]
+            [(texto, 'rechazada por ' + _fuente_precond(componente), 0, componente.x)]
         print('\n Cuestion: '   + str(componente.e) \
-            + ' rechazada por ' + str(componente.p) + '\n')
+            + ' rechazada por ' + _fuente_precond(componente) + '\n')
         break
 #+end_src
 
@@ -739,7 +752,7 @@ elif isinstance(componente, Supuesto):
         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
     else:
         print('\n Supuesto: '   + str(componente.e) \
-            + ' rechazado por ' + str(componente.p) + '\n')
+            + ' rechazado por ' + _fuente_precond(componente) + '\n')
         break
 
 elif isinstance(componente, Cuestion):
@@ -751,7 +764,7 @@ elif isinstance(componente, Cuestion):
             [(texto, (True if test(semantica, hipotesis) else False), 1, componente.x)]
     else:
         cuestiones = cuestiones + \
-            [(texto, 'rechazada por ' + str(componente.p), 0)]
+            [(texto, 'rechazada por ' + _fuente_precond(componente), 0)]
 
 #+end_src
 
@@ -1065,7 +1078,7 @@ class ProblemaMultiParte:
                         hipotesis  = hipotesis + [_ns_eval(componente.s, ns)]
                     else:
                         print('\n Supuesto: '   + str(componente.e)
-                              + ' rechazado por ' + str(componente.p) + '\n')
+                              + ' rechazado por ' + _fuente_precond(componente) + '\n')
                         break
             else:
                 subpregs = []
@@ -1807,7 +1820,7 @@ try:
 except ImportError:
     _HAS_WIDGETS = False
 
-from qbank._quiz import ProblemaTipo
+from qbank._quiz import ProblemaTipo, ProblemaTipoProfe
 from qbank._json import problema_from_dict, problema_to_dict, load_problema, save_problema
 
 
@@ -2149,10 +2162,13 @@ class ProblemaTipoEditor:
         with self._out:
             _clear()
             try:
+                # Vista «profe»: para cada combinación de supuestos se muestran
+                # todas las cuestiones posibles (sin descartar las inconsistentes),
+                # marcando cada una como correcta/incorrecta.
                 p   = self.to_problema()
                 n   = self._n_prev.value
                 cnt = 0
-                for var in p:
+                for var in ProblemaTipoProfe(p.e, setup=p.setup):
                     if cnt >= n:
                         break
                     id_, enunciado, cuestiones = var
@@ -2198,24 +2214,26 @@ class ProblemaTipoEditor:
                 print(f"Error: {exc}")
 
     def _on_download(self, _):
+        # JupyterLab no ejecuta el JS de IPython.display.Javascript desde un
+        # callback de botón (solo muestra «<IPython.core.display.Javascript object>»).
+        # En su lugar mostramos un enlace HTML con el JSON embebido como data URI
+        # (atributo `download`): el navegador lo descarga al pulsarlo, sin ejecutar JS.
         import json as _j
-        import os
-        from IPython.display import Javascript
-        try:
-            data     = _j.dumps(self.to_dict(), ensure_ascii=False, indent=2)
-            filename = os.path.basename(self._filepath.value.strip() or 'problema.json')
-            js = f"""
-var _b = new Blob([{_j.dumps(data)}], {{type: 'application/json'}});
-var _u = URL.createObjectURL(_b);
-var _a = document.createElement('a');
-_a.href = _u; _a.download = {_j.dumps(filename)};
-document.body.appendChild(_a); _a.click();
-document.body.removeChild(_a); URL.revokeObjectURL(_u);
-"""
-            _display(Javascript(js))
-        except Exception as exc:
-            with self._out:
-                _clear()
+        import os, base64
+        from IPython.display import HTML
+        with self._out:
+            _clear()
+            try:
+                data     = _j.dumps(self.to_dict(), ensure_ascii=False, indent=2)
+                filename = os.path.basename(self._filepath.value.strip() or 'problema.json')
+                b64      = base64.b64encode(data.encode('utf-8')).decode('ascii')
+                href     = f"data:application/json;base64,{b64}"
+                _display(HTML(
+                    f'<a download="{filename}" href="{href}" '
+                    f'style="font-size:14px;font-weight:bold">'
+                    f'⬇ Descargar {filename}</a>'
+                    f'<br><span style="color:gray">(pulsa el enlace para guardar el fichero)</span>'))
+            except Exception as exc:
                 print(f"Error al descargar: {exc}")
 #+end_src
 

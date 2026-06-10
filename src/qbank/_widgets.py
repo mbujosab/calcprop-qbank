@@ -56,7 +56,7 @@ def _need_widgets():
             "  pip install ipywidgets")
 
 
-# ── Widget de una alternativa (Supuesto o Cuestion) ───────────────────────────
+# ── Widget de una alternativa (Supuesto o Cuestion) ──────────────────────────
 
 class _AltWidget:
     def __init__(self, d=None, on_delete=None):
@@ -109,8 +109,6 @@ class _AltWidget:
         if self.tipo.value == 'Cuestion':
             d['exp'] = self.x.value
         return d
-
-
 # ── Widget de un slot (texto | lista de alternativas) ─────────────────────────
 
 class _SlotWidget:
@@ -118,7 +116,6 @@ class _SlotWidget:
         self._on_delete = on_delete
         self._alts = []
 
-        # Normalise incoming data
         if data is None or isinstance(data, str):
             tipo_init, text_init, alts_init = 'texto', data or '', []
         elif isinstance(data, dict):              # single component
@@ -132,12 +129,10 @@ class _SlotWidget:
         self._lbl = _w.Label(
             f'Slot {index + 1}', layout=_w.Layout(width='52px'))
 
-        # Text content
         self._text = _w.Text(
             value=text_init, placeholder='texto del enunciado…',
             layout=_w.Layout(width='360px'))
 
-        # Alternatives content
         self._alts_box = _w.VBox([])
         _add_btn = _w.Button(
             description='+ alt', button_style='info',
@@ -145,7 +140,6 @@ class _SlotWidget:
         _add_btn.on_click(lambda _: self._add_alt())
         self._alts_area = _w.VBox([self._alts_box, _add_btn])
 
-        # Delete slot button
         del_btn = _w.Button(
             description='✕', button_style='danger',
             layout=_w.Layout(width='30px', height='28px'))
@@ -157,7 +151,6 @@ class _SlotWidget:
             _w.HBox([self._lbl, self._tipo_dd, self._content, del_btn])
         ])
 
-        # Populate alternatives
         if tipo_init == 'alternativas':
             self._content.children = [self._alts_area]
             for a in alts_init:
@@ -183,8 +176,6 @@ class _SlotWidget:
         if self._tipo_dd.value == 'texto':
             return self._text.value
         return [a.to_dict() for a in self._alts]
-
-
 # ── Editor principal ───────────────────────────────────────────────────────────
 
 class ProblemaTipoEditor:
