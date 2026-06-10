@@ -120,6 +120,38 @@ Para usar este módulo, primero se debe ejecutar
 from qbank import *
 #+END_SRC
 
+El fichero =__init__.py= del paquete reúne la interfaz pública reexportando los submódulos. El editor visual (=_widgets=) se importa dentro de un =try/except= porque depende de =ipywidgets=, que es una dependencia opcional: si no está instalada, el resto del paquete sigue funcionando.
+
+#+begin_src python :tangle src/qbank/__init__.py :exports none
+# Copyright (C) 2020-2026  Andrés Bujosa, Marcos Bujosa
+#
+# This file is part of calcprop-qbank.
+#
+# calcprop-qbank is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# calcprop-qbank is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#+end_src
+
+#+NAME: qbank/__init__.py
+#+begin_src python :tangle src/qbank/__init__.py
+from qbank._quiz import *
+from qbank._export import *
+from qbank._json import *
+try:
+    from qbank._widgets import *
+except ImportError:
+    pass
+#+end_src
+
 
 ** Funciones auxiliares para =setup= paramétrico
    :PROPERTIES:
@@ -130,6 +162,7 @@ Las funciones =_ns_eval= y =_ns_interp= permiten que los atributos de =Supuesto=
 
 - =_ns_eval(val, ns)= :: si =val= es callable, lo invoca con =ns= y devuelve el resultado; si no, devuelve =val= tal cual.
 - =_ns_interp(s, ns)= :: interpola en la cadena =s= los marcadores =@variable= usando el diccionario =ns=. Usa =string.Template.safe_substitute= con delimitador =@= (en lugar del =\$= estándar, para evitar conflictos con el modo matemático de \LaTeX{}). Los marcadores desconocidos y las llaves ={...}= de \LaTeX{} no se ven afectados. Para obtener una arroba literal en el texto, escribe =@@=.
+- =_fuente_precond(componente)= :: devuelve una representación *legible* de la precondición de un =Supuesto= o =Cuestion= para los mensajes de rechazo. Si el componente se cargó desde JSON (atributo =_json=) usa la cadena de código original (p. ej. =lambda ns: ns['a'] > ns['b']=); en otro caso recurre a =repr()= (que para una lambda definida en Python da algo como =<function <lambda> at 0x...>=). Así los avisos «=… rechazado por …=» muestran la condición y no la dirección de memoria de la función.
 
 #+NAME: Funciones auxiliares para setup paramétrico
 #+begin_src python :noweb yes
@@ -1179,6 +1212,52 @@ El módulo completo está compuesto por varios fragmentos de código que se desc
 
 """
 Serialización y deserialización de problemas qbank en formato JSON.
+
+Formato de un ProblemaTipo::
+
+    {
+      "version": "1",
+      "tipo": "ProblemaTipo",
+      "nombre": "identificador_opcional",
+      "setup": null,
+      "componentes": [
+        "texto fijo ",
+        {"tipo": "Supuesto", "enunciado": "A ", "semantica": "v('A')", "precond": "True"},
+        [
+          {"tipo": "Supuesto", "enunciado": "alt 1 ", "semantica": "v('A')"},
+          {"tipo": "Supuesto", "enunciado": "alt 2 ", "semantica": "v('B')"}
+        ],
+        [
+          {"tipo": "Cuestion", "enunciado": "¿A?", "semantica": "v('A')", "exp": ""}
+        ]
+      ]
+    }
+
+Formato de un ProblemaVF::
+
+    {
+      "version": "1",
+      "tipo": "ProblemaVF",
+      "nombre": "identificador_opcional",
+      "enunciado": "Marque las verdaderas:",
+      "NumPreguntas": 3,
+      "cuestiones": [
+        {"texto": "Pregunta 1", "respuesta": true},
+        {"texto": "Pregunta 2", "respuesta": false}
+      ]
+    }
+
+Formato de un banco (múltiples problemas)::
+
+    {
+      "version": "1",
+      "banco": [ {problema1}, {problema2}, ... ]
+    }
+
+En semantica y precond se admiten:
+- Expresiones calcprop:  "v('A') & v('B')"
+- Booleanos literales:   "True" / "False"
+- Lambdas para setup:    "lambda ns: ns['x'] > 0"
 """
 #+end_src
 
@@ -1186,7 +1265,8 @@ Serialización y deserialización de problemas qbank en formato JSON.
 #+begin_src python :tangle src/qbank/_json.py :noweb no-export
 import json as _json
 import calcprop as _calcprop_mod
-from qbank._quiz import Supuesto, Cuestion, ProblemaTipo, ProblemaVF
+from qbank._quiz import (Supuesto, Cuestion, ProblemaTipo, ProblemaVF,
+                         SubPregunta, ProblemaMultiParte)
 
 __all__ = [
     'problema_from_dict',
@@ -1448,6 +1528,22 @@ def problema_from_dict(d):
         p._setup_str = setup_str
         return p
 
+    elif tipo == "ProblemaMultiParte":
+        componentes = [_slot_from_json(s) for s in d["componentes"]]
+        subpreguntas = [
+            SubPregunta(
+                sp["intro"],
+                [_componente_from_dict(c) for c in sp["cuestiones"]]
+            )
+            for sp in d["subpreguntas"]
+        ]
+        setup_str = d.get("setup")
+        setup     = _make_setup_fn(setup_str) if setup_str else None
+        p = ProblemaMultiParte(componentes, subpreguntas, setup=setup)
+        p._nombre    = d.get("nombre", "")
+        p._setup_str = setup_str
+        return p
+
     elif tipo == "ProblemaVF":
         enunciado  = d["enunciado"]
         cuestiones = [(c["texto"], c["respuesta"]) for c in d["cuestiones"]]
@@ -1460,7 +1556,9 @@ def problema_from_dict(d):
         raise ValueError(f"Tipo de problema desconocido: {tipo!r}")
 #+end_src
 
-La función inversa, =problema_to_dict=, admite siempre objetos =ProblemaVF= (sus datos son directamente serializables). Para =ProblemaTipo= delega en =_slot_to_json=: los componentes pueden haber sido cargados desde JSON (con atributo =_json=) o creados directamente en Python (en cuyo caso =_slot_to_json= usa =repr()=). La única restricción es que los =setup= definidos como funciones Python no se pueden serializar (su código fuente no es introspectable); en ese caso se lanza un error claro.
+=problema_from_dict= reconstruye los tres tipos de problema según la clave =tipo= del dict: =ProblemaTipo=, =ProblemaMultiParte= (con sus =subpreguntas=, cada una una lista de =Cuestion=) y =ProblemaVF=.
+
+La función inversa, =problema_to_dict=, admite siempre objetos =ProblemaVF= (sus datos son directamente serializables). Para =ProblemaTipo= y =ProblemaMultiParte= delega en =_slot_to_json=: los componentes pueden haber sido cargados desde JSON (con atributo =_json=) o creados directamente en Python (en cuyo caso =_slot_to_json= usa =repr()=); en el caso multi-parte serializa además cada =SubPregunta= con su intro y sus cuestiones. La única restricción es que los =setup= definidos como funciones Python no se pueden serializar (su código fuente no es introspectable); en ese caso se lanza un error claro.
 
 #+NAME: Problema a dict JSON
 #+begin_src python :noweb yes
@@ -1488,6 +1586,37 @@ def problema_to_dict(problema):
             "nombre":      getattr(problema, '_nombre', ''),
             "setup":       setup_str,
             "componentes": componentes,
+        }
+    elif isinstance(problema, ProblemaMultiParte):
+        componentes = [_slot_to_json(s) for s in problema.componentes]
+        setup_str = getattr(problema, '_setup_str', None)
+        if setup_str is None and problema.setup is not None:
+            raise ValueError(
+                "ProblemaMultiParte tiene un setup callable pero no fue creado desde JSON. "
+                "Escribe el código del setup como cadena y carga el problema con "
+                "problema_from_dict().")
+        subpreguntas = []
+        for sp in problema.subpreguntas:
+            cuestiones_json = []
+            for c in sp.cuestiones:
+                if hasattr(c, '_json'):
+                    cuestiones_json.append(c._json)
+                else:
+                    cuestiones_json.append({
+                        'tipo':      'Cuestion',
+                        'enunciado': c.e,
+                        'semantica': _expr_to_str(c.s, 'semantica'),
+                        'precond':   _expr_to_str(c.p, 'precond'),
+                        'exp':       c.x,
+                    })
+            subpreguntas.append({"intro": sp.intro, "cuestiones": cuestiones_json})
+        return {
+            "version":      "1",
+            "tipo":         "ProblemaMultiParte",
+            "nombre":       getattr(problema, '_nombre', ''),
+            "setup":        setup_str,
+            "componentes":  componentes,
+            "subpreguntas": subpreguntas,
         }
     elif isinstance(problema, ProblemaVF):
         return {
@@ -2005,10 +2134,11 @@ Los botones de la barra inferior:
 
 | Botón          | Acción                                                                              |
 |----------------+-------------------------------------------------------------------------------------|
-| =▶ Preview=    | Genera hasta N variantes y las muestra en el área de salida.                        |
+| =▶ Preview=    | Vista «profe»: para cada combinación de supuestos muestra hasta N variantes con todas sus cuestiones (correctas, incorrectas o descartadas), usando =ProblemaTipoProfe=. |
 | =💾 Guardar=   | Serializa el estado actual y lo guarda en el fichero indicado en el campo =filepath=. |
 | =📂 Cargar=    | Lee el fichero indicado y actualiza el editor con su contenido.                     |
 | =\{ \} JSON=   | Muestra el JSON equivalente al estado actual del editor en el área de salida.       |
+| =⬇ Descargar=  | Muestra en el área de salida un enlace HTML (=data URI=, atributo =download=) para guardar el JSON en el navegador, sin ejecutar JavaScript (que JupyterLab bloquea desde un callback de botón). |
 
 El método =to_dict()= devuelve el dict JSON del estado actual del editor. El método =to_problema()= devuelve un =ProblemaTipo= listo para iterar, construyéndolo con =problema_from_dict(self.to_dict())=.
 

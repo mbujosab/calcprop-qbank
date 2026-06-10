@@ -82,8 +82,6 @@ __all__ = [
 ]
 
 _EVAL_NS = vars(_calcprop_mod).copy()
-
-
 def _eval_expr(expr):
     """Evalúa una expresión (string o bool) en el namespace de calcprop."""
     if isinstance(expr, bool):
@@ -93,8 +91,6 @@ def _eval_expr(expr):
     if expr == "False":
         return False
     return eval(expr, _EVAL_NS)
-
-
 def _make_setup_fn(code_str):
     """Crea un callable setup() a partir de código Python en string."""
     def setup():
@@ -102,13 +98,11 @@ def _make_setup_fn(code_str):
         exec(code_str, ns)
         return {k: v for k, v in ns.items() if not k.startswith('_')}
     return setup
-
-
 def _componente_from_dict(d):
-    tipo         = d.get("tipo")
-    enunciado    = d["enunciado"]
+    tipo          = d.get("tipo")
+    enunciado     = d["enunciado"]
     semantica_str = d["semantica"]
-    precond_str  = d.get("precond", "True")
+    precond_str   = d.get("precond", "True")
 
     semantica = _eval_expr(semantica_str)
     precond   = _eval_expr(precond_str)
@@ -125,8 +119,6 @@ def _componente_from_dict(d):
     else:
         raise ValueError(f"Tipo de componente desconocido: {tipo!r}")
     return obj
-
-
 def _slot_from_json(slot):
     if isinstance(slot, str):
         return slot
@@ -136,8 +128,6 @@ def _slot_from_json(slot):
         return [_slot_from_json(item) for item in slot]
     else:
         raise ValueError(f"Componente JSON inválido: {slot!r}")
-
-
 def _expr_to_str(val, campo):
     """Convierte una semántica o precondición al string JSON equivalente.
 
@@ -173,8 +163,6 @@ def _slot_to_json(slot):
         return [_slot_to_json(item) for item in slot]
     else:
         raise ValueError(f"Tipo no serializable: {type(slot)}")
-
-
 def problema_from_dict(d):
     """Crea un ProblemaTipo o ProblemaVF a partir de un dict JSON."""
     tipo = d.get("tipo")
@@ -214,8 +202,6 @@ def problema_from_dict(d):
 
     else:
         raise ValueError(f"Tipo de problema desconocido: {tipo!r}")
-
-
 def problema_to_dict(problema):
     """Serializa un ProblemaTipo o ProblemaVF a dict.
 
@@ -223,8 +209,7 @@ def problema_to_dict(problema):
     usando repr() sobre las fórmulas calcprop. Si alguna semántica o precondición
     es un callable (lambda de setup paramétrico), la serialización falla.
     Los setup definidos como funciones Python (no cargados desde JSON) no pueden
-    serializarse; en ese caso el campo 'setup' queda a null en el JSON resultante.
-    ProblemaVF siempre puede serializarse.
+    serializarse; en ese caso se lanza un error. ProblemaVF siempre puede serializarse.
     """
     if isinstance(problema, ProblemaTipo):
         componentes = [_slot_to_json(s) for s in problema.e]
@@ -273,7 +258,6 @@ def problema_to_dict(problema):
             "componentes":  componentes,
             "subpreguntas": subpreguntas,
         }
-
     elif isinstance(problema, ProblemaVF):
         return {
             "version":      "1",
@@ -285,8 +269,6 @@ def problema_to_dict(problema):
         }
     else:
         raise ValueError(f"Tipo no soportado: {type(problema)}")
-
-
 def load_problema(filepath):
     """Carga un único problema desde un fichero JSON."""
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -301,8 +283,6 @@ def save_problema(problema, filepath):
     d = problema_to_dict(problema)
     with open(filepath, 'w', encoding='utf-8') as f:
         _json.dump(d, f, ensure_ascii=False, indent=2)
-
-
 def load_banco(filepath):
     """Carga un banco de problemas desde un fichero JSON.
     Devuelve una lista de ProblemaTipo / ProblemaVF."""
@@ -321,8 +301,6 @@ def save_banco(problemas, filepath):
     d = {"version": "1", "banco": banco}
     with open(filepath, 'w', encoding='utf-8') as f:
         _json.dump(d, f, ensure_ascii=False, indent=2)
-
-
 # ── Exportación a código Python ───────────────────────────────────────────────
 
 def _slot_to_python(slot, nivel=1):
