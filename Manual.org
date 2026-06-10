@@ -444,6 +444,60 @@ ejercicio_fijo = ProblemaTipo(
 )
 #+end_src
 
+*** Con =setup= y precondiciones dependientes de los valores
+
+Cuando un =Supuesto= afirma algo sobre los valores aleatorios del =setup= (por
+ejemplo, un orden entre dos números), conviene evitar que el enunciado muestre una
+afirmación falsa. El motor razona de forma proposicional y *no conoce* los valores
+numéricos: si ofreciéramos los supuestos «$a > b$» y «$a < b$» sin más, podría
+generar una variante con =a = 3=, =b = 7= y el texto «Se sabe que $a > b$», que es
+falso para esos números.
+
+La solución es una *precondición* =lambda ns: ...= que solo deja pasar la variante
+cuando la afirmación es realmente cierta para los valores sorteados:
+
+#+begin_src python :results silent
+import random
+
+def dos_numeros():
+    a = random.randint(2, 9)
+    b = random.randint(2, 9)
+    return {'a': a, 'b': b}
+
+ordenar = ProblemaTipo(
+    [
+        "Sean $a = @a$ y $b = @b$ dos números naturales. Se sabe que ",
+        [
+            Supuesto("$a > b$. ", True, precond=lambda ns: ns['a'] > ns['b']),
+            Supuesto("$a < b$. ", True, precond=lambda ns: ns['a'] < ns['b']),
+            Supuesto("$a = b$. ", True, precond=lambda ns: ns['a'] == ns['b']),
+        ],
+        "Indique qué afirmación es correcta: ",
+        [
+            Cuestion("$a - b > 0$", lambda ns: ns['a'] - ns['b'] > 0),
+            Cuestion("$b - a > 0$", lambda ns: ns['b'] - ns['a'] > 0),
+        ],
+    ],
+    setup=dos_numeros,
+)
+#+end_src
+
+Para cada combinación (supuesto × cuestión) el =setup= genera una tirada nueva; si
+su precondición no se cumple, esa variante se descarta (verás un aviso «=Supuesto …
+rechazado por …=»). De este modo:
+
+- el supuesto mostrado siempre coincide con el orden real de =@a= y =@b=;
+- la corrección de cada cuestión se calcula con los valores reales (=lambda ns: ...=),
+  no con una variable proposicional abstracta.
+
+Este es, esencialmente, el problema =numeros.json= que carga en el editor visual el
+notebook de demostración =ejemplosManual/Demo.ipynb= (sección «8.2 Editor cargando un
+ejemplo con setup»). Puedes lanzarlo en el navegador, sin instalar nada, con Binder:
+[[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/ejemplosManual/Demo.ipynb][abrir =Demo.ipynb= en mybinder]].
+Como el =setup= es aleatorio el iterador no tiene fin y el caso «$a = b$» aparece rara
+vez; acota la generación con =itertools.islice= igual que en el resto de ejemplos con
+=setup= aleatorio.
+
 ** Guardar y cargar problemas en formato JSON
 
 =qbank= puede convertir cualquier =ProblemaTipo= a JSON y reconstruirlo después. Esto permite guardar el banco de preguntas en un fichero, compartirlo o cargarlo desde el editor visual sin tener que reescribir el código Python.

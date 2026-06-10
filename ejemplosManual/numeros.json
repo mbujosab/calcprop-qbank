@@ -9,14 +9,20 @@
       {
         "tipo": "Supuesto",
         "enunciado": "$a > b$. ",
-        "semantica": "v('A')",
-        "precond": "True"
+        "semantica": "True",
+        "precond": "lambda ns: ns['a'] > ns['b']"
       },
       {
         "tipo": "Supuesto",
         "enunciado": "$a < b$. ",
-        "semantica": "-v('A')",
-        "precond": "True"
+        "semantica": "True",
+        "precond": "lambda ns: ns['a'] < ns['b']"
+      },
+      {
+        "tipo": "Supuesto",
+        "enunciado": "$a = b$. ",
+        "semantica": "True",
+        "precond": "lambda ns: ns['a'] == ns['b']"
       }
     ],
     "Indique qué afirmación es correcta: ",
@@ -38,16 +44,16 @@
       {
         "tipo": "Cuestion",
         "enunciado": "$a - b > 0$",
-        "semantica": "v('A')",
+        "semantica": "lambda ns: ns['a'] - ns['b'] > 0",
         "precond": "True",
-        "exp": "Solo si $a > b$"
+        "exp": "Cierto solo si $a > b$"
       },
       {
         "tipo": "Cuestion",
         "enunciado": "$b - a > 0$",
-        "semantica": "-v('A')",
+        "semantica": "lambda ns: ns['b'] - ns['a'] > 0",
         "precond": "True",
-        "exp": "Solo si $a < b$"
+        "exp": "Cierto solo si $a < b$"
       }
     ]
   ]
