@@ -163,7 +163,11 @@ Las fórmulas se construyen combinando variables con los operadores de Python:
 | @@latex:\texttt{v('A') \textbar{} v('B')}@@ | Disyunción  (A $\lor$ B)      | @@latex:\texttt{v('A') \textbar{} v('B')}@@ |
 | =v('A') >> v('B')=                          | Implicación  (A $\implies$ B) | =v('A') >> v('B')=                          |
 | =v('A') ** v('B')=                          | Bicondicional  (A $\iff$ B)   | =v('A') ** v('B')=                          |
+| =alguno(v('A'), v('B'), v('C'))=            | Alguna verdadera              | =alguno(v('A'), v('B'), v('C'))=            |
+| =unoDe(v('A'), v('B'), v('C'))=             | Exactamente una verdadera     | =unoDe(v('A'), v('B'), v('C'))=             |
 La semantica también acepta =True= (siempre verdadero) o  =False= (siempre falso).
+=alguno= y =unoDe= aceptan cualquier número de proposiciones: =alguno(P, Q, R)= es verdadera
+si alguna de la lista lo es, y =unoDe(P, Q, R)= es verdadera si lo es exactamente una.
 #+latex: \bigskip
 
 La función =test(formula, hipotesis)= comprueba si una fórmula es consecuencia lógica
@@ -1507,6 +1511,8 @@ v("X") & v("Y")  conjunción (X ∧ Y)
 v("X") | v("Y")  disyunción (X ∨ Y)
 v("X") >> v("Y") implicación (X → Y)
 v("X") ** v("Y") bicondicional (X ↔ Y)
+alguno(P, Q, R)  al menos una de la lista es verdadera
+unoDe(P, Q, R)   exactamente una de la lista es verdadera
 True             tautología (siempre verdadero)
 False            contradicción (siempre falso)
 

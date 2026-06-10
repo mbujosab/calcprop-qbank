@@ -127,7 +127,7 @@ editor = ProblemaTipoEditor('p.json')   # cargar desde fichero
 p = editor.to_problema()                # obtener el ProblemaTipo
 ```
 
-Ver la [guía de instalación de ipywidgets en JupyterLab](Manual.org) si los widgets se muestran como texto en lugar del formulario.
+Ver la [guía de instalación de ipywidgets en JupyterLab](https://github.com/mbujosab/calcprop-qbank/blob/main/Manual.org) si los widgets se muestran como texto en lugar del formulario.
 
 ### Exportación a AMC y Moodle
 
@@ -183,4 +183,4 @@ it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-See the [LICENSE](LICENSE) file for details.
+See the [LICENSE](https://github.com/mbujosab/calcprop-qbank/blob/main/LICENSE) file for details.
