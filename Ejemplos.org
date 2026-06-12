@@ -290,9 +290,9 @@ for etiqueta, enunciado, cuestiones in ProblemaTipoProfe( p ):
     print()
 #+END_SRC
 
-*** Visualización de todas las variantes válidas
+*** Visualización de todas las variantes válidas (¡Ojo!)
 
-¡Ojo! Salen muchas y se llenará la pantalla (entre los menús desplegables de la barra superior del cuaderno hay una denominada =Edit= y, dentro de sus opciones, =Clear Cell Output=, por si desea limpiar la salida de esta celda).
+¡Ojo! Salen 128 variantes válidas (además de muchas invalidadas), así que se llenará la pantalla. Afortunadamente, entre los menús desplegables de la barra superior del cuaderno hay una denominada =Edit= y, dentro de sus opciones, =Clear Cell Output=, por si desea limpiar la salida de esta celda (y así tener una página que ocupe menos memoria).
 #+BEGIN_SRC jupyter-python
 pt = ProblemaTipo( p )
 for etiqueta, enunciado, cuestiones in pt:

@@ -102,6 +102,7 @@ from string import Template
 <<Definición de la clase Marcador>>
 <<Definición de la clase Supuesto>>
 <<Definición de la clase Cuestion>>
+<<Segmentación en partes y validación de homogeneidad>>
 <<Definición de la clase ProblemaTipo>>
 <<Definición de la clase ProblemaTipoProfe>>
 <<Definición de la clase ProblemaVF>>
@@ -337,7 +338,7 @@ class Supuesto:
 
     def __repr__(self):
         """Método de representación"""
-        return 'Cuestión( Enunciado: ' + self.e + '; Semántica: ' + self.s + '; Precondición: ' + self.p + ')'
+        return f"Supuesto(enunciado={self.e!r}, semantica={self.s!r}, precond={self.p!r})"
 #+end_src
 
 *** Clase =Cuestion(enunciado, semantica, precond)=
@@ -364,10 +365,117 @@ class Cuestion:
 
     def __repr__(self):
         """Método de representación"""
-        return 'Cuestión( Enunciado: ' + self.e + '; Semántica: ' + self.s + '; Precondición: ' + self.p + ')'
+        return (f"Cuestion(enunciado={self.e!r}, semantica={self.s!r}, "
+                f"precond={self.p!r}, exp={self.x!r})")
 #+end_src
 
 #+RESULTS: Definición de la clase Cuestion
+
+
+** Segmentación en partes y validación de homogeneidad
+
+La lista de componentes de un =ProblemaTipo= codifica implícitamente la estructura de un ejercicio (posiblemente multiparte) mediante dos invariantes:
+
+- *(I1) Homogeneidad*: cada sublista contiene un único tipo de elemento (solo cadenas, solo =Supuesto= o solo =Cuestion=). Los escalares sueltos se interpretan como una sublista de un único elemento.
+- *(I2) Segmentación*: un slot es /material de enunciado/ (cadena, sublista de cadenas o sublista de =Supuesto=) o /cuestiones/ (sublista de =Cuestion=). Una *parte* del ejercicio es una tanda de material de enunciado seguida de una tanda de cuestiones. Cuando, tras una tanda de cuestiones, reaparece material de enunciado, comienza una *parte nueva*. Un ejercicio de una sola parte es el caso degenerado.
+
+Estas dos funciones implementan dichas reglas sin alterar todavía el comportamiento de =ProblemaTipo= (se usarán en fases posteriores):
+
+- =validar_componentes(componentes)= comprueba I1 y lanza =ValueError= indicando el slot infractor.
+- =segmentar(componentes)= valida y devuelve la lista de partes; cada parte es una tupla =(slots_enunciado, [slots_cuestiones])=.
+
+#+NAME: Segmentación en partes y validación de homogeneidad
+#+begin_src python :noweb yes
+def _normaliza_slot(x):
+    """Envuelve los escalares en una sublista; deja las listas tal cual."""
+    return x if isinstance(x, list) else [x]
+
+def _tipo_componente(e):
+    if isinstance(e, str):      return 'str'
+    if isinstance(e, Supuesto): return 'Supuesto'
+    if isinstance(e, Cuestion): return 'Cuestion'
+    raise ValueError(
+        f"Componente de tipo no soportado: {type(e).__name__} ({e!r}). "
+        "Cada componente debe ser str, Supuesto o Cuestion.")
+
+def _clasifica_slot(slot):
+    """'cuestiones' si la sublista (ya normalizada y homogénea) es de Cuestion;
+    'enunciado' en otro caso (cadenas o Supuesto)."""
+    return 'cuestiones' if isinstance(slot[0], Cuestion) else 'enunciado'
+
+def validar_componentes(componentes):
+    """Comprueba la invariante de homogeneidad (I1).
+
+    Tras normalizar, cada slot debe contener un único tipo entre
+    {str, Supuesto, Cuestion}. Lanza ValueError indicando el slot infractor.
+    """
+    for i, x in enumerate(componentes):
+        slot = _normaliza_slot(x)
+        if not slot:
+            raise ValueError(f"El slot {i} está vacío.")
+        tipos = {_tipo_componente(e) for e in slot}
+        if len(tipos) > 1:
+            raise ValueError(
+                f"El slot {i} mezcla tipos {sorted(tipos)}; cada sublista debe "
+                "contener un único tipo (solo cadenas, solo Supuesto o solo Cuestion).")
+
+def segmentar(componentes):
+    """Divide la lista de componentes en partes según las invariantes I1 e I2.
+
+    Devuelve una lista de tuplas (slots_enunciado, [slots_cuestiones]).
+    Una transición cuestiones->enunciado abre una parte nueva. Un ejercicio
+    de una sola parte produce una lista de longitud 1.
+    """
+    validar_componentes(componentes)
+    L = [_normaliza_slot(x) for x in componentes]
+    partes, enun, cues, vistas = [], [], [], False
+    for slot in L:
+        if _clasifica_slot(slot) == 'cuestiones':
+            cues.append(slot)
+            vistas = True
+        else:
+            if vistas:                       # I2: cierra parte y abre una nueva
+                partes.append((enun, cues))
+                enun, cues, vistas = [], [], False
+            enun.append(slot)
+    partes.append((enun, cues))
+    return partes
+#+end_src
+
+#+RESULTS: Segmentación en partes y validación de homogeneidad
+
+*** Comprobación
+
+Verificamos la segmentación (I2) y la validación de homogeneidad (I1):
+
+#+BEGIN_SRC jupyter-python :results output
+S = lambda e: Supuesto(e, 'True')
+C = lambda e: Cuestion(e, 'True')
+
+# Una sola parte: texto + supuesto + un bloque de cuestiones.
+assert len(segmentar(['Sea A.', S('A es par'), [C('q1'), C('q2')]])) == 1
+
+# Dos partes: la transición cuestiones -> enunciado abre parte nueva.
+assert len(segmentar(['Stem', [C('p1')], '(parte 2)', [C('p2')]])) == 2
+
+# Tres partes con escalares y sublistas como slots distintos.
+assert len(segmentar(['t0', [C('a')], 't1', S('h'), [C('b')], 't2', [C('d')]])) == 3
+
+# Puede arrancar directamente con cuestiones (enunciado vacío en la 1ª parte).
+assert segmentar([[C('a')], 'txt', [C('b')]])[0][0] == []
+
+# Sublistas de cuestiones consecutivas pertenecen a la misma parte.
+assert len(segmentar(['t', [C('a')], [C('b')], [C('c')]])[0][1]) == 3
+
+# I1: una sublista que mezcla tipos se rechaza.
+for bad in [[[S('h'), C('q')]], [['txt', C('q')]], [[S('a'), 'c']], ['t', []], [42]]:
+    try:
+        validar_componentes(bad); raise AssertionError(f"no rechazó {bad!r}")
+    except ValueError:
+        pass
+
+print("Fase 1 OK: segmentar + validar_componentes")
+#+END_SRC
 
 
 ** Clase =ProblemaTipo=
@@ -2153,7 +2261,7 @@ Los botones de la barra inferior:
 | =💾 Guardar=   | Serializa el estado actual y lo guarda en el fichero indicado en el campo =filepath=. |
 | =📂 Cargar=    | Lee el fichero indicado y actualiza el editor con su contenido.                     |
 | =\{ \} JSON=   | Muestra el JSON equivalente al estado actual del editor en el área de salida.       |
-| =⬇ Descargar=  | Muestra en el área de salida un enlace HTML (=data URI=, atributo =download=) para guardar el JSON en el navegador, sin ejecutar JavaScript (que JupyterLab bloquea desde un callback de botón). |
+| =⬇ .json=      | Muestra en el área de salida un enlace HTML (=data URI=, atributo =download=) para guardar el JSON en el navegador, sin ejecutar JavaScript (que JupyterLab bloquea desde un callback de botón). |
 
 El método =to_dict()= devuelve el dict JSON del estado actual del editor. El método =to_problema()= devuelve un =ProblemaTipo= listo para iterar, construyéndolo con =problema_from_dict(self.to_dict())=.
 
@@ -2211,7 +2319,7 @@ class ProblemaTipoEditor:
         save_btn  = _w.Button(description='💾 Guardar',  layout=_w.Layout(width='95px'))
         load_btn  = _w.Button(description='📂 Cargar',   layout=_w.Layout(width='95px'))
         json_btn  = _w.Button(description='{ } JSON',    layout=_w.Layout(width='95px'))
-        dl_btn    = _w.Button(description='⬇ Descargar', layout=_w.Layout(width='105px'))
+        dl_btn    = _w.Button(description='⬇ .json',     layout=_w.Layout(width='85px'))
         py_btn    = _w.Button(description='⬇ .py',       layout=_w.Layout(width='80px'))
 
         prev_btn.on_click(self._on_preview)

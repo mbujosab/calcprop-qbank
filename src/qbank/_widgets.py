@@ -232,7 +232,7 @@ class ProblemaTipoEditor:
         save_btn  = _w.Button(description='💾 Guardar',  layout=_w.Layout(width='95px'))
         load_btn  = _w.Button(description='📂 Cargar',   layout=_w.Layout(width='95px'))
         json_btn  = _w.Button(description='{ } JSON',    layout=_w.Layout(width='95px'))
-        dl_btn    = _w.Button(description='⬇ Descargar', layout=_w.Layout(width='105px'))
+        dl_btn    = _w.Button(description='⬇ .json',     layout=_w.Layout(width='85px'))
         py_btn    = _w.Button(description='⬇ .py',       layout=_w.Layout(width='80px'))
 
         prev_btn.on_click(self._on_preview)

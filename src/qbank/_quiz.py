@@ -83,7 +83,7 @@ class Supuesto:
 
     def __repr__(self):
         """Método de representación"""
-        return 'Cuestión( Enunciado: ' + self.e + '; Semántica: ' + self.s + '; Precondición: ' + self.p + ')'
+        return f"Supuesto(enunciado={self.e!r}, semantica={self.s!r}, precond={self.p!r})"
 class Cuestion:
     def __init__(self, enunciado, semantica, precond=True, exp=""):
         self.e = enunciado
@@ -93,7 +93,62 @@ class Cuestion:
 
     def __repr__(self):
         """Método de representación"""
-        return 'Cuestión( Enunciado: ' + self.e + '; Semántica: ' + self.s + '; Precondición: ' + self.p + ')'
+        return (f"Cuestion(enunciado={self.e!r}, semantica={self.s!r}, "
+                f"precond={self.p!r}, exp={self.x!r})")
+def _normaliza_slot(x):
+    """Envuelve los escalares en una sublista; deja las listas tal cual."""
+    return x if isinstance(x, list) else [x]
+
+def _tipo_componente(e):
+    if isinstance(e, str):      return 'str'
+    if isinstance(e, Supuesto): return 'Supuesto'
+    if isinstance(e, Cuestion): return 'Cuestion'
+    raise ValueError(
+        f"Componente de tipo no soportado: {type(e).__name__} ({e!r}). "
+        "Cada componente debe ser str, Supuesto o Cuestion.")
+
+def _clasifica_slot(slot):
+    """'cuestiones' si la sublista (ya normalizada y homogénea) es de Cuestion;
+    'enunciado' en otro caso (cadenas o Supuesto)."""
+    return 'cuestiones' if isinstance(slot[0], Cuestion) else 'enunciado'
+
+def validar_componentes(componentes):
+    """Comprueba la invariante de homogeneidad (I1).
+
+    Tras normalizar, cada slot debe contener un único tipo entre
+    {str, Supuesto, Cuestion}. Lanza ValueError indicando el slot infractor.
+    """
+    for i, x in enumerate(componentes):
+        slot = _normaliza_slot(x)
+        if not slot:
+            raise ValueError(f"El slot {i} está vacío.")
+        tipos = {_tipo_componente(e) for e in slot}
+        if len(tipos) > 1:
+            raise ValueError(
+                f"El slot {i} mezcla tipos {sorted(tipos)}; cada sublista debe "
+                "contener un único tipo (solo cadenas, solo Supuesto o solo Cuestion).")
+
+def segmentar(componentes):
+    """Divide la lista de componentes en partes según las invariantes I1 e I2.
+
+    Devuelve una lista de tuplas (slots_enunciado, [slots_cuestiones]).
+    Una transición cuestiones->enunciado abre una parte nueva. Un ejercicio
+    de una sola parte produce una lista de longitud 1.
+    """
+    validar_componentes(componentes)
+    L = [_normaliza_slot(x) for x in componentes]
+    partes, enun, cues, vistas = [], [], [], False
+    for slot in L:
+        if _clasifica_slot(slot) == 'cuestiones':
+            cues.append(slot)
+            vistas = True
+        else:
+            if vistas:                       # I2: cierra parte y abre una nueva
+                partes.append((enun, cues))
+                enun, cues, vistas = [], [], False
+            enun.append(slot)
+    partes.append((enun, cues))
+    return partes
 class ProblemaTipo:
     def __init__(self, supuestos_y_cuestiones, setup=None):
         self.e = supuestos_y_cuestiones
