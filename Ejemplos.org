@@ -1,0 +1,372 @@
+#+TITLE: Ejemplos de preguntas de econometría
+#+AUTHOR: Marcos Bujosa
+#+LANGUAGE: es
+#+OPTIONS: toc:2 num:t
+#+STARTUP: overview
+
+# ─── Copyright ──────────────────────────────────────────────────────────────
+# Copyright (C) 2026  Marcos Bujosa
+# GNU General Public License v3 or later — see <https://www.gnu.org/licenses/>
+
+# ─── Configuración de org-babel ───────────────────────────────────
+#+PROPERTY: header-args:python :python python3
+#+PROPERTY: header-args:python :python /home/marcos/SynologyDrive/ReposGH/Docencia/qbank/.venv/bin/python3 :session *qbank*
+
+# ─── LaTeX export ────────────────────────────────────────────────
+#+LATEX_CLASS: report
+# +LATEX_CLASS: article
+#+LATEX_CLASS_OPTIONS: [10pt,a4paper]
+
+#+LATEX_HEADER: \usepackage{fontspec}          % para fuentes Unicode
+#+LATEX_HEADER: \usepackage{lmodern}           % o mejor, define una fuente explícita
+#+LATEX_HEADER: \setmainfont{Latin Modern Roman} % o cualquier otra que quieras
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+# +LATEX_HEADER: \usepackage{parskip}
+#+LATEX_HEADER: \usepackage{tabularx} 
+#+LATEX_HEADER: \usepackage{newunicodechar}
+#+LATEX_HEADER: \usepackage{amssymb}
+#+LATEX_HEADER: \newunicodechar{✓}{\checkmark}
+#+LATEX_HEADER: \newunicodechar{✗}{$\times$}
+#+LATEX_HEADER: \usepackage{etoolbox}
+#+LATEX_HEADER: \AtBeginEnvironment{verbatim}{\small}
+
+#+latex: \maketitle
+
+# +include: 00preambulo_lecciones.txt
+
+
+#+BEGIN_SRC emacs-lisp :exports none :results silent
+(use-package ox-ipynb
+  :load-path (lambda () (expand-file-name "ox-ipynb" scimax-dir)))
+(use-package htmlize)
+#+END_SRC
+
+
+* Manejo de Comandos de LaTeX en Cadenas de Python
+
+** Alternativa 1: Cadenas Crudas (Raw Strings)
+
+El hecho de tener que poner una =r= delante de las cadenas de caracteres en Python cuando contienen comandos de LaTeX se describe formalmente como el uso de *"cadenas crudas"* (o *raw strings* en inglés).
+
+Al anteponer una =r= (o =R=) a las comillas de la cadena, le está indicando a Python que trate la barra invertida =\= como un *carácter literal* y no como el inicio de una secuencia de escape.
+
+*** ¿Por qué ocurre esto con LaTeX y Python?
+
+En Python, la barra invertida =\= se utiliza para introducir caracteres especiales (secuencias de escape). Por ejemplo:
+
+-  =\n= significa salto de línea.
+-  =\t= significa tabulación.
+
+El problema surge porque *LaTeX también utiliza la barra invertida* para todos sus comandos (como =\alpha=, =\textbf{}= o =\section{}=).
+
+Si intenta escribir un comando de LaTeX en una cadena de Python normal, pueden ocurrir dos desastres:
+
+- Malinterpretación :: Si escribe =\nabla=, Python verá el =\n= y lo convertirá en un salto de línea, destruyendo el comando de LaTeX.
+- Error de sintaxis :: Si escribe un comando como =\comando{}=, Python intentará buscar si =\c= es una secuencia de escape válida. Como no existe, el intérprete lanzará un aviso o un error de sintaxis.
+
+*** La solución: Cadenas normales vs. Cadenas crudas
+
+Observe la diferencia de cómo procesa Python la misma cadena:
+
+#+BEGIN_SRC jupyter-python
+# Cadena normal (Provoca errores o comportamientos extraños)
+cadena_normal = "Texto con \nabla y \times"
+print(cadena_normal)
+
+# Salida:
+
+# Texto con
+
+# abla y  imes  (¡El \n saltó de línea y \t insertó un tabulador!)
+#+END_SRC
+
+#+BEGIN_SRC jupyter-python
+# Cadena cruda / Raw string (La solución correcta)
+cadena_cruda = r"Texto con \nabla y \times"
+print(cadena_cruda)
+#+END_SRC
+
+
+#+BEGIN_QUOTE
+*En resumen:* Usar la =r= delante de la cadena le "pone un bozal" al intérprete de Python para que no intente traducir las barras invertidas, permitiendo que el código de LaTeX llegue intacto a librerías como =matplotlib=.
+#+END_QUOTE
+
+** Alternativa 2: Escapar el Carácter (Doblar la barra invertida)
+
+La otra alternativa se describe formalmente como *"escapar el carácter"* (o en este caso específico, *doblar la barra invertida*).
+
+En programación, *escapar* significa cambiar el significado de un carácter que el lenguaje considera "especial" para que sea tratado como un texto común y corriente. Como la barra invertida =\= es el carácter de escape por defecto en Python, para lograr que el intérprete procese *una* sola barra invertida, tiene que usar una segunda barra para escapar a la primera: =\\=.
+
+*** ¿Cómo funciona el doblado de barra?
+
+Cuando Python lee la secuencia =\\=, interpreta la primera barra como una señal de /"¡Atención, viene un carácter especial!"/ y la segunda barra como /"El carácter especial es una barra invertida literal"/.
+
+#+BEGIN_SRC jupyter-python
+# Opción 2: Escapando el carácter (doble barra)
+print("Texto con \\nabla y \\times")
+#+END_SRC
+
+
+Ambas opciones producen exactamente el mismo resultado final en la memoria de Python.
+
+** Pros y contras de cada alternativa
+
+A la hora de escribir comandos de LaTeX, la comunidad de Python prefiere casi unánimemente las *cadenas crudas (=r""=)* por las siguientes razones:
+
+| Método            | Ventajas                                  | Desventajas                                        |
+|-------------------+-------------------------------------------+----------------------------------------------------|
+| *Cadenas Crudas*  | - Código más limpio.                      | - No se puede terminar una cadena cruda con una    |
+| =r"..."=          | - Permite copiar y pegar fórmulas de      | sola barra invertida (ej. =r"texto\\"= da error).  |
+|                   | editores como Overleaf directamente.      |                                                    |
+|-------------------+-------------------------------------------+----------------------------------------------------|
+| *Doblar la barra* | - Funciona en cualquier parte de la cadena. | - El código se vuelve difícil de leer en fórmulas  |
+| ="\\\\..."=       | - Compatible con versiones muy antiguas   | complejas (ej. =\\\\frac{\\\\sqrt{x}}{\\\\beta}=). |
+|                   | de lenguajes que no tienen raw strings.   | - Es fácil olvidar una barra y generar un error.   |
+
+#+BEGIN_QUOTE
+*En la práctica:* Si va a escribir una fórmula matemática larga para una gráfica, use siempre la =r=. Deje el doblado de barras =\\= solo para cadenas muy cortas o cuando necesite combinar secuencias de escape reales (como =\n=) con barras de LaTeX en el mismo bloque de texto.
+#+END_QUOTE
+
+
+* Algunas preguntas de Econometría
+
+Primero cargamos =qbank= para que Python sepa lo que son =Supuesto=, =Cuestion=, etc.
+#+BEGIN_SRC jupyter-python
+from qbank import *
+#+END_SRC
+
+
+** Pregunta sobre multicolinealidad
+
+*** La parte del enunciado
+
+El enunciado es una lista de listas. Las sublistas tienen:
+- o una única cadena de caracteres (recuerde que si tiene comandos de \LaTeX se deben escribir /cadenas crudas/ o 'escapar' las barras '=\='),
+- o uno o más supuestos (separados por comas).
+En el siguiente ejemplo hay:
+- una primera sublista con un único elemento, que es una /cadena cruda/ de caracteres,
+- una segunda sublista con cuatro supuestos,
+- y una tercera sublista con un único elemento, que es otra /cadena cruda/ de caracteres.
+#+BEGIN_SRC jupyter-python
+enunciado = [
+    [
+        r'En el ajuste MCO:\; $\ajusteMLG$,\; '
+    ],
+    [
+        Supuesto(
+            enunciado = r'donde $\Matdim{X}{N}{k}$, si $rg(\Mat{X})<k$, con $k \leq N$,',
+            semantica = v('Mcoli'),
+            precond = True
+        ),
+        Supuesto(
+            enunciado = r'si $(\MTM{X})$ es singular,',
+            semantica = v('Mcoli'),
+            precond = True
+        ),
+        Supuesto(
+            r'donde $\Matdim{X}{N}{k}$, si $rg(\Mat{X})=k$, con $k \leq N$,',
+            -v('Mcoli')
+        ),
+        Supuesto(
+            r'si $(\MTM{X})$ es invertible,',
+            -v('Mcoli')
+        ),
+    ],
+    [
+        ' entonces: '
+    ],
+]
+#+END_SRC
+
+Si hubiéramos escrito algo (cadenas de caracteres o supuestos) como elementos de la lista principal, internamente el código Python los trataría como sublistas con un único elemento (por tanto, son elementos que aparecerán en todas las variantes). Es decir,
+el siguiente código lo interpretará /como si/ cada uno de los tres elementos de la lista principal estuviera en una sublista distinta. 
+#+BEGIN_EXAMPLE python
+otro_enunciado = [
+    r'En el ajuste MCO:\; $\ajusteMLG$,\; ',
+    Supuesto(
+        enunciado = r'donde $\Matdim{X}{N}{k}$, si $rg(\Mat{X})<k$, con $k \leq N$,',
+        semantica = v('Mcoli'),
+        precond = True),
+    ),
+    ' entonces: '
+]
+#+END_EXAMPLE
+Esto evita poner corchetes alrededor de elementos que deben aparecer en todas las versiones. El código mostrado es equivalente a una lista de tres sublistas: la primera y última con texto, y la segunda con un único supuesto.
+
+
+*** La parte de las preguntas
+
+La parte de las preguntas también es una lista de listas. Las sublistas tienen una o más cuestiones.
+En el siguiente ejemplo hay tres sublistas de cuestiones:
+#+BEGIN_SRC jupyter-python
+
+preguntas = [
+    [
+        Cuestion(
+            'ningún regresor es combinación lineal del resto',
+            -v('Mcoli'),
+            exp=r'cuando $(\MTM{X})$ es invertible, es decir, cuando $rg(\Mat{X}) = k$'
+        ),
+        Cuestion(
+            'las \emph{columnas} de $\Mat{X}$ son linealmente indep.',
+            -v('Mcoli'),
+            exp='cuando $(\MTM{X})$ es invertible, es decir, cuando $rg(\Mat{X}) = k$'
+        ),
+        Cuestion(
+            r'las \emph{filas} de $\Mat{X}$ son linealmente indep.',
+            False,
+            exp=r'solo si $N=rg(\Mat{X})$'
+        ),
+        Cuestion(
+            'algún regresor es combinación lineal del resto',
+            v('Mcoli'),
+            exp=r'cuando $(\MTM{X})$ es singular, es decir, cuando $rg(\Mat{X}) < k$'
+        ),
+    ],
+    [
+        Cuestion(
+            enunciado = r'$\Vect{y}$ es combinación lineal de los regresores',
+            semantica = False,
+            precond = -v('Mcoli'),
+            exp = r'cuando $\Vect{y}$ es de la forma $\MV{X}{\beta}$, es decir cuando $\res=\Vect{0}$'
+        ),
+        Cuestion(
+            enunciado = r'$\MTM{X}\Vect{\beta}=\MTV{X}{y}$ tiene solución \emph{única}',
+            semantica = -v('Mcoli'),
+            precond = -v('Mcoli'),
+            exp=r'cuando $(\MTM{X})$ es invertible, es decir, cuando $rg(\Mat{X}) = k$'
+        ),
+        Cuestion(
+            r'$\MTM{X}\Vect{\beta}=\MTV{X}{y}$ es compatible (tiene sol.)',
+            True,
+            exp='las ecuaciones normales siempre tienen solución'
+        ),
+    ],
+    [
+        Cuestion(
+            r'el vector $\Estmc{\Vect{\beta}}$ está definido',
+            -v('Mcoli'),
+            exp=r'cuando $\MTM{X}\Vect{\beta}=\MTV{X}{y}$ tiene solución \emph{única}'
+        ),
+        Cuestion(
+            r'el vector $\Estmc{\Vect{\beta}}$ es indeterminado',
+            v('Mcoli'),
+            exp=r'cuando $\MTM{X}\Vect{\beta}=\MTV{X}{y}$ tiene infinitas soluciones'
+        ),
+        Cuestion(
+            'la correlación entre algunos regresores es 1 en valor absoluto',
+            False,
+            exp='cuando algún regresor es un múltiplo de otro'
+        ),
+        Cuestion(
+            r'la correlación entre regresores es \emph{menor} que 1 en valor absoluto',
+            -v('Mcoli'),
+            exp='cuando los regresores son linealmente independientes'
+        ),
+    ],
+]
+#+END_SRC
+Aquí ocurre igual que en la parte del enunciado: una sublista de una única cuestión (es decir, una cuestión que se desea que aparezca en todas las versiones) se puede escribir directamente como elemento de la lista principal.
+
+*** El problema completo
+
+El problema completo es la concatenación (=+=) de ambas listas de listas:
+#+BEGIN_SRC jupyter-python
+p = enunciado + preguntas 
+#+END_SRC
+
+*** Revisión de la pregunta
+
+Iterando sobre un objeto de tipo =ProblemaTipoProfe( p )=, donde =p= es la concatenación de la lista =enunciado= y la lista =preguntas=, podemos visualizar las cuatro versiones: una por cada =Supuesto= de la sublista del enunciado. 
+Con '✓', '✗' y '·' indicamos las cuestiones verdaderas, las falsas y las que se omiten porque la precondición resulta ser falsa en el correspondiente enunciado.
+#+BEGIN_SRC jupyter-python
+for etiqueta, enunciado, cuestiones in ProblemaTipoProfe( p ):
+    print(f"── Variante {etiqueta} ──")
+    print(f"   {enunciado}")
+    for c in cuestiones:
+        texto, valor = c[0], c[1]
+        marca = '✓' if valor is True else ('✗' if valor is False else '·')
+        print(f"   {marca} {texto}")
+    print()
+#+END_SRC
+
+*** Visualización de todas las variantes válidas
+
+¡Ojo! Salen muchas y se llenará la pantalla (entre los menús desplegables de la barra superior del cuaderno hay una denominada =Edit= y, dentro de sus opciones, =Clear Cell Output=, por si desea limpiar la salida de esta celda).
+#+BEGIN_SRC jupyter-python
+pt = ProblemaTipo( p )
+for etiqueta, enunciado, cuestiones in pt:
+    print(f"── Variante {etiqueta} ──")
+    print(f"   {enunciado}")
+    for texto, correcto, activa, exp in cuestiones:
+        print(f"   {'✓' if correcto else '✗'} {texto}")
+    print()
+#+END_SRC
+
+*** Almacenamiento de la pregunta en formato JSON
+
+Vamos a guardar el ejercicio en formato JSON dentro de un subdirectorio:
+#+BEGIN_SRC jupyter-python
+import os
+directorio = "banco_preguntas_econometria"
+os.makedirs(directorio, exist_ok=True)
+
+save_problema(pt, directorio + "/multicolinealidad.json")
+print("Guardado en formato JSON")
+#+END_SRC
+
+Veamos el contenido del fichero JSON que hemos creado:
+#+BEGIN_SRC jupyter-python
+import json
+
+# Abrimos y cargamos el JSON como un objeto de Python (diccionario/lista)
+with open(directorio + "/multicolinealidad.json", "r", encoding="utf-8") as archivo:
+    datos = json.load(archivo)
+
+# Lo imprimimos ordenado con una sangría (indentación) de 4 espacios
+print(json.dumps(datos, indent=4, ensure_ascii=False))
+#+END_SRC
+
+*** Almacenamiento como código Python editable
+
+Vamos a guardar el ejercicio como un guion de Python para poder trabajar con él en un editor de texto externo.
+#+BEGIN_SRC jupyter-python
+print("── Código Python generado por problema_to_python() ──")
+print(problema_to_python(pt))
+
+# Guardar en fichero
+save_problema_py(pt, directorio + "/multicolinealidad.py")
+print("Guardado en formato Python")
+#+END_SRC
+
+Si se fija en los archivos que hay dentro del subdirectorio, puede abrir el fichero =.py= desde Jupyter.
+
+*** Edición con el editor visual
+
+Cargamos el módulo correspondiente:
+#+BEGIN_SRC jupyter-python
+from qbank import ProblemaTipoEditor
+#+END_SRC
+
+Y usamos el fichero JSON:
+#+BEGIN_SRC jupyter-python
+editor_numeros = ProblemaTipoEditor(directorio + "/multicolinealidad.json")
+#+END_SRC
+
+Fíjese que, además de poder editar aquí el ejercicio, disponemos de dos botones para descargarlo en formato JSON o como guion de Python.
+
+
+* COMMENT ipynb y slides                                           :noexport:
+
+#+BEGIN_SRC emacs-lisp :results silent
+(require 'ox-ipynb)
+(ox-ipynb-export-org-file-to-ipynb-file "./Ejemplos.org")
+#+END_SRC
+
+#+BEGIN_SRC sh :results silent :eval no
+#jupyter nbconvert --execute --inplace Lecc01.ipynb
+#+END_SRC
+
+#+BEGIN_SRC sh :results silent :eval no
+#jupyter nbconvert --config ../mycfg-GitHubPages.py --to slides --reveal-prefix "https://unpkg.com/reveal.js@5.2.1" --execute Lecc01.ipynb
+#+END_SRC

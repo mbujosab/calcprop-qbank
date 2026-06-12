@@ -1727,8 +1727,8 @@ Además de guardar en JSON, es posible convertir un problema a código Python pu
 
 Convierte un slot (cadena, =Supuesto=, =Cuestion= o lista de alternativas) al fragmento de código Python equivalente. El parámetro =nivel= controla la indentación (cada nivel añade cuatro espacios).
 
-- Una cadena de texto se escribe como literal Python con =repr()=.
-- Un =Supuesto= o =Cuestion= (representado como dict JSON interno) se escribe como llamada al constructor, omitiendo =precond= cuando vale ="True"= y =exp= cuando está vacío.
+- Una cadena de texto se escribe con =_py_text=: una /raw string/ (=r'...'=) cuando es seguro, para que el LaTeX se lea sin barras invertidas dobladas, o =repr()= en caso contrario.
+- Un =Supuesto= o =Cuestion= (representado como dict JSON interno) se escribe como llamada al constructor con /todos/ sus argumentos nombrados (=enunciado=, =semantica=, =precond= y, en =Cuestion=, =exp=), cada uno en su propia línea e indentado, incluyendo los valores por defecto. Así el guión resultante es fácil de leer y editar a mano.
 - Una lista de alternativas se escribe como lista Python anidada.
 
 La función recibe el slot en su representación de dict JSON (producida por =_slot_to_json=), no el objeto Python original, porque =problema_to_python= invoca primero =problema_to_dict= para normalizar la representación.
@@ -1737,30 +1737,41 @@ La función recibe el slot en su representación de dict JSON (producida por =_s
 #+begin_src python :noweb yes
 # ── Exportación a código Python ───────────────────────────────────────────────
 
+def _py_text(s):
+    """Literal de texto Python legible: usa una raw string cuando es seguro
+    (para que el LaTeX se lea sin barras invertidas dobladas) y repr() en caso
+    contrario (texto con comillas conflictivas, salto de línea o backslash final)."""
+    if "\n" not in s:
+        trailing_bs = len(s) - len(s.rstrip("\\"))
+        if trailing_bs % 2 == 0:           # raw string segura respecto al backslash final
+            if "'" not in s:
+                return f"r'{s}'"
+            if '"' not in s:
+                return f'r"{s}"'
+    return repr(s)
+
+
 def _slot_to_python(slot, nivel=1):
     pad = "    " * nivel
 
     if isinstance(slot, str):
-        return f"{pad}{repr(slot)},"
+        return f"{pad}{_py_text(slot)},"
 
     elif isinstance(slot, dict):
-        tipo      = slot["tipo"]
-        enunciado = repr(slot["enunciado"])
-        semantica = slot["semantica"]      # cadena evaluable: "v('A')", "True", …
-        precond   = slot.get("precond", "True")
-        exp       = slot.get("exp", "")
-
-        kwargs = []
-        if precond != "True":
-            kwargs.append(f"precond={precond}")
-        if exp:
-            kwargs.append(f"exp={repr(exp)}")
-
-        extra = (", " + ", ".join(kwargs)) if kwargs else ""
-        if tipo == "Supuesto":
-            return f"{pad}Supuesto({enunciado}, {semantica}{extra}),"
-        elif tipo == "Cuestion":
-            return f"{pad}Cuestion({enunciado}, {semantica}{extra}),"
+        # Constructor con todos los argumentos nombrados, uno por línea, para
+        # que el guión Python resultante sea fácil de leer y editar a mano.
+        tipo = slot["tipo"]
+        ipad = "    " * (nivel + 1)
+        args = [
+            f"{ipad}enunciado = {_py_text(slot['enunciado'])},",
+            f"{ipad}semantica = {slot['semantica']},",      # cadena evaluable: "v('A')", "True", …
+            f"{ipad}precond = {slot.get('precond', 'True')}",
+        ]
+        if tipo == "Cuestion":
+            args[-1] += ","
+            args.append(f"{ipad}exp = {_py_text(slot.get('exp', ''))}")
+        cuerpo = "\n".join(args)
+        return f"{pad}{tipo}(\n{cuerpo}\n{pad}),"
 
     elif isinstance(slot, list):
         inner = "\n".join(_slot_to_python(item, nivel + 1) for item in slot)
@@ -1950,7 +1961,7 @@ except ImportError:
     _HAS_WIDGETS = False
 
 from qbank._quiz import ProblemaTipo, ProblemaTipoProfe
-from qbank._json import problema_from_dict, problema_to_dict, load_problema, save_problema
+from qbank._json import problema_from_dict, problema_to_dict, load_problema, save_problema, problema_to_python
 
 
 def _need_widgets():
@@ -2058,6 +2069,10 @@ class _SlotWidget:
 
         if data is None or isinstance(data, str):
             tipo_init, text_init, alts_init = 'texto', data or '', []
+        elif isinstance(data, list) and len(data) == 1 and isinstance(data[0], str):
+            # estructura antigua (lista de listas): un texto envuelto en lista
+            # [ 'texto' ] se interpreta como slot de texto, no de alternativas.
+            tipo_init, text_init, alts_init = 'texto', data[0], []
         elif isinstance(data, dict):              # single component
             tipo_init, text_init, alts_init = 'alternativas', '', [data]
         else:                                     # list of components
@@ -2197,12 +2212,14 @@ class ProblemaTipoEditor:
         load_btn  = _w.Button(description='📂 Cargar',   layout=_w.Layout(width='95px'))
         json_btn  = _w.Button(description='{ } JSON',    layout=_w.Layout(width='95px'))
         dl_btn    = _w.Button(description='⬇ Descargar', layout=_w.Layout(width='105px'))
+        py_btn    = _w.Button(description='⬇ .py',       layout=_w.Layout(width='80px'))
 
         prev_btn.on_click(self._on_preview)
         save_btn.on_click(self._on_save)
         load_btn.on_click(self._on_load)
         json_btn.on_click(self._on_show_json)
         dl_btn.on_click(self._on_download)
+        py_btn.on_click(self._on_download_py)
 
         self._out = _w.Output()
 
@@ -2221,7 +2238,7 @@ class ProblemaTipoEditor:
                 _w.Label('  '),
                 self._filepath,
                 _w.Label('  '),
-                json_btn, dl_btn,
+                json_btn, dl_btn, py_btn,
             ]),
             self._out,
         ])
@@ -2358,6 +2375,29 @@ class ProblemaTipoEditor:
                 filename = os.path.basename(self._filepath.value.strip() or 'problema.json')
                 b64      = base64.b64encode(data.encode('utf-8')).decode('ascii')
                 href     = f"data:application/json;base64,{b64}"
+                _display(HTML(
+                    f'<a download="{filename}" href="{href}" '
+                    f'style="font-size:14px;font-weight:bold">'
+                    f'⬇ Descargar {filename}</a>'
+                    f'<br><span style="color:gray">(pulsa el enlace para guardar el fichero)</span>'))
+            except Exception as exc:
+                print(f"Error al descargar: {exc}")
+
+    def _on_download_py(self, _):
+        # Igual que _on_download pero exporta el problema como guión Python
+        # editable (problema_to_python). El nombre del fichero se deriva de la
+        # ruta JSON cambiando la extensión a .py.
+        import os, base64
+        from IPython.display import HTML
+        with self._out:
+            _clear()
+            try:
+                p        = problema_from_dict(self.to_dict())
+                code     = problema_to_python(p)
+                base     = os.path.basename(self._filepath.value.strip() or 'problema.json')
+                filename = os.path.splitext(base)[0] + '.py'
+                b64      = base64.b64encode(code.encode('utf-8')).decode('ascii')
+                href     = f"data:text/x-python;base64,{b64}"
                 _display(HTML(
                     f'<a download="{filename}" href="{href}" '
                     f'style="font-size:14px;font-weight:bold">'

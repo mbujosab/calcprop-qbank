@@ -38,6 +38,10 @@ ejemplos/
 ejemplosManual/mis_problemas/
 ejemplosManual/exportaciones/
 
+# Trabajo local (no se publica)
+/mis_problemas/
+/banco_pregunas_econometria/
+
 # Jupyter
 .ipynb_checkpoints/
 /Untitled*.ipynb

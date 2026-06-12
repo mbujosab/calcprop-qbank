@@ -46,7 +46,7 @@ except ImportError:
     _HAS_WIDGETS = False
 
 from qbank._quiz import ProblemaTipo, ProblemaTipoProfe
-from qbank._json import problema_from_dict, problema_to_dict, load_problema, save_problema
+from qbank._json import problema_from_dict, problema_to_dict, load_problema, save_problema, problema_to_python
 
 
 def _need_widgets():
@@ -118,6 +118,10 @@ class _SlotWidget:
 
         if data is None or isinstance(data, str):
             tipo_init, text_init, alts_init = 'texto', data or '', []
+        elif isinstance(data, list) and len(data) == 1 and isinstance(data[0], str):
+            # estructura antigua (lista de listas): un texto envuelto en lista
+            # [ 'texto' ] se interpreta como slot de texto, no de alternativas.
+            tipo_init, text_init, alts_init = 'texto', data[0], []
         elif isinstance(data, dict):              # single component
             tipo_init, text_init, alts_init = 'alternativas', '', [data]
         else:                                     # list of components
@@ -229,12 +233,14 @@ class ProblemaTipoEditor:
         load_btn  = _w.Button(description='📂 Cargar',   layout=_w.Layout(width='95px'))
         json_btn  = _w.Button(description='{ } JSON',    layout=_w.Layout(width='95px'))
         dl_btn    = _w.Button(description='⬇ Descargar', layout=_w.Layout(width='105px'))
+        py_btn    = _w.Button(description='⬇ .py',       layout=_w.Layout(width='80px'))
 
         prev_btn.on_click(self._on_preview)
         save_btn.on_click(self._on_save)
         load_btn.on_click(self._on_load)
         json_btn.on_click(self._on_show_json)
         dl_btn.on_click(self._on_download)
+        py_btn.on_click(self._on_download_py)
 
         self._out = _w.Output()
 
@@ -253,7 +259,7 @@ class ProblemaTipoEditor:
                 _w.Label('  '),
                 self._filepath,
                 _w.Label('  '),
-                json_btn, dl_btn,
+                json_btn, dl_btn, py_btn,
             ]),
             self._out,
         ])
@@ -390,6 +396,29 @@ class ProblemaTipoEditor:
                 filename = os.path.basename(self._filepath.value.strip() or 'problema.json')
                 b64      = base64.b64encode(data.encode('utf-8')).decode('ascii')
                 href     = f"data:application/json;base64,{b64}"
+                _display(HTML(
+                    f'<a download="{filename}" href="{href}" '
+                    f'style="font-size:14px;font-weight:bold">'
+                    f'⬇ Descargar {filename}</a>'
+                    f'<br><span style="color:gray">(pulsa el enlace para guardar el fichero)</span>'))
+            except Exception as exc:
+                print(f"Error al descargar: {exc}")
+
+    def _on_download_py(self, _):
+        # Igual que _on_download pero exporta el problema como guión Python
+        # editable (problema_to_python). El nombre del fichero se deriva de la
+        # ruta JSON cambiando la extensión a .py.
+        import os, base64
+        from IPython.display import HTML
+        with self._out:
+            _clear()
+            try:
+                p        = problema_from_dict(self.to_dict())
+                code     = problema_to_python(p)
+                base     = os.path.basename(self._filepath.value.strip() or 'problema.json')
+                filename = os.path.splitext(base)[0] + '.py'
+                b64      = base64.b64encode(code.encode('utf-8')).decode('ascii')
+                href     = f"data:text/x-python;base64,{b64}"
                 _display(HTML(
                     f'<a download="{filename}" href="{href}" '
                     f'style="font-size:14px;font-weight:bold">'

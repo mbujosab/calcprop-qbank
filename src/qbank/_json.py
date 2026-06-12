@@ -303,30 +303,41 @@ def save_banco(problemas, filepath):
         _json.dump(d, f, ensure_ascii=False, indent=2)
 # ── Exportación a código Python ───────────────────────────────────────────────
 
+def _py_text(s):
+    """Literal de texto Python legible: usa una raw string cuando es seguro
+    (para que el LaTeX se lea sin barras invertidas dobladas) y repr() en caso
+    contrario (texto con comillas conflictivas, salto de línea o backslash final)."""
+    if "\n" not in s:
+        trailing_bs = len(s) - len(s.rstrip("\\"))
+        if trailing_bs % 2 == 0:           # raw string segura respecto al backslash final
+            if "'" not in s:
+                return f"r'{s}'"
+            if '"' not in s:
+                return f'r"{s}"'
+    return repr(s)
+
+
 def _slot_to_python(slot, nivel=1):
     pad = "    " * nivel
 
     if isinstance(slot, str):
-        return f"{pad}{repr(slot)},"
+        return f"{pad}{_py_text(slot)},"
 
     elif isinstance(slot, dict):
-        tipo      = slot["tipo"]
-        enunciado = repr(slot["enunciado"])
-        semantica = slot["semantica"]      # cadena evaluable: "v('A')", "True", …
-        precond   = slot.get("precond", "True")
-        exp       = slot.get("exp", "")
-
-        kwargs = []
-        if precond != "True":
-            kwargs.append(f"precond={precond}")
-        if exp:
-            kwargs.append(f"exp={repr(exp)}")
-
-        extra = (", " + ", ".join(kwargs)) if kwargs else ""
-        if tipo == "Supuesto":
-            return f"{pad}Supuesto({enunciado}, {semantica}{extra}),"
-        elif tipo == "Cuestion":
-            return f"{pad}Cuestion({enunciado}, {semantica}{extra}),"
+        # Constructor con todos los argumentos nombrados, uno por línea, para
+        # que el guión Python resultante sea fácil de leer y editar a mano.
+        tipo = slot["tipo"]
+        ipad = "    " * (nivel + 1)
+        args = [
+            f"{ipad}enunciado = {_py_text(slot['enunciado'])},",
+            f"{ipad}semantica = {slot['semantica']},",      # cadena evaluable: "v('A')", "True", …
+            f"{ipad}precond = {slot.get('precond', 'True')}",
+        ]
+        if tipo == "Cuestion":
+            args[-1] += ","
+            args.append(f"{ipad}exp = {_py_text(slot.get('exp', ''))}")
+        cuerpo = "\n".join(args)
+        return f"{pad}{tipo}(\n{cuerpo}\n{pad}),"
 
     elif isinstance(slot, list):
         inner = "\n".join(_slot_to_python(item, nivel + 1) for item in slot)
