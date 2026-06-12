@@ -440,6 +440,20 @@ def segmentar(componentes):
             enun.append(slot)
     partes.append((enun, cues))
     return partes
+
+def _plan_partes(L):
+    """Índice de parte (0, 1, 2, …) de cada slot ya normalizado, según la
+    regla I2. La transición cuestiones->enunciado incrementa el índice."""
+    plan, parte, vistas = [], 0, False
+    for slot in L:
+        es_cues = _clasifica_slot(slot) == 'cuestiones'
+        if not es_cues and vistas:
+            parte += 1
+            vistas = False
+        if es_cues:
+            vistas = True
+        plan.append(parte)
+    return plan
 #+end_src
 
 #+RESULTS: Segmentación en partes y validación de homogeneidad
@@ -507,81 +521,64 @@ class ProblemaTipo:
         self.e = supuestos_y_cuestiones
         self.setup = setup
 
-    <<Método __iter__ para la clase ProblemaTipo>>
-    <<Método __next__ para la clase ProblemaTipo>>
+    <<Generador interno de variantes por partes>>
+    <<Iteración pública de ProblemaTipo>>
 #+end_src
 
-El método =__iter__= inicializa el iterador configurando las estructuras internas, mientras que el método =__next__= obtiene la siguiente variante válida del problema, asegurándose de desechar en el proceso aquellas cuyas precondiciones no se satisfagan.
+Internamente, =ProblemaTipo= calcula las /partes/ del ejercicio (regla I2, vía =_plan_partes=) y genera, por cada combinación válida del marcador, la estructura =[(enunciado, cuestiones), …]= con una entrada por parte. Las hipótesis se acumulan a lo largo de /todas/ las partes: una cuestión de la parte $k$ ve los =Supuesto= de las partes anteriores.
 
-**** Método =__iter__(self)=
+Sobre ese generador interno se ofrecen dos fachadas:
+- el protocolo de iteración estándar (=for … in problema=), que mantiene el contrato histórico =(etiqueta, enunciado, cuestiones)= para los ejercicios de *una sola parte* (lo habitual en docencia);
+- el método =por_partes()=, que devuelve =(etiqueta, [(enunciado, cuestiones), …])= y es el que debe usarse con ejercicios *multiparte*.
 
-El atributo =self.l= es la lista =self.e= normalizada para que todos sus objetos sean listas; =self.long= es el número de componentes que constituyen el texto de cada variante.
-=self.i= es el iterador interno encargado de la combinatoria y =self.c= es un contador de intentos de generación.
+Si un ejercicio multiparte se itera por la vía histórica de tres elementos, se lanza un =ValueError= que remite a =por_partes()=, para no devolver una salida silenciosamente degradada (enunciados concatenados y cuestiones de distintas partes mezcladas).
 
-#+NAME: Método __iter__ para la clase ProblemaTipo
-#+begin_src python :noweb yes
-def __iter__(self):
-    self.l    = [x if isinstance(x,list) else [x] for x in self.e]
-    self.long = len(self.l)
-    self.i    = iter(Marcador([len(x) for x in self.l]))
-    self.c    = 0
-    return self
-#+end_src
+**** Generador interno =_variantes(self)=
 
-**** Método =__next__=
+Normaliza la lista, calcula el plan de partes (=_plan_partes=) y recorre el marcador combinatorio. Para cada variante construye un enunciado y una lista de cuestiones *por parte*, compartiendo una única lista =hipotesis= que crece a medida que se aceptan =Supuesto= (de ahí la acumulación entre partes). Si algún =Supuesto= o =Cuestion= resulta refutado, la variante completa se descarta. El contador =c= numera solo las variantes efectivamente emitidas.
 
-La generación de variantes de un =ProblemaTipo= se produce dentro de un bucle que solo se detiene cuando el intento de iterar el marcador interno, =next(self.i)=, lanza una excepción =StopIteration= por haberse agotado todas las combinaciones posibles.
-
-En cada intento de generación:
-1. El contador =self.c= se incrementa de forma consecutiva.
-2. Las variables =enunciado=, =hipotesis= y =cuestiones= se inicializan vacías.
-3. Se recorren uno a uno los componentes de la variante candidata.
-
-Si todos los componentes superan con éxito sus respectivas validaciones, el método devuelve una tupla con el identificador del intento y las estructuras generadas: =(str(self.c), enunciado, cuestiones)=.
-
-#+NAME: Método __next__ para la clase ProblemaTipo
+#+NAME: Generador interno de variantes por partes
 #+begin_src python :noweb no-export
-def __next__(self):
-    self.c += 1
-    while True:
-        try:
-            variante = next(self.i)
-        except StopIteration:
-            raise StopIteration
-
-        ns = self.setup() if self.setup else {}
-        enunciado    = ""
-        hipotesis    = []
-        cuestiones   = []
-
-        for n in range(self.long+1):
-            if n == self.long:
-                return (str(self.c), enunciado, cuestiones)
-
-            componente = self.l[n][variante[n]]
-            <<Tratamiento en función del tipo de componente>>
+def _variantes(self):
+    L    = [_normaliza_slot(x) for x in self.e]
+    plan = _plan_partes(L)
+    npar = (plan[-1] + 1) if plan else 1
+    c    = 0
+    for variante in Marcador([len(x) for x in L]):
+        ns         = self.setup() if self.setup else {}
+        hipotesis  = []
+        enunciados = ['' for _ in range(npar)]
+        cuestiones = [[] for _ in range(npar)]
+        descartada = False
+        for n in range(len(L)):
+            parte      = plan[n]
+            componente = L[n][variante[n]]
+            <<Tratamiento del componente por partes>>
+        if not descartada:
+            c += 1
+            yield (str(c), list(zip(enunciados, cuestiones)))
 #+end_src
 
+El fragmento =<<Tratamiento del componente por partes>>= procesa cada =componente= según su tipo, dirigiéndolo al enunciado o a las cuestiones de *su* parte (=parte=):
 
-El fragmento de código =<<Tratamiento en función del tipo de componente>>= procesa el =componente= que corresponda en cada iteración del bucle =for= según su tipo:
+- Una cadena se concatena al enunciado de su parte.
+- Un =Supuesto= testea su precondición contra las =hipotesis= acumuladas; si pasa, su texto se añade al enunciado de su parte y su semántica se incorpora a las =hipotesis= (visibles para las partes siguientes). Si se refuta, se descarta la variante.
+- Una =Cuestion= testea su precondición; si pasa, el par (texto, veracidad) se añade a las cuestiones de su parte. Si se refuta, se descarta la variante.
 
-- Cuando el =componente= es una cadena, se considera parte del enunciado del problema y se concatena al string =enunciado=.
-- Cuando el =componente= es un objeto =Supuesto=, se testea su precondición. Si =componente.p= es =True= o no es refutable a partir de las =hipotesis= acumuladas, su texto =componente.e= se añade al enunciado y su significado lógico =componente.s= se incorpora a las =hipotesis=. En caso contrario, el análisis de la combinación actual se interrumpe de inmediato mediante un =break=, se notifica en pantalla el descarte y se pasa a evaluar el siguiente elemento del marcador.
-- Cuando el =componente= es un objeto =Cuestion=, se testea su precondición. Si es =True= o no es refutable a partir de las =hipotesis= acumuladas, el par (=componente.e=, veracidad o falsedad de =componente.s=) se añade a la lista de =cuestiones=. En caso contrario, se imprime la notificación en pantalla y se interrumpe el procesamiento de la variante mediante un =break=; esto hace que la combinación entera quede descartada de inmediato, ignorando cualquier componente o lista de cuestiones posterior que restase por evaluar en esa iteración.
-
-#+NAME: Tratamiento en función del tipo de componente
+#+NAME: Tratamiento del componente por partes
 #+begin_src python :noweb yes
 if isinstance(componente, str):
-    enunciado = enunciado + _ns_interp(componente, ns)
+    enunciados[parte] += _ns_interp(componente, ns)
 
 elif isinstance(componente, Supuesto):
     precond = _ns_eval(componente.p, ns)
     if test(precond, hipotesis):
-        enunciado = enunciado + _ns_interp(_ns_eval(componente.e, ns), ns)
+        enunciados[parte] += _ns_interp(_ns_eval(componente.e, ns), ns)
         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
     else:
         print('\n Supuesto: '   + str(componente.e) \
             + ' rechazado por ' + _fuente_precond(componente) + '\n')
+        descartada = True
         break
 
 elif isinstance(componente, Cuestion):
@@ -589,14 +586,39 @@ elif isinstance(componente, Cuestion):
     semantica = _ns_eval(componente.s, ns)
     texto     = _ns_interp(_ns_eval(componente.e, ns), ns)
     if test(precond, hipotesis):
-        cuestiones = cuestiones + \
-            [(texto, (True if test(semantica, hipotesis) else False), 1, componente.x)]
+        cuestiones[parte].append(
+            (texto, (True if test(semantica, hipotesis) else False), 1, componente.x))
     else:
-        cuestiones = cuestiones + \
-            [(texto, 'rechazada por ' + _fuente_precond(componente), 0, componente.x)]
         print('\n Cuestion: '   + str(componente.e) \
             + ' rechazada por ' + _fuente_precond(componente) + '\n')
+        descartada = True
         break
+#+end_src
+
+**** Fachadas de iteración: =por_partes()=, =__iter__= y =__next__=
+
+#+NAME: Iteración pública de ProblemaTipo
+#+begin_src python :noweb no-export
+def por_partes(self):
+    """Itera las variantes válidas como (etiqueta, [(enunciado, cuestiones), …]).
+
+    Es la vía recomendada para ejercicios multiparte. En un ejercicio de una
+    sola parte cada elemento es una lista de longitud 1.
+    """
+    return self._variantes()
+
+def __iter__(self):
+    self._gen = self._variantes()
+    return self
+
+def __next__(self):
+    etiqueta, partes = next(self._gen)   # propaga StopIteration al agotarse
+    if len(partes) > 1:
+        raise ValueError(
+            "Este ProblemaTipo tiene varias partes; itéralo con .por_partes(), "
+            "que devuelve (etiqueta, [(enunciado, cuestiones), …]).")
+    (enunciado, cuestiones), = partes
+    return (etiqueta, enunciado, cuestiones)
 #+end_src
 
 *** Ejemplo de funcionamiento
@@ -827,6 +849,35 @@ En el ejemplo anterior, se observa que, para cada combinación de supuestos, en 
 
 En el anterior ejemplo, y aunque existen únicamente cuatro enunciados posibles y cinco preguntas en total, la combinatoria ha generado 18 variantes no descartables, cada una con un subconjunto de solo dos preguntas. Esta complejidad complica la tarea de revisar y mantener un banco de ejercicios eficaz.
 
+*** Ejercicios multiparte: =por_partes()=
+
+Un ejercicio es /multiparte/ cuando, tras una tanda de cuestiones, su lista de componentes vuelve a introducir material de enunciado (regla I2). En ese caso la vía de iteración histórica =(etiqueta, enunciado, cuestiones)= no basta —no podría separar las partes— y debe usarse =por_partes()=, que devuelve =(etiqueta, [(enunciado, cuestiones), …])= con una entrada por parte. Las hipótesis se acumulan entre partes: una cuestión de una parte posterior «ve» los =Supuesto= de las anteriores.
+
+Iterar un ejercicio multiparte por la vía histórica lanza un =ValueError= que remite a =por_partes()=.
+
+#+BEGIN_SRC jupyter-python :results output
+multi = [
+    "Sea A cierto. ", Supuesto("", v("A")),
+    [ Cuestion("¿A?", v("A")) ],                  # parte 0
+    "Sea además A→B. ", Supuesto("", v("A") >> v("B")),
+    [ Cuestion("¿B?", v("B")) ],                  # parte 1 (B es cierto gracias a A acumulada)
+]
+
+etiqueta, partes = next(iter(ProblemaTipo(multi).por_partes()))
+assert len(partes) == 2
+(e0, c0), (e1, c1) = partes
+assert c0 == [('¿A?', True, 1, '')]
+assert c1 == [('¿B?', True, 1, '')]   # la hipótesis A de la parte 0 se acumula en la parte 1
+
+# Por la vía histórica de 3 elementos, un multiparte avisa:
+try:
+    list(ProblemaTipo(multi))
+except ValueError as ex:
+    assert "por_partes()" in str(ex)
+
+print("Fase 2 OK: por_partes() separa partes y acumula hipótesis entre ellas")
+#+END_SRC
+
 
 ** Clase =ProblemaTipoProfe=
 
@@ -838,6 +889,18 @@ Hay dos diferencias entre el código de la clase =ProblemaTipoProfe= y el la cla
 - La primera es que en =self.e= cada =Cuestion= aparece como único elemento de una sublista, para así lograr que se ven todas las cuestiones en cada iteración.
 - La segunda diferencia se produce en la definición del método =__next__=, que aquí no oculta las cuestiones que sí son rechazadas cuando usamos =ProblemaTipo=.
 
+=ProblemaTipoProfe= conserva el esquema clásico de iteración (=self.l=, =self.long=, =self.i=, =self.c=) y su propio =__iter__=, ya que la vista del profesor es de una sola parte y no comparte el motor por partes de =ProblemaTipo=.
+
+#+NAME: Método __iter__ para la clase ProblemaTipoProfe
+#+begin_src python :noweb yes
+def __iter__(self):
+    self.l    = [x if isinstance(x,list) else [x] for x in self.e]
+    self.long = len(self.l)
+    self.i    = iter(Marcador([len(x) for x in self.l]))
+    self.c    = 0
+    return self
+#+end_src
+
 #+NAME: Definición de la clase ProblemaTipoProfe
 #+begin_src python :noweb no-export
 class ProblemaTipoProfe:
@@ -845,7 +908,7 @@ class ProblemaTipoProfe:
         self.e = CuestionesJuntas(supuestos_y_cuestiones)
         self.setup = setup
 
-    <<Método __iter__ para la clase ProblemaTipo>>
+    <<Método __iter__ para la clase ProblemaTipoProfe>>
     <<Método __next__ para la clase ProblemaTipoProfe>>
 #+end_src
 

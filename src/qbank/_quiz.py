@@ -149,46 +149,51 @@ def segmentar(componentes):
             enun.append(slot)
     partes.append((enun, cues))
     return partes
+
+def _plan_partes(L):
+    """Índice de parte (0, 1, 2, …) de cada slot ya normalizado, según la
+    regla I2. La transición cuestiones->enunciado incrementa el índice."""
+    plan, parte, vistas = [], 0, False
+    for slot in L:
+        es_cues = _clasifica_slot(slot) == 'cuestiones'
+        if not es_cues and vistas:
+            parte += 1
+            vistas = False
+        if es_cues:
+            vistas = True
+        plan.append(parte)
+    return plan
 class ProblemaTipo:
     def __init__(self, supuestos_y_cuestiones, setup=None):
         self.e = supuestos_y_cuestiones
         self.setup = setup
 
-    def __iter__(self):
-        self.l    = [x if isinstance(x,list) else [x] for x in self.e]
-        self.long = len(self.l)
-        self.i    = iter(Marcador([len(x) for x in self.l]))
-        self.c    = 0
-        return self
-    def __next__(self):
-        self.c += 1
-        while True:
-            try:
-                variante = next(self.i)
-            except StopIteration:
-                raise StopIteration
-    
-            ns = self.setup() if self.setup else {}
-            enunciado    = ""
-            hipotesis    = []
-            cuestiones   = []
-    
-            for n in range(self.long+1):
-                if n == self.long:
-                    return (str(self.c), enunciado, cuestiones)
-    
-                componente = self.l[n][variante[n]]
+    def _variantes(self):
+        L    = [_normaliza_slot(x) for x in self.e]
+        plan = _plan_partes(L)
+        npar = (plan[-1] + 1) if plan else 1
+        c    = 0
+        for variante in Marcador([len(x) for x in L]):
+            ns         = self.setup() if self.setup else {}
+            hipotesis  = []
+            enunciados = ['' for _ in range(npar)]
+            cuestiones = [[] for _ in range(npar)]
+            descartada = False
+            for n in range(len(L)):
+                parte      = plan[n]
+                componente = L[n][variante[n]]
                 if isinstance(componente, str):
-                    enunciado = enunciado + _ns_interp(componente, ns)
+                    enunciados[parte] += _ns_interp(componente, ns)
                 
                 elif isinstance(componente, Supuesto):
                     precond = _ns_eval(componente.p, ns)
                     if test(precond, hipotesis):
-                        enunciado = enunciado + _ns_interp(_ns_eval(componente.e, ns), ns)
+                        enunciados[parte] += _ns_interp(_ns_eval(componente.e, ns), ns)
                         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
                     else:
                         print('\n Supuesto: '   + str(componente.e) \
                             + ' rechazado por ' + _fuente_precond(componente) + '\n')
+                        descartada = True
                         break
                 
                 elif isinstance(componente, Cuestion):
@@ -196,14 +201,36 @@ class ProblemaTipo:
                     semantica = _ns_eval(componente.s, ns)
                     texto     = _ns_interp(_ns_eval(componente.e, ns), ns)
                     if test(precond, hipotesis):
-                        cuestiones = cuestiones + \
-                            [(texto, (True if test(semantica, hipotesis) else False), 1, componente.x)]
+                        cuestiones[parte].append(
+                            (texto, (True if test(semantica, hipotesis) else False), 1, componente.x))
                     else:
-                        cuestiones = cuestiones + \
-                            [(texto, 'rechazada por ' + _fuente_precond(componente), 0, componente.x)]
                         print('\n Cuestion: '   + str(componente.e) \
                             + ' rechazada por ' + _fuente_precond(componente) + '\n')
+                        descartada = True
                         break
+            if not descartada:
+                c += 1
+                yield (str(c), list(zip(enunciados, cuestiones)))
+    def por_partes(self):
+        """Itera las variantes válidas como (etiqueta, [(enunciado, cuestiones), …]).
+    
+        Es la vía recomendada para ejercicios multiparte. En un ejercicio de una
+        sola parte cada elemento es una lista de longitud 1.
+        """
+        return self._variantes()
+    
+    def __iter__(self):
+        self._gen = self._variantes()
+        return self
+    
+    def __next__(self):
+        etiqueta, partes = next(self._gen)   # propaga StopIteration al agotarse
+        if len(partes) > 1:
+            raise ValueError(
+                "Este ProblemaTipo tiene varias partes; itéralo con .por_partes(), "
+                "que devuelve (etiqueta, [(enunciado, cuestiones), …]).")
+        (enunciado, cuestiones), = partes
+        return (etiqueta, enunciado, cuestiones)
 class ProblemaTipoProfe:
     def __init__(self, supuestos_y_cuestiones, setup=None):
         self.e = CuestionesJuntas(supuestos_y_cuestiones)
