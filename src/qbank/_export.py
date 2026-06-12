@@ -172,8 +172,8 @@ def QuizMoodle (nombre, directorio, problema, opc=["",""]):
     with open(directorio + nombre + ".tex","w") as f:
         f.write(s)
         for i,nom in enumerate(problema):
-            for var in problema[nom]:
-                f.write( MoodleMulti(codchar(nom), var[0], codchar(var[1]), var[2]) )
+            for etiqueta, partes in problema[nom].por_partes():
+                f.write(_ClozeBlock(nom, etiqueta, partes, _ClozeMulti))
         f.write("\\end{quiz}\n\n\\end{document}\n")
 def QuizMoodleConVariables (nombre, directorio, problema, environment, Valores, opc=["",""]):
     def creaDiccionario(x, key='key'):
@@ -197,8 +197,8 @@ def QuizMoodleConVariables (nombre, directorio, problema, environment, Valores, 
     with open(directorio + nombre + ".tex","w") as f:
         f.write(s)
         for i,nom in enumerate(problema):
-            for var in problema[nom]:
-                template = environment.from_string(MoodleMulti(codchar(nom), var[0], codchar(var[1]), var[2]))
+            for etiqueta, partes in problema[nom].por_partes():
+                template = environment.from_string(_ClozeBlock(nom, etiqueta, partes, _ClozeMulti))
                 content = template.render(Valores())
                 f.write(content)
         f.write("\\end{quiz}\n\n\\end{document}\n")
@@ -224,8 +224,8 @@ def QuizMoodleProfe (nombre, directorio, problema, opc=["",""]):
     with open(directorio + nombre + ".tex","w") as f:
         f.write(s)
         for i,nom in enumerate(problema):
-            for var in problema[nom]:
-                f.write( MoodleMultiProfe(codchar(nom), var[0], codchar(var[1]), var[2]) )
+            for etiqueta, partes in problema[nom].por_partes():
+                f.write(_ClozeBlock(nom, etiqueta, partes, _ClozeMultiProfe))
         f.write("\\end{quiz}\n\n\\end{document}\n")
 def QuizMoodleProfeConVariables (nombre, directorio, problema, environment, Valores, opc=["",""]):
     def creaDiccionario(x, key='key'):
@@ -249,8 +249,8 @@ def QuizMoodleProfeConVariables (nombre, directorio, problema, environment, Valo
     with open(directorio + nombre + ".tex","w") as f:
         f.write(s)
         for i,nom in enumerate(problema):
-            for var in problema[nom]:
-                template = environment.from_string(MoodleMultiProfe(codchar(nom), var[0], codchar(var[1]), var[2]))
+            for etiqueta, partes in problema[nom].por_partes():
+                template = environment.from_string(_ClozeBlock(nom, etiqueta, partes, _ClozeMultiProfe))
                 content = template.render(Valores())
                 f.write(content)
         f.write("\\end{quiz}\n\n\\end{document}\n")
@@ -347,8 +347,8 @@ def QuizMoodleLastCh (nombre, directorio, problema, opc=["","Las demás opciones
     with open(directorio + nombre + ".tex","w") as f:
         f.write(s)
         for i,nom in enumerate(problema):
-            for var in problema[nom]:
-                f.write(MoodleMultiLastCh(codchar(nom),var[0],codchar(var[1]),var[2],opc[1]))
+            for etiqueta, partes in problema[nom].por_partes():
+                f.write(_ClozeBlock(nom, etiqueta, partes, lambda c: _ClozeMultiLastCh(c, opc[1])))
         f.write("\\end{quiz}\n\n\\end{document}\n")
 def QuizMoodleLastChConVariables (nombre, directorio, problema, environment, Valores, opc=["","Las demás opciones son falsas"]):
     def creaDiccionario(x, key='key'):
@@ -373,8 +373,9 @@ def QuizMoodleLastChConVariables (nombre, directorio, problema, environment, Val
     with open(directorio + nombre + ".tex","w") as f:
         f.write(s)
         for i,nom in enumerate(problema):
-            for var in problema[nom]:
-                template = environment.from_string(MoodleMultiLastCh(codchar(nom), var[0], codchar(var[1]), var[2]))
+            for etiqueta, partes in problema[nom].por_partes():
+                template = environment.from_string(
+                    _ClozeBlock(nom, etiqueta, partes, lambda c: _ClozeMultiLastCh(c, opc[1])))
                 content = template.render(Valores())
                 f.write(content)
         f.write("\\end{quiz}\n\n\\end{document}\n")
@@ -444,44 +445,97 @@ def AMC_multipart(nombre, etiqueta, enunciado, subpreguntas, opc=[""]):
     s += ' \\end{questionmult} '
     s += '}\n\n'
     return s
-def _ClozeMultiBlock(nombre, etiqueta, enunciado, subpreguntas):
-    s  = ' \\begin{cloze}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s += '  ' + enunciado + '\n\n'
-    for i, (intro, cuestiones) in enumerate(subpreguntas, 1):
-        s += '  ' + codchar(intro) + '\n'
-        s += ('  \\begin{multi}[multiple, points=' + str(len(cuestiones) - 1)
-              + ']{' + nombre + '-' + str(etiqueta) + '-' + str(i) + '}\n')
-        for c in cuestiones:
-            s += ' ' * 5 + ('\\item* ' if c[1] else '\\item  ') + codchar(c[0]) + '\n'
-        s += '  \\end{multi}\n\n'
-    s += ' \\end{cloze}\n\n'
+def _ClozeMulti(cuestiones):
+    def itemBuena(aclaracion):
+        return ("\\item[feedback={" + codchar(aclaracion) + "}]* ") if aclaracion else r"\item* "
+    
+    def itemMala(aclaracion):
+        return ("\\item[feedback={" + codchar(aclaracion) + "}]  ") if aclaracion else r"\item  "
+    s = "  \\begin{multi}[multiple, points=" + str(len(cuestiones)-1) + "]\n"
+    for c in cuestiones:
+        fb = c[3] if len(c) > 3 else ''
+        s = s + (' ' * 7) + (itemBuena(fb) if c[1] else itemMala(fb)) + codchar(c[0]) + '\n'
+    s = s + "  \\end{multi}\n\n"
     return s
 
+def _ClozeMultiLastCh(cuestiones, lastchoice="Las demás opciones son falsas"):
+    v = [c[1] for c in cuestiones].count(True)
+    cuestiones = cuestiones + [(codchar(lastchoice), (False if v else True), 1, '')]
+    def itemBuena(aclaracion):
+        return ("\\item[feedback={" + codchar(aclaracion) + "}]* ") if aclaracion else r"\item* "
+    
+    def itemMala(aclaracion):
+        return ("\\item[feedback={" + codchar(aclaracion) + "}]  ") if aclaracion else r"\item  "
+    s = "  \\begin{multi}[multiple, points=" + str(len(cuestiones)-1) + "]\n"
+    for c in cuestiones:
+        fb = c[3] if len(c) > 3 else ''
+        s = s + (' ' * 7) + (itemBuena(fb) if c[1] else itemMala(fb)) + codchar(c[0]) + '\n'
+    s = s + "  \\end{multi}\n\n"
+    return s
+
+def _ClozeMultiProfe(cuestiones):
+    def feedback(texto):
+        return r",\feedback={"+codchar(texto)+"}"
+    b = 0; m = 0;
+    for c in cuestiones:
+        if c[2]:
+            if c[1]:
+                b+=1
+            else:
+                m+=1
+    def itemBuena(numBuenas, aclaracion):
+        return ("\\item[fraction=" + str(round(100/numBuenas)) + feedback(aclaracion) + "]") if numBuenas else "\\item*"
+    
+    def itemMala(numMalas, aclaracion):
+        return ("\\item[fraction=" + str(-round(100/numMalas)) + feedback(aclaracion) + "]") if numMalas else "\\item"
+    ex = ''
+    s = "  \\begin{multi}[multiple, fractiontol=5.1]\n"
+    for c in cuestiones:
+        if c[2]:
+            s = s + (' ' * 7) + (itemBuena(b, c[3]) if c[1] else itemMala(m, c[3])) + codchar(c[0]) + "\n"
+        else:
+            ex = ex + ' cuestion: ' + c[0] + '; ' + str(c[1]) + '\n'
+    s = s + "  \\end{multi}\n\n"
+    return s
+
+def _ClozeBlock(nombre, etiqueta, partes, cuerpo):
+    """Envuelve las partes de una variante en un entorno cloze.
+    `cuerpo(cuestiones)` genera el bloque \\begin{multi}…\\end{multi} de cada parte."""
+    s = " \\begin{cloze}{" + codchar(nombre) + "-" + str(etiqueta) + "}\n"
+    for enunciado, cuestiones in partes:
+        s += "  " + codchar(enunciado) + "\n"
+        s += cuerpo(cuestiones)
+    s += " \\end{cloze}\n\n"
+    return s
 
 def QuizClozeMulti(nombre, directorio, problema, opc=["", ""]):
-    """Genera un fichero .tex con preguntas tipo cloze (multi-parte) para Moodle.
+    """Genera un fichero .tex con preguntas tipo cloze para Moodle.
 
-    problema: ProblemaMultiParte o iterable que produzca
-              (etiqueta, enunciado, subpreguntas).
-    Compilar con xelatex para obtener el .xml importable en Moodle.
+    Equivalente a QuizMoodle (toda la exportación Moodle es cloze); se conserva
+    por compatibilidad. `problema` es un ProblemaTipo (de una o varias partes) o
+    un dict de ellos. Compilar con xelatex para obtener el .xml importable.
     """
+    def creaDiccionario(x, key='key'):
+        return x if isinstance(x, dict) else {key: x}
+    problema = creaDiccionario(problema, nombre)
     auxLaTeX = opc[0]
-    s  = "\\documentclass[11pt]{article}\n\n"
-    s += "\\usepackage[cm,headings]{fullpage}\n\n"
-    s += "\\usepackage{moodle}\n\n"
-    s += "\\usepackage{graphicx}\n\n"
-    s += "\\usepackage{fancyvrb}\n\n"
-    s += "\\ifPDFTeX                    % FOR LATEX and PDFLATEX\n"
-    s += "    \\usepackage[utf8]{inputenc}   % necessary\n"
-    s += "    \\usepackage[OT1] {fontenc}    % necessary\n"
-    s += "\\else                        % assuming XELATEX or LUALATEX\n"
-    s += "    \\usepackage{fontspec}\n"
-    s += "\\fi\n\n"
-    s += auxLaTeX + "\n" + "\\newcommand\\peque{}" + "\n\n"
-    s += "\\begin{document}\n\n"
-    s += "\\begin{quiz}{" + nombre + "}\n\n"
+    s = "\\documentclass[11pt]{article}\n\n"
+    s = s + "\\usepackage[cm,headings]{fullpage}\n\n"
+    s = s + "\\usepackage{moodle}\n\n"
+    s = s + "\\usepackage{graphicx}\n\n"
+    s = s + "\\usepackage{fancyvrb}\n\n"
+    s = s + "\\ifPDFTeX                    % FOR LATEX and PDFLATEX\n"
+    s = s + "    \\usepackage[utf8]{inputenc}   % necessary\n"
+    s = s + "    \\usepackage[OT1] {fontenc}    % necessary\n"
+    s = s + "\\else                        % assuming XELATEX or LUALATEX\n"
+    s = s + "    \\usepackage{fontspec}\n"
+    s = s + "\\fi\n\n"
+    s = s + auxLaTeX + "\n" + "\\newcommand\\peque{}" + "\n\n"
+    s = s + "\\begin{document}\n\n"
+    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
     with open(directorio + nombre + ".tex", "w") as f:
         f.write(s)
-        for etiqueta, enunciado, subpreguntas in problema:
-            f.write(_ClozeMultiBlock(codchar(nombre), etiqueta, codchar(enunciado), subpreguntas))
+        for i, nom in enumerate(problema):
+            for etiqueta, partes in problema[nom].por_partes():
+                f.write(_ClozeBlock(nom, etiqueta, partes, _ClozeMulti))
         f.write("\\end{quiz}\n\n\\end{document}\n")
