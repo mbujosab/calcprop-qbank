@@ -1220,84 +1220,45 @@ Enunciado completo: Marque las verdaderas:
 Como se puede apreciar en el resultado impreso, cada uno de los cinco bloques representa un ejercicio completamente autónomo con un identificador secuencial, conservando el enunciado general e integrando un muestreo dinámico y heterogéneo extraído directamente de la lista de afirmaciones almacenada con el nombre de =banco=.
 
 
-** Clase =SubPregunta= y =ProblemaMultiParte=
+** Clases =SubPregunta= y =ProblemaMultiParte= (deprecadas)
 
-Los formatos AMC y Moodle permiten agrupar varias sub-preguntas de opción múltiple bajo un mismo enunciado general. Cada sub-pregunta tiene su propio pequeño intro y su propio bloque de opciones (correctas e incorrectas). Este tipo de pregunta se llama /multi-parte/ (AMC) o /cloze/ (Moodle).
+Los formatos AMC y Moodle permiten agrupar varias sub-preguntas de opción múltiple bajo un mismo enunciado general (pregunta /multi-parte/ en AMC, /cloze/ en Moodle). En qbank esto ya *no es un tipo aparte*: una pregunta multiparte es un =ProblemaTipo= cuya lista plana de componentes intercala el enunciado común y, por cada parte, material de enunciado seguido de una sublista de =Cuestion=. Las partes se infieren con la regla I2 (=segmentar=) y se recorren con =por_partes()=.
 
-=SubPregunta= es un contenedor simple: un texto introductorio y una lista de =Cuestion= que se evaluarán todas (no se filtra por alternativa como en =ProblemaTipo=, sino que se muestran todas con su marca correcto/incorrecto).
-
-=ProblemaMultiParte= sigue la misma lógica de iteración que =ProblemaTipo=:
-- =componentes= es la lista con strings y =Supuesto= (o listas de ellos) que forma el enunciado común y determina las hipótesis activas.
-- =subpreguntas= es la lista de =SubPregunta=, cada una con un intro y sus cuestiones.
-- Por cada combinación de supuestos se produce una variante: el iterador devuelve =(etiqueta, enunciado_comun, [(intro1, cuestiones1), (intro2, cuestiones2), ...])=.
-
-La diferencia clave respecto a =ProblemaTipo= es que el iterador usa =for...else= para separar limpiamente el bloque de construcción del enunciado (que puede abortar si un Supuesto es rechazado) del bloque de evaluación de las sub-preguntas (que solo se alcanza si el enunciado es válido).
+=SubPregunta= y =ProblemaMultiParte= se conservan *solo por compatibilidad* y están *deprecadas*:
+- =SubPregunta(intro, cuestiones)= es un contenedor simple (un intro y una lista de =Cuestion=).
+- =ProblemaMultiParte(componentes, subpreguntas, setup)= no construye un objeto propio: *devuelve un =ProblemaTipo= equivalente* (aplanando =componentes= + cada =SubPregunta=) y emite un =DeprecationWarning=. El resultado se itera con =por_partes()= como cualquier =ProblemaTipo= multiparte.
 
 #+NAME: Definición de SubPregunta y ProblemaMultiParte
 #+begin_src python :noweb yes
 class SubPregunta:
+    """DEPRECADO. Contenedor (intro, lista de Cuestion) del antiguo
+    ProblemaMultiParte. Se conserva solo para compatibilidad; usa ProblemaTipo
+    con su lista plana de componentes."""
     def __init__(self, intro, cuestiones):
         self.intro = intro
         self.cuestiones = cuestiones if isinstance(cuestiones, list) else [cuestiones]
 
 
 class ProblemaMultiParte:
-    def __init__(self, componentes, subpreguntas, setup=None):
-        """
-        componentes:  list de str / Supuesto / list de Supuesto (enunciado común)
-        subpreguntas: list de SubPregunta
-        setup:        callable opcional
-        """
-        self.componentes  = componentes
-        self.subpreguntas = subpreguntas
-        self.setup        = setup
+    """DEPRECADO. Devuelve un ProblemaTipo equivalente.
 
-    def __iter__(self):
-        self.l    = [x if isinstance(x, list) else [x] for x in self.componentes]
-        self.long = len(self.l)
-        self.i    = iter(Marcador([len(x) for x in self.l]))
-        self.c    = 0
-        return self
-
-    def __next__(self):
-        self.c += 1
-        while True:
-            try:
-                variante = next(self.i)
-            except StopIteration:
-                raise StopIteration
-
-            ns        = self.setup() if self.setup else {}
-            enunciado = ""
-            hipotesis = []
-
-            for n in range(self.long):
-                componente = self.l[n][variante[n]]
-                if isinstance(componente, str):
-                    enunciado += _ns_interp(componente, ns)
-                elif isinstance(componente, Supuesto):
-                    precond = _ns_eval(componente.p, ns)
-                    if test(precond, hipotesis):
-                        enunciado += _ns_interp(_ns_eval(componente.e, ns), ns)
-                        hipotesis  = hipotesis + [_ns_eval(componente.s, ns)]
-                    else:
-                        print('\n Supuesto: '   + str(componente.e)
-                              + ' rechazado por ' + _fuente_precond(componente) + '\n')
-                        break
-            else:
-                subpregs = []
-                for sp in self.subpreguntas:
-                    intro_text = _ns_interp(sp.intro, ns)
-                    cuestiones = []
-                    for c in sp.cuestiones:
-                        precond   = _ns_eval(c.p, ns)
-                        semantica = _ns_eval(c.s, ns)
-                        texto     = _ns_interp(_ns_eval(c.e, ns), ns)
-                        if test(precond, hipotesis):
-                            correcto = True if test(semantica, hipotesis) else False
-                            cuestiones.append((texto, correcto, 1, c.x))
-                    subpregs.append((intro_text, cuestiones))
-                return (str(self.c), enunciado, subpregs)
+    La estructura multiparte ya no es un tipo propio: se representa como un
+    ProblemaTipo cuya lista plana intercala el enunciado común y, por cada
+    SubPregunta, su intro seguido de su sublista de Cuestion. Las partes se
+    infieren con la regla I2 y se recorren con por_partes().
+    """
+    def __new__(cls, componentes, subpreguntas, setup=None):
+        import warnings
+        warnings.warn(
+            "ProblemaMultiParte y SubPregunta están deprecados: usa ProblemaTipo "
+            "con su lista plana de componentes (las partes se infieren) y recórrelo "
+            "con .por_partes().",
+            DeprecationWarning, stacklevel=2)
+        flat = list(componentes)
+        for sp in subpreguntas:
+            flat.append(sp.intro)
+            flat.append(list(sp.cuestiones))
+        return ProblemaTipo(flat, setup=setup)
 #+end_src
 
 *** Ejemplo
@@ -1305,6 +1266,7 @@ class ProblemaMultiParte:
 #+begin_src jupyter-python :results output
 from qbank import *
 
+# ProblemaMultiParte está deprecado: devuelve un ProblemaTipo equivalente.
 p = ProblemaMultiParte(
     componentes=[
         'Una desviación típica es un indicador ',
@@ -1321,11 +1283,11 @@ p = ProblemaMultiParte(
     ]
 )
 
-for etiqueta, enunciado, subpreguntas in p:
+# p es un ProblemaTipo multiparte: se recorre con por_partes().
+for etiqueta, partes in p.por_partes():
     print(f'=== Variante {etiqueta} ===')
-    print(f'Enunciado: {enunciado}')
-    for intro, cuestiones in subpreguntas:
-        print(f'  {intro}')
+    for enunciado, cuestiones in partes:
+        print(f'  {enunciado}')
         for texto, correcto, _, _ in cuestiones:
             print(f'    {"✓" if correcto else "✗"} {texto}')
 #+end_src
@@ -1436,8 +1398,7 @@ En semantica y precond se admiten:
 #+begin_src python :tangle src/qbank/_json.py :noweb no-export
 import json as _json
 import calcprop as _calcprop_mod
-from qbank._quiz import (Supuesto, Cuestion, ProblemaTipo, ProblemaVF,
-                         SubPregunta, ProblemaMultiParte)
+from qbank._quiz import Supuesto, Cuestion, ProblemaTipo, ProblemaVF
 
 __all__ = [
     'problema_from_dict',
@@ -1700,17 +1661,17 @@ def problema_from_dict(d):
         return p
 
     elif tipo == "ProblemaMultiParte":
+        # Schema heredado: se aplana a un ProblemaTipo multiparte unificado.
+        # Cada subpregunta aporta su intro (material de enunciado) seguido de su
+        # sublista de Cuestion; la transición cuestiones->enunciado segmenta las
+        # partes (regla I2), de modo que por_partes() reconstruye las subpreguntas.
         componentes = [_slot_from_json(s) for s in d["componentes"]]
-        subpreguntas = [
-            SubPregunta(
-                sp["intro"],
-                [_componente_from_dict(c) for c in sp["cuestiones"]]
-            )
-            for sp in d["subpreguntas"]
-        ]
+        for sp in d["subpreguntas"]:
+            componentes.append(sp["intro"])
+            componentes.append([_componente_from_dict(c) for c in sp["cuestiones"]])
         setup_str = d.get("setup")
         setup     = _make_setup_fn(setup_str) if setup_str else None
-        p = ProblemaMultiParte(componentes, subpreguntas, setup=setup)
+        p = ProblemaTipo(componentes, setup=setup)
         p._nombre    = d.get("nombre", "")
         p._setup_str = setup_str
         return p
@@ -1727,9 +1688,9 @@ def problema_from_dict(d):
         raise ValueError(f"Tipo de problema desconocido: {tipo!r}")
 #+end_src
 
-=problema_from_dict= reconstruye los tres tipos de problema según la clave =tipo= del dict: =ProblemaTipo=, =ProblemaMultiParte= (con sus =subpreguntas=, cada una una lista de =Cuestion=) y =ProblemaVF=.
+=problema_from_dict= reconstruye los problemas según la clave =tipo= del dict: =ProblemaTipo=, =ProblemaVF= y el schema *heredado* =ProblemaMultiParte=. Este último ya no produce un objeto aparte: se *aplana* a un =ProblemaTipo= multiparte (los componentes comunes seguidos, por cada subpregunta, de su intro y su sublista de =Cuestion=), de modo que las partes se infieren con la regla I2 y se recorren con =por_partes()=. Así los ficheros JSON antiguos siguen cargándose sin cambios; al re-guardarlos con =save_problema= migran al schema unificado de =ProblemaTipo=.
 
-La función inversa, =problema_to_dict=, admite siempre objetos =ProblemaVF= (sus datos son directamente serializables). Para =ProblemaTipo= y =ProblemaMultiParte= delega en =_slot_to_json=: los componentes pueden haber sido cargados desde JSON (con atributo =_json=) o creados directamente en Python (en cuyo caso =_slot_to_json= usa =repr()=); en el caso multi-parte serializa además cada =SubPregunta= con su intro y sus cuestiones. La única restricción es que los =setup= definidos como funciones Python no se pueden serializar (su código fuente no es introspectable); en ese caso se lanza un error claro.
+La función inversa, =problema_to_dict=, admite =ProblemaVF= (datos directamente serializables) y =ProblemaTipo= (incluidos los multiparte, ya que son listas planas). Delega en =_slot_to_json=: los componentes pueden haber sido cargados desde JSON (con atributo =_json=) o creados directamente en Python (en cuyo caso =_slot_to_json= usa =repr()=). La única restricción es que los =setup= definidos como funciones Python no se pueden serializar (su código fuente no es introspectable); en ese caso se lanza un error claro.
 
 #+NAME: Problema a dict JSON
 #+begin_src python :noweb yes
@@ -1757,37 +1718,6 @@ def problema_to_dict(problema):
             "nombre":      getattr(problema, '_nombre', ''),
             "setup":       setup_str,
             "componentes": componentes,
-        }
-    elif isinstance(problema, ProblemaMultiParte):
-        componentes = [_slot_to_json(s) for s in problema.componentes]
-        setup_str = getattr(problema, '_setup_str', None)
-        if setup_str is None and problema.setup is not None:
-            raise ValueError(
-                "ProblemaMultiParte tiene un setup callable pero no fue creado desde JSON. "
-                "Escribe el código del setup como cadena y carga el problema con "
-                "problema_from_dict().")
-        subpreguntas = []
-        for sp in problema.subpreguntas:
-            cuestiones_json = []
-            for c in sp.cuestiones:
-                if hasattr(c, '_json'):
-                    cuestiones_json.append(c._json)
-                else:
-                    cuestiones_json.append({
-                        'tipo':      'Cuestion',
-                        'enunciado': c.e,
-                        'semantica': _expr_to_str(c.s, 'semantica'),
-                        'precond':   _expr_to_str(c.p, 'precond'),
-                        'exp':       c.x,
-                    })
-            subpreguntas.append({"intro": sp.intro, "cuestiones": cuestiones_json})
-        return {
-            "version":      "1",
-            "tipo":         "ProblemaMultiParte",
-            "nombre":       getattr(problema, '_nombre', ''),
-            "setup":        setup_str,
-            "componentes":  componentes,
-            "subpreguntas": subpreguntas,
         }
     elif isinstance(problema, ProblemaVF):
         return {
@@ -1951,32 +1881,19 @@ def _slot_to_python(slot, nivel=1):
     raise ValueError(f"Tipo no convertible a Python: {type(slot)}")
 
 
-def _subpregunta_to_python(sp_dict, nivel=1):
-    """Convierte una sub-pregunta JSON al código SubPregunta(...) equivalente."""
-    pad   = "    " * nivel
-    intro = repr(sp_dict["intro"])
-    inner = "\n".join(_slot_to_python(c, nivel + 1) for c in sp_dict["cuestiones"])
-    return f"{pad}SubPregunta({intro}, [\n{inner}\n{pad}]),"
-
-
 def problema_to_python(problema, varname="ejercicio"):
     """Genera código Python que recrea el problema como listas editables.
 
-    Soporta ProblemaTipo y ProblemaMultiParte.
     El fichero resultante puede abrirse con cualquier editor de texto,
-    modificarse y ejecutarse directamente con Python.
+    modificarse y ejecutarse directamente con Python. Los problemas multiparte
+    se generan como un ProblemaTipo (lista plana), igual que los de una sola parte.
     Para problemas con setup, el código del setup queda como función Python
     editable (_setup). Si el setup es un callable sin _setup_str, falla.
     """
-    d    = problema_to_dict(problema)
-    tipo = d.get("tipo", "ProblemaTipo")
+    d = problema_to_dict(problema)
 
-    if tipo == "ProblemaMultiParte":
-        imports = "from qbank import Supuesto, Cuestion, SubPregunta, ProblemaMultiParte"
-    else:
-        imports = "from qbank import Supuesto, Cuestion, ProblemaTipo"
-
-    lines = [imports, "from calcprop import *", ""]
+    lines = ["from qbank import Supuesto, Cuestion, ProblemaTipo",
+             "from calcprop import *", ""]
 
     setup_str = d.get("setup")
     if setup_str:
@@ -1991,26 +1908,12 @@ def problema_to_python(problema, varname="ejercicio"):
 
     setup_arg = ", setup=_setup" if setup_str else ""
 
-    if tipo == "ProblemaMultiParte":
-        lines.append(f"{varname} = [")
-        for comp in d["componentes"]:
-            lines.append(_slot_to_python(comp, nivel=1))
-        lines.append("]")
-        lines.append("")
-        subvar = varname + "_subs"
-        lines.append(f"{subvar} = [")
-        for sp in d["subpreguntas"]:
-            lines.append(_subpregunta_to_python(sp, nivel=1))
-        lines.append("]")
-        lines.append("")
-        lines.append(f"p = ProblemaMultiParte({varname}, {subvar}{setup_arg})")
-    else:
-        lines.append(f"{varname} = [")
-        for comp in d["componentes"]:
-            lines.append(_slot_to_python(comp, nivel=1))
-        lines.append("]")
-        lines.append("")
-        lines.append(f"p = ProblemaTipo({varname}{setup_arg})")
+    lines.append(f"{varname} = [")
+    for comp in d["componentes"]:
+        lines.append(_slot_to_python(comp, nivel=1))
+    lines.append("]")
+    lines.append("")
+    lines.append(f"p = ProblemaTipo({varname}{setup_arg})")
 
     lines.append("")
     return "\n".join(lines)
@@ -2023,17 +1926,13 @@ def save_problema_py(problema, filepath, varname="ejercicio"):
         f.write(code)
 #+end_src
 
-*** =_subpregunta_to_python=, =problema_to_python= y =save_problema_py=
-
-=_subpregunta_to_python= es el helper para =ProblemaMultiParte=: convierte un dict de sub-pregunta al código =SubPregunta(intro, [Cuestion(...), ...]),= equivalente, siguiendo el mismo patrón de indentación que =_slot_to_python= para listas.
+*** =problema_to_python= y =save_problema_py=
 
 =problema_to_python= es el punto de entrada público. Invoca =problema_to_dict= para obtener la representación JSON normalizada y luego genera el código Python línea a línea. El resultado es un fichero Python completo que:
 
-1. Importa las clases correctas según el tipo (=ProblemaTipo= o =SubPregunta, ProblemaMultiParte=) y todo de =calcprop=.
+1. Importa =Supuesto=, =Cuestion=, =ProblemaTipo= y todo de =calcprop=.
 2. Define una función =_setup()= si el problema tiene setup (el cuerpo de la función es exactamente el código Python almacenado en el campo ="setup"= del JSON).
-3. Para =ProblemaTipo=: define la variable =(varname)= como lista de listas y construye =ProblemaTipo(varname)=.
-4. Para =ProblemaMultiParte=: define =(varname)= (componentes) y =(varname)_subs= (sub-preguntas) como listas separadas y construye =ProblemaMultiParte(varname, varname_subs)=.
-4. Construye =p = ProblemaTipo(ejercicio)= (o con =setup=_setup= si procede).
+3. Define la variable =(varname)= como lista de componentes y construye =p = ProblemaTipo(varname)= (o con =setup=_setup= si procede). Los problemas multiparte se generan también como un =ProblemaTipo= (lista plana), sin tipo aparte.
 
 El patrón =_locs = locals()= en =_setup= es necesario porque en Python 3 una comprensión de lista tiene su propio ámbito; capturar las variables locales antes de la comprensión evita que las variables de iteración las sobreescriban.
 

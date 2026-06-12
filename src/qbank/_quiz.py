@@ -301,65 +301,31 @@ class ProblemaVF():
         return (str(self.contador), self.e, cuestiones)
     
 class SubPregunta:
+    """DEPRECADO. Contenedor (intro, lista de Cuestion) del antiguo
+    ProblemaMultiParte. Se conserva solo para compatibilidad; usa ProblemaTipo
+    con su lista plana de componentes."""
     def __init__(self, intro, cuestiones):
         self.intro = intro
         self.cuestiones = cuestiones if isinstance(cuestiones, list) else [cuestiones]
 
 
 class ProblemaMultiParte:
-    def __init__(self, componentes, subpreguntas, setup=None):
-        """
-        componentes:  list de str / Supuesto / list de Supuesto (enunciado común)
-        subpreguntas: list de SubPregunta
-        setup:        callable opcional
-        """
-        self.componentes  = componentes
-        self.subpreguntas = subpreguntas
-        self.setup        = setup
+    """DEPRECADO. Devuelve un ProblemaTipo equivalente.
 
-    def __iter__(self):
-        self.l    = [x if isinstance(x, list) else [x] for x in self.componentes]
-        self.long = len(self.l)
-        self.i    = iter(Marcador([len(x) for x in self.l]))
-        self.c    = 0
-        return self
-
-    def __next__(self):
-        self.c += 1
-        while True:
-            try:
-                variante = next(self.i)
-            except StopIteration:
-                raise StopIteration
-
-            ns        = self.setup() if self.setup else {}
-            enunciado = ""
-            hipotesis = []
-
-            for n in range(self.long):
-                componente = self.l[n][variante[n]]
-                if isinstance(componente, str):
-                    enunciado += _ns_interp(componente, ns)
-                elif isinstance(componente, Supuesto):
-                    precond = _ns_eval(componente.p, ns)
-                    if test(precond, hipotesis):
-                        enunciado += _ns_interp(_ns_eval(componente.e, ns), ns)
-                        hipotesis  = hipotesis + [_ns_eval(componente.s, ns)]
-                    else:
-                        print('\n Supuesto: '   + str(componente.e)
-                              + ' rechazado por ' + _fuente_precond(componente) + '\n')
-                        break
-            else:
-                subpregs = []
-                for sp in self.subpreguntas:
-                    intro_text = _ns_interp(sp.intro, ns)
-                    cuestiones = []
-                    for c in sp.cuestiones:
-                        precond   = _ns_eval(c.p, ns)
-                        semantica = _ns_eval(c.s, ns)
-                        texto     = _ns_interp(_ns_eval(c.e, ns), ns)
-                        if test(precond, hipotesis):
-                            correcto = True if test(semantica, hipotesis) else False
-                            cuestiones.append((texto, correcto, 1, c.x))
-                    subpregs.append((intro_text, cuestiones))
-                return (str(self.c), enunciado, subpregs)
+    La estructura multiparte ya no es un tipo propio: se representa como un
+    ProblemaTipo cuya lista plana intercala el enunciado común y, por cada
+    SubPregunta, su intro seguido de su sublista de Cuestion. Las partes se
+    infieren con la regla I2 y se recorren con por_partes().
+    """
+    def __new__(cls, componentes, subpreguntas, setup=None):
+        import warnings
+        warnings.warn(
+            "ProblemaMultiParte y SubPregunta están deprecados: usa ProblemaTipo "
+            "con su lista plana de componentes (las partes se infieren) y recórrelo "
+            "con .por_partes().",
+            DeprecationWarning, stacklevel=2)
+        flat = list(componentes)
+        for sp in subpreguntas:
+            flat.append(sp.intro)
+            flat.append(list(sp.cuestiones))
+        return ProblemaTipo(flat, setup=setup)

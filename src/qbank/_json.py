@@ -67,8 +67,7 @@ En semantica y precond se admiten:
 
 import json as _json
 import calcprop as _calcprop_mod
-from qbank._quiz import (Supuesto, Cuestion, ProblemaTipo, ProblemaVF,
-                         SubPregunta, ProblemaMultiParte)
+from qbank._quiz import Supuesto, Cuestion, ProblemaTipo, ProblemaVF
 
 __all__ = [
     'problema_from_dict',
@@ -177,17 +176,17 @@ def problema_from_dict(d):
         return p
 
     elif tipo == "ProblemaMultiParte":
+        # Schema heredado: se aplana a un ProblemaTipo multiparte unificado.
+        # Cada subpregunta aporta su intro (material de enunciado) seguido de su
+        # sublista de Cuestion; la transición cuestiones->enunciado segmenta las
+        # partes (regla I2), de modo que por_partes() reconstruye las subpreguntas.
         componentes = [_slot_from_json(s) for s in d["componentes"]]
-        subpreguntas = [
-            SubPregunta(
-                sp["intro"],
-                [_componente_from_dict(c) for c in sp["cuestiones"]]
-            )
-            for sp in d["subpreguntas"]
-        ]
+        for sp in d["subpreguntas"]:
+            componentes.append(sp["intro"])
+            componentes.append([_componente_from_dict(c) for c in sp["cuestiones"]])
         setup_str = d.get("setup")
         setup     = _make_setup_fn(setup_str) if setup_str else None
-        p = ProblemaMultiParte(componentes, subpreguntas, setup=setup)
+        p = ProblemaTipo(componentes, setup=setup)
         p._nombre    = d.get("nombre", "")
         p._setup_str = setup_str
         return p
@@ -226,37 +225,6 @@ def problema_to_dict(problema):
             "nombre":      getattr(problema, '_nombre', ''),
             "setup":       setup_str,
             "componentes": componentes,
-        }
-    elif isinstance(problema, ProblemaMultiParte):
-        componentes = [_slot_to_json(s) for s in problema.componentes]
-        setup_str = getattr(problema, '_setup_str', None)
-        if setup_str is None and problema.setup is not None:
-            raise ValueError(
-                "ProblemaMultiParte tiene un setup callable pero no fue creado desde JSON. "
-                "Escribe el código del setup como cadena y carga el problema con "
-                "problema_from_dict().")
-        subpreguntas = []
-        for sp in problema.subpreguntas:
-            cuestiones_json = []
-            for c in sp.cuestiones:
-                if hasattr(c, '_json'):
-                    cuestiones_json.append(c._json)
-                else:
-                    cuestiones_json.append({
-                        'tipo':      'Cuestion',
-                        'enunciado': c.e,
-                        'semantica': _expr_to_str(c.s, 'semantica'),
-                        'precond':   _expr_to_str(c.p, 'precond'),
-                        'exp':       c.x,
-                    })
-            subpreguntas.append({"intro": sp.intro, "cuestiones": cuestiones_json})
-        return {
-            "version":      "1",
-            "tipo":         "ProblemaMultiParte",
-            "nombre":       getattr(problema, '_nombre', ''),
-            "setup":        setup_str,
-            "componentes":  componentes,
-            "subpreguntas": subpreguntas,
         }
     elif isinstance(problema, ProblemaVF):
         return {
@@ -346,32 +314,19 @@ def _slot_to_python(slot, nivel=1):
     raise ValueError(f"Tipo no convertible a Python: {type(slot)}")
 
 
-def _subpregunta_to_python(sp_dict, nivel=1):
-    """Convierte una sub-pregunta JSON al código SubPregunta(...) equivalente."""
-    pad   = "    " * nivel
-    intro = repr(sp_dict["intro"])
-    inner = "\n".join(_slot_to_python(c, nivel + 1) for c in sp_dict["cuestiones"])
-    return f"{pad}SubPregunta({intro}, [\n{inner}\n{pad}]),"
-
-
 def problema_to_python(problema, varname="ejercicio"):
     """Genera código Python que recrea el problema como listas editables.
 
-    Soporta ProblemaTipo y ProblemaMultiParte.
     El fichero resultante puede abrirse con cualquier editor de texto,
-    modificarse y ejecutarse directamente con Python.
+    modificarse y ejecutarse directamente con Python. Los problemas multiparte
+    se generan como un ProblemaTipo (lista plana), igual que los de una sola parte.
     Para problemas con setup, el código del setup queda como función Python
     editable (_setup). Si el setup es un callable sin _setup_str, falla.
     """
-    d    = problema_to_dict(problema)
-    tipo = d.get("tipo", "ProblemaTipo")
+    d = problema_to_dict(problema)
 
-    if tipo == "ProblemaMultiParte":
-        imports = "from qbank import Supuesto, Cuestion, SubPregunta, ProblemaMultiParte"
-    else:
-        imports = "from qbank import Supuesto, Cuestion, ProblemaTipo"
-
-    lines = [imports, "from calcprop import *", ""]
+    lines = ["from qbank import Supuesto, Cuestion, ProblemaTipo",
+             "from calcprop import *", ""]
 
     setup_str = d.get("setup")
     if setup_str:
@@ -386,26 +341,12 @@ def problema_to_python(problema, varname="ejercicio"):
 
     setup_arg = ", setup=_setup" if setup_str else ""
 
-    if tipo == "ProblemaMultiParte":
-        lines.append(f"{varname} = [")
-        for comp in d["componentes"]:
-            lines.append(_slot_to_python(comp, nivel=1))
-        lines.append("]")
-        lines.append("")
-        subvar = varname + "_subs"
-        lines.append(f"{subvar} = [")
-        for sp in d["subpreguntas"]:
-            lines.append(_subpregunta_to_python(sp, nivel=1))
-        lines.append("]")
-        lines.append("")
-        lines.append(f"p = ProblemaMultiParte({varname}, {subvar}{setup_arg})")
-    else:
-        lines.append(f"{varname} = [")
-        for comp in d["componentes"]:
-            lines.append(_slot_to_python(comp, nivel=1))
-        lines.append("]")
-        lines.append("")
-        lines.append(f"p = ProblemaTipo({varname}{setup_arg})")
+    lines.append(f"{varname} = [")
+    for comp in d["componentes"]:
+        lines.append(_slot_to_python(comp, nivel=1))
+    lines.append("]")
+    lines.append("")
+    lines.append(f"p = ProblemaTipo({varname}{setup_arg})")
 
     lines.append("")
     return "\n".join(lines)
