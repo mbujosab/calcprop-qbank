@@ -935,28 +935,44 @@ sudo apt install texlive-latex-extra
 
 ** Funciones disponibles
 
-| Función                        | Descripción                                                 |
-|--------------------------------+-------------------------------------------------------------|
-| =QuizMoodle=                   | Genera =.tex= con preguntas de opción múltiple estándar.    |
-| =QuizMoodleLastCh=             | Igual, pero añade «Las demás opciones son falsas» al final. |
-| =QuizMoodleProfe=              | Versión para facilitar la revisión por parte del profesor.  |
-| =QuizMoodleConVariables=       | Permite plantillas Jinja2 para valores numéricos variables. |
-| =QuizMoodleLastChConVariables= | Igual, con opción final.                                    |
-| =QuizMoodleProfeConVariables=  | Versión profe con plantillas Jinja2.                        |
-| =QuizVFMoodle=                 | Para preguntas Verdadero/Falso generadas con =ProblemaVF=.  |
+| Función                        | Tipo de problema | Opción rescate | Notas                            |
+|--------------------------------+------------------+----------------+----------------------------------|
+| =QuizMoodleLastCh=             | =ProblemaTipo=   | Sí ✓           | *Uso general recomendado*        |
+| =QuizMoodle=                   | =ProblemaTipo=   | No             | Solo si garantizas ≥1 correcta   |
+| =QuizMoodleProfe=              | =ProblemaTipo=   | No             | Revisión del profesor            |
+| =QuizMoodleLastChConVariables= | =ProblemaTipo=   | Sí ✓           | Valores numéricos con Jinja2     |
+| =QuizMoodleConVariables=       | =ProblemaTipo=   | No             | Ídem sin rescate                 |
+| =QuizMoodleProfeConVariables=  | =ProblemaTipo=   | No             | Vista profe con Jinja2           |
+| =QuizVFMoodle=                 | =ProblemaVF=     | —              | Verdadero/Falso                  |
 
-** Firma común
+La *opción rescate* («Las demás opciones son falsas» por defecto) se añade automáticamente
+al final de cada bloque =\begin{multi}= y es correcta si y solo si ninguna otra opción
+lo es. Moodle rechaza la importación de preguntas sin ninguna opción correcta, por lo que
+=QuizMoodleLastCh= es la elección segura salvo que el problema garantice siempre al menos
+una opción verdadera.
+
+** Firma
+
+=ProblemaTipo= (una o varias partes):
 
 #+begin_src python
-QuizMoodle(nombre, directorio, problema, opc=["", ""])
+QuizMoodleLastCh(nombre, directorio, problema, opc=["", "Las demás opciones son falsas"])
 #+end_src
 
-| Parámetro     | Descripción                                                          |
-|---------------+----------------------------------------------------------------------|
-| =nombre=      | Nombre del cuestionario (aparece en Moodle como categoría).          |
-| =directorio=  | Ruta donde se guardará el =.tex= (debe terminar en =/=).             |
-| =problema=    | Un =ProblemaTipo= iterable, o un diccionario ={nombre: iterable}=.   |
-| =opc=         | =[codigo_latex_extra, texto_opcion_por_defecto]=. Raramente necesario.|
+=ProblemaVF=:
+
+#+begin_src python
+QuizVFMoodle(nombre, directorio, GenVar, num, opc=["", ""])
+#+end_src
+
+| Parámetro     | Descripción                                                           |
+|---------------+-----------------------------------------------------------------------|
+| =nombre=      | Nombre del cuestionario (aparece en Moodle como categoría).           |
+| =directorio=  | Ruta donde se guardará el =.tex= (debe terminar en =/=).              |
+| =problema=    | Un =ProblemaTipo=, o un diccionario ={nombre: ProblemaTipo}=.         |
+| =GenVar=      | Iterador de variantes =ProblemaVF=.                                   |
+| =num=         | Número de variantes a exportar.                                       |
+| =opc=         | =[codigo_latex_extra, texto_opcion_rescate]=. Raramente necesario.    |
 
 ** Ejemplo Moodle completo
 
@@ -1443,13 +1459,13 @@ AMC_multipart(nombre, etiqueta, enunciado, partes, opc=[""])
 ** Funciones Moodle
 
 #+begin_example
+QuizMoodleLastCh        (nombre, directorio, problema, opc=["","Las demás..."])  # recomendado
 QuizMoodle              (nombre, directorio, problema, opc=["",""])
-QuizMoodleLastCh        (nombre, directorio, problema, opc=["","Las demás..."])
 QuizMoodleProfe         (nombre, directorio, problema, opc=["",""])
-QuizVFMoodle            (nombre, directorio, GenVar, num, opc=["",""])
-QuizMoodleConVariables  (nombre, directorio, problema, environment, Valores, opc)
 QuizMoodleLastChConVariables(nombre, directorio, problema, environment, Valores, opc)
+QuizMoodleConVariables  (nombre, directorio, problema, environment, Valores, opc)
 QuizMoodleProfeConVariables (nombre, directorio, problema, environment, Valores, opc)
+QuizVFMoodle            (nombre, directorio, GenVar, num, opc=["",""])
 #+end_example
 
 ** Operadores de =calcprop= (disponibles tras =from qbank import *=)
