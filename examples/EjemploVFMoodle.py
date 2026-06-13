@@ -15,4 +15,4 @@ GenVar = iter(ProblemaVF(codchar(enunciado), b, 3))
 
 nombre = "EjemploVFMoodle"
 directorio = "../ejemplos/"
-QuizVFMoodleLastCh(nombre, directorio, GenVar, 4)
+QuizVFMoodle(nombre, directorio, GenVar, 4)

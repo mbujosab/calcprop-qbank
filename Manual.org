@@ -944,7 +944,6 @@ sudo apt install texlive-latex-extra
 | =QuizMoodleLastChConVariables= | Igual, con opción final.                                    |
 | =QuizMoodleProfeConVariables=  | Versión profe con plantillas Jinja2.                        |
 | =QuizVFMoodle=                 | Para preguntas Verdadero/Falso generadas con =ProblemaVF=.  |
-| =QuizVFMoodleLastCh=           | Como =QuizVFMoodle= con opción final (*sobra*).             |
 
 ** Firma común
 
@@ -1021,7 +1020,7 @@ banco = [
 b = [(codchar(texto), correcto) for texto, correcto in banco]
 GenVar = iter(ProblemaVF(codchar(enunciado), b, 2))  # 2 ítems por variante
 
-QuizVFMoodleLastCh("EjemploVF", "ejemplosManual/", GenVar, num=5)  # 5 variantes
+QuizVFMoodle("EjemploVF", "ejemplosManual/", GenVar, num=5)  # 5 variantes
 #+end_src
 
 Para obtener el =.xml= y una versión =.pdf= del conjunto de preguntas basta ejecutar:
@@ -1079,7 +1078,7 @@ with open("preguntas_multi.tex") as f:
 #+begin_src jupyter-python :results silent
 import os
 os.makedirs("ejemplosManual", exist_ok=True)
-QuizClozeMulti("Superheroes", "ejemplosManual/", p)
+QuizMoodleLastCh("Superheroes", "ejemplosManual/", p)
 #+end_src
 
 Esto genera =ejemplosManual/Superheroes.tex=. Compila con =xelatex= para obtener el =.xml=:
@@ -1448,12 +1447,9 @@ QuizMoodle              (nombre, directorio, problema, opc=["",""])
 QuizMoodleLastCh        (nombre, directorio, problema, opc=["","Las demás..."])
 QuizMoodleProfe         (nombre, directorio, problema, opc=["",""])
 QuizVFMoodle            (nombre, directorio, GenVar, num, opc=["",""])
-QuizVFMoodleLastCh      (nombre, directorio, GenVar, num, opc=["","Las demás..."])
 QuizMoodleConVariables  (nombre, directorio, problema, environment, Valores, opc)
 QuizMoodleLastChConVariables(nombre, directorio, problema, environment, Valores, opc)
 QuizMoodleProfeConVariables (nombre, directorio, problema, environment, Valores, opc)
-QuizClozeMulti          (nombre, directorio, problema, opc=["",""])
-    # para ProblemaTipo multiparte; genera preguntas tipo cloze
 #+end_example
 
 ** Operadores de =calcprop= (disponibles tras =from qbank import *=)

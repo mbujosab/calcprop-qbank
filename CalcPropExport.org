@@ -816,7 +816,7 @@ s = s + " \\end{multi}\n\n"
 return s
 #+end_src
 
-*** =QuizMoodle=, =QuizMoodleLastCh=, =QuizVFMoodle= y =QuizVFMoodleLastCh=
+*** =QuizMoodle=, =QuizMoodleLastCh= y =QuizVFMoodle=
 
 Estas funciones de alto nivel abren el flujo del archivo con =with open()=, vuelcan la cadena del preámbulo, iteran sobre el diccionario de problemas inyectando las variantes y cierran el entorno principal =quiz=. Soporta la integración de motores de renderizado de plantillas (como [[https://pypi.org/project/Jinja2/][Jinja2]]) si se requiere sustitución de variables.
 
@@ -951,21 +951,7 @@ def QuizVFMoodle (nombre, directorio, GenVar, num, opc=["",""]):
         f.write("\\end{quiz}\n\n\\end{document}\n")
 #+end_src
 
-#+NAME: Quiz VF para Moodle con LastChoice
-#+begin_src python :noweb no-export
-def QuizVFMoodleLastCh (nombre, directorio, GenVar, num, opc=["","Las demás opciones son falsas"]):
-    auxLaTeX      = opc[0]
-    <<Preámbulo fichero LaTeX con paquete moodle>>
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i in range(num):
-            var = next(GenVar)
-            f.write(MoodleMultiLastCh(codchar(nombre),var[0],codchar(var[1]),var[2],opc[1]))
-        f.write("\\end{quiz}\n\n\\end{document}\n")
-#+end_src
-
-*** Ejemplo de uso de =QuizMoodleLastCh= y =QuizVFMoodleLastCh=
+*** Ejemplo de uso de =QuizMoodleLastCh=
 
 A continuación se ilustra la ejecución de scripts independientes para generar tanto un bloque relacional condicionado (=ProblemaTipo=) como una batería aleatoria estructurada desde una lista estática de enunciados (=ProblemaVF=):
 
@@ -1013,7 +999,7 @@ GenVar = iter(ProblemaVF(codchar(enunciado), b, 3))
 
 nombre = "EjemploVFMoodle"
 directorio = "../ejemplos/"
-QuizVFMoodleLastCh(nombre, directorio, GenVar, 4)
+QuizVFMoodle(nombre, directorio, GenVar, 4)
 #+end_src
 
 ** Preguntas multi-parte (AMC) y cloze (Moodle)
@@ -1101,24 +1087,6 @@ def _ClozeBlock(nombre, etiqueta, partes, cuerpo):
     s += " \\end{cloze}\n\n"
     return s
 
-def QuizClozeMulti(nombre, directorio, problema, opc=["", ""]):
-    """Genera un fichero .tex con preguntas tipo cloze para Moodle.
-
-    Equivalente a QuizMoodle (toda la exportación Moodle es cloze); se conserva
-    por compatibilidad. `problema` es un ProblemaTipo (de una o varias partes) o
-    un dict de ellos. Compilar con xelatex para obtener el .xml importable.
-    """
-    <<Método auxiliar que transforma un objeto en diccionario si no era ya un diccionario>>
-    problema = creaDiccionario(problema, nombre)
-    auxLaTeX = opc[0]
-    <<Preámbulo fichero LaTeX con paquete moodle>>
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex", "w") as f:
-        f.write(s)
-        for i, nom in enumerate(problema):
-            for etiqueta, partes in problema[nom].por_partes():
-                f.write(_ClozeBlock(nom, etiqueta, partes, _ClozeMulti))
-        f.write("\\end{quiz}\n\n\\end{document}\n")
 #+end_src
 
 

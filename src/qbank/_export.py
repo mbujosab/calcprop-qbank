@@ -379,28 +379,7 @@ def QuizMoodleLastChConVariables (nombre, directorio, problema, environment, Val
                 content = template.render(Valores())
                 f.write(content)
         f.write("\\end{quiz}\n\n\\end{document}\n")
-def QuizVFMoodleLastCh (nombre, directorio, GenVar, num, opc=["","Las demás opciones son falsas"]):
-    auxLaTeX      = opc[0]
-    s = "\\documentclass[11pt]{article}\n\n"
-    s = s + "\\usepackage[cm,headings]{fullpage}\n\n"
-    s = s + "\\usepackage{moodle}\n\n"
-    s = s + "\\usepackage{graphicx}\n\n"
-    s = s + "\\usepackage{fancyvrb}\n\n"
-    s = s + "\\ifPDFTeX                    % FOR LATEX and PDFLATEX\n"
-    s = s + "    \\usepackage[utf8]{inputenc}   % necessary\n"
-    s = s + "    \\usepackage[OT1] {fontenc}    % necessary\n"
-    s = s + "\\else                        % assuming XELATEX or LUALATEX\n"
-    s = s + "    \\usepackage{fontspec}\n"
-    s = s + "\\fi\n\n"
-    s = s + auxLaTeX + "\n" + "\\newcommand\\peque{}" + "\n\n"
-    s = s + "\\begin{document}\n\n"
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i in range(num):
-            var = next(GenVar)
-            f.write(MoodleMultiLastCh(codchar(nombre),var[0],codchar(var[1]),var[2],opc[1]))
-        f.write("\\end{quiz}\n\n\\end{document}\n")
+
 def MoodleMultiLastCh (nombre, variante, enunciado, cuestiones, \
                         lastchoice="Las demás opciones son falsas"):
     v = [c[1] for c in cuestiones].count(True)
@@ -507,35 +486,3 @@ def _ClozeBlock(nombre, etiqueta, partes, cuerpo):
         s += cuerpo(cuestiones)
     s += " \\end{cloze}\n\n"
     return s
-
-def QuizClozeMulti(nombre, directorio, problema, opc=["", ""]):
-    """Genera un fichero .tex con preguntas tipo cloze para Moodle.
-
-    Equivalente a QuizMoodle (toda la exportación Moodle es cloze); se conserva
-    por compatibilidad. `problema` es un ProblemaTipo (de una o varias partes) o
-    un dict de ellos. Compilar con xelatex para obtener el .xml importable.
-    """
-    def creaDiccionario(x, key='key'):
-        return x if isinstance(x, dict) else {key: x}
-    problema = creaDiccionario(problema, nombre)
-    auxLaTeX = opc[0]
-    s = "\\documentclass[11pt]{article}\n\n"
-    s = s + "\\usepackage[cm,headings]{fullpage}\n\n"
-    s = s + "\\usepackage{moodle}\n\n"
-    s = s + "\\usepackage{graphicx}\n\n"
-    s = s + "\\usepackage{fancyvrb}\n\n"
-    s = s + "\\ifPDFTeX                    % FOR LATEX and PDFLATEX\n"
-    s = s + "    \\usepackage[utf8]{inputenc}   % necessary\n"
-    s = s + "    \\usepackage[OT1] {fontenc}    % necessary\n"
-    s = s + "\\else                        % assuming XELATEX or LUALATEX\n"
-    s = s + "    \\usepackage{fontspec}\n"
-    s = s + "\\fi\n\n"
-    s = s + auxLaTeX + "\n" + "\\newcommand\\peque{}" + "\n\n"
-    s = s + "\\begin{document}\n\n"
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex", "w") as f:
-        f.write(s)
-        for i, nom in enumerate(problema):
-            for etiqueta, partes in problema[nom].por_partes():
-                f.write(_ClozeBlock(nom, etiqueta, partes, _ClozeMulti))
-        f.write("\\end{quiz}\n\n\\end{document}\n")
