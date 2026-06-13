@@ -38,6 +38,9 @@ Uso básico::
 
 __all__ = ['ProblemaTipoEditor']
 
+import io as _io
+import contextlib as _contextlib
+
 try:
     import ipywidgets as _w
     from IPython.display import display as _display, clear_output as _clear
@@ -475,8 +478,6 @@ class ProblemaTipoEditor:
                 variantes = p.por_partes_profe() if profe else p.por_partes()
                 cnt = 0
                 for etiqueta, partes in variantes:
-                    if cnt >= n:
-                        break
                     print(f"── Variante {etiqueta} ──")
                     for enunciado, cuestiones in partes:
                         if enunciado:
@@ -490,8 +491,15 @@ class ProblemaTipoEditor:
                                 print(f"   ⊘ {c[0]}  [{c[1]}]")
                     print()
                     cnt += 1
+                    if cnt >= n:
+                        break
                 if cnt == 0:
                     print("(sin variantes)")
+                if not profe:
+                    with _contextlib.redirect_stdout(_io.StringIO()):
+                        remaining = sum(1 for _ in variantes)
+                    total = cnt + remaining
+                    print(f"» {total} variante{'s' if total != 1 else ''} válida{'s' if total != 1 else ''} en total.")
             except Exception as exc:
                 print(f"Error: {exc}")
 

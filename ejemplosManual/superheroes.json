@@ -43,7 +43,15 @@
       {
         "tipo": "Supuesto",
         "enunciado": "",
-        "semantica": "(v('Superman') | v('Batman') | v('Daredevil') ) >> v('máscara')",
+        "semantica": "(v('Spider-Man') | v('Batman') | v('Daredevil') ) >> v('máscara')",
+        "precond": "True"
+      }
+    ],
+    [
+      {
+        "tipo": "Supuesto",
+        "enunciado": "",
+        "semantica": "(v('Superman') | v('Batman') ) >> v('capa')",
         "precond": "True"
       }
     ],
@@ -164,10 +172,10 @@
       },
       {
         "tipo": "Cuestion",
-        "enunciado": "los adquirieron en mercadona",
+        "enunciado": "los adquirió en mercadona",
         "semantica": "False",
         "precond": "True",
-        "exp": "¡Menuda tontería de pregunta! Se venden en Ahorramás"
+        "exp": "¡Menuda tontería! Todo el mundo sabe que se compran en Ahorramás"
       }
     ]
   ]

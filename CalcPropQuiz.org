@@ -2063,6 +2063,9 @@ Uso básico::
 #+begin_src python :tangle src/qbank/_widgets.py :noweb no-export
 __all__ = ['ProblemaTipoEditor']
 
+import io as _io
+import contextlib as _contextlib
+
 try:
     import ipywidgets as _w
     from IPython.display import display as _display, clear_output as _clear
@@ -2189,7 +2192,7 @@ Como el tipo vive en el slot (y no en cada alternativa), la homogeneidad I1 qued
 
 El separador =── Parte k ──= se dibuja *encima* del primer slot de cada parte, que por la regla I2 es siempre un slot de texto o supuestos posterior a un slot de cuestiones. Para que ese separador no aparezca de forma prematura mientras el docente aún encadena cuestiones, el botón =+ slot= del editor crea el nuevo slot *con el mismo tipo que el último* (véase =_add_slot=): así, tras una cuestión se añade otra cuestión (misma parte, sin separador), y la parte nueva solo se marca cuando el docente cambia explícitamente el tipo del slot a texto o supuestos.
 
-El método =to_json= devuelve el slot en el formato que espera =problema_from_dict=: una *cadena suelta* si el tipo es =texto= y hay una sola alternativa (véase [[#textos-sueltos][la nota sobre textos sueltos]]), una *sublista de cadenas* si hay varias, o una *lista de dicts* para =supuestos= / =cuestiones=.
+El método =to_json= devuelve el slot en el formato que espera =problema_from_dict=: una *cadena suelta* si el tipo es =texto= y hay una sola alternativa (un texto con una única alternativa se serializa como cadena directa, no dentro de una sublista), una *sublista de cadenas* si hay varias, o una *lista de dicts* para =supuestos= / =cuestiones=.
 
 #+NAME: Widget de slot
 #+begin_src python :noweb yes
@@ -2568,8 +2571,6 @@ class ProblemaTipoEditor:
                 variantes = p.por_partes_profe() if profe else p.por_partes()
                 cnt = 0
                 for etiqueta, partes in variantes:
-                    if cnt >= n:
-                        break
                     print(f"── Variante {etiqueta} ──")
                     for enunciado, cuestiones in partes:
                         if enunciado:
@@ -2583,8 +2584,15 @@ class ProblemaTipoEditor:
                                 print(f"   ⊘ {c[0]}  [{c[1]}]")
                     print()
                     cnt += 1
+                    if cnt >= n:
+                        break
                 if cnt == 0:
                     print("(sin variantes)")
+                if not profe:
+                    with _contextlib.redirect_stdout(_io.StringIO()):
+                        remaining = sum(1 for _ in variantes)
+                    total = cnt + remaining
+                    print(f"» {total} variante{'s' if total != 1 else ''} válida{'s' if total != 1 else ''} en total.")
             except Exception as exc:
                 print(f"Error: {exc}")
 
