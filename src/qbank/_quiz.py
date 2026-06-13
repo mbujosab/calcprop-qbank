@@ -112,6 +112,15 @@ def _clasifica_slot(slot):
     'enunciado' en otro caso (cadenas o Supuesto)."""
     return 'cuestiones' if isinstance(slot[0], Cuestion) else 'enunciado'
 
+def _une_enunciado(acc, pieza):
+    """Concatena dos fragmentos de enunciado (de slots distintos) separándolos
+    con un espacio, salvo que ya haya separación —uno termina o el otro empieza
+    por espacio— o alguno esté vacío. Evita textos pegados sin romper el
+    contenido que ya incluye sus propios espacios."""
+    if acc and pieza and not acc[-1].isspace() and not pieza[0].isspace():
+        return acc + ' ' + pieza
+    return acc + pieza
+
 def validar_componentes(componentes):
     """Comprueba la invariante de homogeneidad (I1).
 
@@ -183,12 +192,13 @@ class ProblemaTipo:
                 parte      = plan[n]
                 componente = L[n][variante[n]]
                 if isinstance(componente, str):
-                    enunciados[parte] += _ns_interp(componente, ns)
+                    enunciados[parte] = _une_enunciado(enunciados[parte], _ns_interp(componente, ns))
                 
                 elif isinstance(componente, Supuesto):
                     precond = _ns_eval(componente.p, ns)
                     if test(precond, hipotesis):
-                        enunciados[parte] += _ns_interp(_ns_eval(componente.e, ns), ns)
+                        enunciados[parte] = _une_enunciado(
+                            enunciados[parte], _ns_interp(_ns_eval(componente.e, ns), ns))
                         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
                     else:
                         print('\n Supuesto: '   + str(componente.e) \
@@ -211,6 +221,46 @@ class ProblemaTipo:
             if not descartada:
                 c += 1
                 yield (str(c), list(zip(enunciados, cuestiones)))
+    def _variantes_profe(self):
+        L    = [_normaliza_slot(x) for x in CuestionesJuntas(self.e)]
+        plan = _plan_partes(L)
+        npar = (plan[-1] + 1) if plan else 1
+        c    = 0
+        for variante in Marcador([len(x) for x in L]):
+            ns         = self.setup() if self.setup else {}
+            hipotesis  = []
+            enunciados = ['' for _ in range(npar)]
+            cuestiones = [[] for _ in range(npar)]
+            descartada = False
+            for n in range(len(L)):
+                parte      = plan[n]
+                componente = L[n][variante[n]]
+                if isinstance(componente, str):
+                    enunciados[parte] = _une_enunciado(enunciados[parte], _ns_interp(componente, ns))
+                elif isinstance(componente, Supuesto):
+                    precond = _ns_eval(componente.p, ns)
+                    if test(precond, hipotesis):
+                        enunciados[parte] = _une_enunciado(
+                            enunciados[parte], _ns_interp(_ns_eval(componente.e, ns), ns))
+                        hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
+                    else:
+                        print('\n Supuesto: '   + str(componente.e) \
+                            + ' rechazado por ' + _fuente_precond(componente) + '\n')
+                        descartada = True
+                        break
+                elif isinstance(componente, Cuestion):
+                    precond = _ns_eval(componente.p, ns)
+                    texto   = _ns_interp(_ns_eval(componente.e, ns), ns)
+                    if test(precond, hipotesis):
+                        semantica = _ns_eval(componente.s, ns)
+                        cuestiones[parte].append(
+                            (texto, (True if test(semantica, hipotesis) else False), 1, componente.x))
+                    else:
+                        cuestiones[parte].append(
+                            (texto, 'rechazada por ' + _fuente_precond(componente), 0))
+            if not descartada:
+                c += 1
+                yield (str(c), list(zip(enunciados, cuestiones)))
     def por_partes(self):
         """Itera las variantes válidas como (etiqueta, [(enunciado, cuestiones), …]).
     
@@ -218,6 +268,13 @@ class ProblemaTipo:
         sola parte cada elemento es una lista de longitud 1.
         """
         return self._variantes()
+    
+    def por_partes_profe(self):
+        """Vista de revisión del profesor, en el mismo formato por partes que
+        por_partes(): muestra TODAS las cuestiones de cada sublista (no una por
+        variante) y marca las que no superan su precondición como rechazadas en vez
+        de descartar la variante. No es la salida que ve el alumno ni la exportada."""
+        return self._variantes_profe()
     
     def __iter__(self):
         self._gen = self._variantes()
@@ -261,12 +318,13 @@ class ProblemaTipoProfe:
     
                 componente = self.l[n][variante[n]]
                 if isinstance(componente, str):
-                    enunciado = enunciado + _ns_interp(componente, ns)
+                    enunciado = _une_enunciado(enunciado, _ns_interp(componente, ns))
                 
                 elif isinstance(componente, Supuesto):
                     precond = _ns_eval(componente.p, ns)
                     if test(precond, hipotesis):
-                        enunciado = enunciado + _ns_interp(_ns_eval(componente.e, ns), ns)
+                        enunciado = _une_enunciado(
+                            enunciado, _ns_interp(_ns_eval(componente.e, ns), ns))
                         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
                     else:
                         print('\n Supuesto: '   + str(componente.e) \

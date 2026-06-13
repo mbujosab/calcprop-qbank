@@ -1034,190 +1034,89 @@ pdflatex EjemploVF.tex
 /Nota/: =codchar()= convierte los caracteres con tilde y la ñ a secuencias LaTeX
 (p.ej. =á= → =\'a=). Es necesario para Moodle porque el =.tex= usa codificación OT1.
 
-* Preguntas multi-parte (=ProblemaMultiParte=)
+* Preguntas multi-parte
 
-Los formatos AMC y Moodle permiten agrupar varias sub-preguntas de opción múltiple bajo un único enunciado general. Cada sub-pregunta tiene su propio texto introductorio y su propio bloque de alternativas.
+=ProblemaTipo= admite ejercicios con varias partes. La lista plana de componentes
+determina la estructura: una transición de un bloque de cuestiones a un bloque de
+texto o supuestos abre una parte nueva. El método =por_partes()= devuelve
+=(etiqueta, [(enunciado, cuestiones), ...])= con un par por parte.
 
-En =qbank=, esto se modela con dos clases nuevas:
+** Ejemplo
 
-- =SubPregunta(intro, cuestiones)=: un texto introductorio y una lista de =Cuestion=. A diferencia de =ProblemaTipo=, las cuestiones /no/ se filtran por alternativa: se muestran /todas/ con su marca correcto/incorrecto.
-- =ProblemaMultiParte(componentes, subpreguntas, setup=None)=: itera igual que =ProblemaTipo=, pero el iterador devuelve =(etiqueta, enunciado_comun, [(intro, cuestiones_eval), ...])= en lugar de una única lista de cuestiones.
-
-** Ejemplo básico
+El fichero =ejemplosManual/superheroes.json= contiene un ejercicio de tres partes
+sobre distintos superhéroes.
 
 #+begin_src jupyter-python :results output
 from qbank import *
+import itertools
 
-p = ProblemaMultiParte(
-    componentes=[
-        "Una desviación típica es un indicador ",
-        [Supuesto("de dispersión. ",        v('Disp')),
-         Supuesto("de tendencia central. ", -v('Disp'))],
-    ],
-    subpreguntas=[
-        SubPregunta("(en cuanto a su objetivo)",
-            [Cuestion("de tendencia central", -v('Disp')),
-             Cuestion("de dispersión",          v('Disp'))]),
-        SubPregunta("(en cuanto a su sensibilidad)",
-            [Cuestion("sensible a valores extremos",  v('Disp')),
-             Cuestion("no muy sensible a extremos",  -v('Disp'))]),
-    ]
-)
+p = load_problema("ejemplosManual/superheroes.json")
 
-for etiqueta, enunciado, subpreguntas in p:
+for etiqueta, partes in itertools.islice(p.por_partes(), 2):
     print(f"=== Variante {etiqueta} ===")
-    print(f"Enunciado: {enunciado}")
-    for intro, cuestiones in subpreguntas:
-        print(f"  {intro}")
-        for texto, correcto, _, _ in cuestiones:
-            print(f"    {'✓' if correcto else '✗'} {texto}")
+    for enunciado, cuestiones in partes:
+        if enunciado:
+            print(f"  {enunciado}")
+        for texto, correcto, _, exp in cuestiones:
+            marca = '✓' if correcto else '✗'
+            print(f"    {marca} {texto}")
+    print()
 #+end_src
-
-#+RESULTS:
-#+begin_example
-=== Variante 1 ===
-Enunciado: Una desviación típica es un indicador de dispersión.
-  (en cuanto a su objetivo)
-    ✗ de tendencia central
-    ✓ de dispersión
-  (en cuanto a su sensibilidad)
-    ✓ sensible a valores extremos
-    ✗ no muy sensible a extremos
-
-=== Variante 2 ===
-Enunciado: Una desviación típica es un indicador de tendencia central.
-  (en cuanto a su objetivo)
-    ✓ de tendencia central
-    ✗ de dispersión
-  (en cuanto a su sensibilidad)
-    ✗ sensible a valores extremos
-    ✓ no muy sensible a extremos
-#+end_example
 
 ** Exportar a AMC
 
 #+begin_src jupyter-python :results output
 with open("preguntas_multi.tex", "w") as f:
-    for etiqueta, enunciado, subpreguntas in p:
-        f.write(AMC_multipart("Estadistica", etiqueta, enunciado, subpreguntas))
+    for etiqueta, partes in p.por_partes():
+        f.write(AMC_multipart("Superheroes", etiqueta, "", partes))
 
 with open("preguntas_multi.tex") as f:
     print(f.read())
 #+end_src
-
-#+RESULTS:
-#+begin_example
-\element{Estadistica}{
- \begin{questionmult}{Estadistica-1}
-  Una desviación típica es un indicador de dispersión.
-
-  \emph{(en cuanto a su objetivo)}
-  {\AMCnoCompleteMulti
-   \begin{choices}
-     \wrongchoice  {de tendencia central}
-     \correctchoice{de dispersión}
-   \end{choices}
-  }
-
-  \emph{(en cuanto a su sensibilidad)}
-  {\AMCnoCompleteMulti
-   \begin{choices}
-     \correctchoice{sensible a valores extremos}
-     \wrongchoice  {no muy sensible a extremos}
-   \end{choices}
-  }
-
- \end{questionmult} }
-
-
-\element{Estadistica}{
- \begin{questionmult}{Estadistica-2}
-  Una desviación típica es un indicador de tendencia central.
-
-  \emph{(en cuanto a su objetivo)}
-  {\AMCnoCompleteMulti
-   \begin{choices}
-     \correctchoice{de tendencia central}
-     \wrongchoice  {de dispersión}
-   \end{choices}
-  }
-
-  \emph{(en cuanto a su sensibilidad)}
-  {\AMCnoCompleteMulti
-   \begin{choices}
-     \wrongchoice  {sensible a valores extremos}
-     \correctchoice{no muy sensible a extremos}
-   \end{choices}
-  }
-
- \end{questionmult} }
-#+end_example
 
 ** Exportar a Moodle (cloze)
 
 #+begin_src jupyter-python :results silent
 import os
 os.makedirs("ejemplosManual", exist_ok=True)
-QuizClozeMulti("Estadistica", "ejemplosManual/", p)
+QuizClozeMulti("Superheroes", "ejemplosManual/", p)
 #+end_src
 
-Esto genera =ejemplosManual/Estadistica.tex=. Compila con =xelatex= para obtener el =.xml=:
+Esto genera =ejemplosManual/Superheroes.tex=. Compila con =xelatex= para obtener el =.xml=:
 
 #+begin_example
 cd ejemplosManual
-xelatex Estadistica.tex
+xelatex Superheroes.tex
 #+end_example
 
-El fichero =Estadistica.xml= puede importarse en Moodle (Banco de preguntas → Importar → Formato Moodle XML). Cada pregunta cloze contiene tantos =\begin{multi}= como sub-preguntas tenga el =ProblemaMultiParte=.
+El fichero =Superheroes.xml= puede importarse en Moodle (Banco de preguntas → Importar →
+Formato Moodle XML). Cada pregunta cloze contiene tantos bloques =\begin{multi}= como
+partes tenga el =ProblemaTipo=.
 
 ** Persistencia JSON
 
-=ProblemaMultiParte= se guarda y carga igual que =ProblemaTipo=:
+=ProblemaTipo= (también multiparte) se guarda y carga con =save_problema= y =load_problema=:
 
 #+begin_src jupyter-python :results silent
 from qbank import save_problema, load_problema
 
-save_problema(p, "ejemplosManual/desv_tipica.json")
-p2 = load_problema("ejemplosManual/desv_tipica.json")
+save_problema(p, "ejemplosManual/superheroes.json")
+p2 = load_problema("ejemplosManual/superheroes.json")
 #+end_src
-
-El formato JSON usa ={"tipo": "ProblemaMultiParte", ...}= con un campo =subpreguntas= que contiene la lista de sub-preguntas (intro + cuestiones).
 
 ** Exportar a código Python editable
 
-=problema_to_python= y =save_problema_py= también soportan =ProblemaMultiParte=. El fichero generado incluye dos variables: la lista de componentes del enunciado común y la lista de sub-preguntas.
-
 #+begin_src jupyter-python :results output
 from qbank import problema_to_python
-print(problema_to_python(p, varname="desv_tipica"))
+print(problema_to_python(p, varname="superheroes"))
 #+end_src
 
-#+RESULTS:
-#+begin_example
-from qbank import Supuesto, Cuestion, SubPregunta, ProblemaMultiParte
-from calcprop import *
+** Compatibilidad: =ProblemaMultiParte= y =SubPregunta= (deprecados)
 
-desv_tipica = [
-    'Una desviación típica es un indicador ',
-    [
-        Supuesto('de dispersión. ', v('Disp')),
-        Supuesto('de tendencia central. ', -v('Disp')),
-    ],
-]
-
-desv_tipica_subs = [
-    SubPregunta('(en cuanto a su objetivo)', [
-        Cuestion('de tendencia central', -v('Disp')),
-        Cuestion('de dispersión', v('Disp')),
-    ]),
-    SubPregunta('(en cuanto a su sensibilidad)', [
-        Cuestion('sensible a valores extremos', v('Disp')),
-        Cuestion('no muy sensible a extremos', -v('Disp')),
-    ]),
-]
-
-p = ProblemaMultiParte(desv_tipica, desv_tipica_subs)
-#+end_example
+=ProblemaMultiParte= y =SubPregunta= siguen disponibles pero están /deprecados/: al
+construir un =ProblemaMultiParte= se emite un =DeprecationWarning= y el objeto
+devuelto es un =ProblemaTipo= equivalente. Para código nuevo, define directamente
+un =ProblemaTipo= con la lista plana de componentes y recórrelo con =.por_partes()=.
 
 * Editor visual en Jupyter (=ProblemaTipoEditor=)
 
@@ -1502,15 +1401,13 @@ y adapta el nombre del fichero de salida.
 Supuesto(enunciado, semantica, precond=True)
 Cuestion(enunciado, semantica, precond=True, exp="")
 ProblemaTipo(lista, setup=None)
-    → itera (etiqueta, enunciado, cuestiones)
+    → itera (etiqueta, enunciado, cuestiones); .por_partes() para multiparte
 ProblemaTipoProfe(lista, setup=None)
     → como ProblemaTipo, sin descartar ítems rechazados
 ProblemaVF(enunciado, lista, n)
     → itera (etiqueta, enunciado, cuestiones)
-SubPregunta(intro, cuestiones)
-    → contenedor de sub-pregunta (intro + lista de Cuestion)
-ProblemaMultiParte(componentes, subpreguntas, setup=None)
-    → itera (etiqueta, enunciado, [(intro, cuestiones), ...])
+SubPregunta(intro, cuestiones)             [DEPRECADO → devuelve ProblemaTipo]
+ProblemaMultiParte(componentes, subpreguntas, setup=None)  [DEPRECADO → devuelve ProblemaTipo]
 ProblemaTipoEditor(source=None)
     → editor visual en Jupyter (requiere ipywidgets; solo ProblemaTipo)
 #+end_example
@@ -1520,13 +1417,13 @@ Los campos =semantica= y =precond= de =Supuesto= y =Cuestion= admiten, además d
 ** Funciones JSON
 
 #+begin_example
-problema_from_dict(d)              → ProblemaTipo, ProblemaVF o ProblemaMultiParte
+problema_from_dict(d)              → ProblemaTipo o ProblemaVF
 problema_to_dict(problema)         → dict
-load_problema(filepath)            → ProblemaTipo, ProblemaVF o ProblemaMultiParte
+load_problema(filepath)            → ProblemaTipo o ProblemaVF
 save_problema(problema, filepath)
 load_banco(filepath)               → lista de problemas
 save_banco(problemas, filepath)    # acepta lista o dict
-problema_to_python(problema, varname="ejercicio")  → str  (ProblemaTipo y ProblemaMultiParte)
+problema_to_python(problema, varname="ejercicio")  → str  (ProblemaTipo)
 save_problema_py(problema, filepath, varname="ejercicio")
 #+end_example
 
@@ -1540,8 +1437,8 @@ AMClastCh   (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna..."])
 AMCmc       (nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna..."])
 AMCmcProfe  (nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna..."])
 AMClastChmc (nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna..."])
-AMC_multipart(nombre, etiqueta, enunciado, subpreguntas, opc=[""])
-    # para ProblemaMultiParte; subpreguntas = [(intro, cuestiones), ...]
+AMC_multipart(nombre, etiqueta, enunciado, partes, opc=[""])
+    # para ProblemaTipo multiparte; partes = [(enunciado, cuestiones), ...]
 #+end_example
 
 ** Funciones Moodle
@@ -1556,7 +1453,7 @@ QuizMoodleConVariables  (nombre, directorio, problema, environment, Valores, opc
 QuizMoodleLastChConVariables(nombre, directorio, problema, environment, Valores, opc)
 QuizMoodleProfeConVariables (nombre, directorio, problema, environment, Valores, opc)
 QuizClozeMulti          (nombre, directorio, problema, opc=["",""])
-    # para ProblemaMultiParte; genera preguntas tipo cloze
+    # para ProblemaTipo multiparte; genera preguntas tipo cloze
 #+end_example
 
 ** Operadores de =calcprop= (disponibles tras =from qbank import *=)

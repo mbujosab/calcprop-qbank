@@ -403,6 +403,15 @@ def _clasifica_slot(slot):
     'enunciado' en otro caso (cadenas o Supuesto)."""
     return 'cuestiones' if isinstance(slot[0], Cuestion) else 'enunciado'
 
+def _une_enunciado(acc, pieza):
+    """Concatena dos fragmentos de enunciado (de slots distintos) separándolos
+    con un espacio, salvo que ya haya separación —uno termina o el otro empieza
+    por espacio— o alguno esté vacío. Evita textos pegados sin romper el
+    contenido que ya incluye sus propios espacios."""
+    if acc and pieza and not acc[-1].isspace() and not pieza[0].isspace():
+        return acc + ' ' + pieza
+    return acc + pieza
+
 def validar_componentes(componentes):
     """Comprueba la invariante de homogeneidad (I1).
 
@@ -522,14 +531,16 @@ class ProblemaTipo:
         self.setup = setup
 
     <<Generador interno de variantes por partes>>
+    <<Generador profe de variantes por partes>>
     <<Iteración pública de ProblemaTipo>>
 #+end_src
 
 Internamente, =ProblemaTipo= calcula las /partes/ del ejercicio (regla I2, vía =_plan_partes=) y genera, por cada combinación válida del marcador, la estructura =[(enunciado, cuestiones), …]= con una entrada por parte. Las hipótesis se acumulan a lo largo de /todas/ las partes: una cuestión de la parte $k$ ve los =Supuesto= de las partes anteriores.
 
-Sobre ese generador interno se ofrecen dos fachadas:
+Sobre ese generador interno se ofrecen tres fachadas:
 - el protocolo de iteración estándar (=for … in problema=), que mantiene el contrato histórico =(etiqueta, enunciado, cuestiones)= para los ejercicios de *una sola parte* (lo habitual en docencia);
-- el método =por_partes()=, que devuelve =(etiqueta, [(enunciado, cuestiones), …])= y es el que debe usarse con ejercicios *multiparte*.
+- el método =por_partes()=, que devuelve =(etiqueta, [(enunciado, cuestiones), …])= y es el que debe usarse con ejercicios *multiparte*;
+- el método =por_partes_profe()=, vista de *revisión del profesor*: mantiene el mismo formato por partes, pero muestra /todas/ las cuestiones de cada sublista (no una por variante) y marca las que no superan su precondición como rechazadas, en vez de descartar la variante. No es la salida que ve el alumno ni la que se exporta.
 
 Si un ejercicio multiparte se itera por la vía histórica de tres elementos, se lanza un =ValueError= que remite a =por_partes()=, para no devolver una salida silenciosamente degradada (enunciados concatenados y cuestiones de distintas partes mezcladas).
 
@@ -568,12 +579,13 @@ El fragmento =<<Tratamiento del componente por partes>>= procesa cada =component
 #+NAME: Tratamiento del componente por partes
 #+begin_src python :noweb yes
 if isinstance(componente, str):
-    enunciados[parte] += _ns_interp(componente, ns)
+    enunciados[parte] = _une_enunciado(enunciados[parte], _ns_interp(componente, ns))
 
 elif isinstance(componente, Supuesto):
     precond = _ns_eval(componente.p, ns)
     if test(precond, hipotesis):
-        enunciados[parte] += _ns_interp(_ns_eval(componente.e, ns), ns)
+        enunciados[parte] = _une_enunciado(
+            enunciados[parte], _ns_interp(_ns_eval(componente.e, ns), ns))
         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
     else:
         print('\n Supuesto: '   + str(componente.e) \
@@ -595,7 +607,60 @@ elif isinstance(componente, Cuestion):
         break
 #+end_src
 
-**** Fachadas de iteración: =por_partes()=, =__iter__= y =__next__=
+**** Generador profe =_variantes_profe(self)=
+
+Variante de revisión de =_variantes=. Difiere en dos puntos:
+
+- Aplica =CuestionesJuntas= a la lista de componentes, que *aplana* las sublistas de cuestiones en cuestiones sueltas. Como cada cuestión pasa a ser su propio slot (de una sola opción), el marcador combinatorio ya no elige una cuestión por sublista: se muestran *todas*. Las variantes quedan gobernadas solo por las alternativas de textos y supuestos.
+- Una =Cuestion= refutada por su precondición no descarta la variante: se incluye marcada como rechazada mediante la tupla =(texto, "rechazada por …", 0)= (3 elementos, frente a los 4 de una cuestión aceptada =(texto, veracidad, 1, exp)=). Un =Supuesto= refutado sí descarta la variante (e imprime el aviso), igual que en =_variantes=.
+
+Conserva el layout por partes (=_plan_partes=) y la unión de enunciados con =_une_enunciado=, de modo que la salida encaja con el mismo renderizado por partes que =por_partes()=.
+
+#+NAME: Generador profe de variantes por partes
+#+begin_src python :noweb no-export
+def _variantes_profe(self):
+    L    = [_normaliza_slot(x) for x in CuestionesJuntas(self.e)]
+    plan = _plan_partes(L)
+    npar = (plan[-1] + 1) if plan else 1
+    c    = 0
+    for variante in Marcador([len(x) for x in L]):
+        ns         = self.setup() if self.setup else {}
+        hipotesis  = []
+        enunciados = ['' for _ in range(npar)]
+        cuestiones = [[] for _ in range(npar)]
+        descartada = False
+        for n in range(len(L)):
+            parte      = plan[n]
+            componente = L[n][variante[n]]
+            if isinstance(componente, str):
+                enunciados[parte] = _une_enunciado(enunciados[parte], _ns_interp(componente, ns))
+            elif isinstance(componente, Supuesto):
+                precond = _ns_eval(componente.p, ns)
+                if test(precond, hipotesis):
+                    enunciados[parte] = _une_enunciado(
+                        enunciados[parte], _ns_interp(_ns_eval(componente.e, ns), ns))
+                    hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
+                else:
+                    print('\n Supuesto: '   + str(componente.e) \
+                        + ' rechazado por ' + _fuente_precond(componente) + '\n')
+                    descartada = True
+                    break
+            elif isinstance(componente, Cuestion):
+                precond = _ns_eval(componente.p, ns)
+                texto   = _ns_interp(_ns_eval(componente.e, ns), ns)
+                if test(precond, hipotesis):
+                    semantica = _ns_eval(componente.s, ns)
+                    cuestiones[parte].append(
+                        (texto, (True if test(semantica, hipotesis) else False), 1, componente.x))
+                else:
+                    cuestiones[parte].append(
+                        (texto, 'rechazada por ' + _fuente_precond(componente), 0))
+        if not descartada:
+            c += 1
+            yield (str(c), list(zip(enunciados, cuestiones)))
+#+end_src
+
+**** Fachadas de iteración: =por_partes()=, =por_partes_profe()=, =__iter__= y =__next__=
 
 #+NAME: Iteración pública de ProblemaTipo
 #+begin_src python :noweb no-export
@@ -606,6 +671,13 @@ def por_partes(self):
     sola parte cada elemento es una lista de longitud 1.
     """
     return self._variantes()
+
+def por_partes_profe(self):
+    """Vista de revisión del profesor, en el mismo formato por partes que
+    por_partes(): muestra TODAS las cuestiones de cada sublista (no una por
+    variante) y marca las que no superan su precondición como rechazadas en vez
+    de descartar la variante. No es la salida que ve el alumno ni la exportada."""
+    return self._variantes_profe()
 
 def __iter__(self):
     self._gen = self._variantes()
@@ -947,12 +1019,13 @@ def __next__(self):
 #+NAME: Tratamiento en función del tipo de componente para la versión del Profe
 #+begin_src python :noweb yes
 if isinstance(componente, str):
-    enunciado = enunciado + _ns_interp(componente, ns)
+    enunciado = _une_enunciado(enunciado, _ns_interp(componente, ns))
 
 elif isinstance(componente, Supuesto):
     precond = _ns_eval(componente.p, ns)
     if test(precond, hipotesis):
-        enunciado = enunciado + _ns_interp(_ns_eval(componente.e, ns), ns)
+        enunciado = _une_enunciado(
+            enunciado, _ns_interp(_ns_eval(componente.e, ns), ns))
         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
     else:
         print('\n Supuesto: '   + str(componente.e) \
@@ -1265,53 +1338,20 @@ class ProblemaMultiParte:
 
 #+begin_src jupyter-python :results output
 from qbank import *
+import itertools
 
-# ProblemaMultiParte está deprecado: devuelve un ProblemaTipo equivalente.
-p = ProblemaMultiParte(
-    componentes=[
-        'Una desviación típica es un indicador ',
-        [Supuesto('de dispersión. ',       v('Disp')),
-         Supuesto('de tendencia central. ', -v('Disp'))],
-    ],
-    subpreguntas=[
-        SubPregunta('(en cuanto a su objetivo)',
-            [Cuestion('de tendencia central', -v('Disp')),
-             Cuestion('de dispersión',          v('Disp'))]),
-        SubPregunta('(en cuanto a su sensibilidad)',
-            [Cuestion('sensible a valores extremos',  v('Disp')),
-             Cuestion('no muy sensible a extremos',  -v('Disp'))]),
-    ]
-)
+p = load_problema('ejemplosManual/superheroes.json')
 
-# p es un ProblemaTipo multiparte: se recorre con por_partes().
-for etiqueta, partes in p.por_partes():
+# ProblemaTipo multiparte: se recorre con por_partes().
+for etiqueta, partes in itertools.islice(p.por_partes(), 2):
     print(f'=== Variante {etiqueta} ===')
     for enunciado, cuestiones in partes:
-        print(f'  {enunciado}')
+        if enunciado:
+            print(f'  {enunciado}')
         for texto, correcto, _, _ in cuestiones:
             print(f'    {"✓" if correcto else "✗"} {texto}')
+    print()
 #+end_src
-
-#+RESULTS:
-#+begin_example
-=== Variante 1 ===
-Enunciado: Una desviación típica es un indicador de dispersión.
-  (en cuanto a su objetivo)
-    ✗ de tendencia central
-    ✓ de dispersión
-  (en cuanto a su sensibilidad)
-    ✓ sensible a valores extremos
-    ✗ no muy sensible a extremos
-
-=== Variante 2 ===
-Enunciado: Una desviación típica es un indicador de tendencia central.
-  (en cuanto a su objetivo)
-    ✓ de tendencia central
-    ✗ de dispersión
-  (en cuanto a su sensibilidad)
-    ✗ sensible a valores extremos
-    ✓ no muy sensible a extremos
-#+end_example
 
 
 * Serialización y persistencia en formato JSON
@@ -2030,7 +2070,8 @@ try:
 except ImportError:
     _HAS_WIDGETS = False
 
-from qbank._quiz import ProblemaTipo, ProblemaTipoProfe
+from qbank._quiz import (ProblemaTipo, Cuestion,
+                         _plan_partes, _normaliza_slot)
 from qbank._json import problema_from_dict, problema_to_dict, load_problema, save_problema, problema_to_python
 
 
@@ -2049,69 +2090,88 @@ def _need_widgets():
 
 ** Widget de alternativa (=_AltWidget=)
 
-El widget =_AltWidget= representa una única alternativa dentro de un slot. Sus campos son:
+El widget =_AltWidget= representa una única alternativa dentro de un slot. Su *tipo* (=kind=) no lo elige la alternativa, sino que lo *fija el slot padre*: =texto=, =Supuesto= o =Cuestion=. Así un slot nunca puede mezclar tipos (invariante de homogeneidad I1). Sus campos, según el tipo, son:
 
-- =tipo= :: dropdown con valores =Supuesto= / =Cuestion=.
-- =e= (enunciado) :: texto de la alternativa.
-- =s= (semántica) :: expresión calcprop (cadena), o =True= / =False=, o una lambda para problemas paramétricos (="lambda ns: ns['x'] > 0"=).
-- =p= (precondición) :: expresión calcprop; por defecto =True=.
-- =x= (explicación) :: texto de feedback para Moodle; solo visible cuando el tipo es =Cuestion=.
+- =e= (enunciado) :: texto de la alternativa (único campo del tipo =texto=).
+- =s= (semántica) :: expresión calcprop (cadena), o =True= / =False=, o una lambda para problemas paramétricos (="lambda ns: ns['x'] > 0"=); en =Supuesto= y =Cuestion=.
+- =p= (precondición) :: expresión calcprop; por defecto =True=; en =Supuesto= y =Cuestion=.
+- =x= (explicación) :: texto de feedback para Moodle; solo en =Cuestion=.
 
-El botón ✕ elimina la alternativa de su slot padre invocando el callback =_on_delete=. El método =_sync_exp= oculta o muestra el campo de explicación (y su etiqueta) según el tipo seleccionado. Nótese que la visibilidad debe establecerse a la cadena ='visible'= (y no a =''=), ya que =ipywidgets= valida el valor del atributo =visibility= del Layout.
+Los botones ▲ / ▼ reordenan la alternativa dentro de su slot (callback =_on_move=) y ✕ la elimina (=_on_delete=). Como el tipo es fijo, ya no hay dropdown ni lógica de visibilidad: cada =_AltWidget= construye exactamente los campos que su tipo necesita. El método =raw= devuelve los datos comunes (para conservarlos si el slot cambia de tipo) y =to_json= devuelve la cadena (tipo =texto=) o el dict (=Supuesto= / =Cuestion=) que espera =problema_from_dict=.
 
 #+NAME: Widget de alternativa
 #+begin_src python :noweb yes
-# ── Widget de una alternativa (Supuesto o Cuestion) ──────────────────────────
+# ── Widget de una alternativa (texto | Supuesto | Cuestion) ──────────────────
 
 class _AltWidget:
-    def __init__(self, d=None, on_delete=None):
-        if d is None:
-            d = {}
-        self._on_delete = on_delete
+    """Una alternativa dentro de un slot. Su tipo (=kind=) lo fija el slot
+    padre, de modo que un slot nunca mezcla tipos (invariante I1)."""
 
-        self.tipo = _w.Dropdown(
-            options=['Supuesto', 'Cuestion'],
-            value=d.get('tipo', 'Cuestion'),
-            layout=_w.Layout(width='95px'))
+    def __init__(self, kind='Cuestion', d=None, on_delete=None, on_move=None):
+        self._kind = kind
+        self._on_delete = on_delete
+        self._on_move = on_move
+        if isinstance(d, str):
+            d = {'enunciado': d}
+        elif d is None:
+            d = {}
+
         self.e = _w.Text(
             value=d.get('enunciado', ''), placeholder='enunciado',
-            layout=_w.Layout(width='210px'))
-        self.s = _w.Text(
-            value=d.get('semantica', 'True'), placeholder="v('A')",
-            layout=_w.Layout(width='130px'))
-        self.p = _w.Text(
-            value=d.get('precond', 'True'), placeholder='precond',
-            layout=_w.Layout(width='70px'))
-        self.x = _w.Text(
-            value=d.get('exp', ''), placeholder='explicación',
-            layout=_w.Layout(width='120px'))
-        self._exp_lbl = _w.Label('exp:', layout=_w.Layout(width='30px'))
+            layout=_w.Layout(width='260px'))
 
+        up_btn = _w.Button(
+            description='▲', tooltip='subir alternativa',
+            layout=_w.Layout(width='auto', height='28px'))
+        dn_btn = _w.Button(
+            description='▼', tooltip='bajar alternativa',
+            layout=_w.Layout(width='auto', height='28px'))
+        up_btn.on_click(lambda _: self._on_move(self, -1) if self._on_move else None)
+        dn_btn.on_click(lambda _: self._on_move(self, +1) if self._on_move else None)
         del_btn = _w.Button(
             description='✕', button_style='danger',
-            layout=_w.Layout(width='30px', height='28px'))
+            layout=_w.Layout(width='auto', height='28px'))
         del_btn.on_click(lambda _: self._on_delete(self) if self._on_delete else None)
-        self.tipo.observe(lambda _: self._sync_exp(), names='value')
-        self._sync_exp()
 
-        self.box = _w.HBox([
-            self.tipo,
-            _w.Label('e:', layout=_w.Layout(width='15px')), self.e,
-            _w.Label('s:', layout=_w.Layout(width='15px')), self.s,
-            _w.Label('p:', layout=_w.Layout(width='15px')), self.p,
-            self._exp_lbl, self.x,
-            del_btn,
-        ])
+        if kind == 'texto':
+            fila = [_w.Label('txt:', layout=_w.Layout(width='30px')), self.e]
+        else:
+            self.s = _w.Text(
+                value=d.get('semantica', 'True'), placeholder="v('A')",
+                layout=_w.Layout(width='130px'))
+            self.p = _w.Text(
+                value=d.get('precond', 'True'), placeholder='precond',
+                layout=_w.Layout(width='70px'))
+            fila = [
+                _w.Label('e:', layout=_w.Layout(width='15px')), self.e,
+                _w.Label('s:', layout=_w.Layout(width='15px')), self.s,
+                _w.Label('p:', layout=_w.Layout(width='15px')), self.p,
+            ]
+            if kind == 'Cuestion':
+                self.x = _w.Text(
+                    value=d.get('exp', ''), placeholder='explicación',
+                    layout=_w.Layout(width='120px'))
+                fila += [_w.Label('exp:', layout=_w.Layout(width='30px')), self.x]
 
-    def _sync_exp(self):
-        vis = 'visible' if self.tipo.value == 'Cuestion' else 'hidden'
-        self.x.layout.visibility = vis
-        self._exp_lbl.layout.visibility = vis
+        self.box = _w.HBox(fila + [up_btn, dn_btn, del_btn])
 
-    def to_dict(self):
-        d = {'tipo': self.tipo.value, 'enunciado': self.e.value,
+    def raw(self):
+        """Datos comunes de la alternativa, para conservarlos cuando el slot
+        padre cambia de tipo."""
+        d = {'enunciado': self.e.value}
+        if self._kind != 'texto':
+            d['semantica'] = self.s.value
+            d['precond']   = self.p.value
+        if self._kind == 'Cuestion':
+            d['exp'] = self.x.value
+        return d
+
+    def to_json(self):
+        if self._kind == 'texto':
+            return self.e.value
+        d = {'tipo': self._kind, 'enunciado': self.e.value,
              'semantica': self.s.value, 'precond': self.p.value}
-        if self.tipo.value == 'Cuestion':
+        if self._kind == 'Cuestion':
             d['exp'] = self.x.value
         return d
 #+end_src
@@ -2119,79 +2179,135 @@ class _AltWidget:
 
 ** Widget de slot (=_SlotWidget=)
 
-Un slot es uno de los «huecos» estructurales del problema. Puede ser:
+Un slot es uno de los «huecos» estructurales del problema: una lista de alternativas *homogéneas* de un único tipo, que =ProblemaTipo= recorre eligiendo una por variante. El dropdown =_tipo_dd= fija ese tipo y, con él, el de todas las alternativas:
 
-- *texto*: texto fijo que aparece igual en todas las variantes (una cadena Python).
-- *alternativas*: una o varias filas =_AltWidget= de las que =ProblemaTipo= elige una por variante.
+- *texto*: una o varias cadenas alternativas (texto del enunciado).
+- *supuestos*: una o varias alternativas =Supuesto=.
+- *cuestiones*: una o varias alternativas =Cuestion=.
 
-El dropdown =_tipo_dd= permite cambiar el modo. En modo =alternativas=, el botón =+ alt= añade una nueva fila vacía; el método =_del_alt= (conectado al botón ✕ de cada =_AltWidget=) la elimina. El botón ✕ del slot elimina el slot completo llamando al callback =_on_delete= del editor padre.
+Como el tipo vive en el slot (y no en cada alternativa), la homogeneidad I1 queda garantizada por construcción: ya no es posible mezclar =Supuesto= y =Cuestion= en una misma sublista. El botón =+ alt= añade una fila del tipo del slot; el =_AltWidget= la reordena (▲ / ▼, vía =_move_alt=) o elimina (✕). En la cabecera del slot, los botones ▲ / ▼ reordenan el slot entero dentro del problema (callback =_on_move= del editor), ＋ inserta un slot nuevo justo debajo (=_on_insert=, útil para añadir un slot a una parte anterior) y ✕ borra el slot. Al cambiar el tipo del slot, =_on_tipo= reconstruye las alternativas conservando los datos comunes (vía =raw=) y avisa al editor (=_on_change=) para repintar los separadores de parte.
 
-El método =update_label= actualiza el número de slot tras añadir o eliminar slots anteriores. El método =to_json= devuelve el slot en el formato esperado por =problema_from_dict=: una cadena si es texto, o una lista de dicts si es alternativas.
+El separador =── Parte k ──= se dibuja *encima* del primer slot de cada parte, que por la regla I2 es siempre un slot de texto o supuestos posterior a un slot de cuestiones. Para que ese separador no aparezca de forma prematura mientras el docente aún encadena cuestiones, el botón =+ slot= del editor crea el nuevo slot *con el mismo tipo que el último* (véase =_add_slot=): así, tras una cuestión se añade otra cuestión (misma parte, sin separador), y la parte nueva solo se marca cuando el docente cambia explícitamente el tipo del slot a texto o supuestos.
+
+El método =to_json= devuelve el slot en el formato que espera =problema_from_dict=: una *cadena suelta* si el tipo es =texto= y hay una sola alternativa (véase [[#textos-sueltos][la nota sobre textos sueltos]]), una *sublista de cadenas* si hay varias, o una *lista de dicts* para =supuestos= / =cuestiones=.
 
 #+NAME: Widget de slot
 #+begin_src python :noweb yes
-# ── Widget de un slot (texto | lista de alternativas) ─────────────────────────
+# ── Widget de un slot (texto | supuestos | cuestiones) ───────────────────────
 
 class _SlotWidget:
-    def __init__(self, data=None, on_delete=None, index=0):
+    """Un «hueco» del problema: lista de alternativas homogéneas de un único
+    tipo. El tipo del slot fija el de sus alternativas, garantizando I1."""
+
+    # tipo de slot -> kind de las alternativas
+    _KIND = {'texto': 'texto', 'supuestos': 'Supuesto', 'cuestiones': 'Cuestion'}
+
+    def __init__(self, data=None, tipo=None, on_delete=None, on_change=None,
+                 on_move=None, on_insert=None, index=0):
         self._on_delete = on_delete
+        self._on_change = on_change
+        self._on_move   = on_move
+        self._on_insert = on_insert
         self._alts = []
 
-        if data is None or isinstance(data, str):
-            tipo_init, text_init, alts_init = 'texto', data or '', []
-        elif isinstance(data, list) and len(data) == 1 and isinstance(data[0], str):
-            # estructura antigua (lista de listas): un texto envuelto en lista
-            # [ 'texto' ] se interpreta como slot de texto, no de alternativas.
-            tipo_init, text_init, alts_init = 'texto', data[0], []
-        elif isinstance(data, dict):              # single component
-            tipo_init, text_init, alts_init = 'alternativas', '', [data]
-        else:                                     # list of components
-            tipo_init, text_init, alts_init = 'alternativas', '', data
+        if data is None and tipo is not None:
+            tipo_init, alts_init = tipo, []       # slot nuevo del tipo indicado
+        else:
+            tipo_init, alts_init = self._inferir(data)
 
         self._tipo_dd = _w.Dropdown(
-            options=['texto', 'alternativas'], value=tipo_init,
+            options=['texto', 'supuestos', 'cuestiones'], value=tipo_init,
             layout=_w.Layout(width='110px'))
         self._lbl = _w.Label(
             f'Slot {index + 1}', layout=_w.Layout(width='52px'))
 
-        self._text = _w.Text(
-            value=text_init, placeholder='texto del enunciado…',
-            layout=_w.Layout(width='360px'))
-
         self._alts_box = _w.VBox([])
-        _add_btn = _w.Button(
+        add_btn = _w.Button(
             description='+ alt', button_style='info',
             layout=_w.Layout(width='70px', height='26px'))
-        _add_btn.on_click(lambda _: self._add_alt())
-        self._alts_area = _w.VBox([self._alts_box, _add_btn])
+        add_btn.on_click(lambda _: self._add_alt())
 
+        up_btn = _w.Button(
+            description='▲', tooltip='subir slot',
+            layout=_w.Layout(width='auto', height='28px'))
+        dn_btn = _w.Button(
+            description='▼', tooltip='bajar slot',
+            layout=_w.Layout(width='auto', height='28px'))
+        ins_btn = _w.Button(
+            description='＋', tooltip='insertar slot debajo', button_style='success',
+            layout=_w.Layout(width='auto', height='28px'))
+        up_btn.on_click(lambda _: self._on_move(self, -1) if self._on_move else None)
+        dn_btn.on_click(lambda _: self._on_move(self, +1) if self._on_move else None)
+        ins_btn.on_click(lambda _: self._on_insert(self) if self._on_insert else None)
         del_btn = _w.Button(
             description='✕', button_style='danger',
-            layout=_w.Layout(width='30px', height='28px'))
+            layout=_w.Layout(width='auto', height='28px'))
         del_btn.on_click(lambda _: self._on_delete(self) if self._on_delete else None)
 
-        self._content = _w.HBox([self._text])
         self._tipo_dd.observe(self._on_tipo, names='value')
         self.box = _w.VBox([
-            _w.HBox([self._lbl, self._tipo_dd, self._content, del_btn])
+            _w.HBox([self._lbl, self._tipo_dd, up_btn, dn_btn, ins_btn, del_btn]),
+            self._alts_box,
+            add_btn,
         ])
 
-        if tipo_init == 'alternativas':
-            self._content.children = [self._alts_area]
-            for a in alts_init:
-                self._add_alt(a)
+        for a in alts_init:
+            self._add_alt(a)
+        if not self._alts:                        # un slot nuevo arranca con
+            self._add_alt()                       # una alternativa vacía
+
+    @staticmethod
+    def _inferir(data):
+        """(tipo_slot, [datos_de_alternativa]) a partir del componente JSON."""
+        if data is None:
+            return 'texto', []
+        if isinstance(data, str):
+            return 'texto', [data]
+        if isinstance(data, dict):                # componente suelto
+            tipo = data.get('tipo', 'Cuestion')
+            return ('supuestos' if tipo == 'Supuesto' else 'cuestiones'), [data]
+        if not data:                              # lista vacía
+            return 'texto', []
+        first = data[0]                           # sublista homogénea
+        if isinstance(first, str):
+            return 'texto', list(data)
+        tipo = first.get('tipo', 'Cuestion') if isinstance(first, dict) else 'Cuestion'
+        return ('supuestos' if tipo == 'Supuesto' else 'cuestiones'), list(data)
+
+    def tipo(self):
+        return self._tipo_dd.value
 
     def _on_tipo(self, change):
-        self._content.children = (
-            [self._text] if change['new'] == 'texto' else [self._alts_area])
+        # Reconstruye las alternativas con el nuevo tipo conservando los datos
+        # comunes (enunciado, etc.) y avisa al editor para repintar separadores.
+        datos = [a.raw() for a in self._alts]
+        self._alts = []
+        for d in datos:
+            self._add_alt(d)
+        if not self._alts:
+            self._add_alt()
+        if self._on_change:
+            self._on_change()
 
     def _add_alt(self, d=None):
-        alt = _AltWidget(d=d, on_delete=self._del_alt)
+        kind = self._KIND[self._tipo_dd.value]
+        alt = _AltWidget(kind=kind, d=d, on_delete=self._del_alt,
+                         on_move=self._move_alt)
         self._alts.append(alt)
-        self._alts_box.children = [a.box for a in self._alts]
+        self._render_alts()
 
     def _del_alt(self, alt):
         self._alts = [a for a in self._alts if a is not alt]
+        self._render_alts()
+
+    def _move_alt(self, alt, delta):
+        i = self._alts.index(alt)
+        j = i + delta
+        if 0 <= j < len(self._alts):
+            self._alts[i], self._alts[j] = self._alts[j], self._alts[i]
+            self._render_alts()
+
+    def _render_alts(self):
         self._alts_box.children = [a.box for a in self._alts]
 
     def update_label(self, i):
@@ -2199,8 +2315,11 @@ class _SlotWidget:
 
     def to_json(self):
         if self._tipo_dd.value == 'texto':
-            return self._text.value
-        return [a.to_dict() for a in self._alts]
+            textos = [a.to_json() for a in self._alts]
+            if len(textos) <= 1:                  # cadena suelta (no en [...])
+                return textos[0] if textos else ''
+            return textos                         # sublista de textos alternativos
+        return [a.to_json() for a in self._alts]
 #+end_src
 
 
@@ -2215,15 +2334,17 @@ El parámetro =source= admite cuatro tipos:
 - =dict= :: se interpreta directamente como descripción del problema (en el mismo formato JSON).
 - =ProblemaTipo= :: el objeto (que debe llevar el atributo =_json= en sus componentes, es decir, debe haber sido cargado con =load_problema= o =problema_from_dict=) se serializa con =problema_to_dict= y se muestra en el editor.
 
-Los botones de la barra inferior:
+Los controles inferiores se disponen en *dos filas* para no saturar una sola: arriba la *previsualización* (=▶ Preview=, =vars=, casilla =vista profe=, =\{ \} JSON= y =</> .py=) y abajo el *fichero* (ruta, =💾 Guardar=, =📂 Cargar=, =⬇ .json= y =⬇ .py=).
 
 | Botón          | Acción                                                                              |
 |----------------+-------------------------------------------------------------------------------------|
-| =▶ Preview=    | Vista «profe»: para cada combinación de supuestos muestra hasta N variantes con todas sus cuestiones (correctas, incorrectas o descartadas), usando =ProblemaTipoProfe=. |
+| =▶ Preview=    | Muestra hasta =vars= variantes *por partes* (enunciado de cada parte y, debajo, sus cuestiones). La casilla =vista profe= elige la vista y viene *marcada por defecto* (el profesor es quien edita): marcada, =por_partes_profe()= (todas las cuestiones de cada sublista, con ⊘ para las rechazadas por precondición); desmarcada, =por_partes()= (lo que ven el alumno y los exportadores, WYSIWYG). |
+| =\{ \} JSON=   | Muestra el JSON equivalente al estado actual del editor en el área de salida.       |
+| =</> .py=      | Previsualiza en el área de salida el guión Python (=problema_to_python=), análogo a =\{ \} JSON= pero con la representación =.py= (sin generar enlace de descarga). |
 | =💾 Guardar=   | Serializa el estado actual y lo guarda en el fichero indicado en el campo =filepath=. |
 | =📂 Cargar=    | Lee el fichero indicado y actualiza el editor con su contenido.                     |
-| =\{ \} JSON=   | Muestra el JSON equivalente al estado actual del editor en el área de salida.       |
 | =⬇ .json=      | Muestra en el área de salida un enlace HTML (=data URI=, atributo =download=) para guardar el JSON en el navegador, sin ejecutar JavaScript (que JupyterLab bloquea desde un callback de botón). |
+| =⬇ .py=        | Igual que =⬇ .json= pero descarga el guión Python (=problema_to_python=), con la extensión =.py=. |
 
 El método =to_dict()= devuelve el dict JSON del estado actual del editor. El método =to_problema()= devuelve un =ProblemaTipo= listo para iterar, construyéndolo con =problema_from_dict(self.to_dict())=.
 
@@ -2275,23 +2396,44 @@ class ProblemaTipoEditor:
         self._n_prev = _w.BoundedIntText(
             value=5, min=1, max=100,
             layout=_w.Layout(width='55px'))
+        self._profe = _w.Checkbox(
+            value=True, description='vista profe', indent=False,
+            layout=_w.Layout(width='110px'))
 
         prev_btn  = _w.Button(description='▶ Preview',    button_style='primary',
                                layout=_w.Layout(width='105px'))
+        json_btn  = _w.Button(description='{ } JSON',    layout=_w.Layout(width='95px'))
+        showpy_btn= _w.Button(description='</> .py',     layout=_w.Layout(width='95px'))
         save_btn  = _w.Button(description='💾 Guardar',  layout=_w.Layout(width='95px'))
         load_btn  = _w.Button(description='📂 Cargar',   layout=_w.Layout(width='95px'))
-        json_btn  = _w.Button(description='{ } JSON',    layout=_w.Layout(width='95px'))
         dl_btn    = _w.Button(description='⬇ .json',     layout=_w.Layout(width='85px'))
         py_btn    = _w.Button(description='⬇ .py',       layout=_w.Layout(width='80px'))
 
         prev_btn.on_click(self._on_preview)
+        json_btn.on_click(self._on_show_json)
+        showpy_btn.on_click(self._on_show_py)
         save_btn.on_click(self._on_save)
         load_btn.on_click(self._on_load)
-        json_btn.on_click(self._on_show_json)
         dl_btn.on_click(self._on_download)
         py_btn.on_click(self._on_download_py)
 
         self._out = _w.Output()
+
+        # Dos filas de controles: previsualización arriba, fichero/descargas abajo.
+        fila_preview = _w.HBox([
+            prev_btn,
+            _w.Label('vars:', layout=_w.Layout(width='32px')),
+            self._n_prev,
+            self._profe,
+            _w.Label(' ', layout=_w.Layout(width='12px')),
+            json_btn, showpy_btn,
+        ])
+        fila_fichero = _w.HBox([
+            self._filepath,
+            save_btn, load_btn,
+            _w.Label(' ', layout=_w.Layout(width='12px')),
+            dl_btn, py_btn,
+        ])
 
         self._ui = _w.VBox([
             header,
@@ -2299,17 +2441,8 @@ class ProblemaTipoEditor:
             self._slots_box,
             add_slot_btn,
             _w.HTML('<hr style="margin:4px 0">'),
-            _w.HBox([
-                prev_btn,
-                _w.Label('vars:', layout=_w.Layout(width='32px')),
-                self._n_prev,
-                _w.Label('  '),
-                save_btn, load_btn,
-                _w.Label('  '),
-                self._filepath,
-                _w.Label('  '),
-                json_btn, dl_btn, py_btn,
-            ]),
+            fila_preview,
+            fila_fichero,
             self._out,
         ])
 
@@ -2321,20 +2454,59 @@ class ProblemaTipoEditor:
 
     # ── Gestión de slots ──────────────────────────────────────────
 
+    def _make_slot(self, data=None, tipo=None):
+        return _SlotWidget(data=data, tipo=tipo, on_delete=self._del_slot,
+                           on_change=self._refresh, on_move=self._move_slot,
+                           on_insert=self._insert_slot_after)
+
     def _add_slot(self, data=None):
-        s = _SlotWidget(data=data, on_delete=self._del_slot,
-                        index=len(self._slots))
-        self._slots.append(s)
+        # Un slot nuevo (botón «+ slot») hereda el tipo del último, de modo que
+        # encadenar varias cuestiones no dispare un separador de parte prematuro:
+        # la parte nueva solo se marca cuando el docente elige un tipo texto o
+        # supuestos tras las cuestiones (inicio explícito de la nueva parte).
+        tipo = self._slots[-1].tipo() if (data is None and self._slots) else None
+        self._slots.append(self._make_slot(data=data, tipo=tipo))
         self._refresh()
+
+    def _insert_slot_after(self, slot):
+        # Inserta un slot nuevo justo debajo de `slot`, heredando su tipo (p. ej.
+        # para añadir otra sublista a una parte anterior antes del separador).
+        i = self._slots.index(slot)
+        self._slots.insert(i + 1, self._make_slot(tipo=slot.tipo()))
+        self._refresh()
+
+    def _move_slot(self, slot, delta):
+        i = self._slots.index(slot)
+        j = i + delta
+        if 0 <= j < len(self._slots):
+            self._slots[i], self._slots[j] = self._slots[j], self._slots[i]
+            self._refresh()
 
     def _del_slot(self, slot):
         self._slots = [s for s in self._slots if s is not slot]
         self._refresh()
 
+    def _plan_partes(self):
+        """Índice de parte de cada slot (regla I2), reutilizando la lógica
+        canónica de =_quiz=: un slot 'cuestiones' aporta una Cuestion; los
+        demás (texto / supuestos), una cadena."""
+        muestra = [Cuestion('', 'True') if s.tipo() == 'cuestiones' else ''
+                   for s in self._slots]
+        return _plan_partes([_normaliza_slot(x) for x in muestra])
+
     def _refresh(self):
+        plan = self._plan_partes()
+        npar = (plan[-1] + 1) if plan else 1
+        children, parte_actual = [], -1
         for i, s in enumerate(self._slots):
             s.update_label(i)
-        self._slots_box.children = [s.box for s in self._slots]
+            if npar > 1 and plan[i] != parte_actual:   # frontera de parte (I2)
+                parte_actual = plan[i]
+                children.append(_w.HTML(
+                    f'<div style="color:#888;font-weight:bold;margin:6px 0 2px">'
+                    f'── Parte {parte_actual + 1} ──</div>'))
+            children.append(s.box)
+        self._slots_box.children = children
 
     # ── Carga de datos ────────────────────────────────────────────
 
@@ -2379,20 +2551,37 @@ class ProblemaTipoEditor:
         with self._out:
             _clear()
             try:
-                # Vista «profe»: para cada combinación de supuestos se muestran
-                # todas las cuestiones posibles (sin descartar las inconsistentes),
-                # marcando cada una como correcta/incorrecta.
-                p   = self.to_problema()
-                n   = self._n_prev.value
+                # Vista por partes: cada parte muestra su enunciado en una línea
+                # y, debajo, sus cuestiones; el enunciado de la parte k+1 aparece
+                # tras las cuestiones de la parte k (no concatenado al principio).
+                # Con la casilla «vista profe» desmarcada se usa por_partes() —la
+                # misma salida que ven el alumno y los exportadores (WYSIWYG)—;
+                # marcada, por_partes_profe() muestra TODAS las cuestiones de cada
+                # sublista y marca como rechazadas (⊘) las que no superan su
+                # precondición, en vez de descartar la variante.
+                p     = self.to_problema()
+                n     = self._n_prev.value
+                profe = self._profe.value
+                if profe:
+                    print("» vista profe: todas las cuestiones; ⊘ = rechazada "
+                          "por precondición (no la ve el alumno).\n")
+                variantes = p.por_partes_profe() if profe else p.por_partes()
                 cnt = 0
-                for var in ProblemaTipoProfe(p.e, setup=p.setup):
+                for etiqueta, partes in variantes:
                     if cnt >= n:
                         break
-                    id_, enunciado, cuestiones = var
-                    print(f"── Variante {id_} ──  {enunciado}")
-                    for c in cuestiones:
-                        mark = '✓' if c[1] is True else ('✗' if c[1] is False else '?')
-                        print(f"   {mark} {c[0]}")
+                    print(f"── Variante {etiqueta} ──")
+                    for enunciado, cuestiones in partes:
+                        if enunciado:
+                            print(enunciado)
+                        for c in cuestiones:
+                            if c[1] is True:
+                                print(f"   ✓ {c[0]}")
+                            elif c[1] is False:
+                                print(f"   ✗ {c[0]}")
+                            else:                       # rechazada: c[1] es el motivo
+                                print(f"   ⊘ {c[0]}  [{c[1]}]")
+                    print()
                     cnt += 1
                 if cnt == 0:
                     print("(sin variantes)")
@@ -2427,6 +2616,17 @@ class ProblemaTipoEditor:
             try:
                 import json
                 print(json.dumps(self.to_dict(), ensure_ascii=False, indent=2))
+            except Exception as exc:
+                print(f"Error: {exc}")
+
+    def _on_show_py(self, _):
+        # Previsualiza el guión Python (problema_to_python) en el área de salida,
+        # de forma análoga a {JSON}, sin generar el enlace de descarga.
+        with self._out:
+            _clear()
+            try:
+                p = problema_from_dict(self.to_dict())
+                print(problema_to_python(p))
             except Exception as exc:
                 print(f"Error: {exc}")
 

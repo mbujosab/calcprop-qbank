@@ -45,7 +45,8 @@ try:
 except ImportError:
     _HAS_WIDGETS = False
 
-from qbank._quiz import ProblemaTipo, ProblemaTipoProfe
+from qbank._quiz import (ProblemaTipo, Cuestion,
+                         _plan_partes, _normaliza_slot)
 from qbank._json import problema_from_dict, problema_to_dict, load_problema, save_problema, problema_to_python
 
 
@@ -56,121 +57,194 @@ def _need_widgets():
             "  pip install ipywidgets")
 
 
-# ── Widget de una alternativa (Supuesto o Cuestion) ──────────────────────────
+# ── Widget de una alternativa (texto | Supuesto | Cuestion) ──────────────────
 
 class _AltWidget:
-    def __init__(self, d=None, on_delete=None):
-        if d is None:
-            d = {}
-        self._on_delete = on_delete
+    """Una alternativa dentro de un slot. Su tipo (=kind=) lo fija el slot
+    padre, de modo que un slot nunca mezcla tipos (invariante I1)."""
 
-        self.tipo = _w.Dropdown(
-            options=['Supuesto', 'Cuestion'],
-            value=d.get('tipo', 'Cuestion'),
-            layout=_w.Layout(width='95px'))
+    def __init__(self, kind='Cuestion', d=None, on_delete=None, on_move=None):
+        self._kind = kind
+        self._on_delete = on_delete
+        self._on_move = on_move
+        if isinstance(d, str):
+            d = {'enunciado': d}
+        elif d is None:
+            d = {}
+
         self.e = _w.Text(
             value=d.get('enunciado', ''), placeholder='enunciado',
-            layout=_w.Layout(width='210px'))
-        self.s = _w.Text(
-            value=d.get('semantica', 'True'), placeholder="v('A')",
-            layout=_w.Layout(width='130px'))
-        self.p = _w.Text(
-            value=d.get('precond', 'True'), placeholder='precond',
-            layout=_w.Layout(width='70px'))
-        self.x = _w.Text(
-            value=d.get('exp', ''), placeholder='explicación',
-            layout=_w.Layout(width='120px'))
-        self._exp_lbl = _w.Label('exp:', layout=_w.Layout(width='30px'))
+            layout=_w.Layout(width='260px'))
 
+        up_btn = _w.Button(
+            description='▲', tooltip='subir alternativa',
+            layout=_w.Layout(width='auto', height='28px'))
+        dn_btn = _w.Button(
+            description='▼', tooltip='bajar alternativa',
+            layout=_w.Layout(width='auto', height='28px'))
+        up_btn.on_click(lambda _: self._on_move(self, -1) if self._on_move else None)
+        dn_btn.on_click(lambda _: self._on_move(self, +1) if self._on_move else None)
         del_btn = _w.Button(
             description='✕', button_style='danger',
-            layout=_w.Layout(width='30px', height='28px'))
+            layout=_w.Layout(width='auto', height='28px'))
         del_btn.on_click(lambda _: self._on_delete(self) if self._on_delete else None)
-        self.tipo.observe(lambda _: self._sync_exp(), names='value')
-        self._sync_exp()
 
-        self.box = _w.HBox([
-            self.tipo,
-            _w.Label('e:', layout=_w.Layout(width='15px')), self.e,
-            _w.Label('s:', layout=_w.Layout(width='15px')), self.s,
-            _w.Label('p:', layout=_w.Layout(width='15px')), self.p,
-            self._exp_lbl, self.x,
-            del_btn,
-        ])
+        if kind == 'texto':
+            fila = [_w.Label('txt:', layout=_w.Layout(width='30px')), self.e]
+        else:
+            self.s = _w.Text(
+                value=d.get('semantica', 'True'), placeholder="v('A')",
+                layout=_w.Layout(width='130px'))
+            self.p = _w.Text(
+                value=d.get('precond', 'True'), placeholder='precond',
+                layout=_w.Layout(width='70px'))
+            fila = [
+                _w.Label('e:', layout=_w.Layout(width='15px')), self.e,
+                _w.Label('s:', layout=_w.Layout(width='15px')), self.s,
+                _w.Label('p:', layout=_w.Layout(width='15px')), self.p,
+            ]
+            if kind == 'Cuestion':
+                self.x = _w.Text(
+                    value=d.get('exp', ''), placeholder='explicación',
+                    layout=_w.Layout(width='120px'))
+                fila += [_w.Label('exp:', layout=_w.Layout(width='30px')), self.x]
 
-    def _sync_exp(self):
-        vis = 'visible' if self.tipo.value == 'Cuestion' else 'hidden'
-        self.x.layout.visibility = vis
-        self._exp_lbl.layout.visibility = vis
+        self.box = _w.HBox(fila + [up_btn, dn_btn, del_btn])
 
-    def to_dict(self):
-        d = {'tipo': self.tipo.value, 'enunciado': self.e.value,
-             'semantica': self.s.value, 'precond': self.p.value}
-        if self.tipo.value == 'Cuestion':
+    def raw(self):
+        """Datos comunes de la alternativa, para conservarlos cuando el slot
+        padre cambia de tipo."""
+        d = {'enunciado': self.e.value}
+        if self._kind != 'texto':
+            d['semantica'] = self.s.value
+            d['precond']   = self.p.value
+        if self._kind == 'Cuestion':
             d['exp'] = self.x.value
         return d
-# ── Widget de un slot (texto | lista de alternativas) ─────────────────────────
+
+    def to_json(self):
+        if self._kind == 'texto':
+            return self.e.value
+        d = {'tipo': self._kind, 'enunciado': self.e.value,
+             'semantica': self.s.value, 'precond': self.p.value}
+        if self._kind == 'Cuestion':
+            d['exp'] = self.x.value
+        return d
+# ── Widget de un slot (texto | supuestos | cuestiones) ───────────────────────
 
 class _SlotWidget:
-    def __init__(self, data=None, on_delete=None, index=0):
+    """Un «hueco» del problema: lista de alternativas homogéneas de un único
+    tipo. El tipo del slot fija el de sus alternativas, garantizando I1."""
+
+    # tipo de slot -> kind de las alternativas
+    _KIND = {'texto': 'texto', 'supuestos': 'Supuesto', 'cuestiones': 'Cuestion'}
+
+    def __init__(self, data=None, tipo=None, on_delete=None, on_change=None,
+                 on_move=None, on_insert=None, index=0):
         self._on_delete = on_delete
+        self._on_change = on_change
+        self._on_move   = on_move
+        self._on_insert = on_insert
         self._alts = []
 
-        if data is None or isinstance(data, str):
-            tipo_init, text_init, alts_init = 'texto', data or '', []
-        elif isinstance(data, list) and len(data) == 1 and isinstance(data[0], str):
-            # estructura antigua (lista de listas): un texto envuelto en lista
-            # [ 'texto' ] se interpreta como slot de texto, no de alternativas.
-            tipo_init, text_init, alts_init = 'texto', data[0], []
-        elif isinstance(data, dict):              # single component
-            tipo_init, text_init, alts_init = 'alternativas', '', [data]
-        else:                                     # list of components
-            tipo_init, text_init, alts_init = 'alternativas', '', data
+        if data is None and tipo is not None:
+            tipo_init, alts_init = tipo, []       # slot nuevo del tipo indicado
+        else:
+            tipo_init, alts_init = self._inferir(data)
 
         self._tipo_dd = _w.Dropdown(
-            options=['texto', 'alternativas'], value=tipo_init,
+            options=['texto', 'supuestos', 'cuestiones'], value=tipo_init,
             layout=_w.Layout(width='110px'))
         self._lbl = _w.Label(
             f'Slot {index + 1}', layout=_w.Layout(width='52px'))
 
-        self._text = _w.Text(
-            value=text_init, placeholder='texto del enunciado…',
-            layout=_w.Layout(width='360px'))
-
         self._alts_box = _w.VBox([])
-        _add_btn = _w.Button(
+        add_btn = _w.Button(
             description='+ alt', button_style='info',
             layout=_w.Layout(width='70px', height='26px'))
-        _add_btn.on_click(lambda _: self._add_alt())
-        self._alts_area = _w.VBox([self._alts_box, _add_btn])
+        add_btn.on_click(lambda _: self._add_alt())
 
+        up_btn = _w.Button(
+            description='▲', tooltip='subir slot',
+            layout=_w.Layout(width='auto', height='28px'))
+        dn_btn = _w.Button(
+            description='▼', tooltip='bajar slot',
+            layout=_w.Layout(width='auto', height='28px'))
+        ins_btn = _w.Button(
+            description='＋', tooltip='insertar slot debajo', button_style='success',
+            layout=_w.Layout(width='auto', height='28px'))
+        up_btn.on_click(lambda _: self._on_move(self, -1) if self._on_move else None)
+        dn_btn.on_click(lambda _: self._on_move(self, +1) if self._on_move else None)
+        ins_btn.on_click(lambda _: self._on_insert(self) if self._on_insert else None)
         del_btn = _w.Button(
             description='✕', button_style='danger',
-            layout=_w.Layout(width='30px', height='28px'))
+            layout=_w.Layout(width='auto', height='28px'))
         del_btn.on_click(lambda _: self._on_delete(self) if self._on_delete else None)
 
-        self._content = _w.HBox([self._text])
         self._tipo_dd.observe(self._on_tipo, names='value')
         self.box = _w.VBox([
-            _w.HBox([self._lbl, self._tipo_dd, self._content, del_btn])
+            _w.HBox([self._lbl, self._tipo_dd, up_btn, dn_btn, ins_btn, del_btn]),
+            self._alts_box,
+            add_btn,
         ])
 
-        if tipo_init == 'alternativas':
-            self._content.children = [self._alts_area]
-            for a in alts_init:
-                self._add_alt(a)
+        for a in alts_init:
+            self._add_alt(a)
+        if not self._alts:                        # un slot nuevo arranca con
+            self._add_alt()                       # una alternativa vacía
+
+    @staticmethod
+    def _inferir(data):
+        """(tipo_slot, [datos_de_alternativa]) a partir del componente JSON."""
+        if data is None:
+            return 'texto', []
+        if isinstance(data, str):
+            return 'texto', [data]
+        if isinstance(data, dict):                # componente suelto
+            tipo = data.get('tipo', 'Cuestion')
+            return ('supuestos' if tipo == 'Supuesto' else 'cuestiones'), [data]
+        if not data:                              # lista vacía
+            return 'texto', []
+        first = data[0]                           # sublista homogénea
+        if isinstance(first, str):
+            return 'texto', list(data)
+        tipo = first.get('tipo', 'Cuestion') if isinstance(first, dict) else 'Cuestion'
+        return ('supuestos' if tipo == 'Supuesto' else 'cuestiones'), list(data)
+
+    def tipo(self):
+        return self._tipo_dd.value
 
     def _on_tipo(self, change):
-        self._content.children = (
-            [self._text] if change['new'] == 'texto' else [self._alts_area])
+        # Reconstruye las alternativas con el nuevo tipo conservando los datos
+        # comunes (enunciado, etc.) y avisa al editor para repintar separadores.
+        datos = [a.raw() for a in self._alts]
+        self._alts = []
+        for d in datos:
+            self._add_alt(d)
+        if not self._alts:
+            self._add_alt()
+        if self._on_change:
+            self._on_change()
 
     def _add_alt(self, d=None):
-        alt = _AltWidget(d=d, on_delete=self._del_alt)
+        kind = self._KIND[self._tipo_dd.value]
+        alt = _AltWidget(kind=kind, d=d, on_delete=self._del_alt,
+                         on_move=self._move_alt)
         self._alts.append(alt)
-        self._alts_box.children = [a.box for a in self._alts]
+        self._render_alts()
 
     def _del_alt(self, alt):
         self._alts = [a for a in self._alts if a is not alt]
+        self._render_alts()
+
+    def _move_alt(self, alt, delta):
+        i = self._alts.index(alt)
+        j = i + delta
+        if 0 <= j < len(self._alts):
+            self._alts[i], self._alts[j] = self._alts[j], self._alts[i]
+            self._render_alts()
+
+    def _render_alts(self):
         self._alts_box.children = [a.box for a in self._alts]
 
     def update_label(self, i):
@@ -178,8 +252,11 @@ class _SlotWidget:
 
     def to_json(self):
         if self._tipo_dd.value == 'texto':
-            return self._text.value
-        return [a.to_dict() for a in self._alts]
+            textos = [a.to_json() for a in self._alts]
+            if len(textos) <= 1:                  # cadena suelta (no en [...])
+                return textos[0] if textos else ''
+            return textos                         # sublista de textos alternativos
+        return [a.to_json() for a in self._alts]
 # ── Editor principal ───────────────────────────────────────────────────────────
 
 class ProblemaTipoEditor:
@@ -226,23 +303,44 @@ class ProblemaTipoEditor:
         self._n_prev = _w.BoundedIntText(
             value=5, min=1, max=100,
             layout=_w.Layout(width='55px'))
+        self._profe = _w.Checkbox(
+            value=True, description='vista profe', indent=False,
+            layout=_w.Layout(width='110px'))
 
         prev_btn  = _w.Button(description='▶ Preview',    button_style='primary',
                                layout=_w.Layout(width='105px'))
+        json_btn  = _w.Button(description='{ } JSON',    layout=_w.Layout(width='95px'))
+        showpy_btn= _w.Button(description='</> .py',     layout=_w.Layout(width='95px'))
         save_btn  = _w.Button(description='💾 Guardar',  layout=_w.Layout(width='95px'))
         load_btn  = _w.Button(description='📂 Cargar',   layout=_w.Layout(width='95px'))
-        json_btn  = _w.Button(description='{ } JSON',    layout=_w.Layout(width='95px'))
         dl_btn    = _w.Button(description='⬇ .json',     layout=_w.Layout(width='85px'))
         py_btn    = _w.Button(description='⬇ .py',       layout=_w.Layout(width='80px'))
 
         prev_btn.on_click(self._on_preview)
+        json_btn.on_click(self._on_show_json)
+        showpy_btn.on_click(self._on_show_py)
         save_btn.on_click(self._on_save)
         load_btn.on_click(self._on_load)
-        json_btn.on_click(self._on_show_json)
         dl_btn.on_click(self._on_download)
         py_btn.on_click(self._on_download_py)
 
         self._out = _w.Output()
+
+        # Dos filas de controles: previsualización arriba, fichero/descargas abajo.
+        fila_preview = _w.HBox([
+            prev_btn,
+            _w.Label('vars:', layout=_w.Layout(width='32px')),
+            self._n_prev,
+            self._profe,
+            _w.Label(' ', layout=_w.Layout(width='12px')),
+            json_btn, showpy_btn,
+        ])
+        fila_fichero = _w.HBox([
+            self._filepath,
+            save_btn, load_btn,
+            _w.Label(' ', layout=_w.Layout(width='12px')),
+            dl_btn, py_btn,
+        ])
 
         self._ui = _w.VBox([
             header,
@@ -250,17 +348,8 @@ class ProblemaTipoEditor:
             self._slots_box,
             add_slot_btn,
             _w.HTML('<hr style="margin:4px 0">'),
-            _w.HBox([
-                prev_btn,
-                _w.Label('vars:', layout=_w.Layout(width='32px')),
-                self._n_prev,
-                _w.Label('  '),
-                save_btn, load_btn,
-                _w.Label('  '),
-                self._filepath,
-                _w.Label('  '),
-                json_btn, dl_btn, py_btn,
-            ]),
+            fila_preview,
+            fila_fichero,
             self._out,
         ])
 
@@ -272,20 +361,59 @@ class ProblemaTipoEditor:
 
     # ── Gestión de slots ──────────────────────────────────────────
 
+    def _make_slot(self, data=None, tipo=None):
+        return _SlotWidget(data=data, tipo=tipo, on_delete=self._del_slot,
+                           on_change=self._refresh, on_move=self._move_slot,
+                           on_insert=self._insert_slot_after)
+
     def _add_slot(self, data=None):
-        s = _SlotWidget(data=data, on_delete=self._del_slot,
-                        index=len(self._slots))
-        self._slots.append(s)
+        # Un slot nuevo (botón «+ slot») hereda el tipo del último, de modo que
+        # encadenar varias cuestiones no dispare un separador de parte prematuro:
+        # la parte nueva solo se marca cuando el docente elige un tipo texto o
+        # supuestos tras las cuestiones (inicio explícito de la nueva parte).
+        tipo = self._slots[-1].tipo() if (data is None and self._slots) else None
+        self._slots.append(self._make_slot(data=data, tipo=tipo))
         self._refresh()
+
+    def _insert_slot_after(self, slot):
+        # Inserta un slot nuevo justo debajo de `slot`, heredando su tipo (p. ej.
+        # para añadir otra sublista a una parte anterior antes del separador).
+        i = self._slots.index(slot)
+        self._slots.insert(i + 1, self._make_slot(tipo=slot.tipo()))
+        self._refresh()
+
+    def _move_slot(self, slot, delta):
+        i = self._slots.index(slot)
+        j = i + delta
+        if 0 <= j < len(self._slots):
+            self._slots[i], self._slots[j] = self._slots[j], self._slots[i]
+            self._refresh()
 
     def _del_slot(self, slot):
         self._slots = [s for s in self._slots if s is not slot]
         self._refresh()
 
+    def _plan_partes(self):
+        """Índice de parte de cada slot (regla I2), reutilizando la lógica
+        canónica de =_quiz=: un slot 'cuestiones' aporta una Cuestion; los
+        demás (texto / supuestos), una cadena."""
+        muestra = [Cuestion('', 'True') if s.tipo() == 'cuestiones' else ''
+                   for s in self._slots]
+        return _plan_partes([_normaliza_slot(x) for x in muestra])
+
     def _refresh(self):
+        plan = self._plan_partes()
+        npar = (plan[-1] + 1) if plan else 1
+        children, parte_actual = [], -1
         for i, s in enumerate(self._slots):
             s.update_label(i)
-        self._slots_box.children = [s.box for s in self._slots]
+            if npar > 1 and plan[i] != parte_actual:   # frontera de parte (I2)
+                parte_actual = plan[i]
+                children.append(_w.HTML(
+                    f'<div style="color:#888;font-weight:bold;margin:6px 0 2px">'
+                    f'── Parte {parte_actual + 1} ──</div>'))
+            children.append(s.box)
+        self._slots_box.children = children
 
     # ── Carga de datos ────────────────────────────────────────────
 
@@ -330,20 +458,37 @@ class ProblemaTipoEditor:
         with self._out:
             _clear()
             try:
-                # Vista «profe»: para cada combinación de supuestos se muestran
-                # todas las cuestiones posibles (sin descartar las inconsistentes),
-                # marcando cada una como correcta/incorrecta.
-                p   = self.to_problema()
-                n   = self._n_prev.value
+                # Vista por partes: cada parte muestra su enunciado en una línea
+                # y, debajo, sus cuestiones; el enunciado de la parte k+1 aparece
+                # tras las cuestiones de la parte k (no concatenado al principio).
+                # Con la casilla «vista profe» desmarcada se usa por_partes() —la
+                # misma salida que ven el alumno y los exportadores (WYSIWYG)—;
+                # marcada, por_partes_profe() muestra TODAS las cuestiones de cada
+                # sublista y marca como rechazadas (⊘) las que no superan su
+                # precondición, en vez de descartar la variante.
+                p     = self.to_problema()
+                n     = self._n_prev.value
+                profe = self._profe.value
+                if profe:
+                    print("» vista profe: todas las cuestiones; ⊘ = rechazada "
+                          "por precondición (no la ve el alumno).\n")
+                variantes = p.por_partes_profe() if profe else p.por_partes()
                 cnt = 0
-                for var in ProblemaTipoProfe(p.e, setup=p.setup):
+                for etiqueta, partes in variantes:
                     if cnt >= n:
                         break
-                    id_, enunciado, cuestiones = var
-                    print(f"── Variante {id_} ──  {enunciado}")
-                    for c in cuestiones:
-                        mark = '✓' if c[1] is True else ('✗' if c[1] is False else '?')
-                        print(f"   {mark} {c[0]}")
+                    print(f"── Variante {etiqueta} ──")
+                    for enunciado, cuestiones in partes:
+                        if enunciado:
+                            print(enunciado)
+                        for c in cuestiones:
+                            if c[1] is True:
+                                print(f"   ✓ {c[0]}")
+                            elif c[1] is False:
+                                print(f"   ✗ {c[0]}")
+                            else:                       # rechazada: c[1] es el motivo
+                                print(f"   ⊘ {c[0]}  [{c[1]}]")
+                    print()
                     cnt += 1
                 if cnt == 0:
                     print("(sin variantes)")
@@ -378,6 +523,17 @@ class ProblemaTipoEditor:
             try:
                 import json
                 print(json.dumps(self.to_dict(), ensure_ascii=False, indent=2))
+            except Exception as exc:
+                print(f"Error: {exc}")
+
+    def _on_show_py(self, _):
+        # Previsualiza el guión Python (problema_to_python) en el área de salida,
+        # de forma análoga a {JSON}, sin generar el enlace de descarga.
+        with self._out:
+            _clear()
+            try:
+                p = problema_from_dict(self.to_dict())
+                print(problema_to_python(p))
             except Exception as exc:
                 print(f"Error: {exc}")
 

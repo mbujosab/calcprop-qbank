@@ -1,0 +1,174 @@
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "Super héroes",
+  "setup": null,
+  "componentes": [
+    "Conteste qué afirmaciones sobre",
+    [
+      {
+        "tipo": "Supuesto",
+        "enunciado": "Spider-Man (Peter Parker) ",
+        "semantica": "v('Spider-Man')",
+        "precond": "True"
+      },
+      {
+        "tipo": "Supuesto",
+        "enunciado": "Superman (Clark Kent)",
+        "semantica": "v('Superman')",
+        "precond": "True"
+      },
+      {
+        "tipo": "Supuesto",
+        "enunciado": "Batman (Bruce Wayne)",
+        "semantica": "v('Batman')",
+        "precond": "True"
+      },
+      {
+        "tipo": "Supuesto",
+        "enunciado": "Daredevil (Matt Murdock)",
+        "semantica": "v('Daredevil')",
+        "precond": "True"
+      }
+    ],
+    [
+      {
+        "tipo": "Supuesto",
+        "enunciado": "",
+        "semantica": "( v('Spider-Man') | v('Superman') | v('Daredevil') )>> v('supersentidos')",
+        "precond": "True"
+      }
+    ],
+    [
+      {
+        "tipo": "Supuesto",
+        "enunciado": "",
+        "semantica": "(v('Superman') | v('Batman') | v('Daredevil') ) >> v('máscara')",
+        "precond": "True"
+      }
+    ],
+    [
+      {
+        "tipo": "Supuesto",
+        "enunciado": "",
+        "semantica": "( v('Spider-Man') | v('Superman') )>> v('azul')",
+        "precond": "True"
+      }
+    ],
+    [
+      {
+        "tipo": "Supuesto",
+        "enunciado": "",
+        "semantica": "( v('Spider-Man') | v('Daredevil') )>> v('mutación')",
+        "precond": "True"
+      }
+    ],
+    "son ciertas.",
+    "Uno de sus superpoderes consiste en ",
+    [
+      {
+        "tipo": "Cuestion",
+        "enunciado": "tener sentidos superdesarrollados",
+        "semantica": "v('supersentidos')",
+        "precond": "True",
+        "exp": "Spiderman, Superman y Daredevil los tienen"
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "superfuerza",
+        "semantica": "v('Superman')",
+        "precond": "True",
+        "exp": "Súper fuerza y vuelo son característicos de Superman"
+      }
+    ],
+    [
+      {
+        "tipo": "Cuestion",
+        "enunciado": "volar ",
+        "semantica": "v('Superman')",
+        "precond": "True",
+        "exp": "Súper fuerza y vuelo son característicos de Superman"
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "en realidad no tiene superpoderes",
+        "semantica": "v('Batman')",
+        "precond": "True",
+        "exp": "Las capacidades de Batman son adquiridas por entrenamiento y tecnología"
+      }
+    ],
+    "En su vestimenta destaca:",
+    [
+      {
+        "tipo": "Cuestion",
+        "enunciado": "la capa",
+        "semantica": "v('capa')",
+        "precond": "True",
+        "exp": "Compartida por Superman y Batman (los dos héroes de DC más icónicos), pero ausente en Spider-Man y Daredevil."
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "la máscara ",
+        "semantica": "v('máscara')",
+        "precond": "True",
+        "exp": "Spider-Man, Batman y Daredevil ocultan totalmente su identidad con máscaras (o capuchas) que cubren su rostro para proteger a sus seres queridos. Superman no la necesita."
+      }
+    ],
+    [
+      {
+        "tipo": "Cuestion",
+        "enunciado": "el color azul",
+        "semantica": "v('azul')",
+        "precond": "alguno(v('Spider-Man'), v('Superman'), v('Daredevil'))",
+        "exp": ""
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "el color verde",
+        "semantica": "False",
+        "precond": "v('Batman')",
+        "exp": ""
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "el color negro",
+        "semantica": "v('Batman')",
+        "precond": "True",
+        "exp": ""
+      }
+    ],
+    "En cuanto al origen de sus superpoderes:",
+    [
+      {
+        "tipo": "Cuestion",
+        "enunciado": "son fruto de una mutación",
+        "semantica": "v('mutación')",
+        "precond": "True",
+        "exp": "Spider-Man y Daredevil adquirieron sus habilidades en la adolescencia debido a un accidente científico/químico, a diferencia de los otros dos."
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "son de origen extraterrestre",
+        "semantica": "v('Superman')",
+        "precond": "True",
+        "exp": "Spider-Man y Daredevil adquirieron sus habilidades en la adolescencia debido a un accidente científico/químico, a diferencia de los otros dos."
+      }
+    ],
+    [
+      {
+        "tipo": "Cuestion",
+        "enunciado": "realmente son fruto de entrenamiento y tecnología",
+        "semantica": "v('Batman')",
+        "precond": "True",
+        "exp": "Las capacidades de Batman son adquiridas por entrenamiento y tecnología"
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "los adquirieron en mercadona",
+        "semantica": "False",
+        "precond": "True",
+        "exp": "¡Menuda tontería de pregunta! Se venden en Ahorramás"
+      }
+    ]
+  ]
+}
