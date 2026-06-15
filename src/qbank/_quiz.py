@@ -173,9 +173,10 @@ def _plan_partes(L):
         plan.append(parte)
     return plan
 class ProblemaTipo:
-    def __init__(self, supuestos_y_cuestiones, setup=None):
+    def __init__(self, supuestos_y_cuestiones, setup=None, export=None):
         self.e = supuestos_y_cuestiones
         self.setup = setup
+        self.export = export if export is not None else {}
 
     def _variantes(self):
         L    = [_normaliza_slot(x) for x in self.e]
@@ -261,13 +262,41 @@ class ProblemaTipo:
             if not descartada:
                 c += 1
                 yield (str(c), list(zip(enunciados, cuestiones)))
-    def por_partes(self):
+    def por_partes(self, instances=1, base_seed=42):
         """Itera las variantes válidas como (etiqueta, [(enunciado, cuestiones), …]).
-    
+
         Es la vía recomendada para ejercicios multiparte. En un ejercicio de una
         sola parte cada elemento es una lista de longitud 1.
+
+        instances : número de instancias con semillas distintas. Útil cuando el
+                    setup usa np.random y una sola instancia produce pocas variantes.
+                    La instancia i se evalúa con np.random.seed(base_seed + i * 997).
+                    Con instances > 1 en un problema sin setup se emite UserWarning
+                    (todas las instancias serían idénticas).
+        base_seed : semilla base para la primera instancia (solo con instances > 1).
         """
-        return self._variantes()
+        if instances > 1:
+            if self.setup is None:
+                import warnings
+                warnings.warn(
+                    "instances > 1 en un ProblemaTipo sin setup: "
+                    "se generarán variantes duplicadas.",
+                    UserWarning, stacklevel=2)
+            try:
+                import numpy as _np
+            except ImportError:
+                raise ImportError(
+                    "numpy es necesario para usar instances > 1 en por_partes().")
+            offset = 0
+            for inst in range(instances):
+                _np.random.seed(base_seed + inst * 997)
+                count = 0
+                for etiqueta, partes in self._variantes():
+                    count += 1
+                    yield (str(offset + int(etiqueta)), partes)
+                offset += count
+        else:
+            yield from self._variantes()
     
     def por_partes_profe(self):
         """Vista de revisión del profesor, en el mismo formato por partes que

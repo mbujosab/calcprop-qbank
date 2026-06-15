@@ -25,6 +25,7 @@ Formato de un ProblemaTipo::
       "tipo": "ProblemaTipo",
       "nombre": "identificador_opcional",
       "setup": null,
+      "export": {"last_choice": true, "cols": 2},
       "componentes": [
         "texto fijo ",
         {"tipo": "Supuesto", "enunciado": "A ", "semantica": "v('A')", "precond": "True"},
@@ -170,7 +171,8 @@ def problema_from_dict(d):
         componentes = [_slot_from_json(s) for s in d["componentes"]]
         setup_str   = d.get("setup")
         setup       = _make_setup_fn(setup_str) if setup_str else None
-        p = ProblemaTipo(componentes, setup=setup)
+        export      = d.get("export", {})
+        p = ProblemaTipo(componentes, setup=setup, export=export)
         p._nombre    = d.get("nombre", "")
         p._setup_str = setup_str
         return p
@@ -186,7 +188,8 @@ def problema_from_dict(d):
             componentes.append([_componente_from_dict(c) for c in sp["cuestiones"]])
         setup_str = d.get("setup")
         setup     = _make_setup_fn(setup_str) if setup_str else None
-        p = ProblemaTipo(componentes, setup=setup)
+        export    = d.get("export", {})
+        p = ProblemaTipo(componentes, setup=setup, export=export)
         p._nombre    = d.get("nombre", "")
         p._setup_str = setup_str
         return p
@@ -219,13 +222,17 @@ def problema_to_dict(problema):
                 "No es posible serializar un setup definido directamente en Python. "
                 "Escribe el código del setup como cadena y carga el problema con "
                 "problema_from_dict().")
-        return {
+        d = {
             "version":     "1",
             "tipo":        "ProblemaTipo",
             "nombre":      getattr(problema, '_nombre', ''),
             "setup":       setup_str,
             "componentes": componentes,
         }
+        exp = getattr(problema, 'export', {})
+        if exp:
+            d["export"] = exp
+        return d
     elif isinstance(problema, ProblemaVF):
         return {
             "version":      "1",
@@ -339,14 +346,16 @@ def problema_to_python(problema, varname="ejercicio"):
             "",
         ]
 
-    setup_arg = ", setup=_setup" if setup_str else ""
+    setup_arg  = ", setup=_setup" if setup_str else ""
+    export_dict = d.get("export", {})
+    export_arg  = f", export={export_dict!r}" if export_dict else ""
 
     lines.append(f"{varname} = [")
     for comp in d["componentes"]:
         lines.append(_slot_to_python(comp, nivel=1))
     lines.append("]")
     lines.append("")
-    lines.append(f"p = ProblemaTipo({varname}{setup_arg})")
+    lines.append(f"p = ProblemaTipo({varname}{setup_arg}{export_arg})")
 
     lines.append("")
     return "\n".join(lines)

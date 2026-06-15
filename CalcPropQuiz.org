@@ -526,9 +526,10 @@ Si la precondición de alguna de las opciones elegidas es =False= (o resulta ref
 #+NAME: Definición de la clase ProblemaTipo
 #+begin_src python :noweb no-export
 class ProblemaTipo:
-    def __init__(self, supuestos_y_cuestiones, setup=None):
+    def __init__(self, supuestos_y_cuestiones, setup=None, export=None):
         self.e = supuestos_y_cuestiones
         self.setup = setup
+        self.export = export if export is not None else {}
 
     <<Generador interno de variantes por partes>>
     <<Generador profe de variantes por partes>>
@@ -664,13 +665,42 @@ def _variantes_profe(self):
 
 #+NAME: Iteración pública de ProblemaTipo
 #+begin_src python :noweb no-export
-def por_partes(self):
+def por_partes(self, instances=1, base_seed=42):
     """Itera las variantes válidas como (etiqueta, [(enunciado, cuestiones), …]).
 
     Es la vía recomendada para ejercicios multiparte. En un ejercicio de una
     sola parte cada elemento es una lista de longitud 1.
+
+    Parámetros
+    ----------
+    instances : int
+        Número de instancias con semillas distintas (para ejercicios con
+        ``setup`` que genera valores aleatorios). Por defecto 1.
+    base_seed : int
+        Semilla base. La instancia k usa ``numpy.random.seed(base_seed + k * 997)``.
     """
-    return self._variantes()
+    if instances > 1:
+        if self.setup is None:
+            import warnings
+            warnings.warn(
+                "instances > 1 en un ProblemaTipo sin setup: "
+                "se generarán variantes duplicadas.",
+                UserWarning, stacklevel=2)
+        try:
+            import numpy as _np
+        except ImportError:
+            raise ImportError(
+                "numpy es necesario para usar instances > 1 en por_partes().")
+        offset = 0
+        for inst in range(instances):
+            _np.random.seed(base_seed + inst * 997)
+            count = 0
+            for etiqueta, partes in self._variantes():
+                count += 1
+                yield (str(offset + int(etiqueta)), partes)
+            offset += count
+    else:
+        yield from self._variantes()
 
 def por_partes_profe(self):
     """Vista de revisión del profesor, en el mismo formato por partes que
@@ -1393,6 +1423,7 @@ Formato de un ProblemaTipo::
       "tipo": "ProblemaTipo",
       "nombre": "identificador_opcional",
       "setup": null,
+      "export": {"last_choice": true, "cols": 2},
       "componentes": [
         "texto fijo ",
         {"tipo": "Supuesto", "enunciado": "A ", "semantica": "v('A')", "precond": "True"},
@@ -1477,6 +1508,7 @@ Un =ProblemaTipo= se representa con la siguiente estructura:
   "tipo": "ProblemaTipo",
   "nombre": "identificador_opcional",
   "setup": null,
+  "export": {"last_choice": true, "cols": 2},
   "componentes": [
     "texto fijo del enunciado",
     {"tipo": "Supuesto", "enunciado": "A ", "semantica": "v('A')", "precond": "True"},
@@ -1695,7 +1727,8 @@ def problema_from_dict(d):
         componentes = [_slot_from_json(s) for s in d["componentes"]]
         setup_str   = d.get("setup")
         setup       = _make_setup_fn(setup_str) if setup_str else None
-        p = ProblemaTipo(componentes, setup=setup)
+        export      = d.get("export", {})
+        p = ProblemaTipo(componentes, setup=setup, export=export)
         p._nombre    = d.get("nombre", "")
         p._setup_str = setup_str
         return p
@@ -1711,7 +1744,8 @@ def problema_from_dict(d):
             componentes.append([_componente_from_dict(c) for c in sp["cuestiones"]])
         setup_str = d.get("setup")
         setup     = _make_setup_fn(setup_str) if setup_str else None
-        p = ProblemaTipo(componentes, setup=setup)
+        export    = d.get("export", {})
+        p = ProblemaTipo(componentes, setup=setup, export=export)
         p._nombre    = d.get("nombre", "")
         p._setup_str = setup_str
         return p
@@ -1752,13 +1786,17 @@ def problema_to_dict(problema):
                 "No es posible serializar un setup definido directamente en Python. "
                 "Escribe el código del setup como cadena y carga el problema con "
                 "problema_from_dict().")
-        return {
+        d = {
             "version":     "1",
             "tipo":        "ProblemaTipo",
             "nombre":      getattr(problema, '_nombre', ''),
             "setup":       setup_str,
             "componentes": componentes,
         }
+        exp = getattr(problema, 'export', {})
+        if exp:
+            d["export"] = exp
+        return d
     elif isinstance(problema, ProblemaVF):
         return {
             "version":      "1",
@@ -1946,14 +1984,16 @@ def problema_to_python(problema, varname="ejercicio"):
             "",
         ]
 
-    setup_arg = ", setup=_setup" if setup_str else ""
+    setup_arg   = ", setup=_setup" if setup_str else ""
+    export_dict = d.get("export", {})
+    export_arg  = f", export={export_dict!r}" if export_dict else ""
 
     lines.append(f"{varname} = [")
     for comp in d["componentes"]:
         lines.append(_slot_to_python(comp, nivel=1))
     lines.append("]")
     lines.append("")
-    lines.append(f"p = ProblemaTipo({varname}{setup_arg})")
+    lines.append(f"p = ProblemaTipo({varname}{setup_arg}{export_arg})")
 
     lines.append("")
     return "\n".join(lines)
@@ -2378,11 +2418,22 @@ class ProblemaTipoEditor:
             value='', placeholder='código Python del setup (opcional)',
             layout=_w.Layout(width='520px', height='58px'))
 
+        self._last_choice = _w.Checkbox(
+            value=False, description='last_choice', indent=False,
+            layout=_w.Layout(width='130px'))
+        self._cols = _w.BoundedIntText(
+            value=1, min=1, max=10,
+            layout=_w.Layout(width='55px'))
+
         header = _w.VBox([
             _w.HBox([_w.Label('Nombre:', layout=_w.Layout(width='65px')),
                      self._nombre]),
             _w.HBox([_w.Label('Setup:', layout=_w.Layout(width='65px')),
                      self._setup]),
+            _w.HBox([_w.Label('Export:', layout=_w.Layout(width='65px')),
+                     self._last_choice,
+                     _w.Label('cols:', layout=_w.Layout(width='35px')),
+                     self._cols]),
         ])
 
         # ── Zona de slots ──
@@ -2527,6 +2578,9 @@ class ProblemaTipoEditor:
 
         self._nombre.value = d.get('nombre', '')
         self._setup.value  = d.get('setup', '') or ''
+        exp = d.get('export', {})
+        self._last_choice.value = bool(exp.get('last_choice', False))
+        self._cols.value = int(exp.get('cols', 1))
         self._slots = []
         for comp in d.get('componentes', []):
             self._add_slot(data=comp)
@@ -2536,13 +2590,21 @@ class ProblemaTipoEditor:
     def to_dict(self):
         """Devuelve el problema actual como dict JSON."""
         setup = self._setup.value.strip() or None
-        return {
+        exp = {}
+        if self._last_choice.value:
+            exp['last_choice'] = True
+        if self._cols.value != 1:
+            exp['cols'] = self._cols.value
+        d = {
             'version':     '1',
             'tipo':        'ProblemaTipo',
             'nombre':      self._nombre.value,
             'setup':       setup,
             'componentes': [s.to_json() for s in self._slots],
         }
+        if exp:
+            d['export'] = exp
+        return d
 
     def to_problema(self):
         """Devuelve un ProblemaTipo listo para iterar."""

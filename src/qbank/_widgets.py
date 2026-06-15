@@ -284,12 +284,22 @@ class ProblemaTipoEditor:
         self._setup = _w.Textarea(
             value='', placeholder='código Python del setup (opcional)',
             layout=_w.Layout(width='520px', height='58px'))
+        self._last_choice = _w.Checkbox(
+            value=False, description='last_choice', indent=False,
+            layout=_w.Layout(width='130px'))
+        self._cols = _w.BoundedIntText(
+            value=1, min=1, max=10,
+            layout=_w.Layout(width='55px'))
 
         header = _w.VBox([
             _w.HBox([_w.Label('Nombre:', layout=_w.Layout(width='65px')),
                      self._nombre]),
             _w.HBox([_w.Label('Setup:', layout=_w.Layout(width='65px')),
                      self._setup]),
+            _w.HBox([_w.Label('Export:', layout=_w.Layout(width='65px')),
+                     self._last_choice,
+                     _w.Label('cols:', layout=_w.Layout(width='35px')),
+                     self._cols]),
         ])
 
         # ── Zona de slots ──
@@ -434,6 +444,9 @@ class ProblemaTipoEditor:
 
         self._nombre.value = d.get('nombre', '')
         self._setup.value  = d.get('setup', '') or ''
+        exp = d.get('export', {})
+        self._last_choice.value = bool(exp.get('last_choice', False))
+        self._cols.value        = int(exp.get('cols', 1))
         self._slots = []
         for comp in d.get('componentes', []):
             self._add_slot(data=comp)
@@ -443,13 +456,21 @@ class ProblemaTipoEditor:
     def to_dict(self):
         """Devuelve el problema actual como dict JSON."""
         setup = self._setup.value.strip() or None
-        return {
+        exp = {}
+        if self._last_choice.value:
+            exp['last_choice'] = True
+        if self._cols.value != 1:
+            exp['cols'] = self._cols.value
+        d = {
             'version':     '1',
             'tipo':        'ProblemaTipo',
             'nombre':      self._nombre.value,
             'setup':       setup,
             'componentes': [s.to_json() for s in self._slots],
         }
+        if exp:
+            d['export'] = exp
+        return d
 
     def to_problema(self):
         """Devuelve un ProblemaTipo listo para iterar."""

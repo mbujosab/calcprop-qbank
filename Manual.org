@@ -789,38 +789,37 @@ Cada función devuelve una cadena de texto con el bloque =\element{...}= corresp
 
 ** Funciones disponibles
 
-| Función          | Descripción                                                       |
-|------------------+-------------------------------------------------------------------|
-| =AMC=            | Pregunta estándar. Incluye solo los ítems con =activa=1=.        |
-| =AMC_VF=         | Pregunta VF. Incluye todos los ítems (activos e inactivos).       |
-| =AMCProfe=       | Como =AMC= pero añade un bloque =\explain{}= con los rechazados. |
-| =AMClastCh=      | Como =AMC= pero añade «Ninguna de las anteriores» al final.       |
-| =AMCmc=          | Como =AMC= pero en formato multicolumna (requiere =ncols=).       |
-| =AMCmcProfe=     | Como =AMCmc= con bloque =\explain{}=.                             |
-| =AMClastChmc=    | Como =AMClastCh= en multicolumna.                                 |
+** Función unificada =AMCblock=
 
-** Firma común
+La función principal de exportación es =AMCblock=. Los comportamientos que antes requerían funciones separadas se controlan con parámetros:
 
-Todas las funciones AMC (excepto las =mc=) tienen la misma firma:
+| Parámetro    | Tipo     | Descripción                                                               |
+|--------------+----------+---------------------------------------------------------------------------|
+| =nombre=     | =str=    | Nombre del grupo (etiqueta LaTeX). Los =:= se convierten en =-= automát. |
+| =etiqueta=   | =str=    | Identificador único de esta variante.                                     |
+| =enunciado=  | =str=    | Texto del enunciado (=$$...$$= se convierte a =\[...\]=).                 |
+| =cuestiones= | =list=   | Lista de tuplas =(texto, correcto, activa[, exp])=.                       |
+| =last_choice=| =bool=   | Si =True=, añade opción comodín con =\lastchoices=.                       |
+| =cols=       | =int=    | Columnas (>1 activa =\begin{multicols}{N}\AMCBoxedAnswers=).              |
+| =profe=      | =bool=   | Si =True=, añade =\explain{}= con cuestiones rechazadas.                  |
+| =opc=        | =list=   | =[instrucciones_extra, texto_lastchoice]=. Raramente necesario.            |
+
+| Función    | Equivalente =AMCblock=                         | Estado         |
+|------------+------------------------------------------------+----------------|
+| =AMC_VF=   | (no reemplazable, para =ProblemaVF=)           | Vigente        |
+| =AMC=      | =AMCblock(..., last_choice=False, cols=1)=      | Deprecado      |
+| =AMCProfe= | =AMCblock(..., profe=True)=                    | Deprecado      |
+| =AMClastCh=| =AMCblock(..., last_choice=True)=              | Deprecado      |
+| =AMCmc=    | =AMCblock(..., cols=ncols)=                    | Deprecado      |
+| =AMCmcProfe= | =AMCblock(..., cols=ncols, profe=True)=      | Deprecado      |
+| =AMClastChmc= | =AMCblock(..., last_choice=True, cols=ncols)=| Deprecado     |
+
+** Firma
 
 #+begin_src python
-AMC(nombre, etiqueta, enunciado, cuestiones, opc=["", ""])
+AMCblock(nombre, etiqueta, enunciado, cuestiones,
+         last_choice=False, cols=1, profe=False, opc=["", "Ninguna de las anteriores"])
 #+end_src
-
-Las funciones =mc= añaden el parámetro =ncols= (número de columnas):
-
-#+begin_src python
-AMCmc(nombre, etiqueta, enunciado, cuestiones, ncols, opc=["", ""])
-#+end_src
-
-| Parámetro    | Descripción                                                             |
-|--------------+-------------------------------------------------------------------------|
-| =nombre=     | Nombre del grupo de preguntas (se usa como etiqueta LaTeX).             |
-| =etiqueta=   | Identificador único de esta variante dentro del grupo.                  |
-| =enunciado=  | Texto del enunciado (obtenido de la tupla generada por =ProblemaTipo=). |
-| =cuestiones= | Lista de ítems (obtenida de la tupla generada por =ProblemaTipo=).      |
-| =ncols=      | Número de columnas para el entorno =multicols=.                         |
-| =opc=        | Lista =[instrucciones_extra, opcion_por_defecto]=. Raramente necesario. |
 
 ** Ejemplo AMC básico
 
@@ -888,13 +887,13 @@ with open("preguntas.tex") as f:
 
 ** Ejemplo AMC multicolumna con «Ninguna de las anteriores»
 
-Usando el mismo =p= del ejemplo anterior, basta sustituir =AMC= por =AMClastChmc=
-y añadir el número de columnas:
+Usando el mismo =p= del ejemplo anterior, con =last_choice=True= y =cols=2=:
 
 #+begin_src python
 with open("preguntas.tex", "w") as f:
     for etiqueta, enunciado, cuestiones in p:
-        f.write(AMClastChmc("MiCuestionario", etiqueta, enunciado, cuestiones, ncols=2))
+        f.write(AMCblock("MiCuestionario", etiqueta, enunciado, cuestiones,
+                         last_choice=True, cols=2))
 #+end_src
 
 Los ítems se distribuyen en dos columnas y se añade automáticamente
@@ -935,20 +934,17 @@ sudo apt install texlive-latex-extra
 
 ** Funciones disponibles
 
-| Función                        | Tipo de problema | Opción rescate | Notas                            |
-|--------------------------------+------------------+----------------+----------------------------------|
-| =QuizMoodleLastCh=             | =ProblemaTipo=   | Sí ✓           | *Uso general recomendado*        |
-| =QuizMoodle=                   | =ProblemaTipo=   | No             | Solo si garantizas ≥1 correcta   |
-| =QuizMoodleProfe=              | =ProblemaTipo=   | No             | Revisión del profesor            |
-| =QuizMoodleLastChConVariables= | =ProblemaTipo=   | Sí ✓           | Valores numéricos con Jinja2     |
-| =QuizMoodleConVariables=       | =ProblemaTipo=   | No             | Ídem sin rescate                 |
-| =QuizMoodleProfeConVariables=  | =ProblemaTipo=   | No             | Vista profe con Jinja2           |
-| =QuizVFMoodle=                 | =ProblemaVF=     | —              | Verdadero/Falso                  |
+| Función            | Tipo de problema | =last_choice= | Notas                         |
+|--------------------+------------------+---------------+-------------------------------|
+| =QuizMoodle=       | =ProblemaTipo=   | parámetro     | *Función unificada recomendada* |
+| =QuizMoodleProfe=  | =ProblemaTipo=   | No            | Revisión del profesor          |
+| =QuizVFMoodle=     | =ProblemaVF=     | —             | Verdadero/Falso                |
+| =QuizMoodleLastCh= | =ProblemaTipo=   | Sí (fijo)     | *Deprecado* → =QuizMoodle(..., last_choice=True)= |
 
 La *opción rescate* («Las demás opciones son falsas» por defecto) se añade automáticamente
 al final de cada bloque =\begin{multi}= y es correcta si y solo si ninguna otra opción
 lo es. Moodle rechaza la importación de preguntas sin ninguna opción correcta, por lo que
-=QuizMoodleLastCh= es la elección segura salvo que el problema garantice siempre al menos
+=last_choice=True= es la elección segura salvo que el problema garantice siempre al menos
 una opción verdadera.
 
 ** Firma
@@ -956,7 +952,8 @@ una opción verdadera.
 =ProblemaTipo= (una o varias partes):
 
 #+begin_src python
-QuizMoodleLastCh(nombre, directorio, problema, opc=["", "Las demás opciones son falsas"])
+QuizMoodle(nombre, directorio, problema, last_choice=False,
+           opc=["", "Las demás opciones son falsas"])
 #+end_src
 
 =ProblemaVF=:
@@ -1004,7 +1001,7 @@ p = ProblemaTipo([
     ],
 ])
 
-QuizMoodleLastCh("EjemploMoodle", "ejemplosManual/", p)
+QuizMoodle("EjemploMoodle", "ejemplosManual/", p, last_choice=True)
 #+end_src
 
 Esto crea =salida/EjemploMoodle.tex=. Para obtener el =.xml= y una versión =.pdf= del conjunto de preguntas basta ejecutar:
@@ -1094,7 +1091,7 @@ with open("preguntas_multi.tex") as f:
 #+begin_src jupyter-python :results silent
 import os
 os.makedirs("ejemplosManual", exist_ok=True)
-QuizMoodleLastCh("Superheroes", "ejemplosManual/", p)
+QuizMoodle("Superheroes", "ejemplosManual/", p, last_choice=True)
 #+end_src
 
 Esto genera =ejemplosManual/Superheroes.tex=. Compila con =xelatex= para obtener el =.xml=:
@@ -1253,7 +1250,7 @@ p = editor.to_problema()   # ProblemaTipo listo para iterar
 d = editor.to_dict()       # dict JSON equivalente
 #+end_src
 
-Con =p= ya puedes llamar a las funciones de exportación (=AMC=, =QuizMoodleLastCh=, etc.) como si hubieras definido el problema a mano.
+Con =p= ya puedes llamar a las funciones de exportación (=AMCblock=, =QuizMoodle=, etc.) como si hubieras definido el problema a mano.
 
 ** Flujo completo: editor → JSON → AMC y Moodle
 
@@ -1305,21 +1302,21 @@ with open("preguntas_amc.tex", "w") as f:
         f.write(AMC(nombre, etiqueta, enunciado, cuestiones))
 #+end_src
 
-Variantes habituales:
+Variantes habituales de =AMCblock=:
 
-| Función         | Cuándo usarla                                              |
-|-----------------+------------------------------------------------------------|
-| =AMC=           | Pregunta estándar (solo ítems activos).                   |
-| =AMClastCh=     | Añade «Ninguna de las anteriores» al final.               |
-| =AMCmc=         | Ítems en columnas; requiere =ncols=.                      |
-| =AMClastChmc=   | Multicolumna con «Ninguna de las anteriores».             |
+| Parámetros de =AMCblock=               | Cuándo usarla                               |
+|----------------------------------------+---------------------------------------------|
+| (por defecto)                          | Pregunta estándar (solo ítems activos).     |
+| =last_choice=True=                     | Añade «Ninguna de las anteriores» al final. |
+| =cols=N=                               | Ítems en N columnas.                        |
+| =last_choice=True, cols=N=             | Multicolumna con «Ninguna de las anteriores». |
 
 El fichero generado se incluye en el documento principal de AMC con =\input{preguntas_amc.tex}=.
 
 *** Paso 3b — Exportar a Moodle
 
 #+begin_src python
-QuizMoodleLastCh("MiCuestionario", "salida/", p)
+QuizMoodle("MiCuestionario", "salida/", p, last_choice=True)
 #+end_src
 
 Esto genera =salida/MiCuestionario.tex=. A continuación, compila con LaTeX para obtener el =.xml= importable en Moodle:
@@ -1331,14 +1328,14 @@ xelatex MiCuestionario.tex
 
 El paquete LaTeX =moodle= produce =MiCuestionario.xml= durante la compilación. Ese fichero es el que se importa en Moodle (Banco de preguntas → Importar → Formato Moodle XML).
 
-Variantes habituales:
+Variantes habituales de =QuizMoodle=:
 
-| Función                | Cuándo usarla                                          |
-|------------------------+--------------------------------------------------------|
-| =QuizMoodle=           | Pregunta estándar.                                    |
-| =QuizMoodleLastCh=     | Añade «Las demás opciones son falsas» al final.       |
-| =QuizMoodleProfe=      | Versión con ítems rechazados visibles (revisión).     |
-| =QuizVFMoodle=         | Para =ProblemaVF= (preguntas de verdadero/falso).     |
+| Parámetros de =QuizMoodle=             | Cuándo usarla                               |
+|----------------------------------------+---------------------------------------------|
+| (por defecto)                          | Pregunta estándar.                          |
+| =last_choice=True=                     | Añade «Las demás opciones son falsas».      |
+| =QuizMoodleProfe(...)=                 | Versión con ítems rechazados visibles.      |
+| =QuizVFMoodle(...)=                    | Para =ProblemaVF= (verdadero/falso).        |
 
 *** Paso 4 — Generar múltiples instancias numéricas (problemas con =setup=)
 
@@ -1405,8 +1402,8 @@ mismo último valor de la variable de bucle.
 | A      | =for i in range(10): for v in p:= | Cada variante tiene los suyos  |
 | B      | =p_lote.setup = lambda ns=ns: ns= | Las 4 del lote comparten $(n,k)$ |
 
-Ambos patrones funcionan igual para Moodle: sustituye =AMC= por =QuizMoodleLastCh=
-y adapta el nombre del fichero de salida.
+Ambos patrones funcionan igual para Moodle: sustituye el bloque =with open(...)= por
+=QuizMoodle("MiCuestionario", "salida/", p, last_choice=True)= y adapta el nombre.
 
 * Referencia rápida de la API
 
@@ -1415,8 +1412,8 @@ y adapta el nombre del fichero de salida.
 #+begin_example
 Supuesto(enunciado, semantica, precond=True)
 Cuestion(enunciado, semantica, precond=True, exp="")
-ProblemaTipo(lista, setup=None)
-    → itera (etiqueta, enunciado, cuestiones); .por_partes() para multiparte
+ProblemaTipo(lista, setup=None, export=None)
+    → itera (etiqueta, enunciado, cuestiones); .por_partes(instances=1, base_seed=42) para multiparte/instancias
 ProblemaTipoProfe(lista, setup=None)
     → como ProblemaTipo, sin descartar ítems rechazados
 ProblemaVF(enunciado, lista, n)
@@ -1445,27 +1442,29 @@ save_problema_py(problema, filepath, varname="ejercicio")
 ** Funciones AMC
 
 #+begin_example
-AMC         (nombre, etiqueta, enunciado, cuestiones, opc=["",""])
+# Función principal (recomendada):
+AMCblock    (nombre, etiqueta, enunciado, cuestiones,
+             last_choice=False, cols=1, profe=False, opc=["","Ninguna de las anteriores"])
 AMC_VF      (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna..."])
-AMCProfe    (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna..."])
-AMClastCh   (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna..."])
-AMCmc       (nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna..."])
-AMCmcProfe  (nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna..."])
-AMClastChmc (nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna..."])
 AMC_multipart(nombre, etiqueta, enunciado, partes, opc=[""])
     # para ProblemaTipo multiparte; partes = [(enunciado, cuestiones), ...]
+
+# Aliases deprecados (emiten DeprecationWarning, redirigen a AMCblock):
+AMC, AMCProfe, AMClastCh, AMCmc, AMCmcProfe, AMClastChmc
 #+end_example
 
 ** Funciones Moodle
 
 #+begin_example
-QuizMoodleLastCh        (nombre, directorio, problema, opc=["","Las demás..."])  # recomendado
-QuizMoodle              (nombre, directorio, problema, opc=["",""])
-QuizMoodleProfe         (nombre, directorio, problema, opc=["",""])
-QuizMoodleLastChConVariables(nombre, directorio, problema, environment, Valores, opc)
-QuizMoodleConVariables  (nombre, directorio, problema, environment, Valores, opc)
-QuizMoodleProfeConVariables (nombre, directorio, problema, environment, Valores, opc)
-QuizVFMoodle            (nombre, directorio, GenVar, num, opc=["",""])
+# Función principal (recomendada):
+QuizMoodle  (nombre, directorio, problema, last_choice=False,
+             opc=["","Las demás opciones son falsas"])
+QuizMoodleProfe  (nombre, directorio, problema, opc=["",""])
+QuizVFMoodle     (nombre, directorio, GenVar, num, opc=["",""])
+
+# Alias deprecado (emite DeprecationWarning):
+QuizMoodleLastCh (nombre, directorio, problema, opc=["","Las demás..."])
+    # → usa QuizMoodle(..., last_choice=True)
 #+end_example
 
 ** Operadores de =calcprop= (disponibles tras =from qbank import *=)
@@ -1524,7 +1523,7 @@ problema = {
     "Sección-A": ProblemaTipo(lista_A),
     "Sección-B": ProblemaTipo(lista_B),
 }
-QuizMoodleLastCh("MiExamen", "salida/", problema)
+QuizMoodle("MiExamen", "salida/", problema, last_choice=True)
 #+end_src
 
 Cada clave del diccionario se convierte en una categoría dentro del cuestionario Moodle.

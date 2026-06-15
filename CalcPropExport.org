@@ -55,8 +55,8 @@
 #+CALL: NombreEnChunksDeCodigo()
 
 
-El siguiente bloque de código emacs-lisp modifica la plantilla de exportación de código en Org mode de Emacs. 
-Específicamente, añade una línea para establecer los atributos LaTeX para el código exportado, incluyendo una etiqueta que corresponde al nombre del bloque de código (=%name=). 
+El siguiente bloque de código emacs-lisp modifica la plantilla de exportación de código en Org mode de Emacs.
+Específicamente, añade una línea para establecer los atributos LaTeX para el código exportado, incluyendo una etiqueta que corresponde al nombre del bloque de código (=%name=).
 
 Además, establece la columna de llenado (=fill-column=) a 100, lo que afecta cómo se manejan las líneas de texto en el búfer.
 #+NAME: NombreEnChunksDeCodigo
@@ -96,40 +96,42 @@ Además, establece la columna de llenado (=fill-column=) a 100, lo que afecta c�
 
 #+NAME: qbank/_export.py
 #+begin_src python :tangle src/qbank/_export.py :noweb no-export
+import re as _re
+import warnings as _warnings
 from qbank._quiz import *
 
-<<Formato AMC>>
-<<Formato AMC Verdadero/Falso>>
-<<Formato AMC version Profe>>
-<<Formato AMC con lastchoice>>
-<<Formato AMC y multicolumna>>
-<<Formato AMC y multicolumna version Profe>>
-<<Formato AMC con lastchoice y multicolumna>>
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
+<<Helper _sanitize_name>>
 <<Método codchar para codificar caracteres no ASCII en LaTeX>>
 
+# ── Exportadores AMC ──────────────────────────────────────────────────────────
+
+<<AMCblock>>
+<<Aliases deprecados AMC>>
+<<Formato AMC Verdadero/Falso>>
+<<AMC multi-parte>>
+
+# ── Exportadores Moodle ───────────────────────────────────────────────────────
+
+<<_MOODLE_HEADER y _moodle_header>>
 <<Quiz para Moodle>>
-<<Quiz para Moodle con valores>>
+<<QuizMoodleLastCh deprecado>>
 <<Quiz para Moodle versión Profe>>
-<<Quiz para Moodle versión Profe con valores>>
 <<Quiz VF para Moodle>>
 <<Formato Moodle de preguntas de elección múltiple>>
 <<Formato Moodle de preguntas de elección múltiple para el Profe>>
-
-<<Quiz para Moodle con LastChoice>>
-<<Quiz para Moodle con LastChoice con valores>>
-<<Quiz VF para Moodle con LastChoice>>
 <<Formato Moodle de preguntas de elección múltiple con LastChoice>>
 
-<<AMC multi-parte>>
-<<Moodle cloze multi-parte>>
+# ── Bloques Cloze (Moodle) ───────────────────────────────────────────────────
 
+<<Moodle cloze multi-parte>>
 #+end_src
 
 
 ** Preguntas en LaTeX para usar con [[https://www.auto-multiple-choice.net/][Auto-Multiple-Choice]]
 
-Para entender el comportamiento de las funciones de exportación, primero debemos conocer la estructura de una pregunta de opción múltiple en AMC. 
+Para entender el comportamiento de las funciones de exportación, primero debemos conocer la estructura de una pregunta de opción múltiple en AMC.
 
 Prestemos atención al siguiente ejemplo canónico extraído de la documentación oficial de [[https://www.auto-multiple-choice.net/doc/latex/][Auto Multiple Choice (AMC)]]:
 
@@ -156,6 +158,37 @@ Dentro del entorno =questionmult= intervienen tres componentes:
 3. El entorno =choices=, que alberga las opciones a evaluar. Aquí se vuelcan los textos (=self.e=) de los objetos =Cuestion= seleccionados al iterar =ProblemaTipo=. Si la cuestión es lógicamente verdadera para la combinación de supuestos, se imprimirá como argumento del comando =\correctchoice{}=; si es falsa, se imprimirá como argumento del comando =\wrongchoice{}=.
 
 El objetivo de este módulo es procesar las variantes generadas por los iteradores de Python y transformarlas de forma automatizada en cadenas de texto con código \LaTeX{} válido para AMC.
+
+*** Helpers: identificadores y codificación de caracteres
+
+**** Función =_sanitize_name=
+
+Al construir un banco de preguntas es natural dar a cada grupo un nombre descriptivo que incluya el tema o el número de lección, como =L-07:Multicolinealidad= o =Tema3:Inferencia=. Estos nombres terminan incrustados en dos lugares problemáticos: el entorno =\element{nombre}{...}= de AMC y el entorno =\begin{cloze}{nombre-etiqueta}= de Moodle, y además en las reglas del =Makefile= que compila los ficheros. El carácter =:= es interpretado como delimitador de objetivo por =make= y como separador de etiqueta por algunos parsers \LaTeX{}, con resultados impredecibles: errores en la compilación, ficheros con nombres incorrectos o incluso silencio (el parser simplemente ignora parte del nombre).
+
+Para que el usuario no tenga que preocuparse por estas restricciones —y pueda nombrar sus bancos con la notación que le resulte más natural—, todas las funciones de exportación llaman internamente a =_sanitize_name= antes de insertar el nombre en el código \LaTeX{}. El usuario escribe =L-07:Multicolinealidad=; la función entrega al compilador =L-07-Multicolinealidad=:
+
+#+NAME: Helper _sanitize_name
+#+begin_src python :noweb no-export
+def _sanitize_name(nombre):
+    """Sustituye ':' por '-' en identificadores LaTeX (make y algunos parsers LaTeX lo rechazan)."""
+    return nombre.replace(':', '-')
+#+end_src
+
+**** Función =codchar=
+
+Para evitar la tediosa escritura manual de acentos y eñes al estilo \LaTeX{} (como =\'{a}= o =\~{n}=), delegamos la tarea en Python mediante la función =codchar(s)=, que realiza una sustitución masiva de strings:
+
+#+NAME: Método codchar para codificar caracteres no ASCII en LaTeX
+#+begin_src python :noweb yes
+def codchar(s):
+     s = s.replace("á", "\\'{a}")
+     s = s.replace("é", "\\'{e}")
+     s = s.replace("í", "\\'{i}")
+     s = s.replace("ó", "\\'{o}")
+     s = s.replace("ú", "\\'{u}")
+     s = s.replace("ñ", "\\~{n}")
+     return s
+#+end_src
 
 *** Escritura de las cuestiones dentro del entorno =choices=
 
@@ -206,7 +239,7 @@ Examinemos este comportamiento en el siguiente fragmento de la documentación de
     \wrongchoice{mucho}
   \end{choiceshoriz}
 \end{questionmult}
-#+END_SRC 
+#+END_SRC
 
 En nuestras funciones, el argumento =OpcPorDefecto= (cuyo valor inicial predeterminado es ='Ninguna de las anteriores'=) se inyectará tras el delimitador =\lastchoices=. Su veracidad se evalúa dinámicamente: si al menos una de las cuestiones de la lista evaluada resultó ser verdadera (=True=), la opción por defecto se marcará automáticamente como =\wrongchoice=. Si todas las cuestiones de la variante fueron falsas, se convertirá en la opción =\correctchoice=.
 
@@ -218,22 +251,7 @@ s = s + (' ' * 7) + ('\\wrongchoice  {' if any([c[1] for c in cuestiones]) else 
 
 *** Información sobre las cuestiones descartadas (para revisión del profesor)
 
-AMC permite crear una copia del examen (o del banco completo de preguntas) con las respuestas correctas ya cumplimentadas en el PDF. Pensando en la posibilidad de distribuir estas copias a los alumnos, ofrece el entorno =\explain= para añadir explicaciones adicionales que les ayuden a comprender mejor el motivo por el que unas opciones son correctas y otras no. El texto contenido en este bloque queda oculto en los exámenes de los estudiantes, pero se compila y muestra de forma explícita en los documentos de tipo *Solución* o *Catálogo*. 
-
-Veamos un ejemplo de uso extraído de la documentación oficial:
-#+BEGIN_SRC latex :exports code
-\begin{question}{explanation}
-  Which has the highest elevation among the following?
-  \begin{choices}
-      \correctchoice{Sagarmatha}
-      \wrongchoice{K2}
-      \wrongchoice{Mont Blanc}
-      \wrongchoice{Aconcagua}
-  \end{choices}
-  \explain{Sagarmatha which literally means `Head of sky' is the native name of Mount Everest,
-    the highest mountain in the world.}
-\end{question}
-#+END_SRC
+AMC permite crear una copia del examen (o del banco completo de preguntas) con las respuestas correctas ya cumplimentadas en el PDF. Pensando en la posibilidad de distribuir estas copias a los alumnos, ofrece el entorno =\explain= para añadir explicaciones adicionales que les ayuden a comprender mejor el motivo por el que unas opciones son correctas y otras no. El texto contenido en este bloque queda oculto en los exámenes de los estudiantes, pero se compila y muestra de forma explícita en los documentos de tipo *Solución* o *Catálogo*.
 
 Nosotros usaremos =\explain= con un propósito distinto: facilitar las tareas de auditoría y revisión de los bancos de preguntas. Cuando el tercer elemento de la tupla de la cuestión sea igual a cero (~c[2] == 0~), indicando que la pregunta ha sido descartada por el incumplimiento de una precondición, la función no la enviará al entorno de respuestas, sino que concatenará su texto y el motivo del descarte en una cadena global de diagnóstico (=ex=) que se volcará dentro del comando =\explain{}=.
 
@@ -245,258 +263,159 @@ ex = ex + ' cuestion: ' + c[0] + '; ' + str(c[1]) + '\n'
 
 ** Escritura del código LaTeX para las preguntas en formato AMC
 
-A continuación se definen las funciones principales encargadas de la exportación de código al formato \LaTeX{} usado en AMC. Comparten una interfaz homogénea basada en los siguientes argumentos:
+*** Función unificada =AMCblock=
 
-- =nombre= :: Cadena en formato ASCII puro (sin espacios) que identifica la categoría macro del banco de ítems (p. ej., =L-01-EcNormales-RangoX=). Se utiliza como el identificador del comando =\element=.
-- =etiqueta= :: Identificador único de la variante concreta (generalmente numérico o alfanumérico compuesto).
-- =enunciado= :: El bloque de texto principal del problema generado por el iterador.
-- =cuestiones= :: Lista de tuplas con las cuestiones procesadas.
-- =opc= :: Lista opcional de control. Su primer elemento (=InstruccionesAux=) permite inyectar comandos de preámbulo locales o ajustes micro de \LaTeX{} dentro de =\element=. El segundo elemento define el texto literal de la opción =OpcPorDefecto= (para los casos donde se use =\lastchoices=).
+Al desarrollar el módulo en sus primeras versiones, cada combinación de características de exportación daba lugar a una función independiente: =AMC=, =AMClastCh=, =AMCmc=, =AMClastChmc=, =AMCProfe=, =AMCmcProfe=... El problema es que la combinatoria crece rápidamente: basta añadir un nuevo parámetro para que el número de funciones necesarias se duplique. La solución es la habitual en diseño de APIs: colapsar toda la familia en una única función con parámetros opcionales que, por defecto, producen el comportamiento más común.
 
-*** Preguntas de opción múltiple en formato para exámenes
+=AMCblock= es esa función unificada. Los tres ejes de variación que antes requerían funciones distintas se convierten ahora en argumentos de palabra clave con valores predeterminados:
+- ¿Queremos opción comodín al final? → =last_choice=True= (por defecto =False=).
+- ¿Queremos las opciones distribuidas en varias columnas? → =cols=2= (por defecto =1=).
+- ¿Queremos el diagnóstico de cuestiones descartadas por precondición? → =profe=True= (por defecto =False=).
 
-**** Función =AMC= 
-Genera la estructura estándar para exámenes impresos con un formato de respuestas a una sola columna y sin opción por defecto final (i.e., sin =\lastchoices=).
+Adicionalmente, =AMCblock= realiza dos transformaciones automáticas que antes había que gestionar a mano:
 
-#+NAME: Formato AMC
+1. *Sanitización del nombre*: llama internamente a =_sanitize_name= para que los identificadores con =:= no provoquen errores en =make= ni en el compilador de \LaTeX{}.
+2. *Conversión de matemáticas en modo display*: los bloques =$$...$$= del enunciado se reescriben como =\[...\]=. AMC no reconoce el entorno =$$= de \LaTeX{} y los compilaría sin añadir el salto de línea esperado; el entorno =\[...\]= es su equivalente correcto para matemáticas en bloque independiente.
+
+Los parámetros que acepta son:
+
+- =nombre= :: Cadena que identifica la categoría del banco de ítems. Se sanitiza automáticamente (=:= → =-=) para compatibilidad con =make= y parsers \LaTeX{}.
+- =etiqueta= :: Identificador único de la variante concreta (el índice secuencial del iterador).
+- =enunciado= :: El bloque de texto principal. Los bloques =$$...$$= se convierten automáticamente a =\[...\]=.
+- =cuestiones= :: Lista de tuplas =(texto, correcto, activa[, exp])=, tal como la produce el iterador de =ProblemaTipo=.
+- =last_choice= :: Si =True=, añade =\lastchoices= con la opción comodín al final (ver sección anterior).
+- =cols= :: Número de columnas (>1 activa =\begin{multicols}{N}\AMCBoxedAnswers=).
+- =profe= :: Si =True=, añade =\explain= con las cuestiones descartadas por precondición (ver sección anterior).
+- =opc= :: =[instrucciones_extra, texto_lastchoice]=.
+
+#+NAME: AMCblock
 #+begin_src python :noweb no-export
-def AMC (nombre, etiqueta, enunciado, cuestiones, opc=["",""]):
+def AMCblock(nombre, etiqueta, enunciado, cuestiones,
+             last_choice=False, cols=1, profe=False,
+             opc=["", "Ninguna de las anteriores"]):
+    """Genera el bloque AMC para una pregunta de tipo multichoice.
+
+    Parámetros
+    ----------
+    nombre      : identificador del grupo AMC (se sanitiza: ':' → '-')
+    etiqueta    : etiqueta de la variante
+    enunciado   : texto del enunciado (``$$...$$`` se convierte a ``\\[...\\]``)
+    cuestiones  : lista de (texto, correcto, activa[, exp])
+    last_choice : si True, añade opción comodín con ``\\lastchoices``
+    cols        : número de columnas multicols (1 = sin multicols)
+    profe       : si True, añade ``\\explain`` con cuestiones rechazadas
+    opc         : [instrucciones_extra, texto_lastchoice]
+    """
     InstruccionesAux = opc[0]
     OpcPorDefecto    = opc[1]
-    s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
-    s = s + ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s = s + '  ' + enunciado + '\n'
+    nombre_tex    = _sanitize_name(nombre)
+    enunciado_tex = _re.sub(r'\$\$(.+?)\$\$', r'\\[\1\\]', enunciado, flags=_re.DOTALL)
 
-    s = s + '     \\begin{choices}\n'
-    for c in cuestiones:
-        if c[2]:
-            <<Escritura del texto de la cuestión en función de su veracidad>>
-    s = s + '     \\end{choices}\n'
-    s = s + ' \\end{questionmult} '
-    s = s + '}\n\n'
-    return s
-#+end_src
-
-**** Función =AMClastCh=
-Similar a la función anterior, pero añade forzosamente la cláusula =\lastchoices= y evalúa la opción por defecto final para garantizar una vía de salida en la variante.
-
-#+NAME: Formato AMC con lastchoice
-#+begin_src python :noweb no-export
-def AMClastCh (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
-    InstruccionesAux = opc[0]
-    OpcPorDefecto    = opc[1]
-    s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
-    s = s + ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s = s + '  ' + enunciado + '\n'
-
-    s = s + '     \\begin{choices}\n'
-    for c in cuestiones:
-        if c[2]:
-            <<Escritura del texto de la cuestión en función de su veracidad>>
-    <<Inclusión de lastchoice>>
-    s = s + '     \\end{choices}\n'
-
-    s = s + ' \\end{questionmult} '
-    s = s + '}\n\n'
-    return s
-#+end_src
-
-**** Función =AMCmc=
-Esta variante introduce el entorno =multicols= para distribuir las opciones de respuesta en múltiples columnas, optimizando el espacio vertical del examen impreso cuando las respuestas son cortas. Activa de forma automática la propiedad =\AMCBoxedAnswers= (véase la documentación oficial de [[https://www.auto-multiple-choice.net/doc/latex/][Auto Multiple Choice (AMC)]]).
-
-#+NAME: Formato AMC y multicolumna
-#+begin_src python :noweb yes
-def AMCmc (nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
-    InstruccionesAux = opc[0]
-    OpcPorDefecto    = opc[1]
-    s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
-    s = s + ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s = s + '  ' + enunciado + '\n'
-    s = s + '   \\begin{multicols}{' + str(ncols) + '}\\AMCBoxedAnswers\n'
-    s = s + '      \\begin{choices}\n'
-    for c in cuestiones:
-        if c[2]:
-            <<Escritura del texto de la cuestión en función de su veracidad>>
-    s = s + '      \\end{choices}\n'
-    s = s + '   \\end{multicols}\n'
-    s = s + ' \\end{questionmult} '
-    s = s + '}\n\n'
-    return s
-#+end_src
-
-**** Función =AMClastChmc=
-Combina las ventajas de la distribución en múltiples columnas (=c=) con la seguridad de la opción por defecto inyectada mediante =\lastchoices=.
-
-#+NAME: Formato AMC con lastchoice y multicolumna
-#+begin_src python :noweb yes
-def AMClastChmc (nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
-    InstruccionesAux = opc[0]
-    OpcPorDefecto    = opc[1]
-    s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
-    s = s + ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s = s + '  ' + enunciado + '\n'
-    s = s + '   \\begin{multicols}{' + str(ncols) + '}\\AMCBoxedAnswers\n'
-    s = s + '      \\begin{choices}\n'
-    for c in cuestiones:
-        if c[2]:
-            <<Escritura del texto de la cuestión en función de su veracidad>>
-    <<Inclusión de lastchoice>>
-    s = s + '      \\end{choices}\n'
-    s = s + '   \\end{multicols}\n'
-    s = s + ' \\end{questionmult} '
-    s = s + '}\n\n'
-    return s
-#+end_src
-
-*** Preguntas de opción múltiple en formato para revisión
-
-Estas funciones (similares a =AMC=  y a =AMCmc=) tienen el propósito de generar una hoja de revisión del banco de preguntas para el docente. 
-
-- Muestran las cuestiones no válidas mediante su inclusión explícita en el entorno =\explain{}=.
-
-- Al no requerir la opción de descarte directo para los estudiantes, prescinden del uso de =\lastchoices=.
-
-**** Funciones =AMCProfe= y =AMCmcProfe=
-
-#+NAME: Formato AMC version Profe
-#+begin_src python :noweb no-export
-def AMCProfe (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
-    InstruccionesAux = opc[0]
-    OpcPorDefecto    = opc[1]
     ex = ''
-    s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
-    s = s + ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s = s + '  ' + enunciado + '\n'
+    s  = '\\element{' + nombre_tex + '}{' + InstruccionesAux + '\n'
+    s += ' \\begin{questionmult}{' + nombre_tex + '-' + str(etiqueta) + '}\n'
+    s += '  ' + enunciado_tex + '\n'
 
-    s = s + '     \\begin{choices}\n'
+    if cols > 1:
+        s += '   \\begin{multicols}{' + str(cols) + '}\\AMCBoxedAnswers\n'
+        ch_indent = '      '
+    else:
+        ch_indent = '     '
+
+    s += ch_indent + '\\begin{choices}\n'
     for c in cuestiones:
         if c[2]:
-            <<Escritura del texto de la cuestión en función de su veracidad>>
-        else:
-            <<Registro del motivo de rechazo de la cuestión>>
-    s = s + '     \\end{choices}\n'
-    if ex:
-        s = s + '   \\explain{' + ex + '            }\n'
-    s = s + ' \\end{questionmult} '
-    s = s + '}\n\n'
+            s += ' ' * 7 + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + c[0] + '}\n'
+        elif profe:
+            ex += ' cuestion: ' + c[0] + '; ' + str(c[1]) + '\n'
+
+    if last_choice:
+        s += ' ' * 7 + '\\lastchoices\n'
+        s += ' ' * 7 + ('\\wrongchoice  {' if any(c[1] for c in cuestiones) else '\\correctchoice{') + OpcPorDefecto + '}\n'
+
+    s += ch_indent + '\\end{choices}\n'
+
+    if cols > 1:
+        s += '   \\end{multicols}\n'
+
+    if profe and ex:
+        s += '   \\explain{' + ex + '            }\n'
+
+    s += ' \\end{questionmult} '
+    s += '}\n\n'
     return s
 #+end_src
 
-#+NAME: Formato AMC y multicolumna version Profe
-#+begin_src python :noweb yes
-def AMCmcProfe (nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
-    InstruccionesAux = opc[0]
-    OpcPorDefecto    = opc[1]
-    ex = ''
-    s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
-    s = s + ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s = s + '  ' + enunciado + '\n'
-    s = s + '   \\begin{multicols}{' + str(ncols) + '}\\AMCBoxedAnswers\n'
-    s = s + '      \\begin{choices}\n'
-    for c in cuestiones:
-        if c[2]:
-            <<Escritura del texto de la cuestión en función de su veracidad>>
-        else:
-            <<Registro del motivo de rechazo de la cuestión>>
-    s = s + '     \\end{choices}\n'
-    s = s + '   \\end{multicols}\n'
-    if ex:
-        s = s + '   \\explain{' + ex + '            }\n'
-    s = s + ' \\end{questionmult} '
-    s = s + '}\n\n'
-    return s
-#+end_src
+*** Aliases deprecados
 
-*** Ejemplo de uso
+¿Por qué mantener las funciones antiguas si ya tenemos =AMCblock=? Eliminarlas de golpe habría roto silenciosamente todos los scripts escritos con la versión anterior de la librería —incluyendo los bancos de preguntas ya en producción—, sin ningún mensaje de error que orientase sobre qué cambiar. La estrategia adoptada es más amable: las seis funciones antiguas siguen existiendo pero, al llamarlas, Python emite un =DeprecationWarning= en la consola que indica exactamente cómo reescribir la llamada con la nueva API.
 
-A continuación se presenta un ejemplo completo de diseño de una pregunta combinatoria orientada a evaluar la comprensión de las **Ecuaciones Normales de MCO** y las consecuencias del rango de la matriz de regresores $\mathbf{X}$ (presencia o ausencia de multicolinealidad perfecta). 
+Un =DeprecationWarning= no interrumpe la ejecución: el script sigue funcionando igual que antes. Es un aviso —como una nota adhesiva en el teclado— para que el desarrollador sepa que esa forma de llamar a la función está previsto eliminarla en una versión futura, y tenga tiempo de migrar con calma.
 
-Para mayor claridad, el problema se divide en un bloque con los elementos que permiten componer cada enunciado y otro bloque con el repertorio de cuestiones distribuidas en tres sublistas.
-
-#+BEGIN_SRC python  :results none :tangle examples/EjemploAMC.py :noweb yes
-BloqueDeEnunciado = [
-    r"En el ajuste MCO:\; $\ajusteMLG$,\; ",
-    [
-        Supuesto(r"donde $\Matdim{X}{N}{k}$, si $rg(\Mat{X})<k$, con $k \leq N$,",         v("Mcoli")),    
-        Supuesto(r"si $(\MTM{X})$ es singular,",                                         v("Mcoli")),    
-        Supuesto(r"donde $\Matdim{X}{N}{k}$, si $rg(\Mat{X})=k$, con $k \leq N$,",        -v("Mcoli")),
-        Supuesto(r"si $(\MTM{X})$ es invertible,",                                        -v("Mcoli")),    
-    ],
-    " entonces: ",]
-
-BloqueDeCuestiones = [
-    [
-        Cuestion("ningún regresor es combinación lineal del resto",                        -v("Mcoli"),
-                 exp=r"cuando $(\MTM{X})$ es invertible, es decir, cuando $rg(\Mat{X}) = k$"),
-        Cuestion(r"las \emph{columnas} de $\Mat{X}$ son linealmente indep.",               -v("Mcoli"),
-                 exp=r"cuando $(\MTM{X})$ es invertible, es decir, cuando $rg(\Mat{X}) = k$"),    
-        Cuestion(r"las \emph{filas} de $\Mat{X}$ son linealmente indep.",                        False,
-                 exp=r"solo si $N=rg(\Mat{X})$"),    
-        Cuestion("algún regresor es combinación lineal del resto",                          v("Mcoli"),
-                 exp=r"cuando $(\MTM{X})$ es singular, es decir, cuando $rg(\Mat{X}) < k$"),
-    ],
-    [
-        Cuestion(r"$\Vect{y}$ es combinación lineal de los regresores",                        False , -v("Mcoli"),
-                 exp=r"cuando $\Vect{y}$ es de la forma $\MV{X}{\beta}$, es decir cuando $\res=\Vect{0}$"),    
-        Cuestion(r"$\MTM{X}\Vect{\beta}=\MTV{X}{y}$ tiene solución \emph{única}",          -v("Mcoli"),
-                 exp=r"cuando $(\MTM{X})$ es invertible, es decir, cuando $rg(\Mat{X}) = k$"),
-        Cuestion(r"$\MTM{X}\Vect{\beta}=\MTV{X}{y}$ es compatible (tiene sol.)",                 True,
-                 exp=r"las ecuaciones normales siempre tienen solución"),
-    ],
-    [
-        Cuestion(r"el vector $\Estmc{\Vect{\beta}}$ está definido",                        -v("Mcoli"),
-                 exp=r"cuando $\MTM{X}\Vect{\beta}=\MTV{X}{y}$ tiene solución \emph{única}"),    
-        Cuestion(r"el vector $\Estmc{\Vect{\beta}}$ es indeterminado",                      v("Mcoli"),
-                 exp=r"cuando $\MTM{X}\Vect{\beta}=\MTV{X}{y}$ tiene infinitas soluciones"),    
-        Cuestion("la correlación entre algunos regresores es 1 en valor absoluto",               False,
-                 exp=r"cuando algún regresor es un múltiplo de otro"),    
-        Cuestion("la correlación entre regresores es \emph{menor} que 1 en valor absoluto",-v("Mcoli"),
-                 exp=r"cuando los regresores son linealmente independientes"),
-    ],]
-
-p = [ BloqueDeEnunciado + BloqueDeCuestiones ]
-
-directorio = "../ejemplos/"           # directorio donde vamos a guardar el fichero resultante
-nombre="L-01-EcNormales-RangoX"       # Etiqueta del conjunto de preguntas
-mc=2;                                 # cuestiones a doble columna
-preguntas = {}; 
-preguntas[nombre] = ProblemaTipo( p )
-with open(directorio + nombre + ".tex","w") as f:
-    for i,nom in enumerate(preguntas):
-        for var in preguntas[nom]:
-            f.write( AMClastChmc(nombre, str(i)+"-"+var[0], var[1], var[2], mc, ["","Ninguna de las anteriores"]) )
+Por ejemplo, si en un script antiguo teníamos:
+#+BEGIN_SRC python :eval no :exports code
+AMClastChmc("MiCuestionario", etiqueta, enunciado, cuestiones, ncols=2)
+#+END_SRC
+Python mostrará en la consola:
+#+BEGIN_SRC text :exports code
+DeprecationWarning: AMClastChmc está deprecado; usa AMCblock(..., last_choice=True, cols=ncols).
+#+END_SRC
+y la llamada equivalente con la nueva API es simplemente:
+#+BEGIN_SRC python :eval no :exports code
+AMCblock("MiCuestionario", etiqueta, enunciado, cuestiones, last_choice=True, cols=2)
 #+END_SRC
 
+Las seis funciones antiguas y su traducción directa a =AMCblock= son las siguientes:
 
-Analicemos el ejemplo:
+#+NAME: Aliases deprecados AMC
+#+begin_src python :noweb no-export
+def AMC(nombre, etiqueta, enunciado, cuestiones, opc=["",""]):
+    _warnings.warn(
+        "AMC está deprecado; usa AMCblock(nombre, etiqueta, enunciado, cuestiones, "
+        "last_choice=False, cols=1).",
+        DeprecationWarning, stacklevel=2)
+    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
+                    last_choice=False, cols=1, profe=False, opc=opc)
 
-***** Modularidad en la programación del ejercicio.
-- *=BloqueDeEnunciado=*: Se encarga en exclusiva de fijar el escenario matemático. Contiene las cadenas de texto introductorias y la lista de objetos =Supuesto=. En cada iteración, el motor seleccionará un único escenario de este bloque (por ejemplo, si la matriz es singular o invertible) para construir la hipótesis de partida de cada examen individual.
-- *=BloqueDeCuestiones=*: Alberga las sublistas de objetos =Cuestion=. Cada sublista representa una dimensión conceptual del problema (relación de los regresores, propiedades del sistema de ecuaciones y características del estimador). En cada iteración, el motor seleccionará una única cuestión de cada bloque para combinar las tres cuestiones con las hipótesis del enunciado correspondientes a la variante que ha generado.
-  - Nótese que la primera cuestión de la segunda lista tiene un parámetro de activación basado en la precondición ==-v("Mcoli")==. Esto ocasiona que esta opción (que es matemáticamente falsa para cualquier escenario) se oculte por completo y no se presente al alumno si el enunciado de la variante implica la presencia de multicolinealidad.
-- *=Concatenación=*: Mediante la instrucción =p = [BloqueDeEnunciado + BloqueDeCuestiones]= se unifican las listas nativas de Python antes de instanciar el objeto =ProblemaTipo=, el cual pone en marcha el motor combinatorio.
+def AMCProfe(nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
+    _warnings.warn(
+        "AMCProfe está deprecado; usa AMCblock(..., profe=True).",
+        DeprecationWarning, stacklevel=2)
+    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
+                    last_choice=False, cols=1, profe=True, opc=opc)
 
-***** El motor de evaluación mediante variables lógicas (=v=).
-Para analizar la veracidad de las cuestiones dadas las hipótesis elegidas por el motor, se utiliza la función de evaluación dinámica =v('Mcoli')=:
-- El estado de la condición de multicolinealidad actúa como un interruptor booleano interno. Si el supuesto extraído para el examen es de multicolinealidad, =v('Mcoli')= evalúa a =True=. Si el supuesto es de rango completo por columnas, evalúa a =False=.
-- El uso de operadores de negación (=-=) permite invertir este comportamiento según la semántica de la respuesta. Por ejemplo, si se elige el supuesto de invertibilidad (donde =v('Mcoli') == False=), un ítem condicionado con =-v('Mcoli')= pasará automáticamente a considerarse como una opción válida (=-False == True=).
-- El sistema también admite valores de verdad absolutos independientes del supuesto (como =True= o =False=) para aquellas propiedades matemáticas inmutables, como el hecho de que las ecuaciones normales siempre sean compatibles.
+def AMClastCh(nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
+    _warnings.warn(
+        "AMClastCh está deprecado; usa AMCblock(..., last_choice=True).",
+        DeprecationWarning, stacklevel=2)
+    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
+                    last_choice=True, cols=1, profe=False, opc=opc)
 
-***** Traducción a código LaTeX para exámenes AMC o para gestión del banco de preguntas.
-La parte final del script se encarga de estructurar el banco de ejercicios y generar el código fuente en \LaTeX{}:
+def AMCmc(nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
+    _warnings.warn(
+        "AMCmc está deprecado; usa AMCblock(..., cols=ncols).",
+        DeprecationWarning, stacklevel=2)
+    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
+                    last_choice=False, cols=ncols, profe=False, opc=opc)
 
-- *=Diccionario de variantes y visualización=*: El proceso comienza inicializando un diccionario vacío (=preguntas = {}=) para almacenar las variantes del ejercicio y definiendo el número de columnas para las cuestiones del examen mediante la variable =mc= (en este caso, =mc=2= para doble columna). 
+def AMCmcProfe(nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
+    _warnings.warn(
+        "AMCmcProfe está deprecado; usa AMCblock(..., cols=ncols, profe=True).",
+        DeprecationWarning, stacklevel=2)
+    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
+                    last_choice=False, cols=ncols, profe=True, opc=opc)
 
-- *=Modo Profesor frente a Modo Alumno=*: Al instanciar la estructura =p=, el motor permite dos enfoques según el objetivo del documento:
-  - *Para revisión del profesor*: Se utiliza =ProblemaTipoProfe(p)=, diseñado para mostrar el desglose de las soluciones y facilitar la validación manual del ejercicio (este ejemplo no lo hace).
-  - *Para el examen del alumno*: Se emplea =ProblemaTipo(p)=, que compila y mezcla el banco de ítems procesando de forma sistemática todas las combinaciones que cumplan los requisitos lógicos.
-  - *Nota sobre variantes numéricas*: Si el script generase además variaciones numéricas aleatorias mediante un bucle, la clave del diccionario debe indexarse de forma dinámica para no sobrescribir las variantes: =preguntas[nombre+"-"+str(numopcion)] = ProblemaTipo(p)=.
-
-- *=Volcado final con AMC=*: El bucle de escritura final invoca a la función =AMClastChmc= (importada del módulo de formatos). Esta función abstrae por completo la sintaxis de \LaTeX{}, distribuye visualmente las opciones según el parámetro =mc= e integra automáticamente la respuesta comodín ~"Ninguna de las anteriores"~ al cierre de cada bloque de opciones.
+def AMClastChmc(nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
+    _warnings.warn(
+        "AMClastChmc está deprecado; usa AMCblock(..., last_choice=True, cols=ncols).",
+        DeprecationWarning, stacklevel=2)
+    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
+                    last_choice=True, cols=ncols, profe=False, opc=opc)
+#+end_src
 
 *** Variante para preguntas Verdadero/Falso en formato para exámenes en el aula
 
-Las preguntas aleatorizadas generadas por la clase =ProblemaVF= poseen una estructura simplificada: carecen de precondiciones de filtrado dinámico. En consecuencia, el parámetro flag de descarte de la tupla (=c[2]=) no existe. Las tuplas inyectadas desde dicho banco constan únicamente de dos componentes: el texto y su booleano de veracidad: `(Texto, True/False)`. 
+Las preguntas aleatorizadas generadas por la clase =ProblemaVF= poseen una estructura simplificada: carecen de precondiciones de filtrado dinámico. En consecuencia, el parámetro flag de descarte de la tupla (=c[2]=) no existe. Las tuplas inyectadas desde dicho banco constan únicamente de dos componentes: el texto y su booleano de veracidad: `(Texto, True/False)`.
 
 A continuación se define la función específica encargada de iterar directamente esta colección binaria para renderizar la salida de examen:
 
@@ -546,52 +465,81 @@ with open(directorio + nombre + ".tex","w") as f:
 
 #+END_SRC
 
+*** Ejemplo de uso de =AMCblock=
+
+A continuación se presenta un ejemplo completo de diseño de una pregunta combinatoria. El argumento =last_choice=True= añade automáticamente la opción comodín al final y =cols=2= distribuye las respuestas en dos columnas:
+
+#+BEGIN_SRC python :eval no :exports code
+from qbank import *
+p = ProblemaTipo([
+    "Considera ",
+    [Supuesto("A ", v("A")), Supuesto("B ", v("B"))],
+    [Supuesto("y A⇒C. ", v("A") >> v("C")),
+     Supuesto("y B⟺D. ", v("B") ** v("D"))],
+    "Indica qué es cierto: ",
+    [Cuestion("C es verdadero", v("C")),
+     Cuestion("D es verdadero", v("D"))],
+], export={"last_choice": True, "cols": 2})
+
+nombre = "MiPregunta"
+with open(nombre + ".tex", "w") as f:
+    for etiqueta, partes in p.por_partes():
+        enunciado, cuestiones = partes[0]
+        f.write(AMCblock(nombre, etiqueta, enunciado, cuestiones,
+                         last_choice=True, cols=2))
+#+END_SRC
+
+El campo =export= del =ProblemaTipo= permite guardar la configuración de exportación junto al problema en JSON (=last_choice=, =cols=), de modo que los scripts de generación puedan leerlo sin hardcodear los parámetros.
+
 
 ** Preguntas en XML para usar con Moodle
 
-Para generar los ficheros =xml= necesarios para Moodle, seguiremos un método indirecto. Escribir directamente en XML es tedioso debido a la gestión de caracteres no ASCII y las expresiones matemáticas de \LaTeX{}. 
+Para generar los ficheros =xml= necesarios para Moodle, seguiremos un método indirecto. Escribir directamente en XML es tedioso debido a la gestión de caracteres no ASCII y las expresiones matemáticas de \LaTeX{}.
 
 La solución más práctica consiste en generar desde Python un fichero =.tex= de \LaTeX{} que emplee el paquete [[https://ctan.org/pkg/moodle][moodle]]. Al compilar dicho fichero (con =pdflatex=, =lualatex= o =xelatex=) obtendremos simultáneamente una versión en PDF del banco de preguntas (ideal para revisión) y el archivo =.xml= listo para ser importado en Moodle. Además, este enfoque nos evita lidiar con la compleja estructura del XML de Moodle, sustituyéndola por la familiar sintaxis de \LaTeX{}.
 
 *** Preámbulo de los ficheros \LaTeX{} para exportación a Moodle
 
-Para que se genere el archivo XML, _es estrictamente necesario que el preámbulo del fichero =.tex= cargue el paquete =moodle=._ 
+Para que se genere el archivo XML, _es estrictamente necesario que el preámbulo del fichero =.tex= cargue el paquete =moodle=._
 
 El preámbulo definido a continuación está configurado para que el documento PDF resultante tenga un tamaño de fuente de =11pt= y márgenes estrechos mediante el paquete =fullpage= para optimizar la lectura del docente. Asimismo, se cargan =graphicx= y =fancyvrb= para soportar gráficos y código literal (todo esto es opcional).
 
-Este preámbulo se almacena en una cadena de caracteres de Python (=s=) que abre el entorno =document=:
+La plantilla se almacena en la constante =_MOODLE_HEADER= y la función =_moodle_header= la instancia con el nombre del quiz y el preámbulo LaTeX opcional:
 
-#+NAME: Preámbulo fichero LaTeX con paquete moodle
-#+begin_src python :noweb yes
-s = "\\documentclass[11pt]{article}\n\n"
-s = s + "\\usepackage[cm,headings]{fullpage}\n\n"
-s = s + "\\usepackage{moodle}\n\n"
-s = s + "\\usepackage{graphicx}\n\n"
-s = s + "\\usepackage{fancyvrb}\n\n"
-s = s + "\\ifPDFTeX                    % FOR LATEX and PDFLATEX\n"
-s = s + "    \\usepackage[utf8]{inputenc}   % necessary\n"
-s = s + "    \\usepackage[OT1] {fontenc}    % necessary\n"
-s = s + "\\else                        % assuming XELATEX or LUALATEX\n"
-s = s + "    \\usepackage{fontspec}\n"
-s = s + "\\fi\n\n"
-s = s + auxLaTeX + "\n" + "\\newcommand\\peque{}" + "\n\n"
-s = s + "\\begin{document}\n\n"
-#+end_src
+#+NAME: _MOODLE_HEADER y _moodle_header
+#+begin_src python :noweb no-export
+_MOODLE_HEADER = """\
+\\documentclass[11pt]{{article}}
 
-**** Codificación de caracteres no ASCII
+\\usepackage[cm,headings]{{fullpage}}
 
-Para evitar la tediosa escritura manual de acentos y eñes al estilo \LaTeX{} (como =\'{a}= o =\~{n}=), delegamos la tarea en Python mediante la función =codchar(s)=, que realiza una sustitución masiva de strings:
+\\usepackage{{moodle}}
 
-#+NAME: Método codchar para codificar caracteres no ASCII en LaTeX
-#+begin_src python :noweb yes
-def codchar(s):
-     s = s.replace("á", "\\'{a}")
-     s = s.replace("é", "\\'{e}")
-     s = s.replace("í", "\\'{i}")
-     s = s.replace("ó", "\\'{o}")
-     s = s.replace("ú", "\\'{u}")
-     s = s.replace("ñ", "\\~{n}")
-     return s
+\\usepackage{{graphicx}}
+
+\\usepackage{{fancyvrb}}
+
+\\ifPDFTeX                    % FOR LATEX and PDFLATEX
+    \\usepackage[utf8]{{inputenc}}   % necessary
+    \\usepackage[OT1] {{fontenc}}    % necessary
+\\else                        % assuming XELATEX or LUALATEX
+    \\usepackage{{fontspec}}
+\\fi
+
+{auxLaTeX}
+\\newcommand\\peque{{}}
+
+\\begin{{document}}
+
+\\begin{{quiz}}{{{nombre_tex}}}
+
+"""
+
+def _moodle_header(nombre, auxLaTeX=""):
+    return _MOODLE_HEADER.format(
+        auxLaTeX=auxLaTeX,
+        nombre_tex=_sanitize_name(nombre),
+    )
 #+end_src
 
 *** Estructura de preguntas de opción múltiple con el paquete moodle
@@ -743,7 +691,7 @@ cuestiones = cuestiones + [(codchar(lastchoice), (False if v else True), 1, '')]
 
 *** =MoodleMulti=, =MoodleMultiProfe= y =MoodleMultiLastCh=
 
-- =MoodleMulti= :: Genera una cadena de caracteres con los comandos \LaTeX{} correspondientes a una pregunta de opción múltiple dentro del entorno ={multi}=. Es la función equivalente a la función =AMC= (sección [[Función =AMC= ]]) para las preguntas en formato AMC.
+- =MoodleMulti= :: Genera una cadena de caracteres con los comandos \LaTeX{} correspondientes a una pregunta de opción múltiple dentro del entorno ={multi}=.
 
 #+NAME: Formato Moodle de preguntas de elección múltiple
 #+begin_src python :noweb no-export
@@ -787,7 +735,7 @@ def MoodleMultiProfe (nombre, variante, enunciado, cuestiones):
     <<Escritura del entorno multi para el Profe>>
 #+end_src
 
-Para calcular el valor para el argumento =fraction= del comando =\item=, necesitamos contar, entre las cuestiones no descartadas (~c[2]=1~), cuantas de cuestiones verdaderas (variable =b=) y cuántas son falsas (variable =m=). 
+Para calcular el valor para el argumento =fraction= del comando =\item=, necesitamos contar, entre las cuestiones no descartadas (~c[2]=1~), cuantas de cuestiones verdaderas (variable =b=) y cuántas son falsas (variable =m=).
 #+NAME: Conteo de respuestas correctas e incorrectas
 #+begin_src python :noweb yes
 b = 0; m = 0;
@@ -816,9 +764,9 @@ s = s + " \\end{multi}\n\n"
 return s
 #+end_src
 
-*** =QuizMoodle=, =QuizMoodleLastCh= y =QuizVFMoodle=
+*** =QuizMoodle=, =QuizMoodleLastCh= (deprecado) y =QuizVFMoodle=
 
-Estas funciones de alto nivel abren el flujo del archivo con =with open()=, vuelcan la cadena del preámbulo, iteran sobre el diccionario de problemas inyectando las variantes y cierran el entorno principal =quiz=. Soporta la integración de motores de renderizado de plantillas (como [[https://pypi.org/project/Jinja2/][Jinja2]]) si se requiere sustitución de variables.
+Estas funciones de alto nivel abren el flujo del archivo con =with open()=, vuelcan el preámbulo generado por =_moodle_header=, iteran sobre el diccionario de problemas inyectando las variantes y cierran el entorno principal =quiz=.
 
 Para asegurar que la entrada sea procesada correctamente, se utiliza un método auxiliar que encapsula objetos sueltos en diccionarios:
 
@@ -828,130 +776,102 @@ def creaDiccionario(x, key='key'):
     return x if isinstance(x, dict) else {key: x}
 #+end_src
 
-A continuación se despliegan las implementaciones de los distintos exportadores del módulo:
+**** =QuizMoodle= — función unificada
+
+=QuizMoodle= replica, en el contexto de Moodle, la misma estrategia de unificación que motivó =AMCblock= en AMC. Antes de esta versión, la opción de añadir la cuestión comodín /«Las demás opciones son falsas»/ requería una función completamente separada (=QuizMoodleLastCh=). Ahora, un único parámetro booleano controla ese comportamiento:
+
+- =last_choice=False= (valor por defecto) → genera preguntas sin opción comodín. Es el modo adecuado cuando la estructura del banco garantiza que siempre habrá al menos una respuesta correcta en cada variante.
+- =last_choice=True= → inserta /«Las demás opciones son falsas»/ como opción adicional, correcta si ninguna otra lo es y falsa en caso contrario. Es el modo habitual cuando el banco incluye variantes en que todas las respuestas podrían ser simultáneamente falsas.[fn::En Moodle, a diferencia de AMC, no existe un comando =\lastchoices= que fije la posición de esa opción al barajar. Por eso el texto recomendado es /«Las demás opciones son falsas»/ en lugar de /«Ninguna de las anteriores»/: el primero es semánticamente correcto en cualquier posición de la lista.]
+
+Internamente, la selección se implementa mediante una función de orden superior: la variable =cuerpo= apunta a =_ClozeMultiLastCh= o a =_ClozeMulti= según el valor de =last_choice=, y esa función se pasa como argumento a =_ClozeBlock= en el bucle de generación. Este patrón —almacenar en una variable la función que se quiere aplicar y pasarla como dato— evita un =if/else= repetido dentro del bucle de iteración y es una de las formas más limpias de escribir código condicional en Python.
 
 #+NAME: Quiz para Moodle
 #+begin_src python :noweb no-export
-def QuizMoodle (nombre, directorio, problema, opc=["",""]):
-    <<Método auxiliar que transforma un objeto en diccionario si no era ya un diccionario>>
-    problema = creaDiccionario(problema, nombre)
-    auxLaTeX = opc[0]
-    <<Preámbulo fichero LaTeX con paquete moodle>>
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i,nom in enumerate(problema):
+def QuizMoodle(nombre, directorio, problema, last_choice=False,
+               opc=["", "Las demás opciones son falsas"]):
+    """Exporta un problema (o dict de problemas) al formato Moodle XML vía LaTeX.
+
+    Parámetros
+    ----------
+    nombre      : nombre del quiz (identifica el grupo en Moodle)
+    directorio  : ruta al directorio de salida (con '/' al final)
+    problema    : ProblemaTipo o dict {nombre: ProblemaTipo}
+    last_choice : si True, añade la opción comodín «las demás son falsas»
+    opc         : [auxLaTeX, texto_lastchoice]
+    """
+    def creaDiccionario(x, key='key'):
+        return x if isinstance(x, dict) else {key: x}
+    problema      = creaDiccionario(problema, nombre)
+    OpcPorDefecto = opc[1]
+
+    cuerpo = (lambda c: _ClozeMultiLastCh(c, OpcPorDefecto)) if last_choice else _ClozeMulti
+
+    with open(directorio + nombre + ".tex", "w") as f:
+        f.write(_moodle_header(nombre, auxLaTeX=opc[0]))
+        for i, nom in enumerate(problema):
             for etiqueta, partes in problema[nom].por_partes():
-                f.write(_ClozeBlock(nom, etiqueta, partes, _ClozeMulti))
+                f.write(_ClozeBlock(nom, etiqueta, partes, cuerpo))
         f.write("\\end{quiz}\n\n\\end{document}\n")
 #+end_src
 
-#+NAME: Quiz para Moodle con valores
+**** =QuizMoodleLastCh= — alias deprecado
+
+Al igual que los aliases AMC, =QuizMoodleLastCh= se mantiene exclusivamente por compatibilidad con scripts preexistentes. Al invocarla, Python emite un =DeprecationWarning= en la consola indicando la llamada equivalente:
+
+#+BEGIN_SRC python :eval no :exports code
+# Antes (sigue funcionando, pero emite aviso):
+QuizMoodleLastCh("MiQuiz", "salida/", p)
+
+# Equivalente con la nueva API:
+QuizMoodle("MiQuiz", "salida/", p, last_choice=True)
+#+END_SRC
+
+Todo código nuevo debe usar directamente =QuizMoodle= con =last_choice=True=.
+
+#+NAME: QuizMoodleLastCh deprecado
 #+begin_src python :noweb no-export
-def QuizMoodleConVariables (nombre, directorio, problema, environment, Valores, opc=["",""]):
-    <<Método auxiliar que transforma un objeto en diccionario si no era ya un diccionario>>
-    problema = creaDiccionario(problema, nombre)
-    auxLaTeX = opc[0]
-    <<Preámbulo fichero LaTeX con paquete moodle>>
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i,nom in enumerate(problema):
-            for etiqueta, partes in problema[nom].por_partes():
-                template = environment.from_string(_ClozeBlock(nom, etiqueta, partes, _ClozeMulti))
-                content = template.render(Valores())
-                f.write(content)
-        f.write("\\end{quiz}\n\n\\end{document}\n")
+def QuizMoodleLastCh(nombre, directorio, problema, opc=["","Las demás opciones son falsas"]):
+    _warnings.warn(
+        "QuizMoodleLastCh está deprecado; usa QuizMoodle(..., last_choice=True).",
+        DeprecationWarning, stacklevel=2)
+    return QuizMoodle(nombre, directorio, problema, last_choice=True, opc=opc)
 #+end_src
+
+**** =QuizMoodleProfe= — versión docente
+
+Genera el banco para revisión del profesor, mostrando el reparto de puntos por cuestión:
 
 #+NAME: Quiz para Moodle versión Profe
 #+begin_src python :noweb no-export
-def QuizMoodleProfe (nombre, directorio, problema, opc=["",""]):
-    <<Método auxiliar que transforma un objeto en diccionario si no era ya un diccionario>>
+def QuizMoodleProfe(nombre, directorio, problema, opc=["",""]):
+    def creaDiccionario(x, key='key'):
+        return x if isinstance(x, dict) else {key: x}
     problema = creaDiccionario(problema, nombre)
-    auxLaTeX = opc[0]
-    <<Preámbulo fichero LaTeX con paquete moodle>>
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i,nom in enumerate(problema):
+    with open(directorio + nombre + ".tex", "w") as f:
+        f.write(_moodle_header(nombre, auxLaTeX=opc[0]))
+        for i, nom in enumerate(problema):
             for etiqueta, partes in problema[nom].por_partes():
                 f.write(_ClozeBlock(nom, etiqueta, partes, _ClozeMultiProfe))
         f.write("\\end{quiz}\n\n\\end{document}\n")
 #+end_src
 
-#+NAME: Quiz para Moodle versión Profe con valores
-#+begin_src python :noweb no-export
-def QuizMoodleProfeConVariables (nombre, directorio, problema, environment, Valores, opc=["",""]):
-    <<Método auxiliar que transforma un objeto en diccionario si no era ya un diccionario>>
-    problema = creaDiccionario(problema, nombre)
-    auxLaTeX = opc[0]
-    <<Preámbulo fichero LaTeX con paquete moodle>>
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i,nom in enumerate(problema):
-            for etiqueta, partes in problema[nom].por_partes():
-                template = environment.from_string(_ClozeBlock(nom, etiqueta, partes, _ClozeMultiProfe))
-                content = template.render(Valores())
-                f.write(content)
-        f.write("\\end{quiz}\n\n\\end{document}\n")
-#+end_src
+**** =QuizVFMoodle=
 
-#+NAME: Quiz para Moodle con LastChoice
-#+begin_src python :noweb no-export
-def QuizMoodleLastCh (nombre, directorio, problema, opc=["","Las demás opciones son falsas"]):
-    <<Método auxiliar que transforma un objeto en diccionario si no era ya un diccionario>>
-    problema      = creaDiccionario(problema, nombre)
-    auxLaTeX      = opc[0]
-    OpcPorDefecto = opc[1]
-    <<Preámbulo fichero LaTeX con paquete moodle>>
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i,nom in enumerate(problema):
-            for etiqueta, partes in problema[nom].por_partes():
-                f.write(_ClozeBlock(nom, etiqueta, partes, lambda c: _ClozeMultiLastCh(c, opc[1])))
-        f.write("\\end{quiz}\n\n\\end{document}\n")
-#+end_src
-
-#+NAME: Quiz para Moodle con LastChoice con valores
-#+begin_src python :noweb no-export
-def QuizMoodleLastChConVariables (nombre, directorio, problema, environment, Valores, opc=["","Las demás opciones son falsas"]):
-    <<Método auxiliar que transforma un objeto en diccionario si no era ya un diccionario>>
-    problema      = creaDiccionario(problema, nombre)
-    auxLaTeX      = opc[0]
-    OpcPorDefecto = opc[1]
-    <<Preámbulo fichero LaTeX con paquete moodle>>
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i,nom in enumerate(problema):
-            for etiqueta, partes in problema[nom].por_partes():
-                template = environment.from_string(
-                    _ClozeBlock(nom, etiqueta, partes, lambda c: _ClozeMultiLastCh(c, opc[1])))
-                content = template.render(Valores())
-                f.write(content)
-        f.write("\\end{quiz}\n\n\\end{document}\n")
-#+end_src
-
-- =Bancos Verdadero/Falso (ProblemaVF)= :: Las funciones homólogas extraen variantes basadas en un iterador clásico mediante el método ='next()'=, permitiendo fijar el número exacto de preguntas deseadas:
+Para los bancos de preguntas =ProblemaVF=, las funciones homólogas extraen variantes basadas en un iterador clásico mediante el método ='next()'=, permitiendo fijar el número exacto de preguntas deseadas:
 
 #+NAME: Quiz VF para Moodle
 #+begin_src python :noweb no-export
 def QuizVFMoodle (nombre, directorio, GenVar, num, opc=["",""]):
-    auxLaTeX      = opc[0]
-    <<Preámbulo fichero LaTeX con paquete moodle>>
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
+    auxLaTeX = opc[0]
     with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
+        f.write(_moodle_header(nombre, auxLaTeX=auxLaTeX))
         for i in range(num):
             var = next(GenVar)
             f.write( MoodleMulti (codchar(nombre), var[0], codchar(var[1]), var[2]) )
         f.write("\\end{quiz}\n\n\\end{document}\n")
 #+end_src
 
-*** Ejemplo de uso de =QuizMoodleLastCh=
+*** Ejemplo de uso de =QuizMoodle=
 
 A continuación se ilustra la ejecución de scripts independientes para generar tanto un bloque relacional condicionado (=ProblemaTipo=) como una batería aleatoria estructurada desde una lista estática de enunciados (=ProblemaVF=):
 
@@ -977,7 +897,7 @@ p = ProblemaTipo([
 ])
 nombre = "EjemploMoodle"
 directorio = "../ejemplos/"
-QuizMoodleLastCh(nombre, directorio, p)
+QuizMoodle(nombre, directorio, p, last_choice=True)
 #+end_src
 
 #+NAME: EjemploVFMoodle.py
@@ -1036,7 +956,7 @@ def AMC_multipart(nombre, etiqueta, enunciado, subpreguntas, opc=[""]):
     return s
 #+end_src
 
-Se usa en un bucle igual que =AMC=:
+Se usa en un bucle igual que =AMCblock=:
 
 #+begin_src python :eval no
 with open("preguntas.tex", "w") as f:
@@ -1049,6 +969,8 @@ with open("preguntas.tex", "w") as f:
 Toda la exportación a Moodle usa el entorno /cloze/, tenga el ejercicio una o varias partes. Cada variante produce una pregunta =\begin{cloze}{nombre-etiqueta}= que contiene un entorno =\begin{multi}= por cada parte (sin nombre, como exige el paquete =moodle= para los entornos embebidos). El feedback por opción, las fracciones del modo profe y el last-choice funcionan dentro de cloze (manual de =moodle.sty= §2.4.7 y documentación de Moodle), por lo que reutilizamos exactamente la misma lógica de escritura de =\item= que las preguntas sueltas.
 
 =_ClozeMulti=, =_ClozeMultiProfe= y =_ClozeMultiLastCh= generan el bloque =\begin{multi}…\end{multi}= de *una* parte (versión alumno, profe y last-choice respectivamente); =_ClozeBlock= envuelve las partes de una variante en el entorno =\begin{cloze}=.
+
+El identificador del entorno cloze se sanitiza mediante =_sanitize_name= (sustituye =:= por =-=) y se codifica con =codchar= para compatibilidad con \LaTeX{} sin Unicode nativo.
 
 #+NAME: Moodle cloze multi-parte
 #+begin_src python :noweb no-export
@@ -1080,7 +1002,8 @@ def _ClozeMultiProfe(cuestiones):
 def _ClozeBlock(nombre, etiqueta, partes, cuerpo):
     """Envuelve las partes de una variante en un entorno cloze.
     `cuerpo(cuestiones)` genera el bloque \\begin{multi}…\\end{multi} de cada parte."""
-    s = " \\begin{cloze}{" + codchar(nombre) + "-" + str(etiqueta) + "}\n"
+    nombre_tex = codchar(_sanitize_name(nombre))
+    s = " \\begin{cloze}{" + nombre_tex + "-" + str(etiqueta) + "}\n"
     for enunciado, cuestiones in partes:
         s += "  " + codchar(enunciado) + "\n"
         s += cuerpo(cuestiones)
@@ -1102,22 +1025,22 @@ nombre="L-02-AjusteMCOdeMLS-pendiente"
 p = [ r"En el ajuste MCO:\; $\ajusteMLS$,\; el parámetro $\widehat{\beta_2}$ es",
   [
     Cuestion(r"la covarianza entre $\Vect{x}$ e $\Vect{y}$, dividida por la varianza de $\Vect{X}$.", True),
-    
+
     Cuestion(
         r"$\frac{N^{-1}\sum(x_n-\media{\Vect{x}})(y_n-\media{\Vect{y}})}{N^{-1}\sum(x_n-\media{\Vect{x}})^2}" +
         r"=\frac{\dotprod{(\Vect{x}-\Media{\Vect{x}})}{(\Vect{y}-\Media{\Vect{y}})}}"
         +     r"{\dotprod{(\Vect{x}-\Media{\Vect{x}})}{(\Vect{x}-\Media{\Vect{x}})}}$.",
                                                                                                       True),
-      
+
     Cuestion(r"la covarianza entre $\Vect{x}$ e $\Vect{y}$, dividida por la varianza de $\Vect{y}$.",False),
-    
+
     Cuestion(
         r"$\frac{N^{-1}\sum(x_n-\media{\Vect{x}})(y_n-\media{\Vect{y}})}{N^{-1}\sum(y_n-\media{\Vect{y}})^2}" +
         r"=\frac{\dotprod{(\Vect{x}-\Media{\Vect{x}})}{(\Vect{y}-\Media{\Vect{y}})}}"
         +     r"{\dotprod{(\Vect{y}-\Media{\Vect{y}})}{(\Vect{y}-\Media{\Vect{y}})}}$.",             False),
-      
+
     Cuestion(r"la varianza de $\Vect{x}$ dividida por la covarianza entre $\Vect{x}$ e $\Vect{y}$.", False),
-      
+
     Cuestion(
         r"$\frac{N^{-1}\sum(x_n-\media{\Vect{x}})^2}{N^{-1}\sum(x_n-\media{\Vect{x}})(y_n-\media{\Vect{y}})}" +
         r"=\frac{\dotprod{(\Vect{x}-\Media{\Vect{x}})}{(\Vect{x}-\Media{\Vect{x}})}}"
@@ -1127,31 +1050,31 @@ p = [ r"En el ajuste MCO:\; $\ajusteMLS$,\; el parámetro $\widehat{\beta_2}$ es
   ],
   [
     Cuestion(r"la correlación $\corr{\Vect{x}}{\Vect{y}}$ multiplicada por " +
-             r"la desviación típica $\dt{\Vect{y}}$ y dividida por $\dt{\Vect{x}}$.",                 True),   
+             r"la desviación típica $\dt{\Vect{y}}$ y dividida por $\dt{\Vect{x}}$.",                 True),
     Cuestion(r"la correlación $\corr{\Vect{x}}{\Vect{y}}$ multiplicada por " +
-             r"la desviación típica $\dt{\Vect{x}}$ y dividida por $\dt{\Vect{y}}$.",                False),    
+             r"la desviación típica $\dt{\Vect{x}}$ y dividida por $\dt{\Vect{y}}$.",                False),
     Cuestion(r"la correlación $\corr{\Vect{x}}{\Vect{y}}$ multiplicada por " +
              r"la varianza $\var{\Vect{y}}$ y dividida por $\var{\Vect{x}}$.",                       False),
-    Cuestion(r"la covarianza entre $\Vect{x}$ e $\Vect{y}$ si la varianza de $\Vect{x}$ es uno.",     True),    
+    Cuestion(r"la covarianza entre $\Vect{x}$ e $\Vect{y}$ si la varianza de $\Vect{x}$ es uno.",     True),
     Cuestion(r"la covarianza entre $\Vect{x}$ e $\Vect{y}$ si la varianza de $\Vect{y}$ es uno.",    False),
   ],
   [
     Cuestion(r"uno si la covarianza entre $\Vect{x}$ e $\Vect{y}$ es uno",                           False),
-    
+
     Cuestion(r"indeterminado si la varianza de $\Vect{y}$ es cero",                                  False),
-      
+
     Cuestion(r"indeterminado si la varianza de $\Vect{x}$ es cero",                                   True),
-    
+
     Cuestion(r"la inversa de la varianza de $\Vect{x}$ " +
              r"si la covarianza entre $\Vect{x}$ e $\Vect{y}$ es uno",                                True),
-    
+
     Cuestion(r"la inversa de la varianza de $\Vect{x}$ " +
              r"si la covarianza entre $\Vect{x}$ e $\Vect{y}$ es cero",                              False),
   ],
 ]
 #+END_SRC
 
-#+LATEX: 
+#+LATEX:
 # \includepdf[pages=-,scale=1,pagecommand={},]{./bancoPreguntas/L-02-AjusteMCOdeMLS-pendiente.pdf}
 #+LATEX: \clearpage
 
@@ -1174,7 +1097,7 @@ preguntas[nombre] = ProblemaTipoProfe( p );
 with open(directorio + nombre + ".tex","w") as f:
     for var in preguntas[nombre]:
         f.write( AMCmcProfe(nombre, var[0], var[1], var[2], mc) )
-carpeta = "AMCfilesProfe"        
+carpeta = "AMCfilesProfe"
 <<Movemos el .tex a la carpeta>>
 #+END_SRC
 

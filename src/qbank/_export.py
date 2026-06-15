@@ -15,24 +15,132 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import re as _re
+import warnings as _warnings
 from qbank._quiz import *
 
-def AMC (nombre, etiqueta, enunciado, cuestiones, opc=["",""]):
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _sanitize_name(nombre):
+    """Sustituye ':' por '-' en identificadores LaTeX (Make y algunos parsers LaTeX lo rechazan)."""
+    return nombre.replace(':', '-')
+
+def codchar(s):
+     s = s.replace("á", "\\'{a}")
+     s = s.replace("é", "\\'{e}")
+     s = s.replace("í", "\\'{i}")
+     s = s.replace("ó", "\\'{o}")
+     s = s.replace("ú", "\\'{u}")
+     s = s.replace("ñ", "\\~{n}")
+     return s
+
+# ── Exportadores AMC ──────────────────────────────────────────────────────────
+
+def AMCblock(nombre, etiqueta, enunciado, cuestiones,
+             last_choice=False, cols=1, profe=False,
+             opc=["", "Ninguna de las anteriores"]):
+    """Genera el bloque AMC para una pregunta de tipo multichoice.
+
+    Parámetros
+    ----------
+    nombre      : identificador del grupo AMC (se sanitiza: ':' → '-')
+    etiqueta    : etiqueta de la variante
+    enunciado   : texto del enunciado (``$$...$$`` se convierte a ``\\[...\\]``)
+    cuestiones  : lista de (texto, correcto, activa[, exp])
+    last_choice : si True, añade opción comodín con ``\\lastchoices``
+    cols        : número de columnas multicols (1 = sin multicols)
+    profe       : si True, añade ``\\explain`` con cuestiones rechazadas
+    opc         : [instrucciones_extra, texto_lastchoice]
+    """
     InstruccionesAux = opc[0]
     OpcPorDefecto    = opc[1]
-    s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
-    s = s + ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s = s + '  ' + enunciado + '\n'
+    nombre_tex    = _sanitize_name(nombre)
+    enunciado_tex = _re.sub(r'\$\$(.+?)\$\$', r'\\[\1\\]', enunciado, flags=_re.DOTALL)
 
-    s = s + '     \\begin{choices}\n'
+    ex = ''
+    s  = '\\element{' + nombre_tex + '}{' + InstruccionesAux + '\n'
+    s += ' \\begin{questionmult}{' + nombre_tex + '-' + str(etiqueta) + '}\n'
+    s += '  ' + enunciado_tex + '\n'
+
+    if cols > 1:
+        s += '   \\begin{multicols}{' + str(cols) + '}\\AMCBoxedAnswers\n'
+        ch_indent = '      '
+    else:
+        ch_indent = '     '
+
+    s += ch_indent + '\\begin{choices}\n'
     for c in cuestiones:
         if c[2]:
-            s = s + (' ' * 7) + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + c[0] + '}\n'
-    s = s + '     \\end{choices}\n'
-    s = s + ' \\end{questionmult} '
-    s = s + '}\n\n'
+            s += ' ' * 7 + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + c[0] + '}\n'
+        elif profe:
+            ex += ' cuestion: ' + c[0] + '; ' + str(c[1]) + '\n'
+
+    if last_choice:
+        s += ' ' * 7 + '\\lastchoices\n'
+        s += ' ' * 7 + ('\\wrongchoice  {' if any(c[1] for c in cuestiones) else '\\correctchoice{') + OpcPorDefecto + '}\n'
+
+    s += ch_indent + '\\end{choices}\n'
+
+    if cols > 1:
+        s += '   \\end{multicols}\n'
+
+    if profe and ex:
+        s += '   \\explain{' + ex + '            }\n'
+
+    s += ' \\end{questionmult} '
+    s += '}\n\n'
     return s
-def AMC_VF (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
+
+
+# ── Aliases deprecados (usan AMCblock internamente) ───────────────────────────
+
+def AMC(nombre, etiqueta, enunciado, cuestiones, opc=["",""]):
+    _warnings.warn(
+        "AMC está deprecado; usa AMCblock(nombre, etiqueta, enunciado, cuestiones, "
+        "last_choice=False, cols=1).",
+        DeprecationWarning, stacklevel=2)
+    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
+                    last_choice=False, cols=1, profe=False, opc=opc)
+
+def AMCProfe(nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
+    _warnings.warn(
+        "AMCProfe está deprecado; usa AMCblock(..., profe=True).",
+        DeprecationWarning, stacklevel=2)
+    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
+                    last_choice=False, cols=1, profe=True, opc=opc)
+
+def AMClastCh(nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
+    _warnings.warn(
+        "AMClastCh está deprecado; usa AMCblock(..., last_choice=True).",
+        DeprecationWarning, stacklevel=2)
+    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
+                    last_choice=True, cols=1, profe=False, opc=opc)
+
+def AMCmc(nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
+    _warnings.warn(
+        "AMCmc está deprecado; usa AMCblock(..., cols=ncols).",
+        DeprecationWarning, stacklevel=2)
+    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
+                    last_choice=False, cols=ncols, profe=False, opc=opc)
+
+def AMCmcProfe(nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
+    _warnings.warn(
+        "AMCmcProfe está deprecado; usa AMCblock(..., cols=ncols, profe=True).",
+        DeprecationWarning, stacklevel=2)
+    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
+                    last_choice=False, cols=ncols, profe=True, opc=opc)
+
+def AMClastChmc(nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
+    _warnings.warn(
+        "AMClastChmc está deprecado; usa AMCblock(..., last_choice=True, cols=ncols).",
+        DeprecationWarning, stacklevel=2)
+    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
+                    last_choice=True, cols=ncols, profe=False, opc=opc)
+
+
+# ── AMC para ProblemaVF y multiparte (sin cambios) ───────────────────────────
+
+def AMC_VF(nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
     InstruccionesAux = opc[0]
     OpcPorDefecto    = opc[1]
     s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
@@ -46,360 +154,6 @@ def AMC_VF (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las ant
 
     s = s + ' \\end{questionmult} '
     s = s + '}\n\n'
-    return s
-def AMCProfe (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
-    InstruccionesAux = opc[0]
-    OpcPorDefecto    = opc[1]
-    ex = ''
-    s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
-    s = s + ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s = s + '  ' + enunciado + '\n'
-
-    s = s + '     \\begin{choices}\n'
-    for c in cuestiones:
-        if c[2]:
-            s = s + (' ' * 7) + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + c[0] + '}\n'
-        else:
-            ex = ex + ' cuestion: ' + c[0] + '; ' + str(c[1]) + '\n'
-    s = s + '     \\end{choices}\n'
-    if ex:
-        s = s + '   \\explain{' + ex + '            }\n'
-    s = s + ' \\end{questionmult} '
-    s = s + '}\n\n'
-    return s
-def AMClastCh (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
-    InstruccionesAux = opc[0]
-    OpcPorDefecto    = opc[1]
-    s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
-    s = s + ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s = s + '  ' + enunciado + '\n'
-
-    s = s + '     \\begin{choices}\n'
-    for c in cuestiones:
-        if c[2]:
-            s = s + (' ' * 7) + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + c[0] + '}\n'
-    s = s + (' ' * 7) + '\\lastchoices\n'
-    s = s + (' ' * 7) + ('\\wrongchoice  {' if any([c[1] for c in cuestiones]) else '\\correctchoice{') + OpcPorDefecto + '}\n'
-    s = s + '     \\end{choices}\n'
-
-    s = s + ' \\end{questionmult} '
-    s = s + '}\n\n'
-    return s
-def AMCmc (nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
-    InstruccionesAux = opc[0]
-    OpcPorDefecto    = opc[1]
-    s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
-    s = s + ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s = s + '  ' + enunciado + '\n'
-    s = s + '   \\begin{multicols}{' + str(ncols) + '}\\AMCBoxedAnswers\n'
-    s = s + '      \\begin{choices}\n'
-    for c in cuestiones:
-        if c[2]:
-            s = s + (' ' * 7) + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + c[0] + '}\n'
-    s = s + '      \\end{choices}\n'
-    s = s + '   \\end{multicols}\n'
-    s = s + ' \\end{questionmult} '
-    s = s + '}\n\n'
-    return s
-def AMCmcProfe (nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
-    InstruccionesAux = opc[0]
-    OpcPorDefecto    = opc[1]
-    ex = ''
-    s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
-    s = s + ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s = s + '  ' + enunciado + '\n'
-    s = s + '   \\begin{multicols}{' + str(ncols) + '}\\AMCBoxedAnswers\n'
-    s = s + '      \\begin{choices}\n'
-    for c in cuestiones:
-        if c[2]:
-            s = s + (' ' * 7) + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + c[0] + '}\n'
-        else:
-            ex = ex + ' cuestion: ' + c[0] + '; ' + str(c[1]) + '\n'
-    s = s + '     \\end{choices}\n'
-    s = s + '   \\end{multicols}\n'
-    if ex:
-        s = s + '   \\explain{' + ex + '            }\n'
-    s = s + ' \\end{questionmult} '
-    s = s + '}\n\n'
-    return s
-def AMClastChmc (nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
-    InstruccionesAux = opc[0]
-    OpcPorDefecto    = opc[1]
-    s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
-    s = s + ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s = s + '  ' + enunciado + '\n'
-    s = s + '   \\begin{multicols}{' + str(ncols) + '}\\AMCBoxedAnswers\n'
-    s = s + '      \\begin{choices}\n'
-    for c in cuestiones:
-        if c[2]:
-            s = s + (' ' * 7) + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + c[0] + '}\n'
-    s = s + (' ' * 7) + '\\lastchoices\n'
-    s = s + (' ' * 7) + ('\\wrongchoice  {' if any([c[1] for c in cuestiones]) else '\\correctchoice{') + OpcPorDefecto + '}\n'
-    s = s + '      \\end{choices}\n'
-    s = s + '   \\end{multicols}\n'
-    s = s + ' \\end{questionmult} '
-    s = s + '}\n\n'
-    return s
-
-def codchar(s):
-     s = s.replace("á", "\\'{a}")
-     s = s.replace("é", "\\'{e}")
-     s = s.replace("í", "\\'{i}")
-     s = s.replace("ó", "\\'{o}")
-     s = s.replace("ú", "\\'{u}")
-     s = s.replace("ñ", "\\~{n}")
-     return s
-
-def QuizMoodle (nombre, directorio, problema, opc=["",""]):
-    def creaDiccionario(x, key='key'):
-        return x if isinstance(x, dict) else {key: x}
-    problema = creaDiccionario(problema, nombre)
-    auxLaTeX = opc[0]
-    s = "\\documentclass[11pt]{article}\n\n"
-    s = s + "\\usepackage[cm,headings]{fullpage}\n\n"
-    s = s + "\\usepackage{moodle}\n\n"
-    s = s + "\\usepackage{graphicx}\n\n"
-    s = s + "\\usepackage{fancyvrb}\n\n"
-    s = s + "\\ifPDFTeX                    % FOR LATEX and PDFLATEX\n"
-    s = s + "    \\usepackage[utf8]{inputenc}   % necessary\n"
-    s = s + "    \\usepackage[OT1] {fontenc}    % necessary\n"
-    s = s + "\\else                        % assuming XELATEX or LUALATEX\n"
-    s = s + "    \\usepackage{fontspec}\n"
-    s = s + "\\fi\n\n"
-    s = s + auxLaTeX + "\n" + "\\newcommand\\peque{}" + "\n\n"
-    s = s + "\\begin{document}\n\n"
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i,nom in enumerate(problema):
-            for etiqueta, partes in problema[nom].por_partes():
-                f.write(_ClozeBlock(nom, etiqueta, partes, _ClozeMulti))
-        f.write("\\end{quiz}\n\n\\end{document}\n")
-def QuizMoodleConVariables (nombre, directorio, problema, environment, Valores, opc=["",""]):
-    def creaDiccionario(x, key='key'):
-        return x if isinstance(x, dict) else {key: x}
-    problema = creaDiccionario(problema, nombre)
-    auxLaTeX = opc[0]
-    s = "\\documentclass[11pt]{article}\n\n"
-    s = s + "\\usepackage[cm,headings]{fullpage}\n\n"
-    s = s + "\\usepackage{moodle}\n\n"
-    s = s + "\\usepackage{graphicx}\n\n"
-    s = s + "\\usepackage{fancyvrb}\n\n"
-    s = s + "\\ifPDFTeX                    % FOR LATEX and PDFLATEX\n"
-    s = s + "    \\usepackage[utf8]{inputenc}   % necessary\n"
-    s = s + "    \\usepackage[OT1] {fontenc}    % necessary\n"
-    s = s + "\\else                        % assuming XELATEX or LUALATEX\n"
-    s = s + "    \\usepackage{fontspec}\n"
-    s = s + "\\fi\n\n"
-    s = s + auxLaTeX + "\n" + "\\newcommand\\peque{}" + "\n\n"
-    s = s + "\\begin{document}\n\n"
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i,nom in enumerate(problema):
-            for etiqueta, partes in problema[nom].por_partes():
-                template = environment.from_string(_ClozeBlock(nom, etiqueta, partes, _ClozeMulti))
-                content = template.render(Valores())
-                f.write(content)
-        f.write("\\end{quiz}\n\n\\end{document}\n")
-def QuizMoodleProfe (nombre, directorio, problema, opc=["",""]):
-    def creaDiccionario(x, key='key'):
-        return x if isinstance(x, dict) else {key: x}
-    problema = creaDiccionario(problema, nombre)
-    auxLaTeX = opc[0]
-    s = "\\documentclass[11pt]{article}\n\n"
-    s = s + "\\usepackage[cm,headings]{fullpage}\n\n"
-    s = s + "\\usepackage{moodle}\n\n"
-    s = s + "\\usepackage{graphicx}\n\n"
-    s = s + "\\usepackage{fancyvrb}\n\n"
-    s = s + "\\ifPDFTeX                    % FOR LATEX and PDFLATEX\n"
-    s = s + "    \\usepackage[utf8]{inputenc}   % necessary\n"
-    s = s + "    \\usepackage[OT1] {fontenc}    % necessary\n"
-    s = s + "\\else                        % assuming XELATEX or LUALATEX\n"
-    s = s + "    \\usepackage{fontspec}\n"
-    s = s + "\\fi\n\n"
-    s = s + auxLaTeX + "\n" + "\\newcommand\\peque{}" + "\n\n"
-    s = s + "\\begin{document}\n\n"
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i,nom in enumerate(problema):
-            for etiqueta, partes in problema[nom].por_partes():
-                f.write(_ClozeBlock(nom, etiqueta, partes, _ClozeMultiProfe))
-        f.write("\\end{quiz}\n\n\\end{document}\n")
-def QuizMoodleProfeConVariables (nombre, directorio, problema, environment, Valores, opc=["",""]):
-    def creaDiccionario(x, key='key'):
-        return x if isinstance(x, dict) else {key: x}
-    problema = creaDiccionario(problema, nombre)
-    auxLaTeX = opc[0]
-    s = "\\documentclass[11pt]{article}\n\n"
-    s = s + "\\usepackage[cm,headings]{fullpage}\n\n"
-    s = s + "\\usepackage{moodle}\n\n"
-    s = s + "\\usepackage{graphicx}\n\n"
-    s = s + "\\usepackage{fancyvrb}\n\n"
-    s = s + "\\ifPDFTeX                    % FOR LATEX and PDFLATEX\n"
-    s = s + "    \\usepackage[utf8]{inputenc}   % necessary\n"
-    s = s + "    \\usepackage[OT1] {fontenc}    % necessary\n"
-    s = s + "\\else                        % assuming XELATEX or LUALATEX\n"
-    s = s + "    \\usepackage{fontspec}\n"
-    s = s + "\\fi\n\n"
-    s = s + auxLaTeX + "\n" + "\\newcommand\\peque{}" + "\n\n"
-    s = s + "\\begin{document}\n\n"
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i,nom in enumerate(problema):
-            for etiqueta, partes in problema[nom].por_partes():
-                template = environment.from_string(_ClozeBlock(nom, etiqueta, partes, _ClozeMultiProfe))
-                content = template.render(Valores())
-                f.write(content)
-        f.write("\\end{quiz}\n\n\\end{document}\n")
-def QuizVFMoodle (nombre, directorio, GenVar, num, opc=["",""]):
-    auxLaTeX      = opc[0]
-    s = "\\documentclass[11pt]{article}\n\n"
-    s = s + "\\usepackage[cm,headings]{fullpage}\n\n"
-    s = s + "\\usepackage{moodle}\n\n"
-    s = s + "\\usepackage{graphicx}\n\n"
-    s = s + "\\usepackage{fancyvrb}\n\n"
-    s = s + "\\ifPDFTeX                    % FOR LATEX and PDFLATEX\n"
-    s = s + "    \\usepackage[utf8]{inputenc}   % necessary\n"
-    s = s + "    \\usepackage[OT1] {fontenc}    % necessary\n"
-    s = s + "\\else                        % assuming XELATEX or LUALATEX\n"
-    s = s + "    \\usepackage{fontspec}\n"
-    s = s + "\\fi\n\n"
-    s = s + auxLaTeX + "\n" + "\\newcommand\\peque{}" + "\n\n"
-    s = s + "\\begin{document}\n\n"
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i in range(num):
-            var = next(GenVar)
-            f.write( MoodleMulti (codchar(nombre), var[0], codchar(var[1]), var[2]) )
-        f.write("\\end{quiz}\n\n\\end{document}\n")
-def MoodleMulti (nombre, variante, enunciado, cuestiones):
-    def itemBuena(aclaracion):
-        return ("\\item[feedback={" + codchar(aclaracion) + "}]* ") if aclaracion else r"\item* "
-    
-    def itemMala(aclaracion):
-        return ("\\item[feedback={" + codchar(aclaracion) + "}]  ") if aclaracion else r"\item  "
-    
-    ex = ''
-    s = " \\begin{multi}[multiple, points=" + str(len(cuestiones)-1) +"]"
-    s = s + "{" + codchar(nombre) + "-" + str(variante) + "}\n"
-    s = s + "    " + enunciado + "\n"
-    
-    for c in cuestiones:
-        fb = c[3] if len(c) > 3 else ''
-        s = s + (' ' * 7) + (itemBuena(fb) if c[1] else itemMala(fb)) + codchar(c[0]) + '\n'
-    
-    s = s + " \\end{multi}\n\n"
-    return s
-def MoodleMultiProfe (nombre, variante, enunciado, cuestiones):
-    def feedback(texto):
-        return r",\feedback={"+codchar(texto)+"}"
-    b = 0; m = 0;
-    for c in cuestiones:
-        if c[2]:
-            if c[1]:
-                b+=1
-            else:
-                m+=1
-    def itemBuena(numBuenas, aclaracion):
-        return ("\\item[fraction=" + str(round(100/numBuenas)) + feedback(aclaracion) + "]") if numBuenas else "\\item*"
-    
-    def itemMala(numMalas, aclaracion):
-        return ("\\item[fraction=" + str(-round(100/numMalas)) + feedback(aclaracion) + "]") if numMalas else "\\item"
-    
-    ex = ''
-    s = " \\begin{multi}[multiple, fractiontol=5.1"  +"]"
-    s = s + "{" + codchar(nombre) + "-" + str(variante) + "}\n"
-    s = s + "    " + enunciado + "\n"
-    
-    for c in cuestiones:
-        if c[2]:
-            s = s + (' ' * 7) + (itemBuena(b, c[3]) if c[1] else itemMala(m, c[3])) + codchar(c[0]) + "\n"
-        else:
-            ex = ex + ' cuestion: ' + c[0] + '; ' + str(c[1]) + '\n'
-    
-    s = s + " \\end{multi}\n\n"
-    return s
-
-def QuizMoodleLastCh (nombre, directorio, problema, opc=["","Las demás opciones son falsas"]):
-    def creaDiccionario(x, key='key'):
-        return x if isinstance(x, dict) else {key: x}
-    problema      = creaDiccionario(problema, nombre)
-    auxLaTeX      = opc[0]
-    OpcPorDefecto = opc[1]
-    s = "\\documentclass[11pt]{article}\n\n"
-    s = s + "\\usepackage[cm,headings]{fullpage}\n\n"
-    s = s + "\\usepackage{moodle}\n\n"
-    s = s + "\\usepackage{graphicx}\n\n"
-    s = s + "\\usepackage{fancyvrb}\n\n"
-    s = s + "\\ifPDFTeX                    % FOR LATEX and PDFLATEX\n"
-    s = s + "    \\usepackage[utf8]{inputenc}   % necessary\n"
-    s = s + "    \\usepackage[OT1] {fontenc}    % necessary\n"
-    s = s + "\\else                        % assuming XELATEX or LUALATEX\n"
-    s = s + "    \\usepackage{fontspec}\n"
-    s = s + "\\fi\n\n"
-    s = s + auxLaTeX + "\n" + "\\newcommand\\peque{}" + "\n\n"
-    s = s + "\\begin{document}\n\n"
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i,nom in enumerate(problema):
-            for etiqueta, partes in problema[nom].por_partes():
-                f.write(_ClozeBlock(nom, etiqueta, partes, lambda c: _ClozeMultiLastCh(c, opc[1])))
-        f.write("\\end{quiz}\n\n\\end{document}\n")
-def QuizMoodleLastChConVariables (nombre, directorio, problema, environment, Valores, opc=["","Las demás opciones son falsas"]):
-    def creaDiccionario(x, key='key'):
-        return x if isinstance(x, dict) else {key: x}
-    problema      = creaDiccionario(problema, nombre)
-    auxLaTeX      = opc[0]
-    OpcPorDefecto = opc[1]
-    s = "\\documentclass[11pt]{article}\n\n"
-    s = s + "\\usepackage[cm,headings]{fullpage}\n\n"
-    s = s + "\\usepackage{moodle}\n\n"
-    s = s + "\\usepackage{graphicx}\n\n"
-    s = s + "\\usepackage{fancyvrb}\n\n"
-    s = s + "\\ifPDFTeX                    % FOR LATEX and PDFLATEX\n"
-    s = s + "    \\usepackage[utf8]{inputenc}   % necessary\n"
-    s = s + "    \\usepackage[OT1] {fontenc}    % necessary\n"
-    s = s + "\\else                        % assuming XELATEX or LUALATEX\n"
-    s = s + "    \\usepackage{fontspec}\n"
-    s = s + "\\fi\n\n"
-    s = s + auxLaTeX + "\n" + "\\newcommand\\peque{}" + "\n\n"
-    s = s + "\\begin{document}\n\n"
-    s = s + "\\begin{quiz}{" + nombre + "}\n\n"
-    with open(directorio + nombre + ".tex","w") as f:
-        f.write(s)
-        for i,nom in enumerate(problema):
-            for etiqueta, partes in problema[nom].por_partes():
-                template = environment.from_string(
-                    _ClozeBlock(nom, etiqueta, partes, lambda c: _ClozeMultiLastCh(c, opc[1])))
-                content = template.render(Valores())
-                f.write(content)
-        f.write("\\end{quiz}\n\n\\end{document}\n")
-
-def MoodleMultiLastCh (nombre, variante, enunciado, cuestiones, \
-                        lastchoice="Las demás opciones son falsas"):
-    v = [c[1] for c in cuestiones].count(True)
-    cuestiones = cuestiones + [(codchar(lastchoice), (False if v else True), 1, '')]
-    def itemBuena(aclaracion):
-        return ("\\item[feedback={" + codchar(aclaracion) + "}]* ") if aclaracion else r"\item* "
-    
-    def itemMala(aclaracion):
-        return ("\\item[feedback={" + codchar(aclaracion) + "}]  ") if aclaracion else r"\item  "
-    
-    ex = ''
-    s = " \\begin{multi}[multiple, points=" + str(len(cuestiones)-1) +"]"
-    s = s + "{" + codchar(nombre) + "-" + str(variante) + "}\n"
-    s = s + "    " + enunciado + "\n"
-    
-    for c in cuestiones:
-        fb = c[3] if len(c) > 3 else ''
-        s = s + (' ' * 7) + (itemBuena(fb) if c[1] else itemMala(fb)) + codchar(c[0]) + '\n'
-    
-    s = s + " \\end{multi}\n\n"
     return s
 
 def AMC_multipart(nombre, etiqueta, enunciado, subpreguntas, opc=[""]):
@@ -424,12 +178,171 @@ def AMC_multipart(nombre, etiqueta, enunciado, subpreguntas, opc=[""]):
     s += ' \\end{questionmult} '
     s += '}\n\n'
     return s
+
+
+# ── Exportadores Moodle ───────────────────────────────────────────────────────
+
+_MOODLE_HEADER = """\
+\\documentclass[11pt]{{article}}
+
+\\usepackage[cm,headings]{{fullpage}}
+
+\\usepackage{{moodle}}
+
+\\usepackage{{graphicx}}
+
+\\usepackage{{fancyvrb}}
+
+\\ifPDFTeX                    % FOR LATEX and PDFLATEX
+    \\usepackage[utf8]{{inputenc}}   % necessary
+    \\usepackage[OT1] {{fontenc}}    % necessary
+\\else                        % assuming XELATEX or LUALATEX
+    \\usepackage{{fontspec}}
+\\fi
+
+{auxLaTeX}
+\\newcommand\\peque{{}}
+
+\\begin{{document}}
+
+\\begin{{quiz}}{{{nombre_tex}}}
+
+"""
+
+def _moodle_header(nombre, auxLaTeX=""):
+    return _MOODLE_HEADER.format(
+        auxLaTeX=auxLaTeX,
+        nombre_tex=_sanitize_name(nombre),
+    )
+
+def QuizMoodle(nombre, directorio, problema, last_choice=False,
+               opc=["", "Las demás opciones son falsas"]):
+    """Exporta un problema (o dict de problemas) al formato Moodle XML vía LaTeX.
+
+    Parámetros
+    ----------
+    nombre      : nombre del quiz (identifica el grupo en Moodle)
+    directorio  : ruta al directorio de salida (con '/' al final)
+    problema    : ProblemaTipo o dict {nombre: ProblemaTipo}
+    last_choice : si True, añade la opción comodín «las demás son falsas»
+    opc         : [auxLaTeX, texto_lastchoice]
+    """
+    def creaDiccionario(x, key='key'):
+        return x if isinstance(x, dict) else {key: x}
+    problema      = creaDiccionario(problema, nombre)
+    OpcPorDefecto = opc[1]
+
+    cuerpo = (lambda c: _ClozeMultiLastCh(c, OpcPorDefecto)) if last_choice else _ClozeMulti
+
+    with open(directorio + nombre + ".tex", "w") as f:
+        f.write(_moodle_header(nombre, auxLaTeX=opc[0]))
+        for i, nom in enumerate(problema):
+            for etiqueta, partes in problema[nom].por_partes():
+                f.write(_ClozeBlock(nom, etiqueta, partes, cuerpo))
+        f.write("\\end{quiz}\n\n\\end{document}\n")
+
+def QuizMoodleLastCh(nombre, directorio, problema, opc=["","Las demás opciones son falsas"]):
+    _warnings.warn(
+        "QuizMoodleLastCh está deprecado; usa QuizMoodle(..., last_choice=True).",
+        DeprecationWarning, stacklevel=2)
+    return QuizMoodle(nombre, directorio, problema, last_choice=True, opc=opc)
+
+def QuizMoodleProfe(nombre, directorio, problema, opc=["",""]):
+    def creaDiccionario(x, key='key'):
+        return x if isinstance(x, dict) else {key: x}
+    problema = creaDiccionario(problema, nombre)
+    with open(directorio + nombre + ".tex", "w") as f:
+        f.write(_moodle_header(nombre, auxLaTeX=opc[0]))
+        for i, nom in enumerate(problema):
+            for etiqueta, partes in problema[nom].por_partes():
+                f.write(_ClozeBlock(nom, etiqueta, partes, _ClozeMultiProfe))
+        f.write("\\end{quiz}\n\n\\end{document}\n")
+
+def QuizVFMoodle(nombre, directorio, GenVar, num, opc=["",""]):
+    auxLaTeX = opc[0]
+    with open(directorio + nombre + ".tex", "w") as f:
+        f.write(_moodle_header(nombre, auxLaTeX=auxLaTeX))
+        for i in range(num):
+            var = next(GenVar)
+            f.write(MoodleMulti(codchar(nombre), var[0], codchar(var[1]), var[2]))
+        f.write("\\end{quiz}\n\n\\end{document}\n")
+
+def MoodleMulti(nombre, variante, enunciado, cuestiones):
+    def itemBuena(aclaracion):
+        return ("\\item[feedback={" + codchar(aclaracion) + "}]* ") if aclaracion else r"\item* "
+
+    def itemMala(aclaracion):
+        return ("\\item[feedback={" + codchar(aclaracion) + "}]  ") if aclaracion else r"\item  "
+
+    s = " \\begin{multi}[multiple, points=" + str(len(cuestiones)-1) +"]"
+    s = s + "{" + codchar(nombre) + "-" + str(variante) + "}\n"
+    s = s + "    " + enunciado + "\n"
+
+    for c in cuestiones:
+        fb = c[3] if len(c) > 3 else ''
+        s = s + (' ' * 7) + (itemBuena(fb) if c[1] else itemMala(fb)) + codchar(c[0]) + '\n'
+
+    s = s + " \\end{multi}\n\n"
+    return s
+
+def MoodleMultiProfe(nombre, variante, enunciado, cuestiones):
+    def feedback(texto):
+        return r",\feedback={"+codchar(texto)+"}"
+    b = 0; m = 0;
+    for c in cuestiones:
+        if c[2]:
+            if c[1]:
+                b+=1
+            else:
+                m+=1
+    def itemBuena(numBuenas, aclaracion):
+        return ("\\item[fraction=" + str(round(100/numBuenas)) + feedback(aclaracion) + "]") if numBuenas else "\\item*"
+
+    def itemMala(numMalas, aclaracion):
+        return ("\\item[fraction=" + str(-round(100/numMalas)) + feedback(aclaracion) + "]") if numMalas else "\\item"
+
+    s = " \\begin{multi}[multiple, fractiontol=5.1"  +"]"
+    s = s + "{" + codchar(nombre) + "-" + str(variante) + "}\n"
+    s = s + "    " + enunciado + "\n"
+
+    for c in cuestiones:
+        if c[2]:
+            s = s + (' ' * 7) + (itemBuena(b, c[3]) if c[1] else itemMala(m, c[3])) + codchar(c[0]) + "\n"
+
+    s = s + " \\end{multi}\n\n"
+    return s
+
+def MoodleMultiLastCh(nombre, variante, enunciado, cuestiones,
+                      lastchoice="Las demás opciones son falsas"):
+    v = [c[1] for c in cuestiones].count(True)
+    cuestiones = cuestiones + [(codchar(lastchoice), (False if v else True), 1, '')]
+    def itemBuena(aclaracion):
+        return ("\\item[feedback={" + codchar(aclaracion) + "}]* ") if aclaracion else r"\item* "
+
+    def itemMala(aclaracion):
+        return ("\\item[feedback={" + codchar(aclaracion) + "}]  ") if aclaracion else r"\item  "
+
+    s = " \\begin{multi}[multiple, points=" + str(len(cuestiones)-1) +"]"
+    s = s + "{" + codchar(nombre) + "-" + str(variante) + "}\n"
+    s = s + "    " + enunciado + "\n"
+
+    for c in cuestiones:
+        fb = c[3] if len(c) > 3 else ''
+        s = s + (' ' * 7) + (itemBuena(fb) if c[1] else itemMala(fb)) + codchar(c[0]) + '\n'
+
+    s = s + " \\end{multi}\n\n"
+    return s
+
+
+# ── Bloques Cloze (Moodle interno) ───────────────────────────────────────────
+
 def _ClozeMulti(cuestiones):
     def itemBuena(aclaracion):
         return ("\\item[feedback={" + codchar(aclaracion) + "}]* ") if aclaracion else r"\item* "
-    
+
     def itemMala(aclaracion):
         return ("\\item[feedback={" + codchar(aclaracion) + "}]  ") if aclaracion else r"\item  "
+
     s = "  \\begin{multi}[multiple, points=" + str(len(cuestiones)-1) + "]\n"
     for c in cuestiones:
         fb = c[3] if len(c) > 3 else ''
@@ -442,9 +355,10 @@ def _ClozeMultiLastCh(cuestiones, lastchoice="Las demás opciones son falsas"):
     cuestiones = cuestiones + [(codchar(lastchoice), (False if v else True), 1, '')]
     def itemBuena(aclaracion):
         return ("\\item[feedback={" + codchar(aclaracion) + "}]* ") if aclaracion else r"\item* "
-    
+
     def itemMala(aclaracion):
         return ("\\item[feedback={" + codchar(aclaracion) + "}]  ") if aclaracion else r"\item  "
+
     s = "  \\begin{multi}[multiple, points=" + str(len(cuestiones)-1) + "]\n"
     for c in cuestiones:
         fb = c[3] if len(c) > 3 else ''
@@ -464,23 +378,22 @@ def _ClozeMultiProfe(cuestiones):
                 m+=1
     def itemBuena(numBuenas, aclaracion):
         return ("\\item[fraction=" + str(round(100/numBuenas)) + feedback(aclaracion) + "]") if numBuenas else "\\item*"
-    
+
     def itemMala(numMalas, aclaracion):
         return ("\\item[fraction=" + str(-round(100/numMalas)) + feedback(aclaracion) + "]") if numMalas else "\\item"
-    ex = ''
+
     s = "  \\begin{multi}[multiple, fractiontol=5.1]\n"
     for c in cuestiones:
         if c[2]:
             s = s + (' ' * 7) + (itemBuena(b, c[3]) if c[1] else itemMala(m, c[3])) + codchar(c[0]) + "\n"
-        else:
-            ex = ex + ' cuestion: ' + c[0] + '; ' + str(c[1]) + '\n'
     s = s + "  \\end{multi}\n\n"
     return s
 
 def _ClozeBlock(nombre, etiqueta, partes, cuerpo):
     """Envuelve las partes de una variante en un entorno cloze.
     `cuerpo(cuestiones)` genera el bloque \\begin{multi}…\\end{multi} de cada parte."""
-    s = " \\begin{cloze}{" + codchar(nombre) + "-" + str(etiqueta) + "}\n"
+    nombre_tex = codchar(_sanitize_name(nombre))
+    s = " \\begin{cloze}{" + nombre_tex + "-" + str(etiqueta) + "}\n"
     for enunciado, cuestiones in partes:
         s += "  " + codchar(enunciado) + "\n"
         s += cuerpo(cuestiones)
