@@ -16,7 +16,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import re as _re
-import warnings as _warnings
 from qbank._quiz import *
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -92,53 +91,7 @@ def AMCblock(nombre, etiqueta, enunciado, cuestiones,
     return s
 
 
-# ── Aliases deprecados (usan AMCblock internamente) ───────────────────────────
-
-def AMC(nombre, etiqueta, enunciado, cuestiones, opc=["",""]):
-    _warnings.warn(
-        "AMC está deprecado; usa AMCblock(nombre, etiqueta, enunciado, cuestiones, "
-        "last_choice=False, cols=1).",
-        DeprecationWarning, stacklevel=2)
-    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
-                    last_choice=False, cols=1, profe=False, opc=opc)
-
-def AMCProfe(nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
-    _warnings.warn(
-        "AMCProfe está deprecado; usa AMCblock(..., profe=True).",
-        DeprecationWarning, stacklevel=2)
-    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
-                    last_choice=False, cols=1, profe=True, opc=opc)
-
-def AMClastCh(nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
-    _warnings.warn(
-        "AMClastCh está deprecado; usa AMCblock(..., last_choice=True).",
-        DeprecationWarning, stacklevel=2)
-    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
-                    last_choice=True, cols=1, profe=False, opc=opc)
-
-def AMCmc(nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
-    _warnings.warn(
-        "AMCmc está deprecado; usa AMCblock(..., cols=ncols).",
-        DeprecationWarning, stacklevel=2)
-    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
-                    last_choice=False, cols=ncols, profe=False, opc=opc)
-
-def AMCmcProfe(nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
-    _warnings.warn(
-        "AMCmcProfe está deprecado; usa AMCblock(..., cols=ncols, profe=True).",
-        DeprecationWarning, stacklevel=2)
-    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
-                    last_choice=False, cols=ncols, profe=True, opc=opc)
-
-def AMClastChmc(nombre, etiqueta, enunciado, cuestiones, ncols, opc=["","Ninguna de las anteriores"]):
-    _warnings.warn(
-        "AMClastChmc está deprecado; usa AMCblock(..., last_choice=True, cols=ncols).",
-        DeprecationWarning, stacklevel=2)
-    return AMCblock(nombre, etiqueta, enunciado, cuestiones,
-                    last_choice=True, cols=ncols, profe=False, opc=opc)
-
-
-# ── AMC para ProblemaVF y multiparte (sin cambios) ───────────────────────────
+# ── AMC para ProblemaVF y multiparte ─────────────────────────────────────────
 
 def AMC_VF(nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
     InstruccionesAux = opc[0]
@@ -240,12 +193,6 @@ def QuizMoodle(nombre, directorio, problema, last_choice=False,
             for etiqueta, partes in problema[nom].por_partes():
                 f.write(_ClozeBlock(nom, etiqueta, partes, cuerpo))
         f.write("\\end{quiz}\n\n\\end{document}\n")
-
-def QuizMoodleLastCh(nombre, directorio, problema, opc=["","Las demás opciones son falsas"]):
-    _warnings.warn(
-        "QuizMoodleLastCh está deprecado; usa QuizMoodle(..., last_choice=True).",
-        DeprecationWarning, stacklevel=2)
-    return QuizMoodle(nombre, directorio, problema, last_choice=True, opc=opc)
 
 def QuizMoodleProfe(nombre, directorio, problema, opc=["",""]):
     def creaDiccionario(x, key='key'):

@@ -804,15 +804,7 @@ La función principal de exportación es =AMCblock=. Los comportamientos que ant
 | =profe=      | =bool=   | Si =True=, añade =\explain{}= con cuestiones rechazadas.                  |
 | =opc=        | =list=   | =[instrucciones_extra, texto_lastchoice]=. Raramente necesario.            |
 
-| Función    | Equivalente =AMCblock=                         | Estado         |
-|------------+------------------------------------------------+----------------|
-| =AMC_VF=   | (no reemplazable, para =ProblemaVF=)           | Vigente        |
-| =AMC=      | =AMCblock(..., last_choice=False, cols=1)=      | Deprecado      |
-| =AMCProfe= | =AMCblock(..., profe=True)=                    | Deprecado      |
-| =AMClastCh=| =AMCblock(..., last_choice=True)=              | Deprecado      |
-| =AMCmc=    | =AMCblock(..., cols=ncols)=                    | Deprecado      |
-| =AMCmcProfe= | =AMCblock(..., cols=ncols, profe=True)=      | Deprecado      |
-| =AMClastChmc= | =AMCblock(..., last_choice=True, cols=ncols)=| Deprecado     |
+Para preguntas de tipo =ProblemaVF= existe =AMC_VF=, que sigue la misma estructura pero recibe tuplas =(texto, True/False)= sin el flag de descarte por precondición.
 
 ** Firma
 
@@ -842,7 +834,7 @@ p = ProblemaTipo([
 nombre = "MiCuestionario"
 with open("preguntas.tex", "w") as f:
     for etiqueta, enunciado, cuestiones in p:
-        f.write(AMC(nombre, etiqueta, enunciado, cuestiones))
+        f.write(AMCblock(nombre, etiqueta, enunciado, cuestiones))
 #+end_src
 
 #+begin_src python :results output :exports results
@@ -936,10 +928,9 @@ sudo apt install texlive-latex-extra
 
 | Función            | Tipo de problema | =last_choice= | Notas                         |
 |--------------------+------------------+---------------+-------------------------------|
-| =QuizMoodle=       | =ProblemaTipo=   | parámetro     | *Función unificada recomendada* |
-| =QuizMoodleProfe=  | =ProblemaTipo=   | No            | Revisión del profesor          |
-| =QuizVFMoodle=     | =ProblemaVF=     | —             | Verdadero/Falso                |
-| =QuizMoodleLastCh= | =ProblemaTipo=   | Sí (fijo)     | *Deprecado* → =QuizMoodle(..., last_choice=True)= |
+| =QuizMoodle=      | =ProblemaTipo= | parámetro | Función principal              |
+| =QuizMoodleProfe= | =ProblemaTipo= | No        | Revisión del profesor          |
+| =QuizVFMoodle=    | =ProblemaVF=   | —         | Verdadero/Falso                |
 
 La *opción rescate* («Las demás opciones son falsas» por defecto) se añade automáticamente
 al final de cada bloque =\begin{multi}= y es correcta si y solo si ninguna otra opción
@@ -1299,7 +1290,7 @@ nombre = "MiCuestionario"
 
 with open("preguntas_amc.tex", "w") as f:
     for etiqueta, enunciado, cuestiones in p:
-        f.write(AMC(nombre, etiqueta, enunciado, cuestiones))
+        f.write(AMCblock(nombre, etiqueta, enunciado, cuestiones))
 #+end_src
 
 Variantes habituales de =AMCblock=:
@@ -1359,8 +1350,8 @@ p = load_problema("mi_problema.json")
 with open("preguntas.tex", "w") as f:
     for instancia in range(10):
         for etiqueta, enunciado, cuestiones in p:
-            f.write(AMC("MiCuestionario", f"{instancia+1}-{etiqueta}",
-                        enunciado, cuestiones))
+            f.write(AMCblock("MiCuestionario", f"{instancia+1}-{etiqueta}",
+                             enunciado, cuestiones))
 #+end_src
 
 Las 4 variantes estructurales de cada vuelta del bucle externo no comparten
@@ -1389,8 +1380,8 @@ with open("preguntas.tex", "w") as f:
         p_lote.setup = lambda ns=ns: ns   # fija n,k para todo el lote
 
         for etiqueta, enunciado, cuestiones in p_lote:
-            f.write(AMC("MiCuestionario", f"{instancia+1}-{etiqueta}",
-                        enunciado, cuestiones))
+            f.write(AMCblock("MiCuestionario", f"{instancia+1}-{etiqueta}",
+                             enunciado, cuestiones))
 #+end_src
 
 El =lambda ns=ns: ns= captura el valor del dict en el momento de creación
@@ -1442,29 +1433,20 @@ save_problema_py(problema, filepath, varname="ejercicio")
 ** Funciones AMC
 
 #+begin_example
-# Función principal (recomendada):
 AMCblock    (nombre, etiqueta, enunciado, cuestiones,
              last_choice=False, cols=1, profe=False, opc=["","Ninguna de las anteriores"])
 AMC_VF      (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna..."])
 AMC_multipart(nombre, etiqueta, enunciado, partes, opc=[""])
     # para ProblemaTipo multiparte; partes = [(enunciado, cuestiones), ...]
-
-# Aliases deprecados (emiten DeprecationWarning, redirigen a AMCblock):
-AMC, AMCProfe, AMClastCh, AMCmc, AMCmcProfe, AMClastChmc
 #+end_example
 
 ** Funciones Moodle
 
 #+begin_example
-# Función principal (recomendada):
-QuizMoodle  (nombre, directorio, problema, last_choice=False,
-             opc=["","Las demás opciones son falsas"])
-QuizMoodleProfe  (nombre, directorio, problema, opc=["",""])
-QuizVFMoodle     (nombre, directorio, GenVar, num, opc=["",""])
-
-# Alias deprecado (emite DeprecationWarning):
-QuizMoodleLastCh (nombre, directorio, problema, opc=["","Las demás..."])
-    # → usa QuizMoodle(..., last_choice=True)
+QuizMoodle      (nombre, directorio, problema, last_choice=False,
+                 opc=["","Las demás opciones son falsas"])
+QuizMoodleProfe (nombre, directorio, problema, opc=["",""])
+QuizVFMoodle    (nombre, directorio, GenVar, num, opc=["",""])
 #+end_example
 
 ** Operadores de =calcprop= (disponibles tras =from qbank import *=)
