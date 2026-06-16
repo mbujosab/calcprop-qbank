@@ -21,8 +21,8 @@ from qbank._quiz import *
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _sanitize_name(nombre):
-    """Sustituye ':' por '-' en identificadores LaTeX (Make y algunos parsers LaTeX lo rechazan)."""
-    return nombre.replace(':', '-')
+    """Sustituye ':' y '_' por '-' en identificadores LaTeX."""
+    return nombre.replace(':', '-').replace('_', '-')
 
 def codchar(s):
      s = s.replace("á", "\\'{a}")
@@ -53,8 +53,9 @@ def AMCblock(nombre, etiqueta, enunciado, cuestiones,
     """
     InstruccionesAux = opc[0]
     OpcPorDefecto    = opc[1]
+    _fix = lambda t: _re.sub(r'\$\$(.+?)\$\$', r'\\[\1\\]', t, flags=_re.DOTALL)
     nombre_tex    = _sanitize_name(nombre)
-    enunciado_tex = _re.sub(r'\$\$(.+?)\$\$', r'\\[\1\\]', enunciado, flags=_re.DOTALL)
+    enunciado_tex = _fix(enunciado)
 
     ex = ''
     s  = '\\element{' + nombre_tex + '}{' + InstruccionesAux + '\n'
@@ -69,10 +70,11 @@ def AMCblock(nombre, etiqueta, enunciado, cuestiones,
 
     s += ch_indent + '\\begin{choices}\n'
     for c in cuestiones:
+        texto = _fix(c[0])
         if c[2]:
-            s += ' ' * 7 + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + c[0] + '}\n'
+            s += ' ' * 7 + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + texto + '}\n'
         elif profe:
-            ex += ' cuestion: ' + c[0] + '; ' + str(c[1]) + '\n'
+            ex += ' cuestion: ' + texto + '; ' + str(c[1]) + '\n'
 
     if last_choice:
         s += ' ' * 7 + '\\lastchoices\n'
@@ -96,6 +98,7 @@ def AMCblock(nombre, etiqueta, enunciado, cuestiones,
 def AMC_VF(nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
     InstruccionesAux = opc[0]
     OpcPorDefecto    = opc[1]
+    nombre = _sanitize_name(nombre)
     s = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
     s = s + ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
     s = s + '  ' + enunciado + '\n'
@@ -117,6 +120,7 @@ def AMC_multipart(nombre, etiqueta, enunciado, subpreguntas, opc=[""]):
     por \\emph{intro} y envuelto en \\AMCnoCompleteMulti.
     """
     InstruccionesAux = opc[0] if opc else ""
+    nombre = _sanitize_name(nombre)
     s  = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
     s += ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
     s += '  ' + enunciado + '\n\n'
@@ -169,7 +173,7 @@ def _moodle_header(nombre, auxLaTeX=""):
     )
 
 def QuizMoodle(nombre, directorio, problema, last_choice=False,
-               opc=["", "Las demás opciones son falsas"]):
+               opc=["", "Las demás opciones son falsas"], instances=1):
     """Exporta un problema (o dict de problemas) al formato Moodle XML vía LaTeX.
 
     Parámetros
@@ -179,6 +183,7 @@ def QuizMoodle(nombre, directorio, problema, last_choice=False,
     problema    : ProblemaTipo o dict {nombre: ProblemaTipo}
     last_choice : si True, añade la opción comodín «las demás son falsas»
     opc         : [auxLaTeX, texto_lastchoice]
+    instances   : número de instancias con semillas distintas (ver por_partes())
     """
     def creaDiccionario(x, key='key'):
         return x if isinstance(x, dict) else {key: x}
@@ -190,11 +195,27 @@ def QuizMoodle(nombre, directorio, problema, last_choice=False,
     with open(directorio + nombre + ".tex", "w") as f:
         f.write(_moodle_header(nombre, auxLaTeX=opc[0]))
         for i, nom in enumerate(problema):
-            for etiqueta, partes in problema[nom].por_partes():
+            for etiqueta, partes in problema[nom].por_partes(instances=instances):
                 f.write(_ClozeBlock(nom, etiqueta, partes, cuerpo))
         f.write("\\end{quiz}\n\n\\end{document}\n")
 
 def QuizMoodleProfe(nombre, directorio, problema, opc=["",""]):
+    """Vista profe para Moodle: mismas variantes que el alumno con fracciones visibles.
+
+    Exporta exactamente las mismas variantes que QuizMoodle pero con el esquema
+    de corrección visible (porcentajes de puntuación por opción). Útil para que
+    el profesor revise cómo puntúa Moodle cada variante.
+
+    Para la vista aplanada (todas las cuestiones de cada sublista con marcas),
+    usa QuizAMCProfe() que genera un PDF AMC con \\explain{} para rechazadas.
+
+    Parámetros
+    ----------
+    nombre      : nombre del quiz (identifica el grupo en Moodle)
+    directorio  : ruta al directorio de salida (con '/' al final)
+    problema    : ProblemaTipo o dict {nombre: ProblemaTipo}
+    opc         : [auxLaTeX, texto_lastchoice]
+    """
     def creaDiccionario(x, key='key'):
         return x if isinstance(x, dict) else {key: x}
     problema = creaDiccionario(problema, nombre)
@@ -204,6 +225,37 @@ def QuizMoodleProfe(nombre, directorio, problema, opc=["",""]):
             for etiqueta, partes in problema[nom].por_partes():
                 f.write(_ClozeBlock(nom, etiqueta, partes, _ClozeMultiProfe))
         f.write("\\end{quiz}\n\n\\end{document}\n")
+
+
+def QuizAMCProfe(nombre, directorio, problema, cols=1,
+                 opc=["", "Ninguna de las anteriores"]):
+    """Vista profe aplanada para AMC: todas las cuestiones de cada sublista.
+
+    Usa por_partes_profe() para mostrar TODAS las cuestiones de cada sublista
+    (no solo la seleccionada para el alumno) con marcas de correcto/incorrecto.
+    Las cuestiones rechazadas por precondición aparecen en \\explain{}.
+
+    Útil para revisar en papel la lógica de corrección de una pregunta.
+    El fichero generado se incluye en el documento AMC con \\input{nombre_profe.tex}.
+
+    Parámetros
+    ----------
+    nombre      : identificador del grupo AMC
+    directorio  : ruta al directorio de salida (con '/' al final)
+    problema    : ProblemaTipo o dict {nombre: ProblemaTipo}
+    cols        : número de columnas multicols (1 = sin multicols)
+    opc         : [instrucciones_extra, texto_lastchoice]
+    """
+    def creaDiccionario(x, key='key'):
+        return x if isinstance(x, dict) else {key: x}
+    problema = creaDiccionario(problema, nombre)
+    with open(directorio + nombre + "_profe.tex", "w") as f:
+        for nom in problema:
+            for etiqueta, partes in problema[nom].por_partes_profe():
+                for i, (enunciado, cuestiones) in enumerate(partes):
+                    etiq = f"{etiqueta}-{i+1}" if len(partes) > 1 else etiqueta
+                    f.write(AMCblock(nom, etiq, enunciado, cuestiones,
+                                     cols=cols, profe=True, opc=opc))
 
 def QuizVFMoodle(nombre, directorio, GenVar, num, opc=["",""]):
     auxLaTeX = opc[0]

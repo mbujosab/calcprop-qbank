@@ -172,7 +172,8 @@ def problema_from_dict(d):
         setup_str   = d.get("setup")
         setup       = _make_setup_fn(setup_str) if setup_str else None
         export      = d.get("export", {})
-        p = ProblemaTipo(componentes, setup=setup, export=export)
+        seed        = d.get("seed")
+        p = ProblemaTipo(componentes, setup=setup, export=export, seed=seed)
         p._nombre    = d.get("nombre", "")
         p._setup_str = setup_str
         return p
@@ -189,7 +190,8 @@ def problema_from_dict(d):
         setup_str = d.get("setup")
         setup     = _make_setup_fn(setup_str) if setup_str else None
         export    = d.get("export", {})
-        p = ProblemaTipo(componentes, setup=setup, export=export)
+        seed      = d.get("seed")
+        p = ProblemaTipo(componentes, setup=setup, export=export, seed=seed)
         p._nombre    = d.get("nombre", "")
         p._setup_str = setup_str
         return p
@@ -229,6 +231,9 @@ def problema_to_dict(problema):
             "setup":       setup_str,
             "componentes": componentes,
         }
+        seed = getattr(problema, 'seed', None)
+        if seed is not None:
+            d["seed"] = seed
         exp = getattr(problema, 'export', {})
         if exp:
             d["export"] = exp

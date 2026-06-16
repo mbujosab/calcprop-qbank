@@ -168,6 +168,18 @@ Las fórmulas se construyen combinando variables con los operadores de Python:
 La semantica también acepta =True= (siempre verdadero) o  =False= (siempre falso).
 =alguno= y =unoDe= aceptan cualquier número de proposiciones: =alguno(P, Q, R)= es verdadera
 si alguna de la lista lo es, y =unoDe(P, Q, R)= es verdadera si lo es exactamente una.
+
+*Atención — precedencia de operadores:* la precedencia de Python difiere de la lógica
+matemática. En lógica, =→= tiene menor precedencia que =∧= y =∨=, por lo que =A ∧ B → C=
+se lee como =(A ∧ B) → C=. En Python, =>>=  tiene *mayor* precedencia que =&= y =|=,
+así que =v('A') & v('B') >> v('C')= se evalúa como =v('A') & (v('B') >> v('C'))=, que
+no es lo que se espera. Usa siempre paréntesis explícitos en implicaciones compuestas:
+
+#+begin_src python
+(v('A') & v('B')) >> v('C')   # correcto: (A ∧ B) → C
+v('A') & v('B') >> v('C')     # incorrecto: A ∧ (B → C)
+#+end_src
+
 #+latex: \bigskip
 
 La función =test(formula, hipotesis)= comprueba si una fórmula es consecuencia lógica
@@ -505,6 +517,8 @@ ejemplos con =setup= aleatorio.
 
 =qbank= puede convertir cualquier =ProblemaTipo= a JSON y reconstruirlo después. Esto permite guardar el banco de preguntas en un fichero, compartirlo o cargarlo desde el editor visual sin tener que reescribir el código Python.
 
+*Restricción de nombres de fichero:* el nombre del fichero =.json= no debe contener =:=. GNU Make interpreta =:= como separador de regla, por lo que un fichero llamado =L-10-Gujarati:Table6-3.json= rompe cualquier =Makefile= que use =*.json= como dependencia. Los exportadores convierten automáticamente =:= y =_= en =-= dentro del LaTeX generado, pero el nombre del fichero en disco es responsabilidad del usuario. El editor visual muestra un aviso si el nombre introducido contiene =:=.
+
 *** De lista de listas a JSON
 
 Dado un =ProblemaTipo= creado directamente en Python, basta llamar a =problema_to_dict= para obtener el dict JSON, o a =save_problema= para guardarlo en un fichero:
@@ -723,6 +737,29 @@ Variante 4: Considere una matriz $A$ de $4$ filas y $2$ columnas. Suponga que $A
 
 Nótese que la lógica proposicional y los valores numéricos actúan de forma independiente: =v('MaxRk')= no «sabe» cuánto valen $n$ y $k$; su valor de verdad lo determina exclusivamente el supuesto elegido en cada variante. El =setup= solo aporta los números que aparecen en el texto mediante la interpolación =@variable=. Una vez guardado el fichero, =load_problema= reconstituye el =setup= desde la cadena de código y el problema se comporta exactamente igual que el original.
 
+*** Campo =seed=: reproducibilidad independiente del orden
+
+Cuando varios problemas con =setup= aleatorio se generan en secuencia (en un bucle o
+un =Makefile=), la realización numérica de cada problema depende del estado del
+generador en ese momento. Si se añade o reordena un problema, cambian las
+realizaciones de todos los que le siguen.
+
+El campo opcional =seed= (entero) resuelve esto: antes de iterar las variantes del
+problema, =qbank= inicializa =numpy.random.seed(seed)=. Así cada problema tiene
+su propia secuencia reproducible, independiente del orden en que se generen los demás.
+
+#+begin_src python
+p = ProblemaTipo([...], setup=mi_setup, seed=42)
+
+# Equivalente desde JSON:
+# { "seed": 42, "setup": "...", "componentes": [...] }
+#+end_src
+
+El campo =seed= también actúa como semilla base en =por_partes(instances=N)= cuando
+no se pasa =base_seed= explícitamente.
+
+Si el problema no usa =numpy= en el =setup=, =seed= se ignora sin error.
+
 *** Limitaciones
 
 - Los =setup= definidos como funciones Python (=def= o =lambda=) no se pueden guardar en JSON porque su código fuente no es recuperable. Si necesitas un =setup= paramétrico y también quieres persistirlo, escribe el código del setup como cadena de texto y usa =problema_from_dict= (o el editor visual, que gestiona esto automáticamente).
@@ -891,6 +928,44 @@ with open("preguntas.tex", "w") as f:
 Los ítems se distribuyen en dos columnas y se añade automáticamente
 «Ninguna de las anteriores» como última opción.
 
+** Vista aplanada del profesor: =QuizAMCProfe=
+
+=QuizAMCProfe= es el exportador de alto nivel para la vista profe. A diferencia
+de la vista alumno (que muestra una cuestión por sublista), la vista aplanada
+muestra *todas* las cuestiones de cada sublista junto al enunciado, con marcas
+de correcto/incorrecto. Las cuestiones rechazadas por precondición aparecen en
+un bloque =\explain{}= al final de la pregunta.
+
+#+begin_src python
+QuizAMCProfe(nombre, directorio, problema, cols=1,
+             opc=["", "Ninguna de las anteriores"])
+#+end_src
+
+| Parámetro     | Descripción                                                        |
+|---------------+--------------------------------------------------------------------|
+| =nombre=      | Identificador del grupo AMC.                                       |
+| =directorio=  | Ruta donde se guardará el =.tex= (debe terminar en =/=).           |
+| =problema=    | Un =ProblemaTipo=, o un diccionario ={nombre: ProblemaTipo}=.      |
+| =cols=        | Columnas (>1 activa =\begin{multicols}{N}\AMCBoxedAnswers=).       |
+| =opc=         | =[instrucciones_extra, texto_lastchoice]=. Raramente necesario.    |
+
+Genera =nombre_profe.tex= (con sufijo =_profe=). Se incluye en el documento AMC con:
+
+#+begin_example
+\input{nombre_profe.tex}
+#+end_example
+
+Ejemplo con el mismo =p= de la sección anterior:
+
+#+begin_src python
+QuizAMCProfe("MiCuestionario", "exportaciones/", p)
+#+end_src
+
+*Diferencia clave con =QuizMoodleProfe=*: =QuizAMCProfe= usa =por_partes_profe()=
+y muestra la vista aplanada (todas las cuestiones). =QuizMoodleProfe= exporta a
+Moodle las mismas variantes que el alumno pero con fracciones de puntuación visibles.
+Las dos vistas son complementarias y tienen propósitos distintos.
+
 ** Integración en el documento AMC
 
 El código generado debe incluirse en el preámbulo del documento principal de AMC:
@@ -926,11 +1001,13 @@ sudo apt install texlive-latex-extra
 
 ** Funciones disponibles
 
-| Función            | Tipo de problema | =last_choice= | Notas                         |
-|--------------------+------------------+---------------+-------------------------------|
-| =QuizMoodle=      | =ProblemaTipo= | parámetro | Función principal              |
-| =QuizMoodleProfe= | =ProblemaTipo= | No        | Revisión del profesor          |
-| =QuizVFMoodle=    | =ProblemaVF=   | —         | Verdadero/Falso                |
+| Función            | Tipo de problema | =last_choice= | Notas                                            |
+|--------------------+------------------+---------------+--------------------------------------------------|
+| =QuizMoodle=      | =ProblemaTipo= | parámetro | Función principal (vista alumno)                  |
+| =QuizMoodleProfe= | =ProblemaTipo= | No        | Vista alumno con fracciones de puntuación visibles |
+| =QuizVFMoodle=    | =ProblemaVF=   | —         | Verdadero/Falso                                   |
+
+Para la vista aplanada (todas las cuestiones con marcas), usa =QuizAMCProfe= (sección [[*Vista aplanada del profesor: =QuizAMCProfe=][Vista aplanada del profesor]]).
 
 La *opción rescate* («Las demás opciones son falsas» por defecto) se añade automáticamente
 al final de cada bloque =\begin{multi}= y es correcta si y solo si ninguna otra opción
@@ -943,8 +1020,9 @@ una opción verdadera.
 =ProblemaTipo= (una o varias partes):
 
 #+begin_src python
-QuizMoodle(nombre, directorio, problema, last_choice=False,
-           opc=["", "Las demás opciones son falsas"])
+QuizMoodle     (nombre, directorio, problema, last_choice=False,
+                opc=["", "Las demás opciones son falsas"], instances=1)
+QuizMoodleProfe(nombre, directorio, problema, opc=["",""])
 #+end_src
 
 =ProblemaVF=:
@@ -1321,12 +1399,14 @@ El paquete LaTeX =moodle= produce =MiCuestionario.xml= durante la compilación. 
 
 Variantes habituales de =QuizMoodle=:
 
-| Parámetros de =QuizMoodle=             | Cuándo usarla                               |
-|----------------------------------------+---------------------------------------------|
-| (por defecto)                          | Pregunta estándar.                          |
-| =last_choice=True=                     | Añade «Las demás opciones son falsas».      |
-| =QuizMoodleProfe(...)=                 | Versión con ítems rechazados visibles.      |
-| =QuizVFMoodle(...)=                    | Para =ProblemaVF= (verdadero/falso).        |
+| Parámetros / función                   | Cuándo usarla                                              |
+|----------------------------------------+------------------------------------------------------------|
+| (por defecto)                          | Pregunta estándar.                                         |
+| =last_choice=True=                     | Añade «Las demás opciones son falsas».                     |
+| =instances=N=                          | N realizaciones numéricas distintas (problemas con setup). |
+| =QuizMoodleProfe(...)=                 | Mismas variantes que el alumno, con fracciones visibles.   |
+| =QuizAMCProfe(...)=                    | Vista aplanada: todas las cuestiones con marcas (PDF AMC). |
+| =QuizVFMoodle(...)=                    | Para =ProblemaVF= (verdadero/falso).                       |
 
 *** Paso 4 — Generar múltiples instancias numéricas (problemas con =setup=)
 
@@ -1403,9 +1483,11 @@ Ambos patrones funcionan igual para Moodle: sustituye el bloque =with open(...)=
 #+begin_example
 Supuesto(enunciado, semantica, precond=True)
 Cuestion(enunciado, semantica, precond=True, exp="")
-ProblemaTipo(lista, setup=None, export=None)
-    → itera (etiqueta, enunciado, cuestiones); .por_partes(instances=1, base_seed=42) para multiparte/instancias
-ProblemaTipoProfe(lista, setup=None)
+ProblemaTipo(lista, setup=None, export=None, seed=None)
+    → itera (etiqueta, enunciado, cuestiones)
+    → .por_partes(instances=1, base_seed=None)  — vista alumno; multiparte e instancias numéricas
+    → .por_partes_profe()                       — vista aplanada: todas las cuestiones con marcas
+ProblemaTipoProfe(lista, setup=None)            [DEPRECADO → usar ProblemaTipo + .por_partes_profe()]
     → como ProblemaTipo, sin descartar ítems rechazados
 ProblemaVF(enunciado, lista, n)
     → itera (etiqueta, enunciado, cuestiones)
@@ -1435,17 +1517,23 @@ save_problema_py(problema, filepath, varname="ejercicio")
 #+begin_example
 AMCblock    (nombre, etiqueta, enunciado, cuestiones,
              last_choice=False, cols=1, profe=False, opc=["","Ninguna de las anteriores"])
+    # bajo nivel: devuelve str; el usuario escribe al fichero manualmente
 AMC_VF      (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna..."])
 AMC_multipart(nombre, etiqueta, enunciado, partes, opc=[""])
     # para ProblemaTipo multiparte; partes = [(enunciado, cuestiones), ...]
+QuizAMCProfe(nombre, directorio, problema, cols=1, opc=["","Ninguna de las anteriores"])
+    # alto nivel: vista aplanada profe → escribe nombre_profe.tex
+    # usa por_partes_profe(); muestra todas las cuestiones con marcas y \explain{}
 #+end_example
 
 ** Funciones Moodle
 
 #+begin_example
 QuizMoodle      (nombre, directorio, problema, last_choice=False,
-                 opc=["","Las demás opciones son falsas"])
+                 opc=["","Las demás opciones son falsas"], instances=1)
+    # vista alumno; instances>1 requiere numpy y setup con aleatorios
 QuizMoodleProfe (nombre, directorio, problema, opc=["",""])
+    # mismas variantes que el alumno, con fracciones de puntuación visibles
 QuizVFMoodle    (nombre, directorio, GenVar, num, opc=["",""])
 #+end_example
 
@@ -1484,6 +1572,17 @@ con las barras invertidas:
 #+begin_src python
 Cuestion(r"$\mathbf{X}^\top\mathbf{X}$ es invertible", -v("Mcoli"))
 #+end_src
+
+** ¿Cómo escribo display math en enunciados para AMC?
+
+Usa =\[...\]= en lugar de =$$...$$=. El exportador =AMCblock= convierte =$$...$$= a
+=\[...\]= automáticamente en el enunciado y en las opciones, pero el paquete
+=automultiplechoice= a veces produce errores «Missing $» con =$$= y los corrige de forma
+no fatal. Usar =\[...\]= directamente evita el problema por completo.
+
+Además, dos expresiones inline consecutivas sin espacio (=\$A\$\$B\$=) pueden
+confundirse con display math durante la conversión. Separa siempre expresiones
+inline contiguas con un espacio: =$A$ $B$= en lugar de =$A$$B$=.
 
 ** ¿Para qué sirve =codchar=?
 

@@ -281,9 +281,14 @@ class ProblemaTipoEditor:
         self._nombre = _w.Text(
             value='', placeholder='nombre del ejercicio',
             layout=_w.Layout(width='320px'))
+        self._nombre_warn = _w.HTML(value='')
+        self._nombre.observe(self._on_nombre_change, names='value')
         self._setup = _w.Textarea(
             value='', placeholder='código Python del setup (opcional)',
-            layout=_w.Layout(width='520px', height='58px'))
+            layout=_w.Layout(width='380px', height='58px'))
+        self._seed = _w.Text(
+            value='', placeholder='sin semilla',
+            layout=_w.Layout(width='100px'))
         self._last_choice = _w.Checkbox(
             value=False, description='last_choice', indent=False,
             layout=_w.Layout(width='130px'))
@@ -293,9 +298,11 @@ class ProblemaTipoEditor:
 
         header = _w.VBox([
             _w.HBox([_w.Label('Nombre:', layout=_w.Layout(width='65px')),
-                     self._nombre]),
+                     self._nombre, self._nombre_warn]),
             _w.HBox([_w.Label('Setup:', layout=_w.Layout(width='65px')),
-                     self._setup]),
+                     self._setup,
+                     _w.Label('semilla:', layout=_w.Layout(width='60px')),
+                     self._seed]),
             _w.HBox([_w.Label('Export:', layout=_w.Layout(width='65px')),
                      self._last_choice,
                      _w.Label('cols:', layout=_w.Layout(width='35px')),
@@ -444,6 +451,8 @@ class ProblemaTipoEditor:
 
         self._nombre.value = d.get('nombre', '')
         self._setup.value  = d.get('setup', '') or ''
+        seed = d.get('seed')
+        self._seed.value   = str(seed) if seed is not None else ''
         exp = d.get('export', {})
         self._last_choice.value = bool(exp.get('last_choice', False))
         self._cols.value        = int(exp.get('cols', 1))
@@ -456,6 +465,11 @@ class ProblemaTipoEditor:
     def to_dict(self):
         """Devuelve el problema actual como dict JSON."""
         setup = self._setup.value.strip() or None
+        seed_str = self._seed.value.strip()
+        try:
+            seed = int(seed_str) if seed_str else None
+        except ValueError:
+            seed = None
         exp = {}
         if self._last_choice.value:
             exp['last_choice'] = True
@@ -468,6 +482,8 @@ class ProblemaTipoEditor:
             'setup':       setup,
             'componentes': [s.to_json() for s in self._slots],
         }
+        if seed is not None:
+            d['seed'] = seed
         if exp:
             d['export'] = exp
         return d
@@ -477,6 +493,15 @@ class ProblemaTipoEditor:
         return problema_from_dict(self.to_dict())
 
     # ── Callbacks de botones ──────────────────────────────────────
+
+    def _on_nombre_change(self, change):
+        nombre = change['new']
+        if ':' in nombre:
+            self._nombre_warn.value = (
+                '<span style="color:#c00;margin-left:8px">'
+                '⚠ «:» rompe GNU Make — usa «-» en su lugar</span>')
+        else:
+            self._nombre_warn.value = ''
 
     def _on_preview(self, _):
         with self._out:

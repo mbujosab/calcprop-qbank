@@ -173,12 +173,19 @@ def _plan_partes(L):
         plan.append(parte)
     return plan
 class ProblemaTipo:
-    def __init__(self, supuestos_y_cuestiones, setup=None, export=None):
+    def __init__(self, supuestos_y_cuestiones, setup=None, export=None, seed=None):
         self.e = supuestos_y_cuestiones
         self.setup = setup
         self.export = export if export is not None else {}
+        self.seed   = seed
 
-    def _variantes(self):
+    def _variantes(self, _skip_seed=False):
+        if not _skip_seed and self.seed is not None and self.setup is not None:
+            try:
+                import numpy as _np
+                _np.random.seed(self.seed)
+            except ImportError:
+                pass
         L    = [_normaliza_slot(x) for x in self.e]
         plan = _plan_partes(L)
         npar = (plan[-1] + 1) if plan else 1
@@ -223,6 +230,12 @@ class ProblemaTipo:
                 c += 1
                 yield (str(c), list(zip(enunciados, cuestiones)))
     def _variantes_profe(self):
+        if self.seed is not None and self.setup is not None:
+            try:
+                import numpy as _np
+                _np.random.seed(self.seed)
+            except ImportError:
+                pass
         L    = [_normaliza_slot(x) for x in CuestionesJuntas(self.e)]
         plan = _plan_partes(L)
         npar = (plan[-1] + 1) if plan else 1
@@ -262,7 +275,7 @@ class ProblemaTipo:
             if not descartada:
                 c += 1
                 yield (str(c), list(zip(enunciados, cuestiones)))
-    def por_partes(self, instances=1, base_seed=42):
+    def por_partes(self, instances=1, base_seed=None):
         """Itera las variantes válidas como (etiqueta, [(enunciado, cuestiones), …]).
 
         Es la vía recomendada para ejercicios multiparte. En un ejercicio de una
@@ -273,8 +286,11 @@ class ProblemaTipo:
                     La instancia i se evalúa con np.random.seed(base_seed + i * 997).
                     Con instances > 1 en un problema sin setup se emite UserWarning
                     (todas las instancias serían idénticas).
-        base_seed : semilla base para la primera instancia (solo con instances > 1).
+        base_seed : semilla base. Con instances=1, si no se pasa explícitamente
+                    se usa self.seed (del JSON). Con instances>1, si no se pasa
+                    se usa self.seed o 42 como fallback.
         """
+        effective_base = base_seed if base_seed is not None else self.seed
         if instances > 1:
             if self.setup is None:
                 import warnings
@@ -287,11 +303,12 @@ class ProblemaTipo:
             except ImportError:
                 raise ImportError(
                     "numpy es necesario para usar instances > 1 en por_partes().")
+            actual_base = effective_base if effective_base is not None else 42
             offset = 0
             for inst in range(instances):
-                _np.random.seed(base_seed + inst * 997)
+                _np.random.seed(actual_base + inst * 997)
                 count = 0
-                for etiqueta, partes in self._variantes():
+                for etiqueta, partes in self._variantes(_skip_seed=True):
                     count += 1
                     yield (str(offset + int(etiqueta)), partes)
                 offset += count
