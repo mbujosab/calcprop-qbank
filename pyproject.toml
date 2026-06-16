@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "calcprop-qbank"
-version = "0.3.1"
+version = "0.3.2"
 description = "Question bank generator using propositional calculus"
 authors = [
     {name = "Marcos Bujosa", email = "mbujosab@ucm.es"},
