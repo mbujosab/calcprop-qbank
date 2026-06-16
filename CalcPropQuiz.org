@@ -665,7 +665,7 @@ def _variantes_profe(self):
 
 #+NAME: Iteración pública de ProblemaTipo
 #+begin_src python :noweb no-export
-def por_partes(self, instances=1, base_seed=42):
+def por_partes(self, instances=1, base_seed=None, verbose=False):
     """Itera las variantes válidas como (etiqueta, [(enunciado, cuestiones), …]).
 
     Es la vía recomendada para ejercicios multiparte. En un ejercicio de una
@@ -678,6 +678,10 @@ def por_partes(self, instances=1, base_seed=42):
         ``setup`` que genera valores aleatorios). Por defecto 1.
     base_seed : int
         Semilla base. La instancia k usa ``numpy.random.seed(base_seed + k * 997)``.
+        Si no se pasa, se usa self.seed o 42 como fallback.
+    verbose : bool
+        Si True, imprime las cuestiones/supuestos rechazados por precondición.
+        Por defecto False (silencioso en batch).
     """
     if instances > 1:
         if self.setup is None:
@@ -691,16 +695,17 @@ def por_partes(self, instances=1, base_seed=42):
         except ImportError:
             raise ImportError(
                 "numpy es necesario para usar instances > 1 en por_partes().")
+        actual_base = base_seed if base_seed is not None else (self.seed or 42)
         offset = 0
         for inst in range(instances):
-            _np.random.seed(base_seed + inst * 997)
+            _np.random.seed(actual_base + inst * 997)
             count = 0
-            for etiqueta, partes in self._variantes():
+            for etiqueta, partes in self._variantes(verbose=verbose):
                 count += 1
                 yield (str(offset + int(etiqueta)), partes)
             offset += count
     else:
-        yield from self._variantes()
+        yield from self._variantes(verbose=verbose)
 
 def por_partes_profe(self):
     """Vista de revisión del profesor, en el mismo formato por partes que
@@ -1985,6 +1990,8 @@ def problema_to_python(problema, varname="ejercicio"):
         ]
 
     setup_arg   = ", setup=_setup" if setup_str else ""
+    seed        = d.get("seed")
+    seed_arg    = f", seed={seed!r}" if seed is not None else ""
     export_dict = d.get("export", {})
     export_arg  = f", export={export_dict!r}" if export_dict else ""
 
@@ -1993,7 +2000,7 @@ def problema_to_python(problema, varname="ejercicio"):
         lines.append(_slot_to_python(comp, nivel=1))
     lines.append("]")
     lines.append("")
-    lines.append(f"p = ProblemaTipo({varname}{setup_arg}{export_arg})")
+    lines.append(f"p = ProblemaTipo({varname}{setup_arg}{seed_arg}{export_arg})")
 
     lines.append("")
     return "\n".join(lines)

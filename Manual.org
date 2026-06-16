@@ -1588,7 +1588,7 @@ Supuesto(enunciado, semantica, precond=True)
 Cuestion(enunciado, semantica, precond=True, exp="")
 ProblemaTipo(lista, setup=None, export=None, seed=None)
     → itera (etiqueta, enunciado, cuestiones)
-    → .por_partes(instances=1, base_seed=None)  — vista alumno; multiparte e instancias numéricas
+    → .por_partes(instances=1, base_seed=None, verbose=False)  — vista alumno; multiparte e instancias numéricas
     → .por_partes_profe()                       — vista aplanada: todas las cuestiones con marcas
 ProblemaTipoProfe(lista, setup=None)            [DEPRECADO → usar ProblemaTipo + .por_partes_profe()]
     → como ProblemaTipo, sin descartar ítems rechazados

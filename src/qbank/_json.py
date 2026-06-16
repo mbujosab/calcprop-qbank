@@ -355,6 +355,8 @@ def problema_to_python(problema, varname="ejercicio"):
         ]
 
     setup_arg  = ", setup=_setup" if setup_str else ""
+    seed       = d.get("seed")
+    seed_arg   = f", seed={seed!r}" if seed is not None else ""
     export_dict = d.get("export", {})
     export_arg  = f", export={export_dict!r}" if export_dict else ""
 
@@ -363,7 +365,7 @@ def problema_to_python(problema, varname="ejercicio"):
         lines.append(_slot_to_python(comp, nivel=1))
     lines.append("]")
     lines.append("")
-    lines.append(f"p = ProblemaTipo({varname}{setup_arg}{export_arg})")
+    lines.append(f"p = ProblemaTipo({varname}{setup_arg}{seed_arg}{export_arg})")
 
     lines.append("")
     return "\n".join(lines)
