@@ -179,7 +179,7 @@ class ProblemaTipo:
         self.export = export if export is not None else {}
         self.seed   = seed
 
-    def _variantes(self, _skip_seed=False):
+    def _variantes(self, _skip_seed=False, verbose=True):
         if not _skip_seed and self.seed is not None and self.setup is not None:
             try:
                 import numpy as _np
@@ -209,11 +209,12 @@ class ProblemaTipo:
                             enunciados[parte], _ns_interp(_ns_eval(componente.e, ns), ns))
                         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
                     else:
-                        print('\n Supuesto: '   + str(componente.e) \
-                            + ' rechazado por ' + _fuente_precond(componente) + '\n')
+                        if verbose:
+                            print('\n Supuesto: '   + str(componente.e) \
+                                + ' rechazado por ' + _fuente_precond(componente) + '\n')
                         descartada = True
                         break
-                
+
                 elif isinstance(componente, Cuestion):
                     precond   = _ns_eval(componente.p, ns)
                     semantica = _ns_eval(componente.s, ns)
@@ -222,8 +223,9 @@ class ProblemaTipo:
                         cuestiones[parte].append(
                             (texto, (True if test(semantica, hipotesis) else False), 1, componente.x))
                     else:
-                        print('\n Cuestion: '   + str(componente.e) \
-                            + ' rechazada por ' + _fuente_precond(componente) + '\n')
+                        if verbose:
+                            print('\n Cuestion: '   + str(componente.e) \
+                                + ' rechazada por ' + _fuente_precond(componente) + '\n')
                         descartada = True
                         break
             if not descartada:
@@ -275,7 +277,7 @@ class ProblemaTipo:
             if not descartada:
                 c += 1
                 yield (str(c), list(zip(enunciados, cuestiones)))
-    def por_partes(self, instances=1, base_seed=None):
+    def por_partes(self, instances=1, base_seed=None, verbose=False):
         """Itera las variantes válidas como (etiqueta, [(enunciado, cuestiones), …]).
 
         Es la vía recomendada para ejercicios multiparte. En un ejercicio de una
@@ -289,6 +291,8 @@ class ProblemaTipo:
         base_seed : semilla base. Con instances=1, si no se pasa explícitamente
                     se usa self.seed (del JSON). Con instances>1, si no se pasa
                     se usa self.seed o 42 como fallback.
+        verbose   : si True, imprime las cuestiones/supuestos rechazados por
+                    precondición. Por defecto False (silencioso en batch).
         """
         effective_base = base_seed if base_seed is not None else self.seed
         if instances > 1:
@@ -308,12 +312,12 @@ class ProblemaTipo:
             for inst in range(instances):
                 _np.random.seed(actual_base + inst * 997)
                 count = 0
-                for etiqueta, partes in self._variantes(_skip_seed=True):
+                for etiqueta, partes in self._variantes(_skip_seed=True, verbose=verbose):
                     count += 1
                     yield (str(offset + int(etiqueta)), partes)
                 offset += count
         else:
-            yield from self._variantes()
+            yield from self._variantes(verbose=verbose)
     
     def por_partes_profe(self):
         """Vista de revisión del profesor, en el mismo formato por partes que
