@@ -839,7 +839,8 @@ La función principal de exportación es =AMCblock=. Los comportamientos que ant
 | =last_choice=| =bool=   | Si =True=, añade opción comodín con =\lastchoices=.                       |
 | =cols=       | =int=    | Columnas (>1 activa =\begin{multicols}{N}\AMCBoxedAnswers=).              |
 | =profe=      | =bool=   | Si =True=, añade =\explain{}= con cuestiones rechazadas.                  |
-| =opc=        | =list=   | =[instrucciones_extra, texto_lastchoice]=. Raramente necesario.            |
+| =aux_latex=      | =str=    | Instrucciones LaTeX extra dentro del bloque =\element{}=.                 |
+| =last_choice_text= | =str=  | Texto de la opción comodín (solo si =last_choice=True=).                  |
 
 Para preguntas de tipo =ProblemaVF= existe =AMC_VF=, que sigue la misma estructura pero recibe tuplas =(texto, True/False)= sin el flag de descarte por precondición.
 
@@ -847,7 +848,8 @@ Para preguntas de tipo =ProblemaVF= existe =AMC_VF=, que sigue la misma estructu
 
 #+begin_src python
 AMCblock(nombre, etiqueta, enunciado, cuestiones,
-         last_choice=False, cols=1, profe=False, opc=["", "Ninguna de las anteriores"])
+         last_choice=False, cols=1, profe=False, *,
+         aux_latex="", last_choice_text="Ninguna de las anteriores")
 #+end_src
 
 ** Ejemplo AMC básico
@@ -1033,7 +1035,7 @@ QuizMoodleProfe(nombre, directorio, problema, aux_latex="")
 =ProblemaVF=:
 
 #+begin_src python
-QuizVFMoodle(nombre, directorio, GenVar, num, opc=["", ""])
+QuizVFMoodle(nombre, directorio, GenVar, num, opc=None)
 #+end_src
 
 | Parámetro          | Descripción                                                           |
@@ -1512,7 +1514,7 @@ Los campos =semantica= y =precond= de =Supuesto= y =Cuestion= admiten, además d
 #+begin_example
 problema_from_dict(d)              → ProblemaTipo o ProblemaVF
 problema_to_dict(problema)         → dict
-load_problema(filepath)            → ProblemaTipo o ProblemaVF
+load_problema(filepath_o_dict)     → ProblemaTipo o ProblemaVF  # acepta ruta o dict
 save_problema(problema, filepath)
 load_banco(filepath)               → lista de problemas
 save_banco(problemas, filepath)    # acepta lista o dict
@@ -1524,10 +1526,11 @@ save_problema_py(problema, filepath, varname="ejercicio")
 
 #+begin_example
 AMCblock    (nombre, etiqueta, enunciado, cuestiones,
-             last_choice=False, cols=1, profe=False, opc=["","Ninguna de las anteriores"])
+             last_choice=False, cols=1, profe=False, *,
+             aux_latex="", last_choice_text="Ninguna de las anteriores")
     # bajo nivel: devuelve str; el usuario escribe al fichero manualmente
-AMC_VF      (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna..."])
-AMC_multipart(nombre, etiqueta, enunciado, partes, opc=[""])
+AMC_VF      (nombre, etiqueta, enunciado, cuestiones, opc=None)
+AMC_multipart(nombre, etiqueta, enunciado, partes, opc=None)
     # para ProblemaTipo multiparte; partes = [(enunciado, cuestiones), ...]
 QuizAMCProfe(nombre, directorio, problema, cols=1,
              aux_latex="", last_choice_text="Ninguna de las anteriores")
@@ -1544,7 +1547,7 @@ QuizMoodle      (nombre, directorio, problema, last_choice=False,
     # vista alumno; instances>1 requiere numpy y setup con aleatorios; devuelve int
 QuizMoodleProfe (nombre, directorio, problema, aux_latex="")
     # mismas variantes que el alumno, con fracciones de puntuación visibles; devuelve int
-QuizVFMoodle    (nombre, directorio, GenVar, num, opc=["",""])
+QuizVFMoodle    (nombre, directorio, GenVar, num, opc=None)
 #+end_example
 
 ** Operadores de =calcprop= (disponibles tras =from qbank import *=)

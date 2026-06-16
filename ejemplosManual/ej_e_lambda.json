@@ -1,0 +1,34 @@
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "ej_e_lambda",
+  "seed": 1,
+  "setup": "import numpy as np\nfrom calcprop import v\nx = int(np.random.randint(0, 11))\nu1 = 3\nu2 = 7\nx_str = str(x)\nsup_u1 = v('gt_u1') if x > u1 else -v('gt_u1')\nsup_u2 = v('gt_u2') if x > u2 else -v('gt_u2')",
+  "export": {"last_choice": false, "cols": 1, "instances": 8},
+  "componentes": [
+    {"tipo": "Supuesto", "enunciado": "",
+     "semantica": "v('gt_u2') >> v('gt_u1')",   "precond": "True"},
+    {"tipo": "Supuesto", "enunciado": "",
+     "semantica": "-v('gt_u1') >> -v('gt_u2')", "precond": "True"},
+    "Sea $x = @{x_str}$.",
+    [
+      {"tipo": "Supuesto",
+       "enunciado": "",
+       "semantica": "lambda ns: ns['sup_u1'] & ns['sup_u2']",
+       "precond": "True"}
+    ],
+    " Respecto a los umbrales $u_1 = 3$ y $u_2 = 7$,",
+    {"tipo": "Cuestion",
+     "enunciado": "$x > 3$",
+     "semantica": "v('gt_u1')",            "precond": "True", "exp": ""},
+    {"tipo": "Cuestion",
+     "enunciado": "$x > 7$",
+     "semantica": "v('gt_u2')",            "precond": "True", "exp": ""},
+    {"tipo": "Cuestion",
+     "enunciado": "$x \\leq 3$",
+     "semantica": "-v('gt_u1')",           "precond": "True", "exp": ""},
+    {"tipo": "Cuestion",
+     "enunciado": "$x > 3$ pero $x \\leq 7$",
+     "semantica": "v('gt_u1') & -v('gt_u2')", "precond": "True", "exp": ""}
+  ]
+}

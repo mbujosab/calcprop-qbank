@@ -1,0 +1,51 @@
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "ej_d_setup_vars",
+  "seed": 42,
+  "setup": "import numpy as np\na = int(np.random.randint(1, 8))\nb = int(a + np.random.randint(1, 6))\ndiff = b - a\nsuma = a + b",
+  "export": {"last_choice": false, "cols": 1, "instances": 5},
+  "componentes": [
+    "Sea $f:\\mathbb{R}\\to\\mathbb{R}$ una función y sean $a = @{a}$, $b = @{b}$ (con $a < b$). Si $f$ es ",
+    [
+      {"tipo": "Supuesto", "enunciado": "estrictamente creciente,",
+       "semantica": "v('crec')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "estrictamente decreciente,",
+       "semantica": "v('decr')", "precond": "True"}
+    ],
+    " entonces",
+    [
+      {"tipo": "Cuestion",
+       "enunciado": "$f(@{a}) < f(@{b})$",
+       "semantica": "v('crec')", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion",
+       "enunciado": "$f(@{a}) > f(@{b})$",
+       "semantica": "v('decr')", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion",
+       "enunciado": "$f(@{a}) = f(@{b})$",
+       "semantica": "False",     "precond": "True", "exp": ""}
+    ],
+    [
+      {"tipo": "Cuestion",
+       "enunciado": "$f(@{b}) - f(@{a}) > 0$",
+       "semantica": "v('crec')", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion",
+       "enunciado": "$f(@{b}) - f(@{a}) < 0$",
+       "semantica": "v('decr')", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion",
+       "enunciado": "$f(@{b}) - f(@{a}) = @{diff}$",
+       "semantica": "False",     "precond": "True", "exp": ""}
+    ],
+    [
+      {"tipo": "Cuestion",
+       "enunciado": "$f(@{a}) + f(@{b})$ puede calcularse sin más información",
+       "semantica": "False", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion",
+       "enunciado": "$f$ es inyectiva",
+       "semantica": "True",  "precond": "True", "exp": ""},
+      {"tipo": "Cuestion",
+       "enunciado": "pueden existir $x \\neq y$ con $f(x) = f(y)$",
+       "semantica": "False", "precond": "True", "exp": ""}
+    ]
+  ]
+}

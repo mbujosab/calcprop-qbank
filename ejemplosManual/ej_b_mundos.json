@@ -1,0 +1,44 @@
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "ej_b_mundos",
+  "seed": null,
+  "setup": null,
+  "export": {"last_choice": true, "cols": 1},
+  "componentes": [
+    "Sea $f:\\mathbb{R}\\to\\mathbb{R}$ una función ",
+    [
+      {"tipo": "Supuesto", "enunciado": "estrictamente creciente,",
+       "semantica": "v('crec')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "estrictamente decreciente,",
+       "semantica": "v('decr')", "precond": "True"}
+    ],
+    " entonces",
+    [
+      {"tipo": "Cuestion", "enunciado": "si $a < b$ entonces $f(a) < f(b)$",
+       "semantica": "v('crec')",  "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "si $a < b$ entonces $f(a) > f(b)$",
+       "semantica": "v('decr')",  "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "pueden existir $a < b$ con $f(a) = f(b)$",
+       "semantica": "False",      "precond": "True", "exp": ""}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "$f$ es inyectiva",
+       "semantica": "True",  "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$f$ puede no ser inyectiva",
+       "semantica": "False", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$f$ es necesariamente sobreyectiva",
+       "semantica": "False", "precond": "True", "exp": ""}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "si $f(a) = f(b)$ entonces $a = b$",
+       "semantica": "True",      "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "si $a < b$ entonces $f(b) - f(a) > 0$",
+       "semantica": "v('crec')", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "si $a < b$ entonces $f(b) - f(a) < 0$",
+       "semantica": "v('decr')", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$f$ es necesariamente la función constante",
+       "semantica": "False",     "precond": "True", "exp": ""}
+    ]
+  ]
+}

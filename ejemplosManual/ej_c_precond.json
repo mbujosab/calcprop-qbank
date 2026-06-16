@@ -1,0 +1,51 @@
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "ej_c_precond",
+  "seed": null,
+  "setup": null,
+  "export": {"last_choice": true, "cols": 1},
+  "componentes": [
+    "Sea $A$ una matriz cuadrada de orden $n$.",
+    [
+      {"tipo": "Supuesto", "enunciado": "",
+       "semantica": "v('inv') | v('sing')", "precond": "True"}
+    ],
+    [
+      {"tipo": "Supuesto",
+       "enunciado": "Si $A$ es invertible",
+       "semantica": "v('inv')", "precond": "True"},
+      {"tipo": "Supuesto",
+       "enunciado": "Si $A$ es singular",
+       "semantica": "v('sing')", "precond": "True"}
+    ],
+    ", entonces",
+    [
+      {"tipo": "Cuestion", "enunciado": "$\\det(A) \\neq 0$",
+       "semantica": "True",  "precond": "v('inv')",  "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$\\det(A) = 0$",
+       "semantica": "True",  "precond": "v('sing')", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$\\det(A)$ puede ser cualquier número real",
+       "semantica": "False", "precond": "True",      "exp": ""}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "$A^{-1}$ existe",
+       "semantica": "True",  "precond": "v('inv')",  "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$A^{-1}$ no existe",
+       "semantica": "True",  "precond": "v('sing')", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$A^{-1} = A$ necesariamente",
+       "semantica": "False", "precond": "v('inv')",  "exp": ""}
+    ],
+    [
+      {"tipo": "Cuestion",
+       "enunciado": "el sistema $Ax=b$ tiene solución única para todo $b$",
+       "semantica": "True",  "precond": "v('inv')",  "exp": ""},
+      {"tipo": "Cuestion",
+       "enunciado": "el sistema $Ax=b$ puede no tener solución para algún $b$",
+       "semantica": "True",  "precond": "v('sing')", "exp": ""},
+      {"tipo": "Cuestion",
+       "enunciado": "el sistema $Ax=b$ tiene siempre infinitas soluciones",
+       "semantica": "False", "precond": "True",      "exp": ""}
+    ]
+  ]
+}

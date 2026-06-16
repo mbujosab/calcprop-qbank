@@ -1,0 +1,47 @@
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "ej_a_literales",
+  "seed": null,
+  "setup": null,
+  "export": {"last_choice": true, "cols": 2},
+  "componentes": [
+    "Sea $n$ un número par y $m$ un número impar.",
+    [
+      {"tipo": "Cuestion", "enunciado": "$n+m$ es par",
+       "semantica": "False", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$n+m$ es impar",
+       "semantica": "True",  "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$n-m$ es par",
+       "semantica": "False", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$n-m$ es impar",
+       "semantica": "True",  "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$2n+m$ es par",
+       "semantica": "False", "precond": "True", "exp": ""}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "$n \\cdot m$ es par",
+       "semantica": "True",  "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$n \\cdot m$ es impar",
+       "semantica": "False", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$m \\cdot m$ es impar",
+       "semantica": "True",  "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$m \\cdot m$ es par",
+       "semantica": "False", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$n \\cdot m$ es divisible entre $4$",
+       "semantica": "False", "precond": "True", "exp": ""}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "$n^2$ es par",
+       "semantica": "True",  "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$n^2$ es divisible entre $4$",
+       "semantica": "True",  "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$n^2$ es impar",
+       "semantica": "False", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$m^2$ es impar",
+       "semantica": "True",  "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "$m^2$ es par",
+       "semantica": "False", "precond": "True", "exp": ""}
+    ]
+  ]
+}
