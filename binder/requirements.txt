@@ -1,2 +1,3 @@
+numpy
 calcprop>=0.1.4
 calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-qbank.git@main
