@@ -819,6 +819,99 @@ save_problema_py(p, "./tmp/mi_problema.py")
 
 El fichero =mi_problema.py= es código Python válido que puede editarse y ejecutarse. Si el problema tiene =setup=, la función de generación de valores aleatorios aparece como =def _setup():= en el fichero exportado, con su cuerpo exactamente como fue guardado en el JSON.
 
+* Ejemplos progresivos
+
+Los cinco ejemplos de =ejemplosManual/= ilustran las mecánicas fundamentales de forma acumulativa. Cada ejemplo añade exactamente una idea nueva sobre el anterior.
+
+#+begin_src python :results silent
+from qbank import load_problema
+#+end_src
+
+** Ejemplo A — T/F literales, tres sublistas (=ej_a_literales.json=)
+
+La forma más simple de =ProblemaTipo=: sin =setup=, sin variables proposicionales. Los valores de verdad son literales =True= / =False=. Las tres sublistas de cuestiones generan variantes por combinación (5 × 5 × 5 = 125).
+
+#+begin_src python :results output
+p = load_problema("ejemplosManual/ej_a_literales.json")
+variantes = list(p.por_partes())
+print(f"{len(variantes)} variantes")
+etiqueta, partes = variantes[0]
+enunciado, cuestiones = partes[0]
+print(enunciado)
+for texto, vf, *_ in cuestiones:
+    print(f"  [{'✓' if vf else '✗'}] {texto}")
+#+end_src
+
+*Mecánica clave:* el Marcador itera todas las combinaciones de una cuestión por sublista. Con tres sublistas de 5 elementos cada una se obtienen 5 × 5 × 5 = 125 variantes válidas. El valor de verdad de cada cuestión es un literal y no depende de ningún contexto.
+
+** Ejemplo B — Supuesto en lista, dos mundos proposicionales (=ej_b_mundos.json=)
+
+Una lista de =Supuesto= crea mundos proposicionales alternativos: el Marcador elige uno y añade su semántica al mundo. Las cuestiones cuya semántica depende de la variable proposicional resultante (=v('crec')= o =v('decr')=) tienen valores de verdad distintos en cada mundo.
+
+#+begin_src python :results output
+p = load_problema("ejemplosManual/ej_b_mundos.json")
+variantes = list(p.por_partes())
+print(f"{len(variantes)} variantes")
+for etiqueta, partes in variantes[:2]:
+    enunciado, cuestiones = partes[0]
+    print(f"\nV{etiqueta}: {enunciado.strip()}")
+    for texto, vf, *_ in cuestiones:
+        print(f"  [{'✓' if vf else '✗'}] {texto}")
+#+end_src
+
+*Mecánica clave:* la lista de =Supuesto= genera un mundo por opción. La semántica de cada =Cuestion= es una fórmula proposicional evaluada en ese mundo, no un literal fijo. La misma cuestión puede ser verdadera en un mundo y falsa en otro.
+
+** Ejemplo C — Axioma vacío y =precond= por mundo (=ej_c_precond.json=)
+
+Un =Supuesto= suelto con =enunciado: ""= actúa como axioma: añade su fórmula al mundo sin contribuir texto visible. Aquí establece que la matriz es invertible o singular (=v('inv') | v('sing')=). Las cuestiones usan =precond= proposicional para aparecer solo en el mundo donde son relevantes.
+
+#+begin_src python :results output
+p = load_problema("ejemplosManual/ej_c_precond.json")
+variantes = list(p.por_partes())
+print(f"{len(variantes)} variantes")
+for etiqueta, partes in variantes[:2]:
+    enunciado, cuestiones = partes[0]
+    print(f"\nV{etiqueta}: {enunciado.strip()}")
+    for texto, vf, *_ in cuestiones:
+        print(f"  [{'✓' if vf else '✗'}] {texto}")
+#+end_src
+
+*Mecánica clave:* =precond: "v('inv')"= hace que una cuestión solo sea elegible en el mundo donde =A= es invertible. El Marcador descarta las combinaciones donde la precondición no se satisface, reduciendo el número de variantes válidas respecto al total de combinaciones.
+
+** Ejemplo D — =setup= paramétrico con interpolación =@{var}= (=ej_d_setup_vars.json=)
+
+El campo =setup= genera valores aleatorios antes de cada variante. Esos valores se interpolan en los textos con =@{nombre}=. El valor de verdad de las cuestiones sigue siendo proposicional (depende del mundo elegido por el Marcador, no de los números concretos), pero el enunciado muestra los valores reales.
+
+#+begin_src python :results output
+p = load_problema("ejemplosManual/ej_d_setup_vars.json")
+variantes = list(p.por_partes(instances=3))
+print(f"{len(variantes)} variantes con instances=3")
+for etiqueta, partes in variantes[:4]:
+    enunciado, cuestiones = partes[0]
+    print(f"\nV{etiqueta}: {enunciado[50:].strip()}")
+    for texto, vf, *_ in cuestiones:
+        print(f"  [{'✓' if vf else '✗'}] {texto}")
+#+end_src
+
+*Mecánica clave:* =instances=N= ejecuta el =setup= N veces con semillas distintas, multiplicando las variantes estructurales. El =@{var}= hace que cada instancia muestre valores concretos distintos en el enunciado, aunque la lógica T/F sea la misma.
+
+** Ejemplo E — Semántica lambda e inyección numérica (=ej_e_lambda.json=)
+
+Cuando el valor de verdad depende de un valor numérico calculado en =setup= (no de variables proposicionales), se usa una *semántica lambda*. El =setup= calcula fórmulas proposicionales (=v('gt_u1')= o =-v('gt_u1')=) según el valor de =x=, y el =Supuesto= con lambda las inyecta en el mundo. Los axiomas iniciales establecen la jerarquía =x>u_2 \Rightarrow x>u_1=, que el sistema proposicional usa para inferir respuestas consistentes.
+
+#+begin_src python :results output
+p = load_problema("ejemplosManual/ej_e_lambda.json")
+variantes = list(p.por_partes(instances=5))
+print(f"{len(variantes)} variantes con instances=5")
+for etiqueta, partes in variantes:
+    enunciado, cuestiones = partes[0]
+    x_val = enunciado.split("x = ")[1].split(".")[0].strip()
+    vfs = ['✓' if vf else '✗' for _, vf, *_ in cuestiones]
+    print(f"  V{etiqueta}: x={x_val}  {vfs}")
+#+end_src
+
+*Mecánica clave:* la lambda =lambda ns: ns['sup_u1'] & ns['sup_u2']= evalúa las fórmulas proposicionales precomputadas en =ns= y las inyecta en el mundo. Las cuestiones usan semánticas proposicionales puras (=v('gt_u1')=, =v('gt_u1') & -v('gt_u2')=) que el sistema evalúa contra ese mundo. Los axiomas garantizan coherencia: si el sistema sabe que =x > u_2=, infiere automáticamente que =x > u_1=.
+
 * Exportar a AMC (LaTeX)
 
 Las funciones AMC generan el código LaTeX compatible con Auto Multiple Choice.
