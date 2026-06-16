@@ -16,6 +16,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import re as _re
+import warnings as _warnings
 from qbank._quiz import *
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -173,33 +174,49 @@ def _moodle_header(nombre, auxLaTeX=""):
     )
 
 def QuizMoodle(nombre, directorio, problema, last_choice=False,
-               opc=["", "Las demás opciones son falsas"], instances=1):
+               opc=None, instances=1, *,
+               aux_latex="", last_choice_text="Las demás opciones son falsas"):
     """Exporta un problema (o dict de problemas) al formato Moodle XML vía LaTeX.
 
     Parámetros
     ----------
-    nombre      : nombre del quiz (identifica el grupo en Moodle)
-    directorio  : ruta al directorio de salida (con '/' al final)
-    problema    : ProblemaTipo o dict {nombre: ProblemaTipo}
-    last_choice : si True, añade la opción comodín «las demás son falsas»
-    opc         : [auxLaTeX, texto_lastchoice]
-    instances   : número de instancias con semillas distintas (ver por_partes())
+    nombre           : nombre del quiz (identifica el grupo en Moodle)
+    directorio       : ruta al directorio de salida (con '/' al final)
+    problema         : ProblemaTipo o dict {nombre: ProblemaTipo}
+    last_choice      : si True, añade la opción comodín «las demás son falsas»
+    aux_latex        : cabecera LaTeX adicional (p.ej. \\usepackage{...})
+    last_choice_text : texto de la opción comodín
+    instances        : número de instancias con semillas distintas (ver por_partes())
+
+    Retorna
+    -------
+    int : número de variantes escritas
     """
+    if opc is not None:
+        _warnings.warn(
+            "El parámetro 'opc' está deprecado; usa aux_latex= y last_choice_text=",
+            DeprecationWarning, stacklevel=2,
+        )
+        aux_latex        = opc[0]
+        last_choice_text = opc[1]
+
     def creaDiccionario(x, key='key'):
         return x if isinstance(x, dict) else {key: x}
-    problema      = creaDiccionario(problema, nombre)
-    OpcPorDefecto = opc[1]
+    problema = creaDiccionario(problema, nombre)
 
-    cuerpo = (lambda c: _ClozeMultiLastCh(c, OpcPorDefecto)) if last_choice else _ClozeMulti
+    cuerpo = (lambda c: _ClozeMultiLastCh(c, last_choice_text)) if last_choice else _ClozeMulti
 
+    count = 0
     with open(directorio + nombre + ".tex", "w") as f:
-        f.write(_moodle_header(nombre, auxLaTeX=opc[0]))
-        for i, nom in enumerate(problema):
+        f.write(_moodle_header(nombre, auxLaTeX=aux_latex))
+        for nom in problema:
             for etiqueta, partes in problema[nom].por_partes(instances=instances):
                 f.write(_ClozeBlock(nom, etiqueta, partes, cuerpo))
+                count += 1
         f.write("\\end{quiz}\n\n\\end{document}\n")
+    return count
 
-def QuizMoodleProfe(nombre, directorio, problema, opc=["",""]):
+def QuizMoodleProfe(nombre, directorio, problema, opc=None, *, aux_latex=""):
     """Vista profe para Moodle: mismas variantes que el alumno con fracciones visibles.
 
     Exporta exactamente las mismas variantes que QuizMoodle pero con el esquema
@@ -214,21 +231,36 @@ def QuizMoodleProfe(nombre, directorio, problema, opc=["",""]):
     nombre      : nombre del quiz (identifica el grupo en Moodle)
     directorio  : ruta al directorio de salida (con '/' al final)
     problema    : ProblemaTipo o dict {nombre: ProblemaTipo}
-    opc         : [auxLaTeX, texto_lastchoice]
+    aux_latex   : cabecera LaTeX adicional (p.ej. \\usepackage{...})
+
+    Retorna
+    -------
+    int : número de variantes escritas
     """
+    if opc is not None:
+        _warnings.warn(
+            "El parámetro 'opc' está deprecado; usa aux_latex=",
+            DeprecationWarning, stacklevel=2,
+        )
+        aux_latex = opc[0]
+
     def creaDiccionario(x, key='key'):
         return x if isinstance(x, dict) else {key: x}
     problema = creaDiccionario(problema, nombre)
+    count = 0
     with open(directorio + nombre + ".tex", "w") as f:
-        f.write(_moodle_header(nombre, auxLaTeX=opc[0]))
-        for i, nom in enumerate(problema):
+        f.write(_moodle_header(nombre, auxLaTeX=aux_latex))
+        for nom in problema:
             for etiqueta, partes in problema[nom].por_partes():
                 f.write(_ClozeBlock(nom, etiqueta, partes, _ClozeMultiProfe))
+                count += 1
         f.write("\\end{quiz}\n\n\\end{document}\n")
+    return count
 
 
 def QuizAMCProfe(nombre, directorio, problema, cols=1,
-                 opc=["", "Ninguna de las anteriores"]):
+                 opc=None, *,
+                 aux_latex="", last_choice_text="Ninguna de las anteriores"):
     """Vista profe aplanada para AMC: todas las cuestiones de cada sublista.
 
     Usa por_partes_profe() para mostrar TODAS las cuestiones de cada sublista
@@ -240,22 +272,39 @@ def QuizAMCProfe(nombre, directorio, problema, cols=1,
 
     Parámetros
     ----------
-    nombre      : identificador del grupo AMC
-    directorio  : ruta al directorio de salida (con '/' al final)
-    problema    : ProblemaTipo o dict {nombre: ProblemaTipo}
-    cols        : número de columnas multicols (1 = sin multicols)
-    opc         : [instrucciones_extra, texto_lastchoice]
+    nombre           : identificador del grupo AMC
+    directorio       : ruta al directorio de salida (con '/' al final)
+    problema         : ProblemaTipo o dict {nombre: ProblemaTipo}
+    cols             : número de columnas multicols (1 = sin multicols)
+    aux_latex        : instrucciones LaTeX extra dentro del bloque \\element{}
+    last_choice_text : texto de la opción comodín
+
+    Retorna
+    -------
+    int : número de bloques AMC escritos
     """
+    if opc is not None:
+        _warnings.warn(
+            "El parámetro 'opc' está deprecado; usa aux_latex= y last_choice_text=",
+            DeprecationWarning, stacklevel=2,
+        )
+        aux_latex        = opc[0]
+        last_choice_text = opc[1]
+
+    _opc = [aux_latex, last_choice_text]
     def creaDiccionario(x, key='key'):
         return x if isinstance(x, dict) else {key: x}
     problema = creaDiccionario(problema, nombre)
+    count = 0
     with open(directorio + nombre + "_profe.tex", "w") as f:
         for nom in problema:
             for etiqueta, partes in problema[nom].por_partes_profe():
                 for i, (enunciado, cuestiones) in enumerate(partes):
                     etiq = f"{etiqueta}-{i+1}" if len(partes) > 1 else etiqueta
                     f.write(AMCblock(nom, etiq, enunciado, cuestiones,
-                                     cols=cols, profe=True, opc=opc))
+                                     cols=cols, profe=True, opc=_opc))
+                    count += 1
+    return count
 
 def QuizVFMoodle(nombre, directorio, GenVar, num, opc=["",""]):
     auxLaTeX = opc[0]

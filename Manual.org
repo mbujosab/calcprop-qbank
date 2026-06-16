@@ -938,16 +938,18 @@ un bloque =\explain{}= al final de la pregunta.
 
 #+begin_src python
 QuizAMCProfe(nombre, directorio, problema, cols=1,
-             opc=["", "Ninguna de las anteriores"])
+             aux_latex="", last_choice_text="Ninguna de las anteriores")
+# Devuelve int: número de bloques AMC escritos
 #+end_src
 
-| Parámetro     | Descripción                                                        |
-|---------------+--------------------------------------------------------------------|
-| =nombre=      | Identificador del grupo AMC.                                       |
-| =directorio=  | Ruta donde se guardará el =.tex= (debe terminar en =/=).           |
-| =problema=    | Un =ProblemaTipo=, o un diccionario ={nombre: ProblemaTipo}=.      |
-| =cols=        | Columnas (>1 activa =\begin{multicols}{N}\AMCBoxedAnswers=).       |
-| =opc=         | =[instrucciones_extra, texto_lastchoice]=. Raramente necesario.    |
+| Parámetro          | Descripción                                                        |
+|--------------------+--------------------------------------------------------------------|
+| =nombre=           | Identificador del grupo AMC.                                       |
+| =directorio=       | Ruta donde se guardará el =.tex= (debe terminar en =/=).           |
+| =problema=         | Un =ProblemaTipo=, o un diccionario ={nombre: ProblemaTipo}=.      |
+| =cols=             | Columnas (>1 activa =\begin{multicols}{N}\AMCBoxedAnswers=).       |
+| =aux_latex=        | Instrucciones LaTeX extra dentro del bloque =\element{}=.          |
+| =last_choice_text= | Texto de la opción comodín.                                        |
 
 Genera =nombre_profe.tex= (con sufijo =_profe=). Se incluye en el documento AMC con:
 
@@ -1021,8 +1023,11 @@ una opción verdadera.
 
 #+begin_src python
 QuizMoodle     (nombre, directorio, problema, last_choice=False,
-                opc=["", "Las demás opciones son falsas"], instances=1)
-QuizMoodleProfe(nombre, directorio, problema, opc=["",""])
+                aux_latex="", last_choice_text="Las demás opciones son falsas",
+                instances=1)
+# Devuelve int: número de variantes escritas
+QuizMoodleProfe(nombre, directorio, problema, aux_latex="")
+# Devuelve int: número de variantes escritas
 #+end_src
 
 =ProblemaVF=:
@@ -1031,14 +1036,17 @@ QuizMoodleProfe(nombre, directorio, problema, opc=["",""])
 QuizVFMoodle(nombre, directorio, GenVar, num, opc=["", ""])
 #+end_src
 
-| Parámetro     | Descripción                                                           |
-|---------------+-----------------------------------------------------------------------|
-| =nombre=      | Nombre del cuestionario (aparece en Moodle como categoría).           |
-| =directorio=  | Ruta donde se guardará el =.tex= (debe terminar en =/=).              |
-| =problema=    | Un =ProblemaTipo=, o un diccionario ={nombre: ProblemaTipo}=.         |
-| =GenVar=      | Iterador de variantes =ProblemaVF=.                                   |
-| =num=         | Número de variantes a exportar.                                       |
-| =opc=         | =[codigo_latex_extra, texto_opcion_rescate]=. Raramente necesario.    |
+| Parámetro          | Descripción                                                           |
+|--------------------+-----------------------------------------------------------------------|
+| =nombre=           | Nombre del cuestionario (aparece en Moodle como categoría).           |
+| =directorio=       | Ruta donde se guardará el =.tex= (debe terminar en =/=).              |
+| =problema=         | Un =ProblemaTipo=, o un diccionario ={nombre: ProblemaTipo}=.         |
+| =last_choice=      | Si =True=, añade la opción comodín al final de cada cuestión.         |
+| =aux_latex=        | Cabecera LaTeX adicional (p.ej. =\usepackage{nacal-moodle}=).         |
+| =last_choice_text= | Texto de la opción comodín.                                           |
+| =instances=        | Número de instancias con semillas distintas (requiere =setup=).       |
+| =GenVar=           | Iterador de variantes =ProblemaVF=.                                   |
+| =num=              | Número de variantes a exportar.                                       |
 
 ** Ejemplo Moodle completo
 
@@ -1521,8 +1529,9 @@ AMCblock    (nombre, etiqueta, enunciado, cuestiones,
 AMC_VF      (nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna..."])
 AMC_multipart(nombre, etiqueta, enunciado, partes, opc=[""])
     # para ProblemaTipo multiparte; partes = [(enunciado, cuestiones), ...]
-QuizAMCProfe(nombre, directorio, problema, cols=1, opc=["","Ninguna de las anteriores"])
-    # alto nivel: vista aplanada profe → escribe nombre_profe.tex
+QuizAMCProfe(nombre, directorio, problema, cols=1,
+             aux_latex="", last_choice_text="Ninguna de las anteriores")
+    # alto nivel: vista aplanada profe → escribe nombre_profe.tex; devuelve int
     # usa por_partes_profe(); muestra todas las cuestiones con marcas y \explain{}
 #+end_example
 
@@ -1530,10 +1539,11 @@ QuizAMCProfe(nombre, directorio, problema, cols=1, opc=["","Ninguna de las anter
 
 #+begin_example
 QuizMoodle      (nombre, directorio, problema, last_choice=False,
-                 opc=["","Las demás opciones son falsas"], instances=1)
-    # vista alumno; instances>1 requiere numpy y setup con aleatorios
-QuizMoodleProfe (nombre, directorio, problema, opc=["",""])
-    # mismas variantes que el alumno, con fracciones de puntuación visibles
+                 aux_latex="", last_choice_text="Las demás opciones son falsas",
+                 instances=1)
+    # vista alumno; instances>1 requiere numpy y setup con aleatorios; devuelve int
+QuizMoodleProfe (nombre, directorio, problema, aux_latex="")
+    # mismas variantes que el alumno, con fracciones de puntuación visibles; devuelve int
 QuizVFMoodle    (nombre, directorio, GenVar, num, opc=["",""])
 #+end_example
 

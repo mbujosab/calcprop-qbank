@@ -40,3 +40,7 @@ Source   = "https://github.com/mbujosab/calcprop-qbank"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/qbank"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths  = ["tests"]
