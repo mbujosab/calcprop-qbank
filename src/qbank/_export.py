@@ -16,7 +16,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import re as _re
-import warnings as _warnings
 from qbank._quiz import *
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -37,23 +36,24 @@ def codchar(s):
 # ── Exportadores AMC ──────────────────────────────────────────────────────────
 
 def AMCblock(nombre, etiqueta, enunciado, cuestiones,
-             last_choice=False, cols=1, profe=False,
-             opc=["", "Ninguna de las anteriores"]):
+             last_choice=False, cols=1, profe=False, *,
+             aux_latex="", last_choice_text="Ninguna de las anteriores"):
     """Genera el bloque AMC para una pregunta de tipo multichoice.
 
     Parámetros
     ----------
-    nombre      : identificador del grupo AMC (se sanitiza: ':' → '-')
-    etiqueta    : etiqueta de la variante
-    enunciado   : texto del enunciado (``$$...$$`` se convierte a ``\\[...\\]``)
-    cuestiones  : lista de (texto, correcto, activa[, exp])
-    last_choice : si True, añade opción comodín con ``\\lastchoices``
-    cols        : número de columnas multicols (1 = sin multicols)
-    profe       : si True, añade ``\\explain`` con cuestiones rechazadas
-    opc         : [instrucciones_extra, texto_lastchoice]
+    nombre           : identificador del grupo AMC (se sanitiza: ':' → '-')
+    etiqueta         : etiqueta de la variante
+    enunciado        : texto del enunciado (``$$...$$`` se convierte a ``\\[...\\]``)
+    cuestiones       : lista de (texto, correcto, activa[, exp])
+    last_choice      : si True, añade opción comodín con ``\\lastchoices``
+    cols             : número de columnas multicols (1 = sin multicols)
+    profe            : si True, añade ``\\explain`` con cuestiones rechazadas
+    aux_latex        : instrucciones LaTeX extra dentro del bloque \\element{}
+    last_choice_text : texto de la opción comodín
     """
-    InstruccionesAux = opc[0]
-    OpcPorDefecto    = opc[1]
+    InstruccionesAux = aux_latex
+    OpcPorDefecto    = last_choice_text
     _fix = lambda t: _re.sub(r'\$\$(.+?)\$\$', r'\\[\1\\]', t, flags=_re.DOTALL)
     nombre_tex    = _sanitize_name(nombre)
     enunciado_tex = _fix(enunciado)
@@ -96,7 +96,9 @@ def AMCblock(nombre, etiqueta, enunciado, cuestiones,
 
 # ── AMC para ProblemaVF y multiparte ─────────────────────────────────────────
 
-def AMC_VF(nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las anteriores"]):
+def AMC_VF(nombre, etiqueta, enunciado, cuestiones, opc=None):
+    if opc is None:
+        opc = ["", "Ninguna de las anteriores"]
     InstruccionesAux = opc[0]
     OpcPorDefecto    = opc[1]
     nombre = _sanitize_name(nombre)
@@ -113,13 +115,15 @@ def AMC_VF(nombre, etiqueta, enunciado, cuestiones, opc=["","Ninguna de las ante
     s = s + '}\n\n'
     return s
 
-def AMC_multipart(nombre, etiqueta, enunciado, subpreguntas, opc=[""]):
+def AMC_multipart(nombre, etiqueta, enunciado, subpreguntas, opc=None):
     """Genera el bloque AMC para una pregunta con enunciado común y sub-preguntas.
 
     subpreguntas: list de (intro, [(texto, correcto, activa, exp), ...])
     Cada sub-pregunta produce un bloque \\begin{choices} independiente precedido
     por \\emph{intro} y envuelto en \\AMCnoCompleteMulti.
     """
+    if opc is None:
+        opc = [""]
     InstruccionesAux = opc[0] if opc else ""
     nombre = _sanitize_name(nombre)
     s  = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
@@ -174,7 +178,7 @@ def _moodle_header(nombre, auxLaTeX=""):
     )
 
 def QuizMoodle(nombre, directorio, problema, last_choice=False,
-               opc=None, instances=1, *,
+               instances=1, *,
                aux_latex="", last_choice_text="Las demás opciones son falsas"):
     """Exporta un problema (o dict de problemas) al formato Moodle XML vía LaTeX.
 
@@ -192,14 +196,6 @@ def QuizMoodle(nombre, directorio, problema, last_choice=False,
     -------
     int : número de variantes escritas
     """
-    if opc is not None:
-        _warnings.warn(
-            "El parámetro 'opc' está deprecado; usa aux_latex= y last_choice_text=",
-            DeprecationWarning, stacklevel=2,
-        )
-        aux_latex        = opc[0]
-        last_choice_text = opc[1]
-
     def creaDiccionario(x, key='key'):
         return x if isinstance(x, dict) else {key: x}
     problema = creaDiccionario(problema, nombre)
@@ -216,7 +212,7 @@ def QuizMoodle(nombre, directorio, problema, last_choice=False,
         f.write("\\end{quiz}\n\n\\end{document}\n")
     return count
 
-def QuizMoodleProfe(nombre, directorio, problema, opc=None, *, aux_latex=""):
+def QuizMoodleProfe(nombre, directorio, problema, *, aux_latex=""):
     """Vista profe para Moodle: mismas variantes que el alumno con fracciones visibles.
 
     Exporta exactamente las mismas variantes que QuizMoodle pero con el esquema
@@ -237,13 +233,6 @@ def QuizMoodleProfe(nombre, directorio, problema, opc=None, *, aux_latex=""):
     -------
     int : número de variantes escritas
     """
-    if opc is not None:
-        _warnings.warn(
-            "El parámetro 'opc' está deprecado; usa aux_latex=",
-            DeprecationWarning, stacklevel=2,
-        )
-        aux_latex = opc[0]
-
     def creaDiccionario(x, key='key'):
         return x if isinstance(x, dict) else {key: x}
     problema = creaDiccionario(problema, nombre)
@@ -258,8 +247,7 @@ def QuizMoodleProfe(nombre, directorio, problema, opc=None, *, aux_latex=""):
     return count
 
 
-def QuizAMCProfe(nombre, directorio, problema, cols=1,
-                 opc=None, *,
+def QuizAMCProfe(nombre, directorio, problema, cols=1, *,
                  aux_latex="", last_choice_text="Ninguna de las anteriores"):
     """Vista profe aplanada para AMC: todas las cuestiones de cada sublista.
 
@@ -283,15 +271,6 @@ def QuizAMCProfe(nombre, directorio, problema, cols=1,
     -------
     int : número de bloques AMC escritos
     """
-    if opc is not None:
-        _warnings.warn(
-            "El parámetro 'opc' está deprecado; usa aux_latex= y last_choice_text=",
-            DeprecationWarning, stacklevel=2,
-        )
-        aux_latex        = opc[0]
-        last_choice_text = opc[1]
-
-    _opc = [aux_latex, last_choice_text]
     def creaDiccionario(x, key='key'):
         return x if isinstance(x, dict) else {key: x}
     problema = creaDiccionario(problema, nombre)
@@ -302,11 +281,15 @@ def QuizAMCProfe(nombre, directorio, problema, cols=1,
                 for i, (enunciado, cuestiones) in enumerate(partes):
                     etiq = f"{etiqueta}-{i+1}" if len(partes) > 1 else etiqueta
                     f.write(AMCblock(nom, etiq, enunciado, cuestiones,
-                                     cols=cols, profe=True, opc=_opc))
+                                     cols=cols, profe=True,
+                                     aux_latex=aux_latex,
+                                     last_choice_text=last_choice_text))
                     count += 1
     return count
 
-def QuizVFMoodle(nombre, directorio, GenVar, num, opc=["",""]):
+def QuizVFMoodle(nombre, directorio, GenVar, num, opc=None):
+    if opc is None:
+        opc = ["", ""]
     auxLaTeX = opc[0]
     with open(directorio + nombre + ".tex", "w") as f:
         f.write(_moodle_header(nombre, auxLaTeX=auxLaTeX))

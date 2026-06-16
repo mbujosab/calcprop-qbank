@@ -1,6 +1,5 @@
 """Tests para las funciones de exportación de alto nivel (QuizMoodle, etc.)."""
 import tempfile
-import warnings
 from pathlib import Path
 
 import pytest
@@ -100,37 +99,6 @@ class TestQuizMoodleKwargs:
 
 
 # ---------------------------------------------------------------------------
-# QuizMoodle — deprecación de opc=
-# ---------------------------------------------------------------------------
-
-class TestQuizMoodleDeprecacion:
-    def test_opc_emite_deprecation_warning(self, problema_simple):
-        with tempfile.TemporaryDirectory() as d:
-            with pytest.warns(DeprecationWarning, match="opc"):
-                QuizMoodle("q", d + "/", problema_simple,
-                           opc=[r"\usepackage{nacal}", "Ninguna"])
-
-    def test_opc_produce_mismo_output_que_kwargs(self, problema_simple):
-        aux = r"\usepackage{nacal-moodle}"
-        texto = "Ninguna de las anteriores"
-        with tempfile.TemporaryDirectory() as d1, tempfile.TemporaryDirectory() as d2:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", DeprecationWarning)
-                QuizMoodle("q", d1 + "/", problema_simple, opc=[aux, texto])
-            QuizMoodle("q", d2 + "/", problema_simple,
-                       aux_latex=aux, last_choice_text=texto)
-            assert Path(d1, "q.tex").read_text() == Path(d2, "q.tex").read_text()
-
-    def test_sin_opc_no_emite_warning(self, problema_simple):
-        with tempfile.TemporaryDirectory() as d:
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("always")
-                QuizMoodle("q", d + "/", problema_simple)
-            dep = [x for x in w if issubclass(x.category, DeprecationWarning)]
-            assert dep == []
-
-
-# ---------------------------------------------------------------------------
 # QuizMoodleProfe — valor de retorno y kwargs
 # ---------------------------------------------------------------------------
 
@@ -153,20 +121,6 @@ class TestQuizMoodleProfe:
             contenido = Path(d, "q.tex").read_text()
         assert paquete in contenido
 
-    def test_opc_emite_deprecation_warning(self, problema_simple):
-        with tempfile.TemporaryDirectory() as d:
-            with pytest.warns(DeprecationWarning, match="opc"):
-                QuizMoodleProfe("q", d + "/", problema_simple, opc=["", ""])
-
-    def test_opc_produce_mismo_output_que_kwargs(self, problema_simple):
-        aux = r"\usepackage{nacal}"
-        with tempfile.TemporaryDirectory() as d1, tempfile.TemporaryDirectory() as d2:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", DeprecationWarning)
-                QuizMoodleProfe("q", d1 + "/", problema_simple, opc=[aux, ""])
-            QuizMoodleProfe("q", d2 + "/", problema_simple, aux_latex=aux)
-            assert Path(d1, "q.tex").read_text() == Path(d2, "q.tex").read_text()
-
 
 # ---------------------------------------------------------------------------
 # QuizAMCProfe — valor de retorno y kwargs
@@ -178,18 +132,3 @@ class TestQuizAMCProfe:
             resultado = QuizAMCProfe("q", d + "/", problema_simple)
         assert isinstance(resultado, int) and resultado > 0
 
-    def test_opc_emite_deprecation_warning(self, problema_simple):
-        with tempfile.TemporaryDirectory() as d:
-            with pytest.warns(DeprecationWarning, match="opc"):
-                QuizAMCProfe("q", d + "/", problema_simple,
-                              opc=["", "Ninguna de las anteriores"])
-
-    def test_opc_produce_mismo_output_que_kwargs(self, problema_simple):
-        texto = "Ninguna de las anteriores"
-        with tempfile.TemporaryDirectory() as d1, tempfile.TemporaryDirectory() as d2:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", DeprecationWarning)
-                QuizAMCProfe("q", d1 + "/", problema_simple, opc=["", texto])
-            QuizAMCProfe("q", d2 + "/", problema_simple, last_choice_text=texto)
-            assert (Path(d1, "q_profe.tex").read_text()
-                    == Path(d2, "q_profe.tex").read_text())

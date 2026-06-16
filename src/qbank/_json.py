@@ -250,9 +250,12 @@ def problema_to_dict(problema):
     else:
         raise ValueError(f"Tipo no soportado: {type(problema)}")
 def load_problema(filepath):
-    """Carga un único problema desde un fichero JSON."""
-    with open(filepath, 'r', encoding='utf-8') as f:
-        d = _json.load(f)
+    """Carga un único problema desde un fichero JSON o desde un dict en memoria."""
+    if isinstance(filepath, dict):
+        d = filepath
+    else:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            d = _json.load(f)
     if "banco" in d:
         raise ValueError(f"{filepath!r} contiene un banco de problemas. Usa load_banco().")
     return problema_from_dict(d)
