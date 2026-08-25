@@ -17,10 +17,12 @@
     [
       {"tipo": "Cuestion",
        "enunciado": "$f(@{a}) < f(@{b})$",
-       "semantica": "v('crec')", "precond": "True", "exp": ""},
+       "semantica": "v('crec')", "precond": "True",
+       "exp": "Porque @{a} < @{b} y $f$ es creciente."},
       {"tipo": "Cuestion",
        "enunciado": "$f(@{a}) > f(@{b})$",
-       "semantica": "v('decr')", "precond": "True", "exp": ""},
+       "semantica": "v('decr')", "precond": "True",
+       "exp": "Porque @{a} < @{b} y $f$ es decreciente."},
       {"tipo": "Cuestion",
        "enunciado": "$f(@{a}) = f(@{b})$",
        "semantica": "False",     "precond": "True", "exp": ""}

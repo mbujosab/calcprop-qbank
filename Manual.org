@@ -255,6 +255,16 @@ Cuestion("Las columnas son linealmente independientes", -v("Mcoli"),
          exp=r"Solo cuando $rg(\mathbf{X}) = k$")
 #+end_src
 
+=exp= admite la misma interpolación =@{var}= que =enunciado= (o directamente
+=lambda ns: ...=), evaluada con los valores concretos de cada variante. Así una
+única explicación sirve para todas las variantes, sin depender del enunciado
+que las acompañe:
+
+#+begin_src python
+Cuestion("$f(@{a}) < f(@{b})$", v("crec"),
+         exp="Porque @{a} < @{b} y $f$ es creciente.")
+#+end_src
+
 
 ** =ProblemaTipo= — un generador de variantes
 
@@ -880,7 +890,7 @@ for etiqueta, partes in variantes[:2]:
 
 ** Ejemplo D — =setup= paramétrico con interpolación =@{var}= (=ej_d_setup_vars.json=)
 
-El campo =setup= genera valores aleatorios antes de cada variante. Esos valores se interpolan en los textos con =@{nombre}=. El valor de verdad de las cuestiones sigue siendo proposicional (depende del mundo elegido por el Marcador, no de los números concretos), pero el enunciado muestra los valores reales.
+El campo =setup= genera valores aleatorios antes de cada variante. Esos valores se interpolan en los textos con =@{nombre}=. El valor de verdad de las cuestiones sigue siendo proposicional (depende del mundo elegido por el Marcador, no de los números concretos), pero el enunciado muestra los valores reales. El campo =exp= de dos de las cuestiones usa la misma interpolación, para que la explicación también muestre los valores reales de cada variante.
 
 #+begin_src python :results output
 p = load_problema("ejemplosManual/ej_d_setup_vars.json")
@@ -889,11 +899,13 @@ print(f"{len(variantes)} variantes con instances=3")
 for etiqueta, partes in variantes[:4]:
     enunciado, cuestiones = partes[0]
     print(f"\nV{etiqueta}: {enunciado[50:].strip()}")
-    for texto, vf, *_ in cuestiones:
+    for texto, vf, activa, *resto in cuestiones:
         print(f"  [{'✓' if vf else '✗'}] {texto}")
+        if resto and resto[0]:
+            print(f"      → {resto[0]}")
 #+end_src
 
-*Mecánica clave:* =instances=N= ejecuta el =setup= N veces con semillas distintas, multiplicando las variantes estructurales. El =@{var}= hace que cada instancia muestre valores concretos distintos en el enunciado, aunque la lógica T/F sea la misma.
+*Mecánica clave:* =instances=N= ejecuta el =setup= N veces con semillas distintas, multiplicando las variantes estructurales. El =@{var}= hace que cada instancia muestre valores concretos distintos en el enunciado (y, si se usa, en =exp=), aunque la lógica T/F sea la misma.
 
 ** Ejemplo E — Semántica lambda e inyección numérica (=ej_e_lambda.json=)
 
@@ -1600,7 +1612,7 @@ ProblemaTipoEditor(source=None)
     → editor visual en Jupyter (requiere ipywidgets; solo ProblemaTipo)
 #+end_example
 
-Los campos =semantica= y =precond= de =Supuesto= y =Cuestion= admiten, además de fórmulas =calcprop=, callables de la forma =lambda ns: ...= para problemas con =setup= paramétrico. Los textos (enunciados) admiten =@variable= para sustituir valores del namespace del =setup=.
+Los campos =semantica= y =precond= de =Supuesto= y =Cuestion= admiten, además de fórmulas =calcprop=, callables de la forma =lambda ns: ...= para problemas con =setup= paramétrico. Los textos (enunciados y =exp=) admiten =@{variable}= para sustituir valores del namespace del =setup=, y =exp= también puede ser =lambda ns: ...=.
 
 ** Funciones JSON
 

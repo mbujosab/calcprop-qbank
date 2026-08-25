@@ -132,3 +132,40 @@ class TestQuizAMCProfe:
             resultado = QuizAMCProfe("q", d + "/", problema_simple)
         assert isinstance(resultado, int) and resultado > 0
 
+
+# ---------------------------------------------------------------------------
+# Cuestion.exp — interpolación dinámica @{var} / lambda ns
+# ---------------------------------------------------------------------------
+
+class TestExpDinamico:
+    def _problema_con_exp(self, exp):
+        def setup():
+            return {"a": 3, "b": 5}
+        c = Cuestion("$@{a} + @{b} = 8$", lambda ns: ns["a"] + ns["b"] == 8, exp=exp)
+        return ProblemaTipo(["Base ", [c]], setup=setup)
+
+    def test_interpola_cadena_con_at_var(self):
+        p = self._problema_con_exp("Porque @{a}+@{b}=8.")
+        _, partes = next(p.por_partes())
+        _, cuestiones = partes[0]
+        assert cuestiones[0][3] == "Porque 3+5=8."
+
+    def test_admite_lambda_ns(self):
+        p = self._problema_con_exp(lambda ns: f"Porque {ns['a']}+{ns['b']}=8.")
+        _, partes = next(p.por_partes())
+        _, cuestiones = partes[0]
+        assert cuestiones[0][3] == "Porque 3+5=8."
+
+    def test_por_partes_profe_tambien_interpola(self):
+        p = self._problema_con_exp("Porque @{a}+@{b}=8.")
+        _, partes = next(p.por_partes_profe())
+        _, cuestiones = partes[0]
+        assert cuestiones[0][3] == "Porque 3+5=8."
+
+    def test_exp_interpolado_llega_al_tex_exportado(self):
+        p = self._problema_con_exp("Porque @{a}+@{b}=8.")
+        with tempfile.TemporaryDirectory() as d:
+            QuizMoodle("q", d + "/", p)
+            contenido = Path(d, "q.tex").read_text()
+        assert codchar("Porque 3+5=8.") in contenido
+

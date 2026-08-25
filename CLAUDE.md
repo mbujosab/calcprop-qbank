@@ -80,6 +80,9 @@ Formato JSON (`version: "1"`, `tipo: "ProblemaTipo"`):
 - Textos sueltos van como cadenas directas, no dentro de `[...]`.
 - `precond` usa semántica lambda sobre el namespace `ns`.
 - Interpolación: `@{var}` en enunciados (delimitador `@` en `_NsTemplate`).
+- `exp` (explicación) admite la misma interpolación `@{var}` y también puede ser
+  `lambda ns: ...`, igual que `enunciado`. Así una sola explicación sirve para
+  todas las variantes, mostrando los valores concretos de cada una.
 
 ### Exportación AMC
 

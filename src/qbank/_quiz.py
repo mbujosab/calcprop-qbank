@@ -219,9 +219,10 @@ class ProblemaTipo:
                     precond   = _ns_eval(componente.p, ns)
                     semantica = _ns_eval(componente.s, ns)
                     texto     = _ns_interp(_ns_eval(componente.e, ns), ns)
+                    exp       = _ns_interp(_ns_eval(componente.x, ns), ns)
                     if test(precond, hipotesis):
                         cuestiones[parte].append(
-                            (texto, (True if test(semantica, hipotesis) else False), 1, componente.x))
+                            (texto, (True if test(semantica, hipotesis) else False), 1, exp))
                     else:
                         if verbose:
                             print('\n Cuestion: '   + str(componente.e) \
@@ -269,8 +270,9 @@ class ProblemaTipo:
                     texto   = _ns_interp(_ns_eval(componente.e, ns), ns)
                     if test(precond, hipotesis):
                         semantica = _ns_eval(componente.s, ns)
+                        exp = _ns_interp(_ns_eval(componente.x, ns), ns)
                         cuestiones[parte].append(
-                            (texto, (True if test(semantica, hipotesis) else False), 1, componente.x))
+                            (texto, (True if test(semantica, hipotesis) else False), 1, exp))
                     else:
                         cuestiones[parte].append(
                             (texto, 'rechazada por ' + _fuente_precond(componente), 0))
@@ -386,8 +388,9 @@ class ProblemaTipoProfe:
                     semantica = _ns_eval(componente.s, ns)
                     texto     = _ns_interp(_ns_eval(componente.e, ns), ns)
                     if test(precond, hipotesis):
+                        exp = _ns_interp(_ns_eval(componente.x, ns), ns)
                         cuestiones = cuestiones + \
-                            [(texto, (True if test(semantica, hipotesis) else False), 1, componente.x)]
+                            [(texto, (True if test(semantica, hipotesis) else False), 1, exp)]
                     else:
                         cuestiones = cuestiones + \
                             [(texto, 'rechazada por ' + _fuente_precond(componente), 0)]
