@@ -39,7 +39,8 @@ Reglas (código del aviso entre paréntesis):
    número de opciones de una parte no es constante entre variantes
    (``opciones``, AVISO).
 2. Número de variantes (``variantes``, AVISO): < 16 sin ``setup``; < 60 con
-   ``setup`` (contando ``instances``).
+   ``setup`` (contando ``instances``). Más de 300 (INFO): un solo examcopy
+   AMC con tantas variantes puede agotar la memoria de pdflatex.
 3. Tabla texto → mundo (``constante``, AVISO/INFO; ``solape``, AVISO): una
    ``Cuestion`` verdadera (o falsa) en TODOS los mundos en que puede
    aparecer es candidata a distractor memorizable; dos ``Cuestion`` con el
@@ -54,7 +55,8 @@ Reglas (código del aviso entre paréntesis):
    ``seed``, ``instances``, AVISO).
 8. Texto (``texto``, AVISO): caracteres que rompen el paquete ``moodle``,
    delimitadores ``\\( \\)``, citas a números de lección, ``@{`` sin
-   cerrar, dobles espacios, comillas simples.
+   cerrar, dobles espacios, comillas simples, textos que parecen código
+   ``lambda ns:`` (desde JSON no se evalúan).
 9. Setup (``setup``, INFO): instancias necesarias para llegar a 60 variantes.
 """
 
@@ -80,6 +82,7 @@ _ORDEN = {ERROR: 0, AVISO: 1, INFO: 2}
 
 MIN_VARIANTES_SIN_SETUP = 16
 MIN_VARIANTES_CON_SETUP = 60
+MAX_VARIANTES_AMC       = 300     # por encima, la vista alumno AMC en un solo examcopy agota pdflatex
 _MAX_REPETIDOS = 5          # avisos idénticos que se listan antes de resumir
 
 
@@ -253,6 +256,8 @@ _CHECKS_TEXTO = [
      "doble espacio"),
     (_re.compile(r"(?<![\w\\'$})\]])'[^']+'(?!')"),
      "comillas simples '...' en vez de ``...''"),
+    (_re.compile(r'^\s*lambda\s+ns\s*:'),
+     "parece código lambda: desde JSON no se evalúa (usa @{var} y calcula el texto en setup)"),
 ]
 
 
@@ -396,6 +401,10 @@ def _regla_variantes(p, avisos, instances, seed):
         avisos.append(Aviso(ERROR, 'interp',
                             f"{m} sin interpolar en {tipo} (variante {etiqueta})", t))
 
+    if n > MAX_VARIANTES_AMC:
+        avisos.append(Aviso(INFO, 'variantes',
+                            f"{n} variantes: por encima de ~{MAX_VARIANTES_AMC} la vista alumno AMC "
+                            "en un solo examcopy puede agotar la memoria de pdflatex"))
     if p.setup is None:
         if n < MIN_VARIANTES_SIN_SETUP:
             avisos.append(Aviso(AVISO, 'variantes',

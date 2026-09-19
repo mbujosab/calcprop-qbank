@@ -16,6 +16,22 @@
 #+LATEX_HEADER: \usepackage{fontspec}          % para fuentes Unicode
 #+LATEX_HEADER: \usepackage{lmodern}           % o mejor, define una fuente explícita
 #+LATEX_HEADER: \setmainfont{Latin Modern Roman} % o cualquier otra que quieras
+#+LATEX_HEADER: \setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase] % cubre ─ → ≥ ✓ ▲ ▼ … del código
+#+LATEX_HEADER: \usepackage{newunicodechar}
+#+LATEX_HEADER: \newfontfamily\symbolafont{Symbola}   % emoji de los widgets (📂 💾)
+#+LATEX_HEADER: \newunicodechar{📂}{{\symbolafont 📂}}
+#+LATEX_HEADER: \newunicodechar{💾}{{\symbolafont 💾}}
+#+LATEX_HEADER: \newfontfamily\fallbackfont{DejaVu Sans}[Scale=MatchLowercase] % símbolos que Latin Modern no tiene
+#+LATEX_HEADER: \newunicodechar{✓}{{\fallbackfont ✓}}
+#+LATEX_HEADER: \newunicodechar{✕}{{\fallbackfont ✕}}
+#+LATEX_HEADER: \newunicodechar{▲}{{\fallbackfont ▲}}
+#+LATEX_HEADER: \newunicodechar{▼}{{\fallbackfont ▼}}
+#+LATEX_HEADER: \newunicodechar{▶}{{\fallbackfont ▶}}
+#+LATEX_HEADER: \newunicodechar{⬇}{{\fallbackfont ⬇}}
+#+LATEX_HEADER: \newunicodechar{⊘}{{\fallbackfont ⊘}}
+#+LATEX_HEADER: \newunicodechar{⟺}{{\fallbackfont ⟺}}
+#+LATEX_HEADER: \newunicodechar{≥}{\ensuremath{\geq}}
+#+LATEX_HEADER: \newunicodechar{＋}{+}
 #+LATEX_HEADER: \usepackage[spanish]{babel}
 #+LATEX_HEADER: \usepackage{parskip}
 
@@ -2926,7 +2942,8 @@ Reglas (código del aviso entre paréntesis):
    número de opciones de una parte no es constante entre variantes
    (``opciones``, AVISO).
 2. Número de variantes (``variantes``, AVISO): < 16 sin ``setup``; < 60 con
-   ``setup`` (contando ``instances``).
+   ``setup`` (contando ``instances``). Más de 300 (INFO): un solo examcopy
+   AMC con tantas variantes puede agotar la memoria de pdflatex.
 3. Tabla texto → mundo (``constante``, AVISO/INFO; ``solape``, AVISO): una
    ``Cuestion`` verdadera (o falsa) en TODOS los mundos en que puede
    aparecer es candidata a distractor memorizable; dos ``Cuestion`` con el
@@ -2941,7 +2958,8 @@ Reglas (código del aviso entre paréntesis):
    ``seed``, ``instances``, AVISO).
 8. Texto (``texto``, AVISO): caracteres que rompen el paquete ``moodle``,
    delimitadores ``\\( \\)``, citas a números de lección, ``@{`` sin
-   cerrar, dobles espacios, comillas simples.
+   cerrar, dobles espacios, comillas simples, textos que parecen código
+   ``lambda ns:`` (desde JSON no se evalúan).
 9. Setup (``setup``, INFO): instancias necesarias para llegar a 60 variantes.
 """
 
@@ -2967,6 +2985,7 @@ _ORDEN = {ERROR: 0, AVISO: 1, INFO: 2}
 
 MIN_VARIANTES_SIN_SETUP = 16
 MIN_VARIANTES_CON_SETUP = 60
+MAX_VARIANTES_AMC       = 300     # por encima, la vista alumno AMC en un solo examcopy agota pdflatex
 _MAX_REPETIDOS = 5          # avisos idénticos que se listan antes de resumir
 
 
@@ -3139,7 +3158,7 @@ def _regla_estructura(p, avisos, ruta):
 
 ** Regla 8: texto
 
-Cada comprobación de texto es un par (expresión regular, mensaje) aplicado a todos los textos literales del problema: cadenas sueltas, enunciados y explicaciones. Las expresiones evitan los falsos positivos más habituales en \LaTeX{}: =\\[= (salto de línea con espacio) no se confunde con =\[=, y las primas =$f'(x)$= o =\hat{y}'= no se toman por comillas simples.
+Cada comprobación de texto es un par (expresión regular, mensaje) aplicado a todos los textos literales del problema: cadenas sueltas, enunciados y explicaciones. Las expresiones evitan los falsos positivos más habituales en \LaTeX{}: =\\[= (salto de línea con espacio) no se confunde con =\[=, y las primas =$f'(x)$= o =\hat{y}'= no se toman por comillas simples. La última comprobación avisa de enunciados o explicaciones que empiezan por =lambda ns:=: desde JSON solo se evalúan =semantica= y =precond=, así que ese texto llegaría literal al alumno (el mecanismo para textos dependientes de los datos es =@{var}=, calculando el texto en el =setup=).
 
 #+NAME: lint: Regla 8: texto
 #+begin_src python :noweb yes
@@ -3156,6 +3175,8 @@ _CHECKS_TEXTO = [
      "doble espacio"),
     (_re.compile(r"(?<![\w\\'$})\]])'[^']+'(?!')"),
      "comillas simples '...' en vez de ``...''"),
+    (_re.compile(r'^\s*lambda\s+ns\s*:'),
+     "parece código lambda: desde JSON no se evalúa (usa @{var} y calcula el texto en setup)"),
 ]
 
 
@@ -3243,7 +3264,7 @@ def _regla_etiquetas(p, avisos):
 
 ** Reglas 1, 2, 5 y 9: variantes
 
-Estas reglas recorren de verdad todas las variantes con =por_partes(instances=...)=, exactamente como hará la exportación, y aplican por parte la misma regla que =AMCblock= y =QuizMoodle= para la opción por defecto: es correcta si y solo si ninguna real lo es. La garantía de mezcla se comprueba sobre el total de opciones. Como una =Cuestion= rechazada por su precondición descarta la variante entera, el número de opciones por parte es constante en el motor actual; el aviso =opciones= queda por si eso cambiara. Las interpolaciones fallidas se buscan como =@{...}= superviviente en enunciados, cuestiones y explicaciones, y los avisos repetidos se agrupan por texto. Con =setup=, la regla 9 estima las instancias necesarias para llegar a 60 variantes a partir de la media de variantes por instancia.
+Estas reglas recorren de verdad todas las variantes con =por_partes(instances=...)=, exactamente como hará la exportación, y aplican por parte la misma regla que =AMCblock= y =QuizMoodle= para la opción por defecto: es correcta si y solo si ninguna real lo es. La garantía de mezcla se comprueba sobre el total de opciones. Como una =Cuestion= rechazada por su precondición descarta la variante entera, el número de opciones por parte es constante en el motor actual; el aviso =opciones= queda por si eso cambiara. Las interpolaciones fallidas se buscan como =@{...}= superviviente en enunciados, cuestiones y explicaciones, y los avisos repetidos se agrupan por texto. Con =setup=, la regla 9 estima las instancias necesarias para llegar a 60 variantes a partir de la media de variantes por instancia. Por encima de =MAX_VARIANTES_AMC= (300) se informa de que la vista alumno de AMC, que mete todas las variantes en un único =examcopy=, puede agotar la memoria de =pdflatex= (ocurrió con 792 variantes; con 192 compila).
 
 #+NAME: lint: Reglas 1, 2, 5 y 9: variantes
 #+begin_src python :noweb yes
@@ -3307,6 +3328,10 @@ def _regla_variantes(p, avisos, instances, seed):
         avisos.append(Aviso(ERROR, 'interp',
                             f"{m} sin interpolar en {tipo} (variante {etiqueta})", t))
 
+    if n > MAX_VARIANTES_AMC:
+        avisos.append(Aviso(INFO, 'variantes',
+                            f"{n} variantes: por encima de ~{MAX_VARIANTES_AMC} la vista alumno AMC "
+                            "en un solo examcopy puede agotar la memoria de pdflatex"))
     if p.setup is None:
         if n < MIN_VARIANTES_SIN_SETUP:
             avisos.append(Aviso(AVISO, 'variantes',

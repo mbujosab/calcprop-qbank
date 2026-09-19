@@ -20,6 +20,7 @@
 #+LATEX_HEADER: \usepackage{fontspec}          % para fuentes Unicode
 #+LATEX_HEADER: \usepackage{lmodern}           % o mejor, define una fuente explícita
 #+LATEX_HEADER: \setmainfont{Latin Modern Roman} % o cualquier otra que quieras
+#+LATEX_HEADER: \setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase] % cubre ─ → ≥ ✓ … del código
 #+LATEX_HEADER: \usepackage[spanish]{babel}
 # +LATEX_HEADER: \usepackage{parskip}
 #+LATEX_HEADER: \usepackage{tabularx} 
@@ -1669,7 +1670,7 @@ ProblemaTipoEditor(source=None)
     → editor visual en Jupyter (requiere ipywidgets; solo ProblemaTipo)
 #+end_example
 
-Los campos =semantica= y =precond= de =Supuesto= y =Cuestion= admiten, además de fórmulas =calcprop=, callables de la forma =lambda ns: ...= para problemas con =setup= paramétrico. Los textos (enunciados y =exp=) admiten =@{variable}= para sustituir valores del namespace del =setup=, y =exp= también puede ser =lambda ns: ...=.
+Los campos =semantica= y =precond= de =Supuesto= y =Cuestion= admiten, además de fórmulas =calcprop=, callables de la forma =lambda ns: ...= para problemas con =setup= paramétrico (desde JSON, como cadenas). Los textos (enunciados y =exp=) admiten =@{variable}= para sustituir valores del namespace del =setup=; construidos en Python también pueden ser =lambda ns: ...=, pero desde JSON esas cadenas no se evalúan (usa =@{variable}= y calcula el texto en el =setup=).
 
 ** Funciones JSON
 

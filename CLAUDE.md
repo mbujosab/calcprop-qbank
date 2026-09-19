@@ -102,9 +102,14 @@ Formato JSON (`version: "1"`, `tipo: "ProblemaTipo"`):
 - Textos sueltos van como cadenas directas, no dentro de `[...]`.
 - `precond` usa semántica lambda sobre el namespace `ns`.
 - Interpolación: `@{var}` en enunciados (delimitador `@` en `_NsTemplate`).
-- `exp` (explicación) admite la misma interpolación `@{var}` y también puede ser
-  `lambda ns: ...`, igual que `enunciado`. Así una sola explicación sirve para
-  todas las variantes, mostrando los valores concretos de cada una.
+- `exp` (explicación) admite la misma interpolación `@{var}` que `enunciado`.
+  Así una sola explicación sirve para todas las variantes, mostrando los
+  valores concretos de cada una. **Desde JSON solo se evalúan `semantica` y
+  `precond`**: un `enunciado` o `exp` escrito como `"lambda ns: ..."` llega
+  literal al alumno (el lint lo avisa). Para textos que dependen de los datos,
+  calcula el texto como variable en `setup` y usa `"exp": "@{exp_plano}"`.
+  Las lambdas reales en `enunciado`/`exp` solo existen construyendo los
+  objetos en Python.
 
 ### Exportación AMC
 
@@ -129,6 +134,11 @@ QuizMoodle(nombre, directorio, problema,
 
 - `$$...$$` se convierte automáticamente a `\[...\]`.
 - Los nombres sanitizan `:` y `_` → `-` para compatibilidad LaTeX.
+- `cols` solo actúa si se pasa: `QuizAMCProfe(..., cols=N)` y
+  `AMCblock(..., cols=N)`. Un script que genere la vista profe sin pasar
+  `export.cols` la mostrará a una columna aunque la vista alumno use dos.
+- La vista alumno AMC pone todas las variantes en un `examcopy`; por encima
+  de ~300 `pdflatex` puede agotar la memoria (el lint lo informa).
 
 ### Comprobación automática (`lint`)
 

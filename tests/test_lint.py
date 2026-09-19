@@ -404,3 +404,25 @@ class TestCLI:
         f = self._escribe(tmp_path, "ok", base())
         main([f, "--tabla"])
         assert "Mundos:" in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------------------
+# PENDIENTE.md (2026-09-19): lambda como texto desde JSON y exceso de variantes
+# ---------------------------------------------------------------------------
+
+class TestPendiente:
+    def test_texto_lambda_desde_json_es_aviso(self):
+        d = base()
+        d["componentes"][3][0]["exp"] = "lambda ns: 'a' if ns['x'] > 0 else 'b'"
+        av = [a for a in lint(d) if a.codigo == "texto" and "lambda" in a.mensaje]
+        assert av and av[0].nivel == AVISO and "exp" in av[0].donde
+
+    def test_mas_de_300_variantes_es_info(self):
+        mundos = [S(f"si {k},", f"v('{k}')") for k in "ABC"]
+        slot = [C(f"entonces {k}", f"v('{k}')") for k in "ABC"] + [C(f"nada {i}", "False") for i in range(4)]
+        d = problema(["Sea", mundos, slot, copy.deepcopy(slot), copy.deepcopy(slot)])   # 3·7³ = 1029
+        av = [a for a in lint(d) if a.codigo == "variantes"]
+        assert av and av[0].nivel == INFO and "pdflatex" in av[0].mensaje
+
+    def test_menos_de_300_sin_info(self):
+        assert not [a for a in lint(base()) if a.codigo == "variantes"]

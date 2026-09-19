@@ -15,6 +15,22 @@
 #+LATEX_HEADER: \usepackage{fontspec}          % para fuentes Unicode
 #+LATEX_HEADER: \usepackage{lmodern}           % o mejor, define una fuente explícita
 #+LATEX_HEADER: \setmainfont{Latin Modern Roman} % o cualquier otra que quieras
+#+LATEX_HEADER: \setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase] % cubre ─ → ≥ ✓ ▲ ▼ … del código
+#+LATEX_HEADER: \usepackage{newunicodechar}
+#+LATEX_HEADER: \newfontfamily\symbolafont{Symbola}   % emoji de los widgets (📂 💾)
+#+LATEX_HEADER: \newunicodechar{📂}{{\symbolafont 📂}}
+#+LATEX_HEADER: \newunicodechar{💾}{{\symbolafont 💾}}
+#+LATEX_HEADER: \newfontfamily\fallbackfont{DejaVu Sans}[Scale=MatchLowercase] % símbolos que Latin Modern no tiene
+#+LATEX_HEADER: \newunicodechar{✓}{{\fallbackfont ✓}}
+#+LATEX_HEADER: \newunicodechar{✕}{{\fallbackfont ✕}}
+#+LATEX_HEADER: \newunicodechar{▲}{{\fallbackfont ▲}}
+#+LATEX_HEADER: \newunicodechar{▼}{{\fallbackfont ▼}}
+#+LATEX_HEADER: \newunicodechar{▶}{{\fallbackfont ▶}}
+#+LATEX_HEADER: \newunicodechar{⬇}{{\fallbackfont ⬇}}
+#+LATEX_HEADER: \newunicodechar{⊘}{{\fallbackfont ⊘}}
+#+LATEX_HEADER: \newunicodechar{⟺}{{\fallbackfont ⟺}}
+#+LATEX_HEADER: \newunicodechar{≥}{\ensuremath{\geq}}
+#+LATEX_HEADER: \newunicodechar{＋}{+}
 #+LATEX_HEADER: \usepackage[spanish]{babel}
 
 #+LATEX_HEADER: \usepackage{etoolbox}          % para reducir las fuentes de salidas verbatim
