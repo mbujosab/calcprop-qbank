@@ -22,7 +22,20 @@ src/qbank/
   _export.py    — AMCblock, QuizMoodle, QuizAMCProfe, AMC_VF, AMC_multipart
   _json.py      — load_problema, save_problema, load_banco, save_banco
   _widgets.py   — widgets Jupyter (importación opcional)
+  _lint.py      — lint, tabla_mundos, Aviso; lint.py es el shim de `python -m qbank.lint`
 ```
+
+## Fuentes de verdad y ficheros generados
+
+- **El código es `src/qbank/*.py`.** `CalcPropQuiz.org` y `CalcPropExport.org`
+  son versiones literate antiguas con cabeceras `:tangle`: **no tanglear**, ya
+  que sobrescribirían `src/` con código desfasado (les faltan `QuizAMCProfe`,
+  `seed`/`export`, `verbose`, `lint`…). Si se editan, es solo como documentación.
+- **`README.md` se genera desde `README.org`:**
+  `pandoc -f org -t gfm README.org -o README.md`. Editar siempre el `.org`.
+- `Manual.org` es el manual de usuario (su PDF se exporta desde Emacs).
+  `Ejemplos.org` es una versión antigua de `Ejemplos.ipynb`; el notebook manda.
+- `tests/test_lint.py` y `tests/test_export.py` son la suite: `.venv/bin/python -m pytest`.
 
 ## API pública principal
 
@@ -107,6 +120,34 @@ QuizMoodle(nombre, directorio, problema,
 
 - `$$...$$` se convierte automáticamente a `\[...\]`.
 - Los nombres sanitizan `:` y `_` → `-` para compatibilidad LaTeX.
+
+### Comprobación automática (`lint`)
+
+```python
+avisos = lint(problema_o_ruta, instances=None, seed=None)   # -> list[Aviso]
+print(tabla_mundos(problema_o_ruta))                         # Cuestion × mundo
+```
+
+CLI: `python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet]`
+(también `qbank-lint`). Código de salida 1 si hay algún `ERROR`. `--quiet`
+omite los INFO y los ficheros sin avisos.
+
+Implementación en `src/qbank/_lint.py` (el docstring lista las 9 reglas y
+sus códigos). Niveles: `ERROR` (la pregunta está rota: mezcla, negación sin
+`unoDe`, `@{var}` sin resolver, estructura, nombre), `AVISO` (revisar:
+pocas variantes, `Cuestion` constante en todos sus mundos, lista de un
+elemento, seed/instances incoherentes, texto sospechoso), `INFO`.
+
+- La regla de negación considera deducible `-v('X')` si hay `unoDe(...)`
+  con `v('X')` en un `Supuesto` suelto **o** si algún `Supuesto` afirma
+  directamente `-v('X')` (patrón habitual: dos alternativas `v('X')` /
+  `-v('X')`).
+- Una `Cuestion` con `semantica` literal `True`/`False` constante en todos
+  sus mundos es INFO, no AVISO (es un distractor deliberado).
+- `_ns_interp(s, ns, strict=None)`: con `strict=True` (o
+  `qbank._quiz.STRICT_INTERP = True`) lanza `ValueError` ante `@{var}`
+  desconocida. Por defecto sigue dejando el texto intacto.
+- `por_partes_profe(verbose=True)` admite `verbose=False` como `por_partes`.
 
 ## Notebooks de referencia
 

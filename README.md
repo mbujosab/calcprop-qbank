@@ -54,34 +54,39 @@ cada variante calcula automáticamente qué ítems son verdaderos y cuáles
 falsos. Las variantes con hipótesis incoherentes o precondiciones
 insatisfechas se descartan.
 
-`ProblemaTipoProfe` muestra todas las cuestiones para cada enunciado
-(sin descartar), facilitando la revisión del banco.
+El método `por_partes_profe()` muestra todas las cuestiones de cada
+sublista (sin descartar, marcando las rechazadas por su precondición),
+facilitando la revisión del banco.
 
 ## Preguntas multi-parte
 
-`ProblemaMultiParte` genera variantes en las que cada enunciado va
-seguido de varios bloques de sub-preguntas independientes. Es útil para
-preguntas AMC con múltiples apartados o para el formato cloze de Moodle:
+La misma lista plana de componentes admite varias partes: cada vez que
+tras un bloque de cuestiones aparece texto o un `Supuesto` se abre una
+parte nueva. Es útil para preguntas AMC con múltiples apartados o para
+el formato cloze de Moodle. El método `por_partes()` devuelve, por
+variante, un par `(enunciado, cuestiones)` por parte:
 
 ``` python
 from qbank import *
 
-subpreguntas = [
-    SubPregunta("¿Cuál es el valor de $A$? ",
-                [Cuestion("Verdadero.", v("A")),
-                 Cuestion("Falso.",    ~v("A"))]),
-    SubPregunta("¿Cuál es el valor de $B$? ",
-                [Cuestion("Verdadero.", v("B")),
-                 Cuestion("Falso.",    ~v("B"))]),
-]
+p = ProblemaTipo([
+    "Suponga que ",
+    [Supuesto("$A$ es verdadero, ", v("A")),
+     Supuesto("$B$ es verdadero, ", v("B"))],
+    "¿Cuál es el valor de $A$? ",
+    [Cuestion("Verdadero.", v("A")), Cuestion("Falso.", -v("A"))],
+    "¿Cuál es el valor de $B$? ",
+    [Cuestion("Verdadero.", v("B")), Cuestion("Falso.", -v("B"))],
+])
 
-p = ProblemaMultiParte(
-    ["Suponga que ",
-     [Supuesto("$A$ es verdadero, ", v("A")),
-      Supuesto("$B$ es verdadero, ", v("B"))]],
-    subpreguntas,
-)
+for etiqueta, partes in p.por_partes():
+    for enunciado, cuestiones in partes:
+        ...
 ```
+
+(`ProblemaMultiParte` y `SubPregunta` siguen existiendo por
+compatibilidad, pero están deprecados y devuelven un `ProblemaTipo`
+equivalente.)
 
 ## Preguntas paramétricas con `setup`
 
@@ -107,8 +112,8 @@ p = ProblemaTipo(
 
 ## Persistencia en formato JSON
 
-Guarda y carga problemas (`ProblemaTipo`, `ProblemaMultiParte`,
-`ProblemaVF`) sin reescribir el código Python:
+Guarda y carga problemas (`ProblemaTipo`, `ProblemaVF`) sin reescribir
+el código Python:
 
 ``` python
 from qbank import load_problema, save_problema
@@ -159,7 +164,7 @@ n = QuizAMCProfe("MiCuestionario", "exportaciones/", p)
 print(f"{n} bloque(s) escritos")
 ```
 
-Para preguntas multi-parte: `AMC_multipart`.
+Para preguntas multi-parte en un único `questionmult`: `AMC_multipart`.
 
 ### Formato Moodle (XML vía LaTeX)
 
@@ -185,8 +190,7 @@ Para preguntas `ProblemaVF`: `QuizVFMoodle`.
 ## Exportación a código Python editable
 
 `save_problema_py` genera un fichero `.py` con la definición del
-problema como listas editables, tanto para `ProblemaTipo` como para
-`ProblemaMultiParte`:
+problema como listas editables:
 
 ``` python
 from qbank import save_problema_py
@@ -197,15 +201,46 @@ save_problema_py(p, 'mi_problema.py')
 El fichero resultante puede abrirse con cualquier editor, modificarse y
 ejecutarse directamente con Python.
 
+## Comprobación automática de preguntas (`lint`)
+
+`lint` revisa un problema (objeto, dict o ruta a JSON) sin modificar
+nada ni compilar LaTeX y devuelve una lista de
+`Aviso(nivel, codigo, mensaje, donde)` con nivel `ERROR`, `AVISO` o
+`INFO`:
+
+``` python
+from qbank import lint, tabla_mundos
+
+for a in lint("preguntas/L-01-ejemplo.json"):
+    print(a)
+print(tabla_mundos("preguntas/L-01-ejemplo.json"))   # Cuestion × mundo
+```
+
+Desde la línea de órdenes (código de salida 1 si hay algún `ERROR`):
+
+``` bash
+python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet]
+qbank-lint preguntas/*.json --quiet      # equivalente; omite INFO y ficheros OK
+```
+
+Comprueba, entre otras cosas, la garantía de mezcla (`1 <` correctas \<=
+opciones-1= en toda variante, contando la opción por defecto de
+`last_choice`), el número de variantes, negaciones `-v('X')` que nunca
+podrían deducirse por falta de un `unoDe(...)`, interpolaciones `@{var}`
+sin resolver, etiquetas huérfanas, la estructura del JSON y caracteres
+que rompen la exportación a Moodle. La tabla de mundos muestra el valor
+de cada `Cuestion` en cada combinación de `Supuesto` (`V`, `F` o `-` si
+la rechaza su `precond`), para localizar distractores constantes.
+
 # Documentación
 
--   `CalcPropQuiz.org` — código fuente comentado del módulo `_quiz`,
-    `_json` y `_widgets`.
--   `CalcPropExport.org` — código fuente comentado del módulo `_export`.
 -   `Manual.org` — manual de usuario con ejemplos.
-
-Los ficheros Python se generan desde los `.org` mediante
-`org-babel-tangle`.
+-   `Tutorial.ipynb` y `ejemplosManual/Demo.ipynb` — cuadernos
+    ejecutables (también en MyBinder).
+-   `CalcPropQuiz.org` y `CalcPropExport.org` — versión comentada
+    (literate) de los módulos `_quiz=/=_json=/=_widgets` y `_export`. La
+    fuente de verdad es el código de `src/qbank/`; estos documentos
+    pueden ir por detrás.
 
 # Tests
 

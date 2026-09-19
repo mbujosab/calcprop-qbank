@@ -1591,6 +1591,63 @@ mismo último valor de la variable de bucle.
 Ambos patrones funcionan igual para Moodle: sustituye el bloque =with open(...)= por
 =QuizMoodle("MiCuestionario", "salida/", p, last_choice=True)= y adapta el nombre.
 
+* Comprobación automática de preguntas (=lint=)
+
+Antes de exportar una pregunta conviene comprobar que está bien construida.
+=lint= automatiza las comprobaciones que de otro modo habría que hacer a ojo
+recorriendo todas las variantes. Acepta un =ProblemaTipo=, un dict JSON o la
+ruta a un fichero, no modifica nada ni compila LaTeX, y devuelve una lista de
+=Aviso= con nivel =ERROR=, =AVISO= o =INFO= (errores primero):
+
+#+begin_src jupyter-python :results output
+from qbank import lint
+
+for aviso in lint("ejemplosManual/ej_c_precond.json"):
+    print(aviso)
+#+end_src
+
+Cada =Aviso= tiene =nivel=, =codigo= (identifica la regla), =mensaje= y =donde=
+(el componente afectado, con su texto recortado). Las reglas principales:
+
+- =mezcla= (ERROR) :: en alguna variante todas las opciones son correctas o
+  todas incorrectas. Se cuenta la opción por defecto si =export.last_choice=
+  está activo, con la misma regla que =AMCblock= y =QuizMoodle=.
+- =negacion= (ERROR) :: una =semantica= o =precond= usa =-v('X')= pero ningún
+  =Supuesto= permite deducirlo: hace falta un =Supuesto= suelto con
+  =unoDe(..., v('X'), ...)= o una alternativa que afirme =-v('X')=. Sin ello
+  =test()= nunca da esa cuestión por verdadera.
+- =interp= (ERROR) :: queda algún =@{var}= sin sustituir en el texto renderizado.
+- =nombre=, =estructura=, =tipo= (ERROR) :: el JSON no es un =ProblemaTipo=, el
+  =nombre= no coincide con el fichero o contiene =:=, o alguna lista mezcla tipos.
+- =variantes= (AVISO) :: menos de 16 variantes sin =setup=, o menos de 60 con
+  =setup= (contando =export.instances=).
+- =constante= (AVISO) :: una =Cuestion= es verdadera (o falsa) en todos los
+  mundos en los que puede aparecer: candidata a distractor memorizable. Si su
+  =semantica= es el literal =True=/=False= se rebaja a INFO.
+- =huerfana= (AVISO) :: una etiqueta =v('X')= usada en una =Cuestion= no aparece
+  en ningún =Supuesto=.
+- =lista-1=, =seed=, =instances= (AVISO) :: listas de un solo elemento,
+  =seed= incoherente con el uso de aleatorios en =setup=, o =instances > 1= sin =setup=.
+- =texto= (AVISO) :: caracteres =°=, =«=, =»= (rompen el paquete =moodle=),
+  =\(= =\)= en vez de =$=, citas a números de lección, =@{= sin cerrar, dobles
+  espacios o comillas simples.
+
+La tabla de mundos muestra, para cada =Cuestion=, su valor en cada combinación
+de =Supuesto= (=V=, =F=, o =-= si la rechaza su =precond=):
+
+#+begin_src jupyter-python :results output
+from qbank import tabla_mundos
+print(tabla_mundos("ejemplosManual/ej_c_precond.json"))
+#+end_src
+
+Desde la línea de órdenes, para revisar un banco entero (código de salida 1 si
+hay algún ERROR; =--quiet= omite los INFO y los ficheros sin avisos):
+
+#+begin_example
+python -m qbank.lint preguntas/*.json --quiet
+qbank-lint preguntas/*.json --tabla        # equivalente, con la tabla de mundos
+#+end_example
+
 * Referencia rápida de la API
 
 ** Clases
@@ -1601,7 +1658,7 @@ Cuestion(enunciado, semantica, precond=True, exp="")
 ProblemaTipo(lista, setup=None, export=None, seed=None)
     → itera (etiqueta, enunciado, cuestiones)
     → .por_partes(instances=1, base_seed=None, verbose=False)  — vista alumno; multiparte e instancias numéricas
-    → .por_partes_profe()                       — vista aplanada: todas las cuestiones con marcas
+    → .por_partes_profe(verbose=True)           — vista aplanada: todas las cuestiones con marcas
 ProblemaTipoProfe(lista, setup=None)            [DEPRECADO → usar ProblemaTipo + .por_partes_profe()]
     → como ProblemaTipo, sin descartar ítems rechazados
 ProblemaVF(enunciado, lista, n)
@@ -1653,6 +1710,16 @@ QuizMoodle      (nombre, directorio, problema, last_choice=False,
 QuizMoodleProfe (nombre, directorio, problema, aux_latex="")
     # mismas variantes que el alumno, con fracciones de puntuación visibles; devuelve int
 QuizVFMoodle    (nombre, directorio, GenVar, num, opc=None)
+#+end_example
+
+** Comprobación automática
+
+#+begin_example
+lint(problema_o_ruta, instances=None, seed=None)  → list[Aviso]
+    # Aviso(nivel, codigo, mensaje, donde); nivel ∈ {ERROR, AVISO, INFO}; errores primero
+tabla_mundos(problema_o_ruta)                     → str   # tabla Cuestion × mundo
+python -m qbank.lint FICHEROS.json [--instances N] [--seed S] [--tabla] [--quiet]
+    # también `qbank-lint`; código de salida 1 si hay algún ERROR
 #+end_example
 
 ** Operadores de =calcprop= (disponibles tras =from qbank import *=)
