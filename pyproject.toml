@@ -32,6 +32,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Mathematics",
 ]
 
+[project.scripts]
+qbank-lint = "qbank._lint:main"
+
 [project.optional-dependencies]
 jupyter = ["ipywidgets>=8"]
 

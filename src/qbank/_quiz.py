@@ -24,8 +24,24 @@ class _NsTemplate(Template):
 def _ns_eval(val, ns):
     return val(ns) if callable(val) else val
 
-def _ns_interp(s, ns):
-    return _NsTemplate(s).safe_substitute(ns) if ns else s
+STRICT_INTERP = False   # si True, _ns_interp lanza ValueError ante @{var} desconocida
+
+def _vars_sin_resolver(s):
+    """Nombres @{var} que quedan sin sustituir en un texto."""
+    return [m.group('braced') for m in _NsTemplate.pattern.finditer(s) if m.group('braced')]
+
+def _ns_interp(s, ns, strict=None):
+    """Sustituye @{var} / @var por los valores de ns. Con strict=True (o el
+    módulo con STRICT_INTERP=True) lanza ValueError si queda alguna @{var}
+    sin resolver; por defecto la deja intacta."""
+    out = _NsTemplate(s).safe_substitute(ns) if ns else s
+    if strict is None:
+        strict = STRICT_INTERP
+    if strict:
+        faltan = _vars_sin_resolver(out)
+        if faltan:
+            raise ValueError(f"interpolación: variable(s) desconocida(s) {faltan} en {s[:60]!r}")
+    return out
 
 def _fuente_precond(componente):
     """Representación legible de la precondición de un componente.
@@ -232,7 +248,7 @@ class ProblemaTipo:
             if not descartada:
                 c += 1
                 yield (str(c), list(zip(enunciados, cuestiones)))
-    def _variantes_profe(self):
+    def _variantes_profe(self, verbose=True):
         if self.seed is not None and self.setup is not None:
             try:
                 import numpy as _np
@@ -261,8 +277,9 @@ class ProblemaTipo:
                             enunciados[parte], _ns_interp(_ns_eval(componente.e, ns), ns))
                         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
                     else:
-                        print('\n Supuesto: '   + str(componente.e) \
-                            + ' rechazado por ' + _fuente_precond(componente) + '\n')
+                        if verbose:
+                            print('\n Supuesto: '   + str(componente.e) \
+                                + ' rechazado por ' + _fuente_precond(componente) + '\n')
                         descartada = True
                         break
                 elif isinstance(componente, Cuestion):
@@ -321,12 +338,15 @@ class ProblemaTipo:
         else:
             yield from self._variantes(verbose=verbose)
     
-    def por_partes_profe(self):
+    def por_partes_profe(self, verbose=True):
         """Vista de revisión del profesor, en el mismo formato por partes que
         por_partes(): muestra TODAS las cuestiones de cada sublista (no una por
         variante) y marca las que no superan su precondición como rechazadas en vez
-        de descartar la variante. No es la salida que ve el alumno ni la exportada."""
-        return self._variantes_profe()
+        de descartar la variante. No es la salida que ve el alumno ni la exportada.
+
+        verbose : si True (por defecto), imprime los Supuesto rechazados por
+                  precondición (las variantes descartadas)."""
+        return self._variantes_profe(verbose=verbose)
     
     def __iter__(self):
         self._gen = self._variantes()

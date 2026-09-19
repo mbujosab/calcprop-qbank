@@ -18,6 +18,7 @@
 from qbank._quiz import *
 from qbank._export import *
 from qbank._json import *
+from qbank._lint import lint, tabla_mundos, Aviso
 try:
     from qbank._widgets import *
 except ImportError:

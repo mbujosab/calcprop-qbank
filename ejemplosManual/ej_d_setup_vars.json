@@ -4,7 +4,7 @@
   "nombre": "ej_d_setup_vars",
   "seed": 42,
   "setup": "import numpy as np\na = int(np.random.randint(1, 8))\nb = int(a + np.random.randint(1, 6))\ndiff = b - a\nsuma = a + b",
-  "export": {"last_choice": false, "cols": 1, "instances": 5},
+  "export": {"last_choice": true, "cols": 1, "instances": 5},
   "componentes": [
     "Sea $f:\\mathbb{R}\\to\\mathbb{R}$ una función y sean $a = @{a}$, $b = @{b}$ (con $a < b$). Si $f$ es ",
     [
