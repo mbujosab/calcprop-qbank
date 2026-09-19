@@ -237,10 +237,12 @@ la rechaza su `precond`), para localizar distractores constantes.
 -   `Manual.org` — manual de usuario con ejemplos.
 -   `Tutorial.ipynb` y `ejemplosManual/Demo.ipynb` — cuadernos
     ejecutables (también en MyBinder).
--   `CalcPropQuiz.org` y `CalcPropExport.org` — versión comentada
-    (literate) de los módulos `_quiz=/=_json=/=_widgets` y `_export`. La
-    fuente de verdad es el código de `src/qbank/`; estos documentos
-    pueden ir por detrás.
+-   `CalcPropQuiz.org` y `CalcPropExport.org` — código fuente comentado
+    (programación literate) de los módulos `_quiz`, `_json`, `_widgets`,
+    `_lint` y `_export`. Son la fuente de `src/qbank/`: los `.py` se
+    generan con `org-babel-tangle` o, sin Emacs, con
+    `python tools/orgtangle.py write`; `tests/test_literate.py`
+    comprueba que coinciden.
 
 # Tests
 

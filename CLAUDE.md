@@ -27,10 +27,19 @@ src/qbank/
 
 ## Fuentes de verdad y ficheros generados
 
-- **El código es `src/qbank/*.py`.** `CalcPropQuiz.org` y `CalcPropExport.org`
-  son versiones literate antiguas con cabeceras `:tangle`: **no tanglear**, ya
-  que sobrescribirían `src/` con código desfasado (les faltan `QuizAMCProfe`,
-  `seed`/`export`, `verbose`, `lint`…). Si se editan, es solo como documentación.
+- **Programación literate: `CalcPropQuiz.org` y `CalcPropExport.org` son la
+  fuente de `src/qbank/*.py`** (noweb: cada módulo es un esqueleto de
+  referencias `<<Sección>>` y cada función vive en su bloque con nombre junto a
+  su prosa). Flujo para cambiar código:
+  1. Editar el bloque correspondiente del `.org` (y su prosa).
+  2. `python tools/orgtangle.py write` regenera `src/` sin necesidad de Emacs
+     (equivale byte a byte a `org-babel-tangle`); o tanglear desde Emacs.
+  3. `python tools/orgtangle.py check` (lo ejecuta `tests/test_literate.py`)
+     falla si `src/` y los `.org` no coinciden. Nunca editar solo el `.py`.
+  Para código nuevo: bloque `#+NAME:` + referencia en el esqueleto del módulo.
+  Ojo: Emacs sangra también las líneas en blanco dentro de una referencia
+  indentada; `write` reproduce eso, así que `src/` puede tener blancos con
+  espacios. `informe` dice qué bloques difieren si alguien editó el `.py`.
 - **`README.md` se genera desde `README.org`:**
   `pandoc -f org -t gfm README.org -o README.md`. Editar siempre el `.org`.
 - `Manual.org` es el manual de usuario (su PDF se exporta desde Emacs).

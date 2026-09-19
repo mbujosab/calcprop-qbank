@@ -301,18 +301,18 @@ def QuizVFMoodle(nombre, directorio, GenVar, num, opc=None):
 def MoodleMulti(nombre, variante, enunciado, cuestiones):
     def itemBuena(aclaracion):
         return ("\\item[feedback={" + codchar(aclaracion) + "}]* ") if aclaracion else r"\item* "
-
+    
     def itemMala(aclaracion):
         return ("\\item[feedback={" + codchar(aclaracion) + "}]  ") if aclaracion else r"\item  "
-
+    
     s = " \\begin{multi}[multiple, points=" + str(len(cuestiones)-1) +"]"
     s = s + "{" + codchar(nombre) + "-" + str(variante) + "}\n"
     s = s + "    " + enunciado + "\n"
-
+    
     for c in cuestiones:
         fb = c[3] if len(c) > 3 else ''
         s = s + (' ' * 7) + (itemBuena(fb) if c[1] else itemMala(fb)) + codchar(c[0]) + '\n'
-
+    
     s = s + " \\end{multi}\n\n"
     return s
 
@@ -328,18 +328,18 @@ def MoodleMultiProfe(nombre, variante, enunciado, cuestiones):
                 m+=1
     def itemBuena(numBuenas, aclaracion):
         return ("\\item[fraction=" + str(round(100/numBuenas)) + feedback(aclaracion) + "]") if numBuenas else "\\item*"
-
+    
     def itemMala(numMalas, aclaracion):
         return ("\\item[fraction=" + str(-round(100/numMalas)) + feedback(aclaracion) + "]") if numMalas else "\\item"
-
+    
     s = " \\begin{multi}[multiple, fractiontol=5.1"  +"]"
     s = s + "{" + codchar(nombre) + "-" + str(variante) + "}\n"
     s = s + "    " + enunciado + "\n"
-
+    
     for c in cuestiones:
         if c[2]:
             s = s + (' ' * 7) + (itemBuena(b, c[3]) if c[1] else itemMala(m, c[3])) + codchar(c[0]) + "\n"
-
+    
     s = s + " \\end{multi}\n\n"
     return s
 
@@ -349,18 +349,18 @@ def MoodleMultiLastCh(nombre, variante, enunciado, cuestiones,
     cuestiones = cuestiones + [(codchar(lastchoice), (False if v else True), 1, '')]
     def itemBuena(aclaracion):
         return ("\\item[feedback={" + codchar(aclaracion) + "}]* ") if aclaracion else r"\item* "
-
+    
     def itemMala(aclaracion):
         return ("\\item[feedback={" + codchar(aclaracion) + "}]  ") if aclaracion else r"\item  "
-
+    
     s = " \\begin{multi}[multiple, points=" + str(len(cuestiones)-1) +"]"
     s = s + "{" + codchar(nombre) + "-" + str(variante) + "}\n"
     s = s + "    " + enunciado + "\n"
-
+    
     for c in cuestiones:
         fb = c[3] if len(c) > 3 else ''
         s = s + (' ' * 7) + (itemBuena(fb) if c[1] else itemMala(fb)) + codchar(c[0]) + '\n'
-
+    
     s = s + " \\end{multi}\n\n"
     return s
 
@@ -409,7 +409,7 @@ def _ClozeMultiProfe(cuestiones):
                 m+=1
     def itemBuena(numBuenas, aclaracion):
         return ("\\item[fraction=" + str(round(100/numBuenas)) + feedback(aclaracion) + "]") if numBuenas else "\\item*"
-
+    
     def itemMala(numMalas, aclaracion):
         return ("\\item[fraction=" + str(-round(100/numMalas)) + feedback(aclaracion) + "]") if numMalas else "\\item"
 

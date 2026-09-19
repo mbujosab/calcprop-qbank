@@ -230,7 +230,7 @@ class ProblemaTipo:
                                 + ' rechazado por ' + _fuente_precond(componente) + '\n')
                         descartada = True
                         break
-
+                
                 elif isinstance(componente, Cuestion):
                     precond   = _ns_eval(componente.p, ns)
                     semantica = _ns_eval(componente.s, ns)
@@ -298,10 +298,10 @@ class ProblemaTipo:
                 yield (str(c), list(zip(enunciados, cuestiones)))
     def por_partes(self, instances=1, base_seed=None, verbose=False):
         """Itera las variantes válidas como (etiqueta, [(enunciado, cuestiones), …]).
-
+    
         Es la vía recomendada para ejercicios multiparte. En un ejercicio de una
         sola parte cada elemento es una lista de longitud 1.
-
+    
         instances : número de instancias con semillas distintas. Útil cuando el
                     setup usa np.random y una sola instancia produce pocas variantes.
                     La instancia i se evalúa con np.random.seed(base_seed + i * 997).
@@ -343,7 +343,7 @@ class ProblemaTipo:
         por_partes(): muestra TODAS las cuestiones de cada sublista (no una por
         variante) y marca las que no superan su precondición como rechazadas en vez
         de descartar la variante. No es la salida que ve el alumno ni la exportada.
-
+    
         verbose : si True (por defecto), imprime los Supuesto rechazados por
                   precondición (las variantes descartadas)."""
         return self._variantes_profe(verbose=verbose)
