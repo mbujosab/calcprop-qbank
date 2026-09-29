@@ -9,7 +9,7 @@ proposicional (`calcprop`). Exporta a AMC (PDF) y Moodle (XML + PDF).
 
 - **Paquete PyPI:** `calcprop-qbank`
 - **Importación:** `from qbank import *`
-- **Dependencias:** `calcprop>=0.1`, `numpy`, `ipywidgets>=8` (extra `jupyter`)
+- **Dependencias:** `calcprop>=0.2.0`, `numpy`, `ipywidgets>=8` (extra `jupyter`)
 - **Entorno:** `.venv/` en este repo (calcprop instalado en modo editable desde
   su propio repo en `~/SynologyDrive/ReposGH/Docencia/calcprop`)
 
