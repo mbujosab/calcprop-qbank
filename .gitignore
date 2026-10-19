@@ -31,6 +31,7 @@ build/
 # Exportaciones generadas
 *.tex
 *.html
+!docs/*.html
 # *.pdf
 
 # Salida generada por los ejemplos y notebooks

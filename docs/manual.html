@@ -1,0 +1,2213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<!-- 2026-10-19 lun 23:45 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Manual de uso de =qbank=</title>
+<meta name="author" content="Marcos Bujosa" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div id="content" class="content">
+<header>
+<h1 class="title">Manual de uso de <code>qbank</code></h1>
+</header><nav id="table-of-contents" role="doc-toc">
+<h2>&Iacute;ndice</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org84e6d2b">1. Introducción</a>
+<ul>
+<li><a href="#orga996cb2">1.1. Instalación rápida (para quien ya conoce Python)</a></li>
+</ul>
+</li>
+<li><a href="#orgb703daa">2. Instalación paso a paso</a>
+<ul>
+<li><a href="#orgf9bb81f">2.1. Requisitos previos</a></li>
+<li><a href="#org9cc3698">2.2. Qué es un entorno virtual y por qué usarlo</a></li>
+<li><a href="#org2696319">2.3. Crear y activar un entorno virtual</a></li>
+<li><a href="#orge0c48d6">2.4. Instalar <code>calcprop-qbank</code></a></li>
+<li><a href="#org1b7b050">2.5. Nota para usuarios de Windows</a></li>
+<li><a href="#org9f90848">2.6. Crear un banco de preguntas</a></li>
+</ul>
+</li>
+<li><a href="#orgd5ff592">3. Conceptos fundamentales</a>
+<ul>
+<li><a href="#org0eeecd4">3.1. Fórmulas con <code>calcprop</code></a></li>
+<li><a href="#org88cf9af">3.2. <code>Supuesto</code> — una hipótesis del enunciado</a></li>
+<li><a href="#orga50947b">3.3. <code>Cuestion</code> — un ítem de respuesta</a></li>
+<li><a href="#orgdb0c8c6">3.4. <code>ProblemaTipo</code> — un generador de variantes</a></li>
+<li><a href="#orgf06a05a">3.5. Preguntas paramétricas con <code>setup</code></a></li>
+</ul>
+</li>
+<li><a href="#orgea963aa">4. El formato JSON</a>
+<ul>
+<li><a href="#orge8dbb43">4.1. Campos</a></li>
+<li><a href="#orgdc46202">4.2. De lista de listas a JSON y vuelta</a></li>
+<li><a href="#orge101181">4.3. Un ejemplo con <code>setup</code> en JSON</a></li>
+<li><a href="#org154a23d">4.4. Exportar la lista de listas a un fichero <code>.py</code> editable</a></li>
+<li><a href="#org801d956">4.5. Los ejemplos de <code>ejemplosManual/</code></a></li>
+</ul>
+</li>
+<li><a href="#org57eea32">5. Exportar a AMC (LaTeX)</a>
+<ul>
+<li><a href="#org9e5e81e">5.1. <code>AMCblock</code></a></li>
+<li><a href="#org2b81ffd">5.2. <code>AMC_multipart</code> — preguntas con varias partes</a></li>
+<li><a href="#org9b570b3">5.3. <code>QuizAMCProfe</code> — la vista profe en un fichero</a></li>
+<li><a href="#orgb9c18db">5.4. Integración en el documento AMC</a></li>
+</ul>
+</li>
+<li><a href="#orgf7ef2a7">6. Exportar a Moodle (vía LaTeX)</a>
+<ul>
+<li><a href="#org8d94edf">6.1. Funciones</a></li>
+<li><a href="#org408f167">6.2. Ejemplo</a></li>
+<li><a href="#org6e3818c">6.3. Preguntas con varias partes</a></li>
+</ul>
+</li>
+<li><a href="#org6fdcb69">7. Comprobación automática de preguntas (<code>lint</code>)</a></li>
+<li><a href="#orgec29ced">8. Referencia rápida de la API</a>
+<ul>
+<li><a href="#orgce49eca">8.1. Clases</a></li>
+<li><a href="#org4f5f932">8.2. Funciones JSON</a></li>
+<li><a href="#orgb43f971">8.3. Funciones AMC</a></li>
+<li><a href="#org9c1a1b0">8.4. Funciones Moodle</a></li>
+<li><a href="#orgc431a11">8.5. Comprobación automática</a></li>
+<li><a href="#orgd7a00c9">8.6. Proyecto de banco</a></li>
+<li><a href="#org75003e7">8.7. Operadores de <code>calcprop</code> (disponibles tras <code>from qbank import *</code>)</a></li>
+</ul>
+</li>
+<li><a href="#orgfadc3df">9. Preguntas frecuentes</a>
+<ul>
+<li><a href="#org555ca00">9.1. ¿Por qué algunas variantes no se generan?</a></li>
+<li><a href="#org2d58096">9.2. ¿Cómo incluyo texto LaTeX en los enunciados?</a></li>
+<li><a href="#orga59ff34">9.3. ¿Puedo escribir un porcentaje, grados, comillas…?</a></li>
+<li><a href="#org74b8e94">9.4. ¿Cómo escribo display math?</a></li>
+<li><a href="#org2bb7fed">9.5. ¿Puedo incluir una figura en el enunciado?</a></li>
+<li><a href="#orgbf138a0">9.6. ¿Para qué sirve <code>codchar</code>?</a></li>
+<li><a href="#org11a9952">9.7. ¿Cómo exporto varias preguntas a un mismo cuestionario Moodle?</a></li>
+</ul>
+</li>
+<li><a href="#org1e6ab4a">10. Apéndice: API avanzada y compatibilidad</a>
+<ul>
+<li><a href="#org7f2c71d">10.1. <code>ProblemaVF</code> — preguntas de verdadero/falso</a></li>
+<li><a href="#org52581cb">10.2. Clases deprecadas</a></li>
+<li><a href="#org810b34c">10.3. Editor visual en Jupyter (<code>ProblemaTipoEditor</code>)</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</nav>
+<div id="outline-container-org84e6d2b" class="outline-2">
+<h2 id="org84e6d2b"><span class="section-number-2">1.</span> Introducción</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+<code>qbank</code> es una librería Python para generar bancos de preguntas de opción múltiple
+cuyas respuestas correctas se determinan automáticamente mediante cálculo
+proposicional. A partir de una lista de supuestos y cuestiones, genera todas las
+variantes posibles de una pregunta combinando los elementos alternativos; para cada
+variante calcula qué respuestas son correctas y cuáles no, y exporta el resultado a
+LaTeX/AMC (exámenes en papel) o a Moodle. Se apoya en
+<a href="https://github.com/mbujosab/calcprop"><code>calcprop</code></a>, el motor de cálculo proposicional.
+</p>
+
+<p>
+Este documento es la <b>referencia</b>: la API, el formato JSON, los exportadores y el
+comprobador <code>lint</code>, con sus firmas exactas. No es el sitio por donde empezar:
+</p>
+
+<ul class="org-ul">
+<li><code>README.org</code> explica cómo instalar y cómo crear un banco con <code>qbank-init</code>.</li>
+<li><code>Tutorial.ipynb</code> recorre cinco ejemplos progresivos ejecutables.</li>
+<li>La <i>Guía de diseño</i> (<code>GuiaDiseno.org</code>, impresa en <code>GuiaDiseno.pdf</code>) explica cómo
+diseñar buenas preguntas: la mecánica de listas y mundos, el patrón recomendado,
+la redacción y las trampas de LaTeX y Moodle.</li>
+</ul>
+
+<p>
+Los ejemplos ejecutables de este manual cargan los JSON de la carpeta
+<code>ejemplosManual/</code>, que está en el repositorio pero no viene con <code>pip install</code>. Para
+ejecutarlos, clona el repositorio
+(<code>git clone https://github.com/mbujosab/calcprop-qbank</code>) y lánzalos desde su
+carpeta raíz. Para crear tu banco no hace falta: <code>qbank-init</code> trae sus propias
+preguntas de ejemplo.
+</p>
+
+<p>
+El vocabulario que usa este manual es el de la Guía: <b>variante</b> (cada versión concreta
+de la pregunta), <b>mundo</b> (las hipótesis activas en una variante), <b>hueco</b> (cada
+posición que se convierte en una opción: una <code>Cuestion</code> suelta o una lista de la que
+se sortea una), <b>parte</b> (cada bloque de opciones de una pregunta con varios),
+<b>opción por defecto</b> («Ninguna de las anteriores», que añade <code>export.last_choice</code>)
+y <b>vista profe</b> (todas las cuestiones de cada hueco con sus marcas).
+</p>
+</div>
+<div id="outline-container-orga996cb2" class="outline-3">
+<h3 id="orga996cb2"><span class="section-number-3">1.1.</span> Instalación rápida (para quien ya conoce Python)</h3>
+<div class="outline-text-3" id="text-1-1">
+<div class="org-src-container">
+<pre class="src src-bash">pip install calcprop-qbank
+</pre>
+</div>
+
+<p>
+<code>qbank-init</code> y <code>lint</code> llegan con la 0.6.0; si tenías una versión anterior,
+actualiza con <code>pip install -U calcprop-qbank</code>. La versión en desarrollo se instala
+desde el repositorio (hace falta <code>git</code>):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">pip install "calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-qbank"
+</pre>
+</div>
+
+<p>
+Si no estás familiarizado con Python o los entornos virtuales, lee la sección siguiente.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb703daa" class="outline-2">
+<h2 id="orgb703daa"><span class="section-number-2">2.</span> Instalación paso a paso</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+<div id="outline-container-orgf9bb81f" class="outline-3">
+<h3 id="orgf9bb81f"><span class="section-number-3">2.1.</span> Requisitos previos</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+<code>qbank</code> requiere Python 3.9 o superior. Comprueba si ya lo tienes instalado:
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Sistema</th>
+<th scope="col" class="org-left">Comando en terminal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">Linux</td>
+<td class="org-left"><code>python3 --version</code></td>
+</tr>
+
+<tr>
+<td class="org-left">macOS</td>
+<td class="org-left"><code>python3 --version</code></td>
+</tr>
+
+<tr>
+<td class="org-left">Windows</td>
+<td class="org-left"><code>py --version</code></td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Si el comando devuelve algo como <code>Python 3.11.2</code> estás listo. Si no, descarga Python
+desde <a href="https://www.python.org/downloads/">python.org</a> e instálalo (en Windows marca la opción <i>Add Python to PATH</i>).
+</p>
+</div>
+</div>
+<div id="outline-container-org9cc3698" class="outline-3">
+<h3 id="org9cc3698"><span class="section-number-3">2.2.</span> Qué es un entorno virtual y por qué usarlo</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+Un entorno virtual es una carpeta que contiene una copia aislada de Python con sus
+propios paquetes instalados, independiente del resto del sistema. Esto evita conflictos
+entre proyectos que requieren versiones distintas de las mismas librerías.
+</p>
+
+<p>
+Trabajar siempre dentro de un entorno virtual es una buena práctica, aunque no es
+estrictamente obligatorio para un uso sencillo de <code>qbank</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-org2696319" class="outline-3">
+<h3 id="org2696319"><span class="section-number-3">2.3.</span> Crear y activar un entorno virtual</h3>
+<div class="outline-text-3" id="text-2-3">
+<p>
+Abre una terminal (en Windows: <i>Símbolo del sistema</i> o <i>PowerShell</i>) y sitúate en el
+directorio donde quieres trabajar, por ejemplo:
+</p>
+
+<pre class="example" id="orgc3ecb83">
+mkdir mis_cuestionarios
+cd mis_cuestionarios
+</pre>
+
+<p>
+Crea el entorno virtual (llámalo como quieras; aquí usamos <code>.venv</code>):
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Sistema</th>
+<th scope="col" class="org-left">Comando</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">Linux / macOS</td>
+<td class="org-left"><code>python3 -m venv .venv</code></td>
+</tr>
+
+<tr>
+<td class="org-left">Windows (cmd)</td>
+<td class="org-left"><code>py -m venv .venv</code></td>
+</tr>
+
+<tr>
+<td class="org-left">Windows (PS)</td>
+<td class="org-left"><code>py -m venv .venv</code></td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Actívalo:
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Sistema</th>
+<th scope="col" class="org-left">Comando</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">Linux / macOS</td>
+<td class="org-left"><code>source .venv/bin/activate</code></td>
+</tr>
+
+<tr>
+<td class="org-left">Windows (cmd)</td>
+<td class="org-left"><code>.venv\Scripts\activate.bat</code></td>
+</tr>
+
+<tr>
+<td class="org-left">Windows (PowerShell)</td>
+<td class="org-left"><code>.venv\Scripts\Activate.ps1</code></td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Cuando el entorno está activo, verás su nombre entre paréntesis al comienzo del
+prompt, por ejemplo <code>(.venv)</code>. A partir de ese momento, <code>pip</code> y <code>python</code> apuntan
+al entorno virtual y no al sistema.
+</p>
+</div>
+</div>
+<div id="outline-container-orge0c48d6" class="outline-3">
+<h3 id="orge0c48d6"><span class="section-number-3">2.4.</span> Instalar <code>calcprop-qbank</code></h3>
+<div class="outline-text-3" id="text-2-4">
+<p>
+Con el entorno activo:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">pip install calcprop-qbank
+</pre>
+</div>
+
+<p>
+o, para la versión en desarrollo (hace falta tener <code>git</code>):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">pip install "calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-qbank"
+</pre>
+</div>
+
+<p>
+Verifica la instalación:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">python -c "import qbank; print('qbank', qbank.__version__)"
+qbank-init --help
+</pre>
+</div>
+
+<p>
+Si ves <code>qbank 0.6.0</code> (o posterior) y la ayuda de <code>qbank-init</code>, todo está en orden.
+Si en cambio sale <code>AttributeError: … no attribute '__version__'</code> o <code>qbank-init</code> no
+existe, tienes una versión anterior a la 0.6: actualiza con
+<code>pip install -U calcprop-qbank</code>.
+Para los PDF y el XML de Moodle hace falta
+además <code>pdflatex</code> con los paquetes <code>automultiplechoice</code> (lo instala el programa
+<a href="https://www.auto-multiple-choice.net/">Auto Multiple Choice</a>) y <code>moodle</code> (<code>tlmgr install moodle</code> en TeX Live).
+</p>
+</div>
+</div>
+<div id="outline-container-org1b7b050" class="outline-3">
+<h3 id="org1b7b050"><span class="section-number-3">2.5.</span> Nota para usuarios de Windows</h3>
+<div class="outline-text-3" id="text-2-5">
+<p>
+En Windows, dentro del entorno virtual, usa <code>python</code> (no <code>python3</code>). Si al activarlo
+en PowerShell (<code>.venv\Scripts\Activate.ps1</code>) sale un error de permisos, ejecuta antes:
+</p>
+
+<pre class="example" id="org9172896">
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+</pre>
+</div>
+</div>
+<div id="outline-container-org9f90848" class="outline-3">
+<h3 id="org9f90848"><span class="section-number-3">2.6.</span> Crear un banco de preguntas</h3>
+<div class="outline-text-3" id="text-2-6">
+<p>
+La forma recomendada de trabajar es un proyecto creado con <code>qbank-init</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">qbank-init mi-banco
+cd mi-banco
+make lint          # comprueba las preguntas de ejemplo (sin LaTeX)
+make amc           # PDF de revisión (vista profe) en build/amc/
+</pre>
+</div>
+
+<p>
+El proyecto contiene cinco preguntas de ejemplo, los scripts que las exportan, un
+<code>Makefile</code> y <code>nueva_pregunta.py</code>, un guion para escribir una pregunta en Python y
+guardarla como JSON. Su <code>README.org</code> explica el flujo completo. El resto de este
+manual describe las piezas que esos scripts usan.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orgd5ff592" class="outline-2">
+<h2 id="orgd5ff592"><span class="section-number-2">3.</span> Conceptos fundamentales</h2>
+<div class="outline-text-2" id="text-3">
+</div>
+<div id="outline-container-org0eeecd4" class="outline-3">
+<h3 id="org0eeecd4"><span class="section-number-3">3.1.</span> Fórmulas con <code>calcprop</code></h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+<code>qbank</code> importa <code>calcprop</code>, así que al escribir <code>from qbank import *</code> tienes acceso al
+motor lógico. Las variables proposicionales (en la Guía, <i>etiquetas</i>) se crean con
+<code>v()</code> y los nombres los eliges tú; solo tienen que ser consistentes dentro de la
+misma pregunta:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">from qbank import *
+
+A = v('A')    # variable proposicional A
+</pre>
+</div>
+
+<p>
+Las fórmulas se construyen combinando variables con los operadores de Python:
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Operador Python</th>
+<th scope="col" class="org-left">Conectiva lógica</th>
+<th scope="col" class="org-left">Ejemplo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>-v('A')</code></td>
+<td class="org-left">Negación  (¬A)</td>
+<td class="org-left"><code>-v('A')</code></td>
+</tr>
+
+<tr>
+<td class="org-left"><code>v('A') &amp; v('B')</code></td>
+<td class="org-left">Conjunción  (A <span class="math">∧</span> B)</td>
+<td class="org-left"><code>v('A') &amp; v('B')</code></td>
+</tr>
+
+<tr>
+<td class="org-left"><code>v('A') &#124; v('B')</code></td>
+<td class="org-left">Disyunción  (A <span class="math">∨</span> B)</td>
+<td class="org-left"><code>v('A') &#124; v('B')</code></td>
+</tr>
+
+<tr>
+<td class="org-left"><code>v('A') &gt;&gt; v('B')</code></td>
+<td class="org-left">Implicación  (A <span class="math">⇒</span> B)</td>
+<td class="org-left"><code>v('A') &gt;&gt; v('B')</code></td>
+</tr>
+
+<tr>
+<td class="org-left"><code>v('A') ** v('B')</code></td>
+<td class="org-left">Bicondicional  (A <span class="math">⇔</span> B)</td>
+<td class="org-left"><code>v('A') ** v('B')</code></td>
+</tr>
+
+<tr>
+<td class="org-left"><code>alguno(v('A'), v('B'), v('C'))</code></td>
+<td class="org-left">Alguna verdadera</td>
+<td class="org-left"><code>alguno(v('A'), v('B'), v('C'))</code></td>
+</tr>
+
+<tr>
+<td class="org-left"><code>unoDe(v('A'), v('B'), v('C'))</code></td>
+<td class="org-left">Exactamente una verdadera</td>
+<td class="org-left"><code>unoDe(v('A'), v('B'), v('C'))</code></td>
+</tr>
+</tbody>
+</table>
+
+<p>
+La semántica también acepta <code>True</code> (siempre verdadero) o <code>False</code> (siempre falso).
+<code>alguno</code> y <code>unoDe</code> aceptan cualquier número de proposiciones.
+</p>
+
+<p>
+<b>Atención — precedencia de operadores:</b> la precedencia de Python difiere de la lógica
+matemática. En lógica, <code>→</code> tiene menor precedencia que <code>∧</code> y <code>∨</code>, por lo que <code>A ∧ B → C</code>
+se lee como <code>(A ∧ B) → C</code>. En Python, <code>&gt;&gt;</code> tiene <b>mayor</b> precedencia que <code>&amp;</code> y <code>|</code>,
+así que <code>v('A') &amp; v('B') &gt;&gt; v('C')</code> se evalúa como <code>v('A') &amp; (v('B') &gt;&gt; v('C'))</code>, que
+no es lo que se espera. Usa siempre paréntesis explícitos en implicaciones compuestas:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">(v('A') &amp; v('B')) &gt;&gt; v('C')   # correcto: (A ∧ B) → C
+v('A') &amp; v('B') &gt;&gt; v('C')     # incorrecto: A ∧ (B → C)
+</pre>
+</div>
+
+<p>
+La función <code>test(formula, hipotesis)</code> comprueba si una fórmula es consecuencia lógica
+de una lista de fórmulas hipótesis:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">test(v('C'), [v('A'), v('A') &gt;&gt; v('C')])    # True  (modus ponens)
+test(v('C'), [v('B')])                      # False (B no implica C)
+test(True,   [])                            # True
+test(False,  [])                            # False
+</pre>
+</div>
+
+<p>
+No necesitas llamar a <code>test</code> directamente: <code>qbank</code> lo invoca al generar las variantes.
+Conviene tener presente lo que responde: «¿se deduce esto de las hipótesis?», no «¿es
+verdad?». De la hipótesis <code>v('crec')</code> no se sigue <code>-v('decr')</code>, salvo que un axioma
+declare que ambas son excluyentes (<code>unoDe(v('crec'), v('decr'))</code>).
+</p>
+</div>
+</div>
+<div id="outline-container-org88cf9af" class="outline-3">
+<h3 id="org88cf9af"><span class="section-number-3">3.2.</span> <code>Supuesto</code> — una hipótesis del enunciado</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+Un <code>Supuesto</code> es una afirmación que se añade al enunciado del problema y cuya semántica
+se incorpora como hipótesis para evaluar las cuestiones que le siguen.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">Supuesto(enunciado, semantica, precond=True)
+</pre>
+</div>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Parámetro</th>
+<th scope="col" class="org-left">Tipo</th>
+<th scope="col" class="org-left">Descripción</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>enunciado</code></td>
+<td class="org-left">cadena</td>
+<td class="org-left">Texto LaTeX del supuesto, tal como aparecerá impreso. Admite <code>@{variable}</code> (ver <code>setup</code>).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>semantica</code></td>
+<td class="org-left">fórmula</td>
+<td class="org-left">Fórmula proposicional que el supuesto afirma verdadera.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>precond</code></td>
+<td class="org-left">fórmula/bool</td>
+<td class="org-left">El supuesto solo se activa si esta precondición se cumple bajo las hipótesis ya acumuladas. Por defecto <code>True</code> (siempre activo).</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Un <code>Supuesto</code> con <code>enunciado</code> vacío es un <b>axioma</b>: añade su fórmula sin texto.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">Supuesto('$\\mathcal{A}$ es verdadero. ', v('A'))
+Supuesto('$\\mathcal{A} \\Rightarrow \\mathcal{C}$. ', v('A') &gt;&gt; v('C'))
+Supuesto('', unoDe(v('inv'), v('sing')))          # axioma: los dos mundos son excluyentes
+</pre>
+</div>
+
+<p>
+Si la precondición de un supuesto no se cumple en una variante concreta, esa variante
+se descarta.
+</p>
+</div>
+</div>
+<div id="outline-container-orga50947b" class="outline-3">
+<h3 id="orga50947b"><span class="section-number-3">3.3.</span> <code>Cuestion</code> — un ítem de respuesta</h3>
+<div class="outline-text-3" id="text-3-3">
+<p>
+Una <code>Cuestion</code> es una posible respuesta. <code>qbank</code> determina si es correcta o no según las
+hipótesis activas en cada variante.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">Cuestion(enunciado, semantica, precond=True, exp="")
+</pre>
+</div>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Parámetro</th>
+<th scope="col" class="org-left">Tipo</th>
+<th scope="col" class="org-left">Descripción</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>enunciado</code></td>
+<td class="org-left">cadena</td>
+<td class="org-left">Texto LaTeX del ítem de respuesta. Admite <code>@{variable}</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>semantica</code></td>
+<td class="org-left">fórmula/bool</td>
+<td class="org-left">Fórmula cuya veracidad (como consecuencia de las hipótesis) determina si el ítem es correcto.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>precond</code></td>
+<td class="org-left">fórmula/bool</td>
+<td class="org-left">La cuestión solo aparece si esta precondición se satisface; si no, la variante se descarta. Por defecto <code>True</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>exp</code></td>
+<td class="org-left">cadena</td>
+<td class="org-left">Explicación (retroalimentación) que Moodle muestra tras responder. Admite <code>@{variable}</code>. Opcional.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="org-src-container">
+<pre class="src src-python">Cuestion("Entonces $\\mathcal{C}$ es verdadero", v("C"))
+Cuestion("Esta afirmación es siempre falsa", False)
+Cuestion("$\\mathcal{B}$ es consecuencia de $\\mathcal{A}$", v("B"), precond=v("A"))
+Cuestion("$f(@{a}) &lt; f(@{b})$", v("crec"), exp="Porque $@{a} &lt; @{b}$ y $f$ es creciente.")
+</pre>
+</div>
+
+<p>
+<b>Semánticas y precondiciones como cadenas.</b> Tanto <code>Supuesto</code> como <code>Cuestion</code> aceptan
+<code>semantica</code> y <code>precond</code> escritas como la cadena que las representa (<code>"v('A') &gt;&gt; v('B')"</code>,
+<code>"True"</code>, <code>"lambda ns: ns['x'] &gt; 0"</code>), que es exactamente lo que guarda el formato
+JSON. Es la forma de escribir una lambda en Python si la pregunta se va a guardar con
+<code>save_problema</code>: una función Python no se puede serializar; su cadena, sí.
+</p>
+</div>
+</div>
+<div id="outline-container-orgdb0c8c6" class="outline-3">
+<h3 id="orgdb0c8c6"><span class="section-number-3">3.4.</span> <code>ProblemaTipo</code> — un generador de variantes</h3>
+<div class="outline-text-3" id="text-3-4">
+<p>
+<code>ProblemaTipo</code> toma una lista plana de componentes y genera todas las combinaciones
+posibles, una variante por cada combinación.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">ProblemaTipo(componentes, setup=None, export=None, seed=None, nombre=None)
+</pre>
+</div>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Parámetro</th>
+<th scope="col" class="org-left">Descripción</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>componentes</code></td>
+<td class="org-left">Lista plana de cadenas (texto fijo), <code>Supuesto</code> y <code>Cuestion</code>, sueltos o en listas de alternativas (ver abajo).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>setup</code></td>
+<td class="org-left">Código Python como cadena (lo que guarda el JSON) o función sin argumentos que devuelve un dict. Se ejecuta antes de cada variante.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>export</code></td>
+<td class="org-left">Dict con las preferencias de exportación: <code>last_choice</code>, <code>cols</code>, <code>instances</code>. Lo leen los scripts de un banco, no las funciones.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>seed</code></td>
+<td class="org-left">Entero que siembra <code>numpy.random</code> y <code>random</code> antes de recorrer las variantes (solo tiene sentido con <code>setup</code> aleatorio).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>nombre</code></td>
+<td class="org-left">Identificador del problema (el campo <code>nombre</code> del JSON; debe coincidir con el nombre del fichero).</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+<b>Las funciones de exportación no leen <code>export</code></b>: pasa tú <code>last_choice=</code>, <code>instances=</code> y
+<code>cols=</code> a <code>AMCblock</code>, <code>QuizMoodle</code>, <code>QuizAMCProfe</code> y las demás (los ejemplos de este
+manual lo hacen). Los scripts de un banco de <code>qbank-init</code> sí lo leen de cada JSON.
+</p>
+</div>
+<div id="outline-container-orgbfe9770" class="outline-4">
+<h4 id="orgbfe9770"><span class="section-number-4">3.4.1.</span> La mecánica: listas = sorteo, elementos consecutivos = opciones</h4>
+<div class="outline-text-4" id="text-3-4-1">
+<p>
+Cada componente es, o bien un valor suelto (siempre se incluye), o bien una lista de
+dos o más valores del mismo tipo, de la que <b>se sortea uno</b> en cada variante. El
+número de variantes es el producto de las longitudes de las listas.
+</p>
+
+<ul class="org-ul">
+<li>Una lista de <code>Supuesto</code> son <b>mundos alternativos</b>: se activa uno por variante.</li>
+<li>Una lista de <code>Cuestion</code> <b>no</b> son «las opciones que se muestran juntas»: es un
+<b>hueco</b> del que se sortea una. El alumno ve tantas opciones como elementos-<code>Cuestion</code>
+consecutivos haya (sueltos o listas), más la opción por defecto si
+<code>export.last_choice</code> está activo.</li>
+<li>Cuando tras un bloque de cuestiones vuelve a aparecer texto o un <code>Supuesto</code>, se abre
+una <b>parte</b> nueva (una pregunta con varios bloques de opciones). Las hipótesis se
+acumulan a lo largo de las partes.</li>
+</ul>
+
+<p>
+El patrón recomendado es tres huecos + <code>"export": {"last_choice": true}</code>: cuatro
+opciones, con la garantía de que al menos una es correcta y al menos una incorrecta.
+La Guía desarrolla todo esto; aquí basta un ejemplo completo.
+</p>
+</div>
+</div>
+<div id="outline-container-org42c5e4f" class="outline-4">
+<h4 id="org42c5e4f"><span class="section-number-4">3.4.2.</span> Ejemplo</h4>
+<div class="outline-text-4" id="text-3-4-2">
+<div class="org-src-container">
+<pre class="src src-python">from qbank import *
+
+p = ProblemaTipo(
+    [
+        "Considere ",
+        [   # dos mundos: se sortea uno
+            Supuesto("$\\mathcal{A}$ ", v("A")),
+            Supuesto("$\\mathcal{B}$ ", v("B")),
+        ],
+        [   # y otros dos, independientes de los anteriores
+            Supuesto("y que $\\mathcal{A}\\Rightarrow\\mathcal{C}$. ", v("A") &gt;&gt; v("C")),
+            Supuesto("y que $\\mathcal{B}\\Leftrightarrow\\mathcal{D}$. ", v("B") ** v("D")),
+        ],
+        "Entonces, con toda seguridad: ",
+        [   # hueco 1
+            Cuestion("se da $\\mathcal{C}$", v("C")),
+            Cuestion("se da $\\mathcal{D}$", v("D")),
+        ],
+        [   # hueco 2
+            Cuestion("se da $\\mathcal{A}$", v("A")),
+            Cuestion("se da $\\mathcal{B}$", v("B")),
+        ],
+        [   # hueco 3
+            Cuestion("se dan $\\mathcal{A}$ y $\\mathcal{C}$", v("A") &amp; v("C")),
+            Cuestion("se dan $\\mathcal{B}$ y $\\mathcal{D}$", v("B") &amp; v("D")),
+            Cuestion("se da $\\mathcal{E}$", False),
+        ],
+    ],
+    export={"last_choice": True, "cols": 2},
+    nombre="ejercicio",
+)
+
+for etiqueta, partes in p.por_partes():
+    for enunciado, cuestiones in partes:
+        print(f"Variante {etiqueta}: {enunciado}")
+        for texto, correcto, activa, exp in cuestiones:
+            print(f"  {'✓' if correcto else '✗'} {texto}")
+    if int(etiqueta) == 3:
+        break
+print("…", len(list(p.por_partes())), "variantes en total")
+</pre>
+</div>
+
+<pre class="example" id="org10ad597">
+Variante 1: Considere $\mathcal{A}$ y que $\mathcal{A}\Rightarrow\mathcal{C}$. Entonces, con toda seguridad:
+  ✓ se da $\mathcal{C}$
+  ✓ se da $\mathcal{A}$
+  ✓ se dan $\mathcal{A}$ y $\mathcal{C}$
+Variante 2: Considere $\mathcal{A}$ y que $\mathcal{A}\Rightarrow\mathcal{C}$. Entonces, con toda seguridad:
+  ✓ se da $\mathcal{C}$
+  ✓ se da $\mathcal{A}$
+  ✗ se dan $\mathcal{B}$ y $\mathcal{D}$
+Variante 3: Considere $\mathcal{A}$ y que $\mathcal{A}\Rightarrow\mathcal{C}$. Entonces, con toda seguridad:
+  ✓ se da $\mathcal{C}$
+  ✓ se da $\mathcal{A}$
+  ✗ se da $\mathcal{E}$
+… 48 variantes en total
+</pre>
+
+<p>
+<span class="math">2 × 2 × 2 × 2 × 3 = 48</span> variantes, cada una con tres opciones
+más «Ninguna de las anteriores» (que el exportador añade y que en la variante 1 será
+incorrecta). <code>ejemplosManual/ejercicio.json</code> guarda este mismo problema en JSON, con
+una explicación (<code>exp</code>) en cada cuestión que aquí se omite por brevedad.
+</p>
+</div>
+</div>
+<div id="outline-container-org6f90bd2" class="outline-4">
+<h4 id="org6f90bd2"><span class="section-number-4">3.4.3.</span> Iterar las variantes</h4>
+<div class="outline-text-4" id="text-3-4-3">
+<dl class="org-dl">
+<dt><code>por_partes(instances=1, base_seed=None, verbose=False)</code></dt><dd>la vía recomendada.
+Devuelve <code>(etiqueta, [(enunciado, cuestiones), …])</code>, un par por parte; <code>cuestiones</code>
+es una lista de tuplas <code>(texto, correcto, activa, exp)</code>. Con <code>setup</code> aleatorio,
+<code>instances=N</code> recorre las variantes <span class="math">N</span> veces con semillas distintas
+(<code>base_seed + i * 997</code>; si no se pasa <code>base_seed</code> se usa <code>seed</code>, y si tampoco hay
+<code>seed</code>, 42). Con <code>instances=1</code> y sin ninguna de las dos no se siembra nada: el
+resultado depende del estado del generador. Con <code>verbose=True</code>
+imprime los supuestos y cuestiones rechazados por su precondición.</dd>
+<dt><code>por_partes_profe(verbose=True)</code></dt><dd>la <b>vista profe</b>: el mismo formato, pero con
+<i>todas</i> las cuestiones de cada hueco (no una por variante) y las rechazadas por su
+precondición marcadas como <code>'rechazada por …'</code> en vez de descartar la variante. Es
+lo que conviene revisar antes de dar una pregunta por buena.</dd>
+<dt><code>for etiqueta, enunciado, cuestiones in p</code></dt><dd>el protocolo histórico, solo para
+ejercicios de una parte (con varias lanza <code>ValueError</code>).</dd>
+</dl>
+</div>
+</div>
+</div>
+<div id="outline-container-orgf06a05a" class="outline-3">
+<h3 id="orgf06a05a"><span class="section-number-3">3.5.</span> Preguntas paramétricas con <code>setup</code></h3>
+<div class="outline-text-3" id="text-3-5">
+<p>
+El parámetro <code>setup</code> permite que los valores numéricos o simbólicos cambien en cada
+variante. En cada iteración:
+</p>
+
+<ol class="org-ol">
+<li>Se ejecuta el <code>setup</code> y sus variables forman el <b>espacio de nombres</b> <code>ns</code> de la variante.</li>
+<li>Los textos (enunciados, cuestiones y <code>exp</code>) que contengan marcadores <code>@{variable}</code> reciben la sustitución.</li>
+<li>Las semánticas y precondiciones que sean <code>lambda ns: ...</code> se evalúan con ese diccionario.</li>
+</ol>
+
+<p>
+El delimitador <code>@</code> se eligió para evitar conflictos con el modo matemático de \LaTeX{}.
+Para una arroba literal, escribe <code>@@</code>.
+</p>
+</div>
+<div id="outline-container-orgc21f053" class="outline-4">
+<h4 id="orgc21f053"><span class="section-number-4">3.5.1.</span> <code>setup</code> como cadena, <code>np.random</code> y <code>seed</code></h4>
+<div class="outline-text-4" id="text-3-5-1">
+<p>
+Escribe el <code>setup</code> como cadena de código (es lo que guarda el JSON, y la única forma
+que <code>save_problema</code> puede serializar) y usa <code>np.random</code>, no <code>random</code>: <code>seed</code> siembra
+<code>numpy.random</code> y <code>random</code>, pero los scripts de la vista profe de un banco solo siembran
+<code>numpy</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">p = ProblemaTipo(
+    [
+        "Sean $a = @{a}$ y $b = @{b}$. Entonces:",
+        [
+            Cuestion("$a + b = @{suma}$", True),
+            Cuestion("$a + b = @{suma_falsa}$", False, exp="$@{a} + @{b} = @{suma}$."),
+        ],
+        [
+            Cuestion("$a + b &gt; 10$", "lambda ns: ns['a'] + ns['b'] &gt; 10"),
+            Cuestion("$a + b &lt; 10$", "lambda ns: ns['a'] + ns['b'] &lt; 10"),
+        ],
+        Cuestion("$a \\cdot b = @{producto}$", True),
+    ],
+    setup="import numpy as np\n"
+          "a, b = (int(x) for x in np.random.randint(1, 10, 2))\n"
+          "suma, suma_falsa, producto = a + b, a + b + 1, a * b",
+    seed=1,
+    export={"last_choice": True, "instances": 15},
+)
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><code>@{a}</code>, <code>@{b}</code>, <code>@{suma}</code> se interpolan con los valores de cada variante.</li>
+<li>Las lambdas, escritas como cadena, se evalúan con los valores de la variante.</li>
+<li><code>seed=1</code> hace la pregunta reproducible; <code>instances=15</code> recorre 15 veces (15
+instancias) las 4 combinaciones (60 variantes, el mínimo que recomienda <code>lint</code> con
+<code>setup</code>).</li>
+</ul>
+
+<p>
+El iterador es finito aunque el <code>setup</code> sea aleatorio: recorre una vez cada combinación
+de alternativas y llama al <code>setup</code> en cada una. Para obtener más instancias se usa
+<code>instances</code>, no un bucle a mano.
+</p>
+</div>
+</div>
+<div id="outline-container-org0141b21" class="outline-4">
+<h4 id="org0141b21"><span class="section-number-4">3.5.2.</span> Precondiciones que dependen de los valores</h4>
+<div class="outline-text-4" id="text-3-5-2">
+<p>
+El motor razona de forma proposicional y <b>no conoce</b> los valores numéricos: si
+ofreciéramos los supuestos «<span class="math">a &gt; b</span>» y «<span class="math">a &lt; b</span>» sin más, podría generar una variante con
+<code>a = 3</code>, <code>b = 7</code> y el texto «Se sabe que <span class="math">a &gt; b</span>». La solución es una <b>precondición</b>
+<code>lambda ns: ...</code> que solo deja pasar la variante cuando la afirmación es cierta para los
+valores sorteados:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">ordenar = ProblemaTipo(
+    [
+        "Sean $a = @{a}$ y $b = @{b}$ dos números naturales. Se sabe que ",
+        [
+            Supuesto("$a &gt; b$. ", True, precond="lambda ns: ns['a'] &gt; ns['b']"),
+            Supuesto("$a &lt; b$. ", True, precond="lambda ns: ns['a'] &lt; ns['b']"),
+            Supuesto("$a = b$. ", True, precond="lambda ns: ns['a'] == ns['b']"),
+        ],
+        "Indique qué afirmación es correcta: ",
+        [
+            Cuestion("$a - b &gt; 0$", "lambda ns: ns['a'] - ns['b'] &gt; 0"),
+            Cuestion("$b - a &gt; 0$", "lambda ns: ns['b'] - ns['a'] &gt; 0"),
+        ],
+        [
+            Cuestion("$a^2 &gt; b^2$", "lambda ns: ns['a'] ** 2 &gt; ns['b'] ** 2"),
+            Cuestion("$a^2 &lt; b^2$", "lambda ns: ns['a'] ** 2 &lt; ns['b'] ** 2"),
+        ],
+        Cuestion("$a \\cdot b &gt; 0$", True),
+    ],
+    setup="import numpy as np\na, b = (int(x) for x in np.random.randint(2, 10, 2))",
+    seed=7,
+    export={"last_choice": True, "instances": 15},
+)
+</pre>
+</div>
+
+<p>
+Para cada combinación el <code>setup</code> genera una tirada nueva; si su precondición no se
+cumple, esa variante se descarta (con <code>verbose=True</code> verás, por ejemplo, el mensaje
+<code>Supuesto: … rechazado por …</code>). Por eso el número de variantes por instancia no es fijo:
+de las <span class="math">3 × 2 × 2 = 12</span> combinaciones sobreviven unas cinco por instancia
+(las del supuesto que coincide con la tirada), y <code>lint</code> calcula que hacen falta 14
+instancias para llegar a 60 (con las 15 de <code>export</code> salen 69). El problema
+<code>ejemplosManual/numeros.json</code> (el que carga el editor visual del cuaderno
+<code>Demo.ipynb</code>) es una versión ampliada de esta idea.
+</p>
+
+<p>
+Con precondiciones numéricas, <code>por_partes_profe()</code> hace <b>un solo sorteo</b> por mundo, y
+un mundo cuya precondición no se cumple en ese sorteo no aparece: con <code>seed=7</code>,
+<code>ordenar.por_partes_profe()</code> muestra los tres mundos, pero con otra semilla podría
+mostrar menos (con <code>seed=2</code>, ninguno). La vista profe de un banco (<code>make amc</code>) hace
+varios sorteos para no perder mundos.
+</p>
+</div>
+</div>
+<div id="outline-container-org503d947" class="outline-4">
+<h4 id="org503d947"><span class="section-number-4">3.5.3.</span> <code>seed</code>: reproducibilidad independiente del orden</h4>
+<div class="outline-text-4" id="text-3-5-3">
+<p>
+Cuando varios problemas con <code>setup</code> aleatorio se generan en secuencia (en un bucle o
+un <code>Makefile</code>), los valores sorteados en cada problema dependerían del estado del
+generador en ese momento. El campo <code>seed</code> (entero) resuelve esto: antes de iterar las
+variantes, <code>qbank</code> siembra <code>numpy.random</code> y <code>random</code> con él. Así cada problema tiene su
+propia secuencia reproducible. También es la semilla base de <code>por_partes(instances=N)</code>
+cuando no se pasa <code>base_seed</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-org08d44fc" class="outline-4">
+<h4 id="org08d44fc"><span class="section-number-4">3.5.4.</span> <code>setup</code> como función (solo uso interactivo)</h4>
+<div class="outline-text-4" id="text-3-5-4">
+<p>
+<code>setup</code> admite también una función sin argumentos que devuelve el diccionario de
+variables. Es cómodo en un cuaderno, pero un problema así <b>no puede guardarse</b> con
+<code>save_problema</code> (el código de una función no es recuperable); lo mismo ocurre con las
+lambdas escritas como funciones Python en <code>semantica</code> o <code>precond</code>. Escríbelos como
+cadenas si la pregunta va a vivir en un fichero.
+</p>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-orgea963aa" class="outline-2">
+<h2 id="orgea963aa"><span class="section-number-2">4.</span> El formato JSON</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+<code>qbank</code> convierte cualquier <code>ProblemaTipo</code> a JSON y lo reconstruye después. Es el
+formato en que se guardan las preguntas de un banco (lo que leen <code>lint</code> y los scripts
+de <code>qbank-init</code>).
+</p>
+</div>
+<div id="outline-container-orge8dbb43" class="outline-3">
+<h3 id="orge8dbb43"><span class="section-number-3">4.1.</span> Campos</h3>
+<div class="outline-text-3" id="text-4-1">
+<div class="org-src-container">
+<pre class="src src-json">{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "L-01-Monotonia",
+  "seed": 1,
+  "setup": "import numpy as np\na = int(np.random.randint(1, 10))",
+  "export": {"last_choice": true, "cols": 2, "instances": 6},
+  "componentes": [
+    "Texto fijo ",
+    {"tipo": "Supuesto", "enunciado": "", "semantica": "unoDe(v('A'), v('B'))", "precond": "True"},
+    [
+      {"tipo": "Supuesto", "enunciado": "alternativa 1 ", "semantica": "v('A')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "alternativa 2 ", "semantica": "v('B')", "precond": "True"}
+    ],
+    " Entonces:",
+    [
+      {"tipo": "Cuestion", "enunciado": "¿A?", "semantica": "v('A')", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "¿B?", "semantica": "v('B')", "precond": "True", "exp": ""}
+    ],
+    {"tipo": "Cuestion", "enunciado": "$a = @{a}$", "semantica": "True", "precond": "True", "exp": ""}
+  ]
+}
+</pre>
+</div>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Clave</th>
+<th scope="col" class="org-left">Descripción</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>version</code></td>
+<td class="org-left"><code>"1"</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>tipo</code></td>
+<td class="org-left"><code>"ProblemaTipo"</code> (o <code>"ProblemaVF"</code>, ver el apéndice).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>nombre</code></td>
+<td class="org-left">Identificador; debe coincidir con el nombre del fichero sin <code>.json</code> y no contener <code>:</code> (rompe <code>make</code>).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>seed</code></td>
+<td class="org-left">Entero, <code>null</code> o ausente. Solo con <code>setup</code> aleatorio.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>setup</code></td>
+<td class="org-left">Código Python como cadena (saltos de línea como <code>\n</code>) o <code>null</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>export</code></td>
+<td class="org-left">Opcional. <code>last_choice</code> (bool): opción por defecto. <code>cols</code> (int): columnas en AMC. <code>instances</code> (int): instancias con <code>setup</code> aleatorio.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>componentes</code></td>
+<td class="org-left">La lista plana: cadenas, objetos <code>Supuesto</code> y <code>Cuestion</code> y listas de ellos.</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Cada <code>Supuesto</code> es un objeto con <code>tipo</code>, <code>enunciado</code>, <code>semantica</code> y <code>precond</code>; cada
+<code>Cuestion</code> añade <code>exp</code>. Las fórmulas y lambdas van como cadenas, exactamente como se
+escribirían en Python. Las barras de LaTeX se doblan (<code>\\mathcal</code>).
+</p>
+
+<p>
+Puedes añadir claves propias de nivel superior, como <code>"_nivel": "M"</code> o <code>"_tema"</code>: <code>qbank</code>
+las ignora al cargar y <code>save_problema</code> las conserva.
+</p>
+
+<p>
+<b>Regla para <code>instances</code></b>: con <code>setup</code> aleatorio, <code>instances = max(1, ceil(60 / variantes
+por instancia))</code>, para que la vista alumno tenga al menos 60 variantes; <code>lint</code> imprime el
+valor necesario.
+</p>
+</div>
+</div>
+<div id="outline-container-orgdc46202" class="outline-3">
+<h3 id="orgdc46202"><span class="section-number-3">4.2.</span> De lista de listas a JSON y vuelta</h3>
+<div class="outline-text-3" id="text-4-2">
+<p>
+<code>problema_to_dict</code> devuelve el dict y <code>save_problema</code> lo escribe en un fichero;
+<code>load_problema</code> acepta una ruta o un dict y devuelve un <code>ProblemaTipo</code> listo para iterar.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">import os, tempfile
+ruta = os.path.join(tempfile.gettempdir(), "ordenar.json")   # p. ej. preguntas/ordenar.json
+save_problema(ordenar, ruta)
+p2 = load_problema(ruta)                                    # o load_problema(dict)
+assert problema_to_dict(p2) == problema_to_dict(ordenar)
+</pre>
+</div>
+
+<p>
+(El ejemplo guarda en un directorio temporal para no tocar los JSON de
+<code>ejemplosManual/</code>, que usan las secciones siguientes.)
+</p>
+
+<p>
+Para bancos de varios problemas en un solo fichero, <code>save_banco(lista, ruta)</code> y
+<code>load_banco(ruta)</code>; los proyectos de <code>qbank-init</code> usan en cambio un fichero por pregunta.
+</p>
+</div>
+</div>
+<div id="outline-container-orge101181" class="outline-3">
+<h3 id="orge101181"><span class="section-number-3">4.3.</span> Un ejemplo con <code>setup</code> en JSON</h3>
+<div class="outline-text-3" id="text-4-3">
+<p>
+El fichero <code>ejemplosManual/matriz_rango.json</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-json">{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "matriz_rango",
+  "seed": 7,
+  "setup": "import numpy as np\nn = int(np.random.randint(3, 6))\nk = int(np.random.randint(2, n))",
+  "export": {"last_choice": true, "cols": 2, "instances": 4},
+  "componentes": [
+    "Considere una matriz $A$ de $@{n}$ filas y $@{k}$ columnas. ",
+    [
+      {"tipo": "Supuesto", "enunciado": "Suponga que $A$ tiene rango máximo ($\\mathrm{rg}(A)=@{k}$). ",
+       "semantica": "v('MaxRk')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "Suponga que $A$ tiene rango deficiente ($\\mathrm{rg}(A)&lt;@{k}$). ",
+       "semantica": "-v('MaxRk')", "precond": "True"}
+    ],
+    "Indique qué afirmaciones son correctas: ",
+    [
+      {"tipo": "Cuestion", "enunciado": "Las $@{k}$ columnas de $A$ son linealmente independientes.",
+       "semantica": "v('MaxRk')", "precond": "True", "exp": "…"},
+      {"tipo": "Cuestion", "enunciado": "Alguna columna de $A$ es combinación lineal de las demás.",
+       "semantica": "-v('MaxRk')", "precond": "True", "exp": "…"}
+    ],
+    "… (otros dos huecos: $A^\\top A$ invertible / singular; $Ax = 0$ con solución única / infinitas)"
+  ]
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-python">p = load_problema("ejemplosManual/matriz_rango.json")
+for etiqueta, partes in p.por_partes():
+    for enunciado, cuestiones in partes:
+        print(f"Variante {etiqueta}: {enunciado}")
+        for texto, correcto, activa, exp in cuestiones:
+            print(f"  {'✓' if correcto else '✗'} {texto}")
+    if int(etiqueta) == 2:
+        break
+print(len(list(p.por_partes())), "variantes por instancia;",
+      len(list(p.por_partes(instances=4))), "con instances=4")
+</pre>
+</div>
+
+<pre class="example" id="org11f5861">
+Variante 1: Considere una matriz $A$ de $3$ filas y $2$ columnas. Suponga que $A$ tiene rango máximo ($\mathrm{rg}(A)=2$). Indique qué afirmaciones son correctas:
+  ✓ Las $2$ columnas de $A$ son linealmente independientes.
+  ✓ $A^\top A$ es invertible.
+  ✓ El sistema $Ax = 0$ tiene solo la solución trivial.
+Variante 2: Considere una matriz $A$ de $4$ filas y $2$ columnas. Suponga que $A$ tiene rango máximo ($\mathrm{rg}(A)=2$). Indique qué afirmaciones son correctas:
+  ✓ Las $2$ columnas de $A$ son linealmente independientes.
+  ✓ $A^\top A$ es invertible.
+  ✗ El sistema $Ax = 0$ tiene infinitas soluciones.
+16 variantes por instancia; 64 con instances=4
+</pre>
+
+<p>
+La lógica proposicional y los valores numéricos actúan de forma independiente:
+<code>v('MaxRk')</code> no «sabe» cuánto valen <span class="math">n</span> y <span class="math">k</span>; su valor de verdad lo determina el
+supuesto elegido. El <code>setup</code> solo aporta los números que aparecen en el texto. El
+segundo supuesto afirma <code>-v('MaxRk')</code> directamente, y por eso las cuestiones con esa
+semántica se deducen sin necesidad de un axioma <code>unoDe</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-org154a23d" class="outline-3">
+<h3 id="org154a23d"><span class="section-number-3">4.4.</span> Exportar la lista de listas a un fichero <code>.py</code> editable</h3>
+<div class="outline-text-3" id="text-4-4">
+<p>
+<code>problema_to_python</code> devuelve el código Python que recrea el problema como listas
+editables, y <code>save_problema_py</code> lo escribe en un fichero. El resultado se ejecuta tal
+cual y puede volver a guardarse con <code>save_problema</code>: si el problema tiene <code>setup</code>, su
+código aparece en la cadena <code>_SETUP</code>, y las lambdas van entre comillas.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">codigo = problema_to_python(load_problema("ejemplosManual/ejercicio.json"))
+print("\n".join(codigo.splitlines()[:30]))   # las primeras 30 líneas
+</pre>
+</div>
+
+<pre class="example" id="orgbe26fb6">
+from qbank import Supuesto, Cuestion, ProblemaTipo
+from calcprop import *
+
+ejercicio = [
+    r'Considere ',
+    [
+        Supuesto(
+            enunciado = r'$\mathcal{A}$ ',
+            semantica = v('A'),
+            precond = True
+        ),
+        Supuesto(
+            enunciado = r'$\mathcal{B}$ ',
+            semantica = v('B'),
+            precond = True
+        ),
+    ],
+    [
+        Supuesto(
+            enunciado = r'y que $\mathcal{A}\Rightarrow\mathcal{C}$. ',
+            semantica = v('A') &gt;&gt; v('C'),
+            precond = True
+        ),
+        Supuesto(
+            enunciado = r'y que $\mathcal{B}\Leftrightarrow\mathcal{D}$. ',
+            semantica = v('B') ** v('D'),
+            precond = True
+        ),
+    ],
+    r'Entonces, con toda seguridad: ',
+</pre>
+</div>
+</div>
+<div id="outline-container-org801d956" class="outline-3">
+<h3 id="org801d956"><span class="section-number-3">4.5.</span> Los ejemplos de <code>ejemplosManual/</code></h3>
+<div class="outline-text-3" id="text-4-5">
+<p>
+Cinco ficheros ilustran, de forma acumulativa, las mecánicas de este capítulo, y
+<code>Tutorial.ipynb</code> los recorre ejecutándolos: <code>ej_a_literales</code> (valores de verdad
+literales, tres huecos), <code>ej_b_mundos</code> (una lista de <code>Supuesto</code>), <code>ej_c_precond</code>
+(axioma <code>unoDe</code> y <code>precond</code> por mundo), <code>ej_d_setup_vars</code> (<code>setup</code>, <code>@{var}</code>, <code>seed</code>,
+<code>instances</code> y <code>exp</code> dinámico) y <code>ej_e_lambda</code> (semántica <code>lambda</code> que inyecta fórmulas).
+Los otros cuatro (<code>ejercicio</code>, <code>matriz_rango</code>, <code>numeros</code> y <code>superheroes</code>) son los que
+usan este manual y <code>Demo.ipynb</code>. Todos pasan <code>lint</code> sin <code>ERROR</code> ni <code>AVISO</code>.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org57eea32" class="outline-2">
+<h2 id="org57eea32"><span class="section-number-2">5.</span> Exportar a AMC (LaTeX)</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+Las funciones AMC generan el código LaTeX para
+<a href="https://www.auto-multiple-choice.net/">Auto Multiple Choice</a>: cada una devuelve una
+cadena con un bloque <code>\element{...}</code>, que el usuario escribe al fichero. El flujo
+completo (un <code>.tex</code> por pregunta, un documento que lo compila y los PDF de revisión) lo
+hacen los scripts de un proyecto <code>qbank-init</code> (<code>make amc</code> y <code>make amc-student</code>).
+</p>
+
+<p>
+Las funciones no leen <code>export</code> del problema: pasa <code>last_choice=</code> y <code>cols=</code> en cada
+llamada (los scripts de un banco sí lo leen y se los pasan).
+</p>
+</div>
+<div id="outline-container-org9e5e81e" class="outline-3">
+<h3 id="org9e5e81e"><span class="section-number-3">5.1.</span> <code>AMCblock</code></h3>
+<div class="outline-text-3" id="text-5-1">
+<div class="org-src-container">
+<pre class="src src-python">AMCblock(nombre, etiqueta, enunciado, cuestiones,
+         last_choice=False, cols=1, profe=False, *,
+         aux_latex="", last_choice_text="Ninguna de las anteriores")
+</pre>
+</div>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Parámetro</th>
+<th scope="col" class="org-left">Descripción</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>nombre</code></td>
+<td class="org-left">Nombre del grupo AMC (etiqueta LaTeX). Los <code>:</code> y <code>_</code> se convierten en <code>-</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>etiqueta</code></td>
+<td class="org-left">Identificador único de esta variante dentro del grupo.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>enunciado</code></td>
+<td class="org-left">Texto del enunciado (<code>$$...$$</code> se convierte a <code>\[...\]</code>, que <code>automultiplechoice</code> prefiere).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>cuestiones</code></td>
+<td class="org-left">Lista de tuplas <code>(texto, correcto, activa[, exp])</code>, la segunda componente de cada parte.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>last_choice</code></td>
+<td class="org-left">Si <code>True</code>, añade la opción por defecto con <code>\lastchoices</code>: correcta solo si las demás son falsas.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>cols</code></td>
+<td class="org-left">Columnas (&gt;1 activa <code>\begin{multicols}{N}\AMCBoxedAnswers</code>).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>profe</code></td>
+<td class="org-left">Si <code>True</code>, vista profe: las cuestiones rechazadas por su precondición van en <code>\explain{}</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>aux_latex</code></td>
+<td class="org-left">Instrucciones LaTeX extra dentro del bloque <code>\element{}</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>last_choice_text</code></td>
+<td class="org-left">Texto de la opción por defecto.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="org-src-container">
+<pre class="src src-python">p = load_problema("ejemplosManual/ejercicio.json")
+etiqueta, partes = next(iter(p.por_partes()))
+enunciado, cuestiones = partes[0]
+print(AMCblock("MiCuestionario", etiqueta, enunciado, cuestiones, last_choice=True, cols=2))
+</pre>
+</div>
+
+<pre class="example" id="orge8f58f2">
+\element{MiCuestionario}{
+ \begin{questionmult}{MiCuestionario-1}
+  Considere $\mathcal{A}$ y que $\mathcal{A}\Rightarrow\mathcal{C}$. Entonces, con toda seguridad:
+   \begin{multicols}{2}\AMCBoxedAnswers
+      \begin{choices}
+       \correctchoice{se da $\mathcal{C}$}
+       \correctchoice{se da $\mathcal{A}$}
+       \correctchoice{se dan $\mathcal{A}$ y $\mathcal{C}$}
+       \lastchoices
+       \wrongchoice  {Ninguna de las anteriores}
+      \end{choices}
+   \end{multicols}
+ \end{questionmult} }
+</pre>
+
+<p>
+Para escribir todas las variantes de la vista alumno:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">with open("preguntas.tex", "w") as f:
+    for etiqueta, partes in p.por_partes():
+        enunciado, cuestiones = partes[0]
+        f.write(AMCblock("MiCuestionario", etiqueta, enunciado, cuestiones, last_choice=True, cols=2))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org2b81ffd" class="outline-3">
+<h3 id="org2b81ffd"><span class="section-number-3">5.2.</span> <code>AMC_multipart</code> — preguntas con varias partes</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+Un <code>AMCblock</code> por parte produciría dos preguntas con el mismo identificador y la
+segunda sin las hipótesis. <code>AMC_multipart</code> genera un único <code>questionmult</code> con un bloque
+de casillas por parte, cada uno con su propia opción por defecto si <code>last_choice</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">AMC_multipart(nombre, etiqueta, enunciado, partes,
+              last_choice=False, cols=1, profe=False, *,
+              aux_latex="", last_choice_text="Ninguna de las anteriores")
+</pre>
+</div>
+
+<p>
+<code>partes</code> es la lista de pares <code>(enunciado, cuestiones)</code> que devuelven <code>por_partes()</code> y
+<code>por_partes_profe()</code>; <code>enunciado</code> es un texto común previo, normalmente <code>""</code> porque el
+de la primera parte ya contiene las hipótesis. Los demás parámetros son los de
+<code>AMCblock</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">multi = load_problema("ejemplosManual/superheroes.json")      # tres partes
+with open("preguntas_multi.tex", "w") as f:
+    for etiqueta, partes in multi.por_partes():
+        if len(partes) &gt; 1:
+            f.write(AMC_multipart("Superheroes", etiqueta, "", partes, last_choice=True))
+        else:
+            f.write(AMCblock("Superheroes", etiqueta, partes[0][0], partes[0][1], last_choice=True))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org9b570b3" class="outline-3">
+<h3 id="org9b570b3"><span class="section-number-3">5.3.</span> <code>QuizAMCProfe</code> — la vista profe en un fichero</h3>
+<div class="outline-text-3" id="text-5-3">
+<div class="org-src-container">
+<pre class="src src-python">QuizAMCProfe(nombre, directorio, problema, cols=1, *, last_choice=False,
+             aux_latex="", last_choice_text="Ninguna de las anteriores")
+# Devuelve int: número de entradas escritas (una por mundo)
+</pre>
+</div>
+
+<p>
+Recorre <code>por_partes_profe()</code> y escribe en <code>directorio/nombre_profe.tex</code> una pregunta AMC
+por mundo (con <code>AMC_multipart</code> si tiene varias partes), con todas las cuestiones de
+cada hueco marcadas y las rechazadas en <code>\explain{}</code>. <code>problema</code> puede ser un
+<code>ProblemaTipo</code> o un diccionario <code>{nombre: ProblemaTipo}</code>. <code>directorio</code> admite <code>/</code> final
+o no.
+</p>
+</div>
+</div>
+<div id="outline-container-orgb9c18db" class="outline-3">
+<h3 id="orgb9c18db"><span class="section-number-3">5.4.</span> Integración en el documento AMC</h3>
+<div class="outline-text-3" id="text-5-4">
+<p>
+Los ficheros generados se incluyen en el preámbulo del documento AMC con la orden
+<code>\input{preguntas.tex}</code>; dentro de <code>\onecopy</code>, <code>\insertgroup[1]{MiCuestionario}</code> inserta
+una variante por copia (sin el <code>[1]</code> se insertarían todas) y <code>\shufflegroup</code> las
+baraja. El README de la plantilla da el procedimiento completo; consulta la
+documentación de AMC para el formato del documento.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orgf7ef2a7" class="outline-2">
+<h2 id="orgf7ef2a7"><span class="section-number-2">6.</span> Exportar a Moodle (vía LaTeX)</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+Las funciones <code>Quiz*</code> escriben un fichero <code>.tex</code> autónomo que usa el paquete LaTeX
+<code>moodle</code>; al compilarlo se obtienen un PDF de revisión y el fichero
+<code>nombre-moodle.xml</code> importable en Moodle (<i>Banco de preguntas → Importar → Formato
+Moodle XML</i>). Como las de AMC, no leen <code>export</code>: pasa <code>last_choice=</code> e <code>instances=</code>
+(los scripts de un banco sí lo leen).
+</p>
+
+<pre class="example" id="orgc07eb67">
+Python (qbank)  →  nombre.tex  →  xelatex / pdflatex  →  nombre.pdf + nombre-moodle.xml  →  Moodle
+</pre>
+
+<p>
+El <code>.tex</code> compila con cualquier motor (su cabecera distingue <code>pdflatex</code> de
+<code>xelatex</code> o <code>lualatex</code>). Si lo compilas <b>a mano</b>, usa <code>xelatex</code>: el XML sale declarado en
+UTF-8. Con <code>pdflatex</code> el paquete <code>moodle</code> lo declara en <code>iso-8859-1</code> aunque escribe en
+UTF-8 los caracteres que <code>codchar</code> no convierte (los signos <code>¿</code> y <code>¡</code>, las mayúsculas
+acentuadas como <code>Á</code> o <code>Ñ</code> y la <code>ü</code>), y Moodle los mostraría mal (por ejemplo, <code>Â¿</code> en
+lugar de <code>¿</code>);
+los proyectos de <code>qbank-init</code> compilan con <code>pdflatex</code> y corrigen la declaración
+después (<code>scripts/fix_moodle_xml.py</code>, que <code>make moodle</code> ejecuta).
+</p>
+
+<p>
+El paquete <code>moodle</code> se instala con <code>tlmgr install moodle</code> (TeX Live) o
+<code>sudo apt install texlive-latex-extra</code> (Debian/Ubuntu). Dos avisos: el paquete declara el
+XML en <code>iso-8859-1</code> pero escribe algunos caracteres en UTF-8, y escapa mal el «&lt;» dentro
+de los bloques cloze; los scripts de <code>qbank-init</code> corrigen ambas cosas
+(<code>scripts/fix_moodle_xml.py</code>). Si exportas a mano, revisa el XML.
+</p>
+</div>
+<div id="outline-container-org8d94edf" class="outline-3">
+<h3 id="org8d94edf"><span class="section-number-3">6.1.</span> Funciones</h3>
+<div class="outline-text-3" id="text-6-1">
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Función</th>
+<th scope="col" class="org-left">Tipo de problema</th>
+<th scope="col" class="org-left">Qué escribe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>QuizMoodle</code></td>
+<td class="org-left"><code>ProblemaTipo</code></td>
+<td class="org-left">Vista alumno: una pregunta <i>cloze</i> por variante, con un bloque por parte.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>QuizMoodleProfe</code></td>
+<td class="org-left"><code>ProblemaTipo</code></td>
+<td class="org-left">Como <code>QuizMoodle</code> con los mismos parámetros, pero con las puntuaciones visibles.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>QuizVFMoodle</code></td>
+<td class="org-left"><code>ProblemaVF</code></td>
+<td class="org-left">Verdadero/falso (apéndice).</td>
+</tr>
+</tbody>
+</table>
+
+<div class="org-src-container">
+<pre class="src src-python">QuizMoodle     (nombre, directorio, problema, last_choice=False, instances=1, *,
+                aux_latex="", last_choice_text="Las demás opciones son falsas")
+# Devuelve int: número de variantes escritas
+QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="",
+                last_choice=False, instances=1,
+                last_choice_text="Las demás opciones son falsas")
+</pre>
+</div>
+
+<p>
+<code>QuizMoodleProfe</code> solo admite <code>last_choice</code>, <code>instances</code> y <code>last_choice_text</code> por
+palabra clave; con los mismos valores que en <code>QuizMoodle</code> escribe las mismas variantes.
+Las dos escriben <code>directorio/nombre.tex</code>: para tener ambas vistas, dales nombres
+distintos (p. ej. <code>MiCuestionario</code> y <code>MiCuestionarioProfe</code>).
+Como el resto de exportadores, ninguna de las dos lee <code>export</code> del problema: pásale
+<code>last_choice=True</code> si la pregunta usa la opción por defecto (o, con <code>ejercicio.json</code>,
+16 de las 48 variantes saldrían sin ninguna opción correcta).
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Parámetro</th>
+<th scope="col" class="org-left">Descripción</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>nombre</code></td>
+<td class="org-left">Nombre del cuestionario (en Moodle, la categoría que agrupa las variantes).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>directorio</code></td>
+<td class="org-left">Directorio de salida (con o sin <code>/</code> final).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>problema</code></td>
+<td class="org-left">Un <code>ProblemaTipo</code> o un diccionario <code>{nombre: ProblemaTipo}</code> (todas van al mismo cuestionario).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>last_choice</code></td>
+<td class="org-left">Si <code>True</code>, añade la opción por defecto a cada bloque. Moodle rechaza preguntas sin ninguna correcta.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>instances</code></td>
+<td class="org-left">Instancias con semillas distintas (requiere <code>setup</code> aleatorio).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>aux_latex</code></td>
+<td class="org-left">Cabecera LaTeX adicional (p. ej. <code>\usepackage{mis-macros}</code>).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>last_choice_text</code></td>
+<td class="org-left">Texto de la opción por defecto.</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Cada bloque cloze recibe un peso igual a su número de opciones menos uno, y Moodle lo
+puntúa como una opción múltiple con varias respuestas (las correctas marcadas suman,
+las incorrectas marcadas restan, sin bajar de cero).
+</p>
+</div>
+</div>
+<div id="outline-container-org408f167" class="outline-3">
+<h3 id="org408f167"><span class="section-number-3">6.2.</span> Ejemplo</h3>
+<div class="outline-text-3" id="text-6-2">
+<div class="org-src-container">
+<pre class="src src-python">p = load_problema("ejemplosManual/ejercicio.json")
+QuizMoodle("EjemploMoodle", "ejemplosManual/", p, last_choice=True)
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-bash">cd ejemplosManual
+xelatex EjemploMoodle.tex
+</pre>
+</div>
+
+<p>
+Se generan <code>ejemplosManual/EjemploMoodle-moodle.xml</code> (para importar en Moodle) y
+<code>ejemplosManual/EjemploMoodle.pdf</code> (vista previa de las preguntas). Las vocales acentuadas
+minúsculas y la <code>ñ</code> las convierte <code>codchar</code> (ver la referencia) de forma automática.
+</p>
+</div>
+</div>
+<div id="outline-container-org6e3818c" class="outline-3">
+<h3 id="org6e3818c"><span class="section-number-3">6.3.</span> Preguntas con varias partes</h3>
+<div class="outline-text-3" id="text-6-3">
+<p>
+Un <code>ProblemaTipo</code> cuya lista plana abre varias partes se exporta como una pregunta
+<i>cloze</i> con un bloque de opciones por parte, sin hacer nada especial. El fichero
+<code>ejemplosManual/superheroes.json</code> es un ejercicio de tres partes (cuatro mundos, uno
+por héroe, y seis huecos repartidos en tres bloques):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">p = load_problema("ejemplosManual/superheroes.json")
+etiqueta, partes = next(iter(p.por_partes()))
+for enunciado, cuestiones in partes:
+    print(enunciado.strip() or "(sin texto)")
+    for texto, correcto, _, exp in cuestiones:
+        print(f"    {'✓' if correcto else '✗'} {texto}")
+print(len(list(p.por_partes())), "variantes")
+</pre>
+</div>
+
+<pre class="example" id="org7413ff2">
+Conteste qué afirmaciones sobre Spider-Man (Peter Parker) son ciertas. Uno de sus superpoderes consiste en
+    ✓ tener sentidos superdesarrollados
+    ✗ volar
+En su vestimenta destaca:
+    ✗ la capa
+    ✓ el color azul
+En cuanto al origen de sus superpoderes:
+    ✓ son fruto de una mutación
+    ✗ realmente son fruto de entrenamiento y tecnología
+256 variantes
+</pre>
+
+<div class="org-src-container">
+<pre class="src src-python">import os
+os.makedirs("ejemplosManual/exportaciones", exist_ok=True)
+QuizMoodle("Superheroes", "ejemplosManual/exportaciones", p, last_choice=True)  # Moodle: cloze
+with open("ejemplosManual/exportaciones/superheroes_amc.tex", "w") as f:       # AMC: un questionmult
+    for etiqueta, partes in p.por_partes():
+        f.write(AMC_multipart("Superheroes", etiqueta, "", partes, last_choice=True))
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org6fdcb69" class="outline-2">
+<h2 id="org6fdcb69"><span class="section-number-2">7.</span> Comprobación automática de preguntas (<code>lint</code>)</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+Antes de exportar conviene comprobar que la pregunta está bien construida. <code>lint</code>
+automatiza lo que de otro modo habría que mirar a ojo recorriendo todas las variantes.
+Acepta un <code>ProblemaTipo</code>, un dict o la ruta a un fichero, no modifica nada ni compila
+LaTeX, y devuelve una lista de <code>Aviso(nivel, codigo, mensaje, donde)</code> con nivel
+<code>ERROR</code>, <code>AVISO</code> o <code>INFO</code>, errores primero:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">for aviso in lint("ejemplosManual/ej_c_precond.json"):
+    print(aviso)
+</pre>
+</div>
+
+<pre class="example">
+INFO  [constante] falsa en los 2 mundos en que aparece (semantica literal)  @ comp 4[2]: $\det(A)$ puede ser cualquier número real
+INFO  [constante] falsa en los 2 mundos en que aparece (semantica literal)  @ comp 5[3]: $A^{-1} = A^\top$ necesariamente
+INFO  [constante] falsa en los 2 mundos en que aparece (semantica literal)  @ comp 6[2]: el sistema $Ax=b$ tiene siempre infinitas soluciones
+</pre>
+
+
+<p>
+Cada aviso lleva su nivel, su código entre corchetes, el mensaje y, tras <code>@</code>, dónde
+está: <code>comp 4[2]</code> es el componente 4 de la lista (contando desde 0), elemento 2.
+Aquí son tres <code>INFO</code>: tres distractores siempre falsos, puestos a propósito.
+</p>
+
+<p>
+Un <code>ERROR</code> significa que la pregunta está rota; un <code>AVISO</code> hay que leerlo y decidir;
+un <code>INFO</code> es información. Las reglas, con el código de cada aviso:
+</p>
+
+<dl class="org-dl">
+<dt><code>mezcla</code> (ERROR)</dt><dd>en alguna variante y parte todas las opciones son correctas o
+todas incorrectas, contando la opción por defecto si <code>export.last_choice</code> está
+activo (misma regla que los exportadores).</dd>
+<dt><code>pocas-opciones</code> (AVISO)</dt><dd>una parte muestra al alumno menos de tres opciones: el
+error típico de poner las opciones en una única lista de <code>Cuestion</code> (que sortea una).
+<code>opciones</code> (AVISO): una parte sin ninguna cuestión (típicamente, un texto suelto tras
+la última <code>Cuestion</code>; esa parte no da además <code>mezcla</code>), o con un número de opciones
+que varía entre variantes.</dd>
+<dt><code>variantes</code></dt><dd>ERROR si la pregunta no genera ninguna variante válida. AVISO con menos
+de 16 variantes sin <code>setup</code>, o menos de 60 con <code>setup</code> (contando <code>export.instances</code>).
+INFO con más de 300: la vista alumno de AMC en un solo <code>examcopy</code> puede agotar la
+memoria de <code>pdflatex</code>.</dd>
+<dt><code>ejecucion</code> (ERROR)</dt><dd>el <code>setup</code> o el recorrido de las variantes lanzan una excepción.</dd>
+<dt><code>constante</code> (AVISO)</dt><dd>una <code>Cuestion</code> verdadera (o falsa) en todos los mundos en que
+puede aparecer, candidata a distractor memorizable. Es INFO si la semántica es el
+literal <code>True</code> o <code>False</code> (distractor deliberado) o una <code>lambda</code> con <code>setup</code> (la tabla de
+mundos usa un solo sorteo; compruébalo con la vista profe). <code>solape</code> (AVISO): dos
+<code>Cuestion</code> con el mismo texto en el mismo hueco pueden aparecer en un mismo mundo.</dd>
+<dt><code>negacion</code></dt><dd>una <code>semantica</code> o <code>precond</code> usa <code>-v('X')</code> pero ningún <code>Supuesto</code> permite
+deducirlo (hace falta un <code>unoDe</code> que incluya <code>v('X')</code>, a cualquier profundidad, o un
+<code>Supuesto</code> que afirme o implique <code>-v('X')</code>). ERROR si <code>v('X')</code> es una alternativa de
+una lista; AVISO si niega un <code>Supuesto</code> suelto (siempre presente): nunca será cierta.</dd>
+<dt><code>interp</code> (ERROR)</dt><dd>queda algún <code>@{var}</code> sin sustituir en el texto renderizado (el
+escape <code>@@{x}</code>, que se imprime como «@{x}», no cuenta).</dd>
+<dt><code>huerfana</code> (AVISO)</dt><dd>una etiqueta <code>v('X')</code> usada en una <code>Cuestion</code> no aparece en
+ningún <code>Supuesto</code> (INFO si algún <code>Supuesto</code> es una lambda, porque entonces no se puede
+saber). <code>sin-uso</code> (INFO): una etiqueta declarada que ninguna <code>Cuestion</code> usa.</dd>
+<dt><code>carga</code>, <code>tipo</code>, <code>nombre</code>, <code>estructura</code> (ERROR)</dt><dd>el JSON no se puede leer o cargar
+(<code>carga</code>); no es un <code>ProblemaTipo</code> (<code>tipo</code>); el <code>nombre</code> no coincide con el fichero o
+lleva <code>:</code> o espacios, que los scripts del banco no admiten (<code>nombre</code>); alguna lista
+está vacía, mezcla tipos o va anidada, o <code>export</code> o <code>seed</code> están mal tipados
+(<code>estructura</code>; <code>"seed": true</code> tampoco vale). <code>lista-1</code>, <code>seed</code>, <code>instances</code> (AVISO):
+listas de un solo elemento, <code>seed</code> incoherente con el uso de aleatorios,
+<code>instances &gt; 1</code> sin <code>setup</code>.</dd>
+<dt><code>texto</code></dt><dd>un <code>%</code> sin barra es ERROR (en LaTeX empieza un comentario y el PDF sale
+vacío o roto sin que <code>pdflatex</code> pare). Son AVISO: <code>\%</code> dentro de <code>$…$</code> (Moodle lo
+pierde), <code>°</code>, <code>«»</code> y comillas rectas (no existen en la codificación del paquete
+<code>moodle</code> o salen como ”), <code>\(…\)</code> o <code>\[…\]</code> en vez de <code>$…$</code> / <code>$$…$$</code>, citas a números
+de lección, <code>@{</code> sin cerrar, dobles espacios fuera de las fórmulas, comillas simples,
+textos que parecen código <code>lambda ns:</code> (desde JSON no se evalúan). Las dos reglas del
+<code>%</code> se aplican también al texto interpolado con unos sorteos del <code>setup</code> (el mensaje
+lo indica con «en el texto interpolado»).</dd>
+<dt><code>setup</code> (INFO)</dt><dd>variantes por instancia e <code>instances</code> necesarias para llegar a 60.</dd>
+</dl>
+
+<p>
+<code>tabla_mundos(problema)</code> devuelve una tabla de texto con el valor de cada <code>Cuestion</code>
+(<code>V</code>, <code>F</code>, o <code>-</code> si la rechaza su <code>precond</code>) en cada combinación de <code>Supuesto</code>, para
+localizar distractores constantes y auditar la lógica. Con <code>setup</code> usa un solo sorteo
+(sembrado con <code>seed</code>), así que los mundos filtrados por precondiciones numéricas pueden
+no aparecer todos.
+</p>
+
+<p>
+Desde la línea de órdenes (código de salida 1 si hay algún ERROR; <code>--quiet</code> omite los
+INFO y los ficheros sin avisos):
+</p>
+
+<pre class="example" id="org53888f3">
+python -m qbank.lint preguntas/*.json --quiet
+qbank-lint preguntas/L-01-Nombre.json --tabla      # equivalente, con la tabla de mundos
+</pre>
+
+<p>
+En un proyecto de <code>qbank-init</code>: <code>make lint</code>, <code>make tabla PREGUNTA=L-01-Nombre</code>, y
+<code>make amc</code> / <code>make moodle</code> pasan <code>lint</code> antes de exportar.
+</p>
+</div>
+</div>
+<div id="outline-container-orgec29ced" class="outline-2">
+<h2 id="orgec29ced"><span class="section-number-2">8.</span> Referencia rápida de la API</h2>
+<div class="outline-text-2" id="text-8">
+</div>
+<div id="outline-container-orgce49eca" class="outline-3">
+<h3 id="orgce49eca"><span class="section-number-3">8.1.</span> Clases</h3>
+<div class="outline-text-3" id="text-8-1">
+<pre class="example" id="org8e33188">
+Supuesto(enunciado, semantica, precond=True)
+Cuestion(enunciado, semantica, precond=True, exp="")
+    semantica y precond: fórmula calcprop, True/False, lambda ns: …, o la cadena de cualquiera de ellos
+ProblemaTipo(componentes, setup=None, export=None, seed=None, nombre=None)
+    → .por_partes(instances=1, base_seed=None, verbose=False)   vista alumno, por partes
+    → .por_partes_profe(verbose=True)                           vista profe: todas las cuestiones
+    → itera (etiqueta, enunciado, cuestiones)                    solo ejercicios de una parte
+ProblemaVF(enunciado, cuestiones, NumPreguntas)                  verdadero/falso (apéndice)
+ProblemaTipoEditor(source=None)                                  editor visual en Jupyter (apéndice)
+qbank.__version__                                                versión instalada, p. ej. "0.6.0"
+</pre>
+</div>
+</div>
+<div id="outline-container-org4f5f932" class="outline-3">
+<h3 id="org4f5f932"><span class="section-number-3">8.2.</span> Funciones JSON</h3>
+<div class="outline-text-3" id="text-8-2">
+<pre class="example" id="orgba4820c">
+problema_from_dict(d)              → ProblemaTipo o ProblemaVF
+problema_to_dict(problema)         → dict (conserva las claves propias del JSON)
+load_problema(ruta_o_dict)         → ProblemaTipo o ProblemaVF
+save_problema(problema, ruta)
+load_banco(ruta)                   → lista de problemas
+save_banco(problemas, ruta)        # acepta lista o dict
+problema_to_python(problema, varname="ejercicio")  → str   (ProblemaTipo)
+save_problema_py(problema, ruta, varname="ejercicio")
+</pre>
+</div>
+</div>
+<div id="outline-container-orgb43f971" class="outline-3">
+<h3 id="orgb43f971"><span class="section-number-3">8.3.</span> Funciones AMC</h3>
+<div class="outline-text-3" id="text-8-3">
+<pre class="example" id="org026dc38">
+AMCblock     (nombre, etiqueta, enunciado, cuestiones,
+              last_choice=False, cols=1, profe=False, *,
+              aux_latex="", last_choice_text="Ninguna de las anteriores")      → str
+AMC_multipart(nombre, etiqueta, enunciado, partes,
+              last_choice=False, cols=1, profe=False, *,
+              aux_latex="", last_choice_text="Ninguna de las anteriores")      → str
+QuizAMCProfe (nombre, directorio, problema, cols=1, *, last_choice=False,
+              aux_latex="", last_choice_text="Ninguna de las anteriores")      → int (mundos)
+AMC_VF       (nombre, etiqueta, enunciado, cuestiones, opc=None)               → str (ProblemaVF)
+</pre>
+</div>
+</div>
+<div id="outline-container-org9c1a1b0" class="outline-3">
+<h3 id="org9c1a1b0"><span class="section-number-3">8.4.</span> Funciones Moodle</h3>
+<div class="outline-text-3" id="text-8-4">
+<pre class="example" id="orga6a9f4d">
+QuizMoodle      (nombre, directorio, problema, last_choice=False, instances=1, *,
+                 aux_latex="", last_choice_text="Las demás opciones son falsas")  → int (variantes)
+QuizMoodleProfe (nombre, directorio, problema, *, aux_latex="",
+                 last_choice=False, instances=1,
+                 last_choice_text="Las demás opciones son falsas")                → int
+QuizVFMoodle    (nombre, directorio, GenVar, num, opc=None)                       (ProblemaVF)
+codchar(s)      vocales acentuadas minúsculas y ñ → secuencias LaTeX (lo aplican las funciones Moodle)
+</pre>
+</div>
+</div>
+<div id="outline-container-orgc431a11" class="outline-3">
+<h3 id="orgc431a11"><span class="section-number-3">8.5.</span> Comprobación automática</h3>
+<div class="outline-text-3" id="text-8-5">
+<pre class="example" id="org8e4d9e9">
+lint(problema_o_ruta, instances=None, seed=None)  → list[Aviso]
+    # Aviso(nivel, codigo, mensaje, donde); nivel ∈ {ERROR, AVISO, INFO}; errores primero
+tabla_mundos(problema_o_ruta)                     → str   # tabla Cuestion × mundo
+python -m qbank.lint FICHEROS.json [--instances N] [--seed S] [--tabla] [--quiet]
+    # también `qbank-lint`; código de salida 1 si hay algún ERROR
+</pre>
+</div>
+</div>
+<div id="outline-container-orgd7a00c9" class="outline-3">
+<h3 id="orgd7a00c9"><span class="section-number-3">8.6.</span> Proyecto de banco</h3>
+<div class="outline-text-3" id="text-8-6">
+<pre class="example" id="orgaaf8910">
+qbank-init DIR [--forzar]        copia la plantilla (preguntas/, scripts/, Makefile, config.py,
+                                 nueva_pregunta.py, README.org) en DIR; equivale a
+                                 python -m qbank._plantilla DIR
+</pre>
+</div>
+</div>
+<div id="outline-container-org75003e7" class="outline-3">
+<h3 id="org75003e7"><span class="section-number-3">8.7.</span> Operadores de <code>calcprop</code> (disponibles tras <code>from qbank import *</code>)</h3>
+<div class="outline-text-3" id="text-8-7">
+<pre class="example" id="org2ccf78d">
+v("X")           variable proposicional X
+-v("X")          negación de X
+v("X") &amp; v("Y")  conjunción (X ∧ Y)
+v("X") | v("Y")  disyunción (X ∨ Y)
+v("X") &gt;&gt; v("Y") implicación (X → Y)
+v("X") ** v("Y") bicondicional (X ↔ Y)
+alguno(P, Q, R)  al menos una de la lista es verdadera
+unoDe(P, Q, R)   exactamente una de la lista es verdadera
+True             tautología (siempre verdadero)
+False            contradicción (siempre falso)
+
+test(formula, lista_de_formulas)  → bool
+    Devuelve True si formula es consecuencia lógica de la lista de hipótesis.
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgfadc3df" class="outline-2">
+<h2 id="orgfadc3df"><span class="section-number-2">9.</span> Preguntas frecuentes</h2>
+<div class="outline-text-2" id="text-9">
+</div>
+<div id="outline-container-org555ca00" class="outline-3">
+<h3 id="org555ca00"><span class="section-number-3">9.1.</span> ¿Por qué algunas variantes no se generan?</h3>
+<div class="outline-text-3" id="text-9-1">
+<p>
+Si un <code>Supuesto</code> o una <code>Cuestion</code> tiene una precondición que no se satisface en una
+combinación determinada, esa variante completa se descarta. Es el comportamiento
+esperado: evita combinaciones de hipótesis incoherentes. En la vista profe, las
+cuestiones rechazadas se ven; un <code>Supuesto</code> rechazado hace desaparecer la variante
+también allí.
+</p>
+</div>
+</div>
+<div id="outline-container-org2d58096" class="outline-3">
+<h3 id="org2d58096"><span class="section-number-3">9.2.</span> ¿Cómo incluyo texto LaTeX en los enunciados?</h3>
+<div class="outline-text-3" id="text-9-2">
+<p>
+Los campos <code>enunciado</code> y <code>exp</code> son cadenas Python que se insertan tal cual en el <code>.tex</code>.
+Usa cadenas crudas (<code>r"..."</code>) para no doblar las barras invertidas:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">Cuestion(r"$\mathbf{X}^\top\mathbf{X}$ es invertible", -v("Mcoli"))
+</pre>
+</div>
+
+<p>
+En JSON cada barra se dobla: <code>"$\\mathbf{X}^\\top\\mathbf{X}$"</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-orga59ff34" class="outline-3">
+<h3 id="orga59ff34"><span class="section-number-3">9.3.</span> ¿Puedo escribir un porcentaje, grados, comillas…?</h3>
+<div class="outline-text-3" id="text-9-3">
+<p>
+El símbolo <code>%</code> es, en LaTeX, el inicio de un comentario: escribe siempre <code>\%</code> (y fuera
+de los dólares: <code>al $5$\,\%</code>). Nada de <code>°</code> (usa <code>^\circ</code>) ni de comillas angulares <code>«»</code> o
+rectas <code>"…"</code> (usa <code>``así''</code>): el paquete <code>moodle</code> no las admite o las deforma. Acentos,
+<code>ñ</code>, <code>¿</code> y <code>¡</code> sí se pueden teclear. <code>lint</code> avisa de todo esto; la Guía lo explica.
+</p>
+</div>
+</div>
+<div id="outline-container-org74b8e94" class="outline-3">
+<h3 id="org74b8e94"><span class="section-number-3">9.4.</span> ¿Cómo escribo display math?</h3>
+<div class="outline-text-3" id="text-9-4">
+<p>
+Con <code>$$...$$</code>, nunca <code>\[...\]</code> ni <code>\(...\)</code> directamente: el paquete <code>moodle</code> necesita
+los dólares, y los exportadores AMC convierten <code>$$...$$</code> a <code>\[...\]</code> automáticamente
+(<code>automultiplechoice</code> a veces produce errores «Missing $» con <code>$$</code>). Separa dos
+expresiones en línea contiguas con un espacio (<code>$A$ $B$</code>, no <code>$A$$B$</code>).
+</p>
+</div>
+</div>
+<div id="outline-container-org2bb7fed" class="outline-3">
+<h3 id="org2bb7fed"><span class="section-number-3">9.5.</span> ¿Puedo incluir una figura en el enunciado?</h3>
+<div class="outline-text-3" id="text-9-5">
+<p>
+Sí, con <code>\includegraphics</code> en el texto (el enunciado es LaTeX), pero cada destino la
+quiere de una forma. En AMC vale un PDF a tamaño natural; los documentos de la
+plantilla ya cargan <code>graphicx</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-json">"Observe la figura. \\begin{center}\\includegraphics{fig.pdf}\\end{center} Entonces:"
+</pre>
+</div>
+
+<p>
+El paquete <code>moodle</code> incrusta la imagen en el XML (en base64) y solo
+sabe de mapas de bits: hace falta un PNG del mismo nombre y compilar con
+<code>pdflatex -shell-escape</code>, porque llama a <code>base64</code>. Un patrón que funciona: generar
+<code>fig.pdf</code> y <code>fig.png</code> (p. ej. con <code>pdftoppm -png -r 200</code>), referenciar el PDF en el JSON
+y, en el script de Moodle, sustituir <code>.pdf</code> por <code>.png</code> en el <code>.tex</code> (con <code>width</code> igual a
+la anchura natural del PDF, para que Moodle no lo agrande); el banco de
+Probabilidad y Estadística del autor lo hace así en su <code>scripts/gen_moodle.py</code>. Si la ruta de la figura
+va en el <code>setup</code> como variable e interpolada con <code>@{fig}</code>, la misma pregunta sirve para
+los dos destinos. Ten en cuenta el tamaño: una figura en cada una de 150 variantes
+multiplica el XML.
+</p>
+</div>
+</div>
+<div id="outline-container-orgbf138a0" class="outline-3">
+<h3 id="orgbf138a0"><span class="section-number-3">9.6.</span> ¿Para qué sirve <code>codchar</code>?</h3>
+<div class="outline-text-3" id="text-9-6">
+<p>
+<code>codchar(s)</code> convierte las vocales acentuadas minúsculas y la <code>ñ</code> a secuencias LaTeX
+(<code>á</code> → <code>\'{a}</code>). Las funciones Moodle lo aplican automáticamente, porque el <code>.tex</code> que
+generan usa codificación OT1; no hace falta llamarlo a mano. Las mayúsculas
+acentuadas (como <code>Á</code> o <code>Ñ</code>), la <code>ü</code> y los signos <code>¿</code> y <code>¡</code> pasan tal cual: con <code>xelatex</code>
+salen bien; con <code>pdflatex</code> el XML queda mal declarado y lo corrige
+<code>scripts/fix_moodle_xml.py</code> de la plantilla (ver la sección <a href="#orgf7ef2a7">6</a>). Para AMC no
+suele hacer falta si el documento principal usa <code>inputenc</code> con UTF-8.
+</p>
+</div>
+</div>
+<div id="outline-container-org11a9952" class="outline-3">
+<h3 id="org11a9952"><span class="section-number-3">9.7.</span> ¿Cómo exporto varias preguntas a un mismo cuestionario Moodle?</h3>
+<div class="outline-text-3" id="text-9-7">
+<p>
+Pasa un diccionario a <code>QuizMoodle</code>: todas van al cuestionario <code>MiExamen</code>, y cada clave
+da nombre a sus variantes (<code>Seccion-A-1</code>, <code>Seccion-A-2</code>, …):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">QuizMoodle("MiExamen", "salida/", {"Seccion-A": p_a, "Seccion-B": p_b}, last_choice=True)
+</pre>
+</div>
+
+<p>
+Un banco de <code>qbank-init</code> guarda cada pregunta en su propio fichero, y el script
+<code>scripts/merge_moodle_xml.py</code> fusiona sus XML en <code>_banco.xml</code>.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org1e6ab4a" class="outline-2">
+<h2 id="org1e6ab4a"><span class="section-number-2">10.</span> Apéndice: API avanzada y compatibilidad</h2>
+<div class="outline-text-2" id="text-10">
+</div>
+<div id="outline-container-org7f2c71d" class="outline-3">
+<h3 id="org7f2c71d"><span class="section-number-3">10.1.</span> <code>ProblemaVF</code> — preguntas de verdadero/falso</h3>
+<div class="outline-text-3" id="text-10-1">
+<p>
+<code>ProblemaVF</code> sirve para un formato distinto: un banco de afirmaciones del que se extrae
+aleatoriamente un subconjunto en cada variante. No usa cálculo proposicional; la
+corrección de cada ítem se indica con <code>True</code> o <code>False</code>. No lo revisa <code>lint</code> ni lo
+exportan los scripts de <code>qbank-init</code>: para un banco nuevo, una pregunta de tres huecos
+de <code>ProblemaTipo</code> cubre el mismo uso con todas las herramientas.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">ProblemaVF(enunciado, cuestiones, NumPreguntas)
+</pre>
+</div>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Parámetro</th>
+<th scope="col" class="org-left">Descripción</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>enunciado</code></td>
+<td class="org-left">Texto del enunciado común a todas las variantes.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>cuestiones</code></td>
+<td class="org-left">Lista de tuplas <code>(texto, correcto)</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>NumPreguntas</code></td>
+<td class="org-left">Cuántas afirmaciones se eligen aleatoriamente por variante.</td>
+</tr>
+</tbody>
+</table>
+
+<div class="org-src-container">
+<pre class="src src-python">enunciado = "Indique qué afirmaciones son verdaderas:"
+banco = [
+    ("Todo alumno que va a clase aprueba",   False),
+    ("Todo alumno que sabe aprueba",         True),
+    ("Si suspenden todos es frustrante",     True),
+    ("Si aprueban todos eres buen profesor", False),
+]
+import random
+random.seed(42)
+GenVar = iter(ProblemaVF(enunciado, banco, 3))  # 3 ítems por variante
+
+for _ in range(2):
+    etiqueta, enunc, cuestiones = next(GenVar)
+    print(f"Variante {etiqueta}: {enunc}")
+    for texto, correcto in cuestiones:
+        print(f"  {'✓' if correcto else '✗'} {texto}")
+</pre>
+</div>
+
+<pre class="example" id="orgde24334">
+Variante 1: Indique qué afirmaciones son verdaderas:
+  ✗ Todo alumno que va a clase aprueba
+  ✗ Si aprueban todos eres buen profesor
+  ✓ Todo alumno que sabe aprueba
+Variante 2: Indique qué afirmaciones son verdaderas:
+  ✓ Todo alumno que sabe aprueba
+  ✗ Todo alumno que va a clase aprueba
+  ✓ Si suspenden todos es frustrante
+</pre>
+
+<p>
+Se exporta con <code>AMC_VF(nombre, etiqueta, enunciado, cuestiones)</code> (un bloque por
+variante) y <code>QuizVFMoodle(nombre, directorio, GenVar, num)</code> (<code>num</code> variantes). Se guarda
+y carga en JSON sin restricciones.
+</p>
+</div>
+</div>
+<div id="outline-container-org52581cb" class="outline-3">
+<h3 id="org52581cb"><span class="section-number-3">10.2.</span> Clases deprecadas</h3>
+<div class="outline-text-3" id="text-10-2">
+<dl class="org-dl">
+<dt><code>ProblemaTipoProfe</code></dt><dd><p>
+emite <code>DeprecationWarning</code>; usa
+<code>ProblemaTipo(...).por_partes_profe()</code>. Firma:
+</p>
+
+<pre class="example" id="org83cce27">
+ProblemaTipoProfe(lista, setup=None)
+</pre></dd>
+<dt><code>ProblemaMultiParte</code> y <code>SubPregunta</code></dt><dd><p>
+<code>ProblemaMultiParte</code> emite
+<code>DeprecationWarning</code> y devuelve un <code>ProblemaTipo</code> equivalente (lista plana);
+<code>SubPregunta</code> es su contenedor. Para código nuevo, define directamente un
+<code>ProblemaTipo</code> y recórrelo con <code>por_partes()</code>. Firmas:
+</p>
+
+<pre class="example" id="org709d871">
+ProblemaMultiParte(componentes, subpreguntas, setup=None)
+SubPregunta(intro, cuestiones)
+</pre></dd>
+</dl>
+</div>
+</div>
+<div id="outline-container-org810b34c" class="outline-3">
+<h3 id="org810b34c"><span class="section-number-3">10.3.</span> Editor visual en Jupyter (<code>ProblemaTipoEditor</code>)</h3>
+<div class="outline-text-3" id="text-10-3">
+<p>
+<code>ProblemaTipoEditor</code> es un formulario interactivo para diseñar un <code>ProblemaTipo</code> desde
+un cuaderno de Jupyter, sin escribir la lista de listas a mano. Requiere <code>ipywidgets</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">pip install "calcprop-qbank[jupyter]"
+</pre>
+</div>
+
+<p>
+(la orden con <code>git+https://…</code> de la instalación rápida ya incluye el extra
+<code>[jupyter]</code>).
+</p>
+
+<p>
+En <b>JupyterLab ≥ 4</b> es necesario que la extensión <code>@jupyter-widgets/jupyterlab-manager</code>
+esté habilitada: compruébalo con <code>jupyter labextension list</code>. Si el widget se muestra
+como texto
+(<code>VBox(children=...</code>), ejecuta una sola vez desde el terminal:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">mkdir -p ~/.local/share/jupyter/labextensions/@jupyter-widgets
+ln -sfn $(python -c "import jupyterlab_widgets, os; \
+  print(os.path.dirname(jupyterlab_widgets.__file__))")/labextension \
+  ~/.local/share/jupyter/labextensions/@jupyter-widgets/jupyterlab-manager
+</pre>
+</div>
+
+<p>
+y reinicia JupyterLab (en Jupyter Notebook clásico no hace falta).
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">from qbank import ProblemaTipoEditor
+editor = ProblemaTipoEditor()                   # editor vacío
+editor = ProblemaTipoEditor('mi_problema.json') # cargar desde fichero
+p = editor.to_problema()                        # ProblemaTipo listo para iterar
+d = editor.to_dict()                            # dict JSON equivalente
+save_problema(editor.to_problema(), "mi_problema.json")   # o el botón 💾 Guardar
+</pre>
+</div>
+
+<p>
+El editor no tiene un método <code>save</code>: para guardar, usa el botón <code>💾 Guardar</code> o pasa
+<code>editor.to_problema()</code> a <code>save_problema</code>, como en la última línea del bloque.
+</p>
+
+<p>
+El formulario tiene una cabecera (<code>Nombre:</code>, <code>Setup:</code> con el campo <code>semilla:</code>, y
+<code>Export:</code> con la casilla <code>last_choice</code> y el campo <code>cols:</code>), la lista de huecos y una
+barra de botones. Cada hueco (<code>Hueco 1</code>, <code>Hueco 2</code>, etc.) tiene un tipo, <i>texto</i>,
+<i>supuestos</i> o <i>cuestiones</i>, y sus alternativas (<code>+ alt</code>): filas con enunciado,
+semántica, precondición y, en las cuestiones, explicación. Los botones de cada hueco lo
+suben o bajan (<code>▲</code> / <code>▼</code>), insertan otro hueco debajo (<code>＋</code>) o lo borran (<code>✕</code>); el botón
+<code>+ hueco</code> añade uno al final. La barra inferior tiene <code>▶ Preview</code> (genera hasta N
+variantes, con la casilla <i>vista profe</i>), <code>{ } JSON</code> y <code>&lt;/&gt; .py</code> (muestran el JSON o el
+guion Python), <code>💾 Guardar</code> y <code>📂 Cargar</code> (en el fichero indicado) y <code>⬇ .json</code> /
+<code>⬇ .py</code> (descargas al navegador). Al guardar conserva las claves de <code>export</code> que el
+formulario no edita (como <code>instances</code>) y las claves propias del JSON.
+<code>ejemplosManual/Demo.ipynb</code> (sección 8) lo muestra en uso.
+</p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

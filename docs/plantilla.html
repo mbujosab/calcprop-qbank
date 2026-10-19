@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<!-- 2026-10-19 lun 23:45 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Banco de preguntas (plantilla qbank)</title>
+<meta name="author" content="Marcos Bujosa" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div id="content" class="content">
+<header>
+<h1 class="title">Banco de preguntas (plantilla qbank)</h1>
+</header><nav id="table-of-contents" role="doc-toc">
+<h2>&Iacute;ndice</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgfd187a4">1. Qué hay aquí</a></li>
+<li><a href="#orgdca890f">2. Requisitos</a></li>
+<li><a href="#org97fafda">3. Flujo de trabajo</a></li>
+<li><a href="#orga57d63e">4. Cómo leer el PDF de <code>make amc</code> (vista profe)</a></li>
+<li><a href="#org486b284">5. La mecánica en tres frases (lo que más confunde al empezar)</a></li>
+<li><a href="#org166bca7">6. Caracteres y símbolos en los textos</a></li>
+<li><a href="#org781939e">7. Campos de una pregunta</a></li>
+<li><a href="#org3d2422e">8. Más documentación</a></li>
+</ul>
+</div>
+</nav>
+<p>
+Proyecto creado con <code>qbank-init</code>. Contiene todo lo necesario para escribir
+preguntas de opción múltiple con <code>qbank</code>, comprobarlas y exportarlas a AMC
+(exámenes en papel) y a Moodle. Sustituye las preguntas de ejemplo por las
+tuyas y borra este párrafo.
+</p>
+<div id="outline-container-orgfd187a4" class="outline-2">
+<h2 id="orgfd187a4"><span class="section-number-2">1.</span> Qué hay aquí</h2>
+<div class="outline-text-2" id="text-1">
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<tbody>
+<tr>
+<td class="org-left"><code>preguntas/</code></td>
+<td class="org-left">Una pregunta por fichero JSON: <code>L-NN-Descripcion.json</code> (NN = lección o tema, dos cifras; <code>00</code> vale). Sin espacios ni <code>:</code> en el nombre.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>nueva_pregunta.py</code></td>
+<td class="org-left">Guion para escribir una pregunta en Python y guardarla como JSON en <code>preguntas/</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>config.py</code></td>
+<td class="org-left">Preámbulo LaTeX propio (el de AMC ya carga <code>babel</code> en español), textos de la opción por defecto y cuántos casos imprime la vista profe con <code>setup</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>scripts/</code></td>
+<td class="org-left">Generadores de AMC y Moodle que usa el <code>Makefile</code>; no hace falta tocarlos.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>Makefile</code></td>
+<td class="org-left"><code>make lint</code>, <code>make tabla</code>, <code>make amc</code>, <code>make amc-student</code>, <code>make moodle</code>, <code>make clean</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>build/</code></td>
+<td class="org-left">Todo lo generado (PDF, XML, <code>.tex</code>). No se versiona.</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Los ficheros de <code>preguntas/</code> que no sigan la convención <code>L-NN-</code> también se
+procesan; solo quedan fuera cuando se filtra con <code>LECCION</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-orgdca890f" class="outline-2">
+<h2 id="orgdca890f"><span class="section-number-2">2.</span> Requisitos</h2>
+<div class="outline-text-2" id="text-2">
+<ul class="org-ul">
+<li>Python 3.9 o superior con <code>calcprop-qbank</code> 0.6.0 o posterior (la versión
+que trae <code>qbank-init</code>): <code>pip install calcprop-qbank</code> (o <code>pip install -U
+  calcprop-qbank</code> para actualizar una anterior).
+Si usas un entorno virtual, actívalo antes de <code>make</code>, o pasa el
+intérprete: <code>make amc PYTHON=/ruta/al/venv/bin/python</code>. Cada objetivo
+comprueba primero que ese intérprete tenga <code>qbank</code> 0.6 o posterior (un
+<code>python3</code> del sistema puede cargar uno antiguo); si no, se para con un
+mensaje que dice eso mismo.</li>
+<li>GNU <code>make</code> (en Linux suele estar; en macOS viene con las herramientas de
+línea de órdenes, <code>xcode-select --install</code>). Todos los objetivos,
+incluido <code>make clean</code>, necesitan Python.</li>
+<li><b>En Windows</b>, el <code>Makefile</code> usa órdenes de un shell POSIX (<code>sh</code>, <code>test</code>,
+<code>grep</code>, <code>rm</code>): lánzalo desde Git Bash o MSYS2 con su <code>make</code>, o trabaja
+dentro de WSL (y entonces Python y LaTeX se instalan también dentro de
+WSL). Un <code>make</code> de Windows que use <code>cmd.exe</code> no sirve. Escribe la ruta
+del intérprete con barras normales: <code>make lint PYTHON</code>.venv/Scripts/python.exe=.
+Si un script falla con <code>UnicodeEncodeError</code> al escribir en la terminal,
+define <code>PYTHONUTF8=1</code>. Auto Multiple Choice no existe para Windows (sí
+para Linux y, vía MacPorts, macOS): fuera de WSL, usa solo <code>make lint</code>,
+<code>make tabla</code> y <code>make moodle</code>.</li>
+<li>Para los PDF y el XML: <code>pdflatex</code> con los paquetes <code>automultiplechoice</code>
+(AMC) y <code>moodle</code> (en TeX Live: <code>tlmgr install moodle</code>, con <code>sudo</code> en
+BasicTeX/MacTeX; MiKTeX instala los paquetes por su cuenta la primera vez
+que hacen falta; AMC se instala con el programa
+<a href="https://www.auto-multiple-choice.net/">Auto Multiple Choice</a>). El preámbulo carga además <code>babel</code> en español.
+Los <code>.tex</code> de Moodle compilan también con <code>xelatex</code> (<code>LATEX_MOODLE</code>
+en el <code>Makefile</code>); con <code>pdflatex</code>, <code>scripts/fix_moodle_xml.py</code> corrige
+después la declaración de codificación del XML.
+Sin LaTeX puedes igualmente escribir preguntas y pasar <code>make lint</code> y
+<code>make tabla</code>; <code>make</code> a secas (= <code>make all</code>) lanza los tres exportadores y
+sí necesita LaTeX.</li>
+</ul>
+
+<p>
+Todos los comandos se lanzan <b>desde esta carpeta</b> (la que contiene el
+<code>Makefile</code>).
+</p>
+</div>
+</div>
+<div id="outline-container-org97fafda" class="outline-2">
+<h2 id="org97fafda"><span class="section-number-2">3.</span> Flujo de trabajo</h2>
+<div class="outline-text-2" id="text-3">
+<ol class="org-ol">
+<li><b>Escribe la pregunta.</b> Dos caminos equivalentes:
+<ul class="org-ul">
+<li>En Python: copia <code>nueva_pregunta.py</code> con otro nombre en esta misma
+carpeta, edita <code>NOMBRE</code>, <code>SETUP</code> y <code>PREGUNTA</code>, ejecútalo
+(<code>python mi_pregunta.py</code>, con el mismo intérprete que tenga <code>qbank</code>:
+el entorno activado o la ruta completa, igual que <code>PYTHON</code>) hasta que
+lo que imprime y el lint te convenzan, y guarda con <code>--guardar</code>: deja
+el JSON en <code>preguntas/</code>.</li>
+<li>Directamente en JSON, copiando una de las preguntas de ejemplo de
+<code>preguntas/</code> (los campos, más abajo).</li>
+</ul></li>
+<li><b>Compruébala:</b> <code>make lint</code> (o <code>make lint LECCION=3</code> para una sola lección).
+Un <code>ERROR</code> significa que la pregunta está rota (p. ej. una variante con
+todas las opciones correctas); un <code>AVISO</code> hay que leerlo y decidir; un
+<code>INFO</code> es información. <code>make tabla PREGUNTA=L-01-Nombre</code> (con o sin
+<code>.json</code>) añade la tabla de mundos: el valor de cada cuestión en cada combinación de supuestos
+(con <code>setup</code> aleatorio usa un solo sorteo, así que si los supuestos
+llevan <code>precond</code> sobre los números solo verás los mundos que ese sorteo
+admite; la vista completa es la de <code>make amc</code>).</li>
+<li><b>Revísala en PDF:</b> <code>make amc</code> genera <code>build/amc/&lt;pregunta&gt;.pdf</code>, la vista
+del profesor (cómo leerla, más abajo). Es lo que conviene repasar
+entero antes de dar una pregunta por buena.</li>
+<li><b>Exporta:</b>
+<ul class="org-ul">
+<li><code>make amc-student</code> → <code>build/amc-student/&lt;pregunta&gt;.pdf</code> con todas las
+variantes de la pregunta tal como las verá el alumno. Es el <i>modo
+catálogo</i> de AMC: las casillas correctas salen rellenas y la cabecera
+dice «Catálogo provisional» (también en la vista profe de <code>make amc</code>);
+en el examen real salen vacías. Para usar
+las preguntas en un examen AMC: copia <code>build/amc-student/&lt;pregunta&gt;.tex</code>
+(y <code>_catalogo.tex</code>, que es un <code>\input</code> por cada pregunta de
+<code>preguntas/</code>, también las cinco de ejemplo si no las has borrado) junto al <code>.tex</code> del
+examen, haz <code>\input{_catalogo}</code> (o <code>\input{&lt;pregunta&gt;}</code>) en el
+preámbulo y, dentro de <code>\onecopy</code>, pon <code>\insertgroup[1]{&lt;pregunta&gt;}</code>
+donde deba ir cada pregunta: el <code>[1]</code> es imprescindible (sin él AMC
+inserta <i>todas</i> las variantes) y conviene <code>\shufflegroup{&lt;pregunta&gt;}</code>
+antes para que cada copia reciba una variante distinta.</li>
+<li><code>make moodle</code> → <code>build/moodle/&lt;pregunta&gt;-moodle.xml</code> (y un PDF de
+revisión con las mismas variantes y sus explicaciones) por pregunta, y
+<code>build/moodle/_banco.xml</code> con todas (incluidas las cinco de ejemplo,
+si siguen en <code>preguntas/</code>). En Moodle: <i>Banco de preguntas →
+Importar → Formato Moodle XML</i>; cada pregunta llega como una categoría
+con todas sus variantes, lista para una «pregunta aleatoria» del
+cuestionario. Cada variante es una pregunta <i>cloze</i> con un bloque de
+casillas por parte; el exportador da a cada bloque un peso igual al
+número de opciones que ve el alumno menos uno (3 puntos para tres
+huecos más la opción por defecto), y Moodle lo puntúa como una opción
+múltiple con varias respuestas (las correctas marcadas suman, las
+incorrectas marcadas restan, sin bajar de cero). La nota que fijes a la
+pregunta en el cuestionario reescala la suma de sus bloques. Si al
+compilar aparece «N «&lt;» escapados dentro de bloques cloze», es un
+arreglo automático del XML que Moodle necesita, no un error. Los XML
+se entregan en UTF-8. El <code>&lt;penalty&gt;0.10&lt;/penalty&gt;</code> de cada pregunta lo
+pone el paquete <code>moodle</code>: es la penalización por reintento, que Moodle
+solo aplica en los comportamientos con varios intentos (interactivo,
+adaptativo).</li>
+</ul></li>
+</ol>
+
+<p>
+<code>make</code> solo recompila lo que ha cambiado; <code>make clean</code> borra <code>build/</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-orga57d63e" class="outline-2">
+<h2 id="orga57d63e"><span class="section-number-2">4.</span> Cómo leer el PDF de <code>make amc</code> (vista profe)</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+La vista profe no lista las variantes del alumno: tiene <b>una entrada por
+mundo</b> (cada combinación de <code>Supuesto</code> sorteados), que muestra <b>todas</b> las
+cuestiones de cada hueco (no solo la que le tocaría al alumno), en el orden
+de los huecos y con la casilla marcada en las correctas, y cada explicación
+(<code>exp</code>) en cursiva tras una raya junto a su cuestión. Las cuestiones
+rechazadas por su precondición se listan al final en «Exclusiones», con la
+condición que no se cumplió. Sin <code>setup</code>, las entradas se etiquetan
+<code>&lt;pregunta&gt;-N</code> (<code>N</code> numera los mundos; en <code>make amc-student</code> el mismo
+sufijo numera variantes, que son otra cosa) y <code>make amc</code> dice cuántos
+mundos hay. Con <code>setup</code> aleatorio no se imprimen todas las instancias: el
+script explora <code>config.N_SORTEOS_PROFE</code> sorteos y guarda un <i>caso</i> por cada
+combinación distinta de enunciado (sin contar los números) y patrón de
+marcas, hasta <code>config.MAX_CASOS_PROFE</code> casos, etiquetados <code>mundoM-casoK</code>
+(<code>M</code> numera los enunciados distintos, <code>K</code> los patrones de marcas dentro de
+cada uno), y <code>make amc</code> dice cuántos mundos y casos salen. Así ves cada
+rama de la pregunta una vez. Con <code>setup</code>, por tanto, aquí «mundo» cuenta
+también los textos sorteados distintos (una pregunta sin <code>Supuesto</code> que
+sortea cuatro tratados da cuatro «mundos»).
+</p>
+
+<p>
+La vista profe <b>no incluye la opción por defecto</b>: su valor depende de qué
+cuestión le toque al alumno en cada hueco. Para comprobarla, mira las
+variantes de <code>make amc-student</code> en las que todas las opciones reales son
+falsas: allí sale marcada.
+</p>
+</div>
+</div>
+<div id="outline-container-org486b284" class="outline-2">
+<h2 id="org486b284"><span class="section-number-2">5.</span> La mecánica en tres frases (lo que más confunde al empezar)</h2>
+<div class="outline-text-2" id="text-5">
+<ul class="org-ul">
+<li>Una <b>lista</b> de <code>Cuestion</code> no son «las opciones que se muestran juntas»: en
+cada variante se sortea <b>una</b> de la lista. El alumno ve tantas opciones
+como <b>elementos-Cuestion consecutivos</b> haya (sueltos o listas), más la
+opción por defecto si <code>export.last_choice</code> es <code>true</code>.</li>
+<li>Una <b>lista</b> de <code>Supuesto</code> son mundos alternativos: se sortea uno y su
+fórmula pasa a ser hipótesis; la <code>semantica</code> de cada <code>Cuestion</code> se evalúa
+contra esas hipótesis. Un <code>Supuesto</code> suelto con <code>enunciado: ""</code> es un
+axioma (añade su fórmula sin texto).</li>
+<li>Patrón recomendado: tres elementos-Cuestion consecutivos +
+<code>"export": {"last_choice": true}</code>. Así siempre hay cuatro opciones y al
+menos una correcta y una incorrecta, sea cual sea la combinación.</li>
+</ul>
+
+<p>
+Las cinco preguntas de <code>preguntas/</code> ilustran, en este orden: mundos y
+axioma (<code>L-01-ParidadSumaProducto</code>), <code>setup</code> con <code>seed</code> e <code>instances</code>
+(<code>L-01-FuncionMonotona</code>), dos partes con <code>precond</code> (<code>L-02-MatrizInvertible</code>),
+semántica <code>lambda</code> sobre los datos con pareja verdadera/falsa
+(<code>L-02-ComparacionNumerica</code>) y una pregunta <b>en prosa</b>, sin fórmulas, con
+mundos de texto y un <code>setup</code> que sortea países y décadas
+(<code>L-03-PoliticaArancelaria</code>). <code>GuiaDiseno.org</code> (en el repositorio de qbank)
+desarrolla todo esto.
+</p>
+</div>
+</div>
+<div id="outline-container-org166bca7" class="outline-2">
+<h2 id="org166bca7"><span class="section-number-2">6.</span> Caracteres y símbolos en los textos</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+Los textos son LaTeX. En español puedes teclear tal cual <code>á é í ó ú ñ ¿ ¡</code>
+y las comillas tipográficas <code>“ ”</code>. Tres cosas rompen la exportación y
+<code>lint</code> las señala: el <code>%</code> sin barra como <code>ERROR</code> (<code>make</code> se para) y las
+otras dos como <code>AVISO</code> (<code>make</code> sigue, pero el PDF de Moodle falla o sale
+mal: corrígelas igualmente):
+</p>
+
+<ul class="org-ul">
+<li>El símbolo <code>%</code> en LaTeX empieza un comentario: escrito tal cual, se
+pierde el resto de la línea y el PDF sale vacío o roto. Escribe siempre
+<code>\%</code> («un 25 \% del valor»), y fuera de los dólares si hay fórmula
+(<code>al $5$\,\%</code>, no <code>$5\%$</code>). En Python, dentro de una cadena cruda
+(<code>r"un 25 \% del valor"</code>) o como <code>\\%</code>.</li>
+<li>Las comillas angulares <code>«»</code> no existen en la codificación que usa el
+paquete <code>moodle</code> (<code>make moodle</code> da «Command \guillemetleft unavailable»), y las rectas <code>"…"</code> salen como <code>”…”</code>: escribe
+<code>``así''</code> (dos acentos graves para abrir, dos apóstrofos para cerrar).</li>
+<li>El símbolo de grado <code>°</code>: escribe <code>$180^\circ$</code>.</li>
+</ul>
+
+<p>
+Si <code>make amc</code> o <code>make moodle</code> dan «ERROR en &lt;pregunta&gt;», el motivo está en
+el <code>.log</code> que indican (busca la primera línea que empieza por <code>!</code>).
+</p>
+
+<p>
+<b>Figuras.</b> El enunciado admite <code>\includegraphics{fig.pdf}</code> (los documentos
+AMC cargan <code>graphicx</code>; la ruta es relativa a <code>build/amc/</code>). Para Moodle el
+paquete <code>moodle</code> necesita un PNG y compilar con <code>pdflatex -shell-escape</code>,
+cosa que estos scripts no hacen: la FAQ del Manual explica cómo adaptarlos.
+</p>
+</div>
+</div>
+<div id="outline-container-org781939e" class="outline-2">
+<h2 id="org781939e"><span class="section-number-2">7.</span> Campos de una pregunta</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+Nivel superior del JSON (o argumentos de <code>ProblemaTipo</code> en Python):
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<tbody>
+<tr>
+<td class="org-left"><code>nombre</code></td>
+<td class="org-left">Igual que el nombre del fichero sin <code>.json</code>; sin <code>:</code> ni espacios.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>componentes</code></td>
+<td class="org-left">La lista plana de textos, <code>Supuesto</code> y <code>Cuestion</code> (sueltos o en listas de alternativas).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>setup</code></td>
+<td class="org-left">Código Python (cadena) que se ejecuta antes de cada variante, o <code>null</code>. Usa <code>np.random</code>, no <code>random</code>: <code>seed</code> siembra los dos, pero la vista profe (<code>make amc</code>, <code>nueva_pregunta.py</code>) solo siembra <code>numpy</code> en cada sorteo.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>seed</code></td>
+<td class="org-left">Entero, solo si <code>setup</code> sortea valores: hace reproducible la pregunta.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>export</code></td>
+<td class="org-left"><code>{"last_choice": true, "cols": 2, "instances": N}</code>; ver abajo.</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+<code>Supuesto</code> y <code>Cuestion</code> (en JSON, objetos con <code>"tipo"</code>; en Python, las clases
+del mismo nombre):
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<tbody>
+<tr>
+<td class="org-left"><code>enunciado</code></td>
+<td class="org-left">Texto LaTeX; admite <code>@{variable}</code> para interpolar valores del <code>setup</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>semantica</code></td>
+<td class="org-left">Fórmula <code>calcprop</code> como cadena: <code>"v('A')"</code>, <code>"alguno(v('A'), v('B'))"</code>, <code>"True"</code>, <code>"False"</code>, o <code>"lambda ns: ns['x'] &gt; 0"</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>precond</code></td>
+<td class="org-left">Condición para que el componente pueda aparecer; mismo formato. Por defecto <code>"True"</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>exp</code></td>
+<td class="org-left">Solo <code>Cuestion</code>: explicación que Moodle muestra tras responder; admite <code>@{variable}</code>. Opcional.</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Campo <code>export</code>:
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<tbody>
+<tr>
+<td class="org-left"><code>last_choice</code></td>
+<td class="org-left">Añade la opción por defecto («Ninguna de las anteriores» / «Las demás opciones son falsas»), correcta solo si las demás son falsas.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>cols</code></td>
+<td class="org-left">Columnas en que se disponen las opciones en AMC.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>instances</code></td>
+<td class="org-left">Solo con <code>setup</code> aleatorio: cuántas instancias (recorridos con números distintos) se generan. Objetivo: ≥ 60 variantes (<code>lint</code> lo calcula); con pocos valores posibles se repiten, mira <code>make amc-student</code>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-org3d2422e" class="outline-2">
+<h2 id="org3d2422e"><span class="section-number-2">8.</span> Más documentación</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+En el repositorio de <a href="https://github.com/mbujosab/calcprop-qbank">qbank</a>, en este orden: <code>Tutorial.ipynb</code> (ejemplos
+progresivos), <code>GuiaDiseno.org</code> (cómo diseñar buenas preguntas) y <code>Manual.org</code>
+(referencia completa de la API y del formato JSON); la Guía y el Manual
+están también en PDF (<code>GuiaDiseno.pdf</code>, <code>Manual.pdf</code>).
+</p>
+</div>
+</div>
+</div>
+</body>
+</html>

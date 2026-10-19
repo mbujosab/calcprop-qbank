@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2026-10-19 lun 23:45 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>qbank — generador de bancos de preguntas de opción múltiple</title>
+<meta name="author" content="Marcos Bujosa" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div id="content" class="content">
+<header>
+<h1 class="title">qbank — generador de bancos de preguntas de opción múltiple</h1>
+</header><nav id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org0ab33ff">Instalación</a></li>
+<li><a href="#org6f71dac">Crear un banco de preguntas</a></li>
+<li><a href="#org1aaffd8">Uso rápido</a></li>
+<li><a href="#org0fdad06">Características</a>
+<ul>
+<li><a href="#orga8b3a4a">Generación combinatoria de variantes</a></li>
+<li><a href="#orgd68ead1">Preguntas multi-parte</a></li>
+<li><a href="#org039494c">Preguntas paramétricas con <code>setup</code></a></li>
+<li><a href="#org206f17f">Persistencia en formato JSON</a></li>
+<li><a href="#org05b9ac8">Editor visual en Jupyter</a></li>
+<li><a href="#orgb715141">Exportación a AMC y Moodle</a></li>
+<li><a href="#org8191a81">Exportación a código Python editable</a></li>
+<li><a href="#orgfb06cda">Comprobación automática de preguntas (<code>lint</code>)</a></li>
+</ul>
+</li>
+<li><a href="#org2d48b03">Documentación</a></li>
+<li><a href="#org07f9edf">Tests</a></li>
+<li><a href="#org9484c01">Autoría y licencia</a></li>
+</ul>
+</div>
+</nav>
+
+<figure id="org41feca7">
+<a href="https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt="badge_logo.svg" class="org-svg"></a>
+
+</figure>
+
+<p>
+Genera variantes de preguntas de opción múltiple cuyas respuestas correctas se
+determinan automáticamente mediante cálculo proposicional. Combina supuestos
+(hipótesis) y cuestiones (opciones de respuesta) por combinatoria, calcula la
+veracidad o falsedad de cada cuestión según las hipótesis activas y exporta el resultado a LaTeX (AMC) o Moodle
+(XML vía LaTeX).
+</p>
+
+<p>
+Construido sobre <a href="https://github.com/mbujosab/calcprop"><code>calcprop</code></a>.
+</p>
+<div id="outline-container-org0ab33ff" class="outline-2">
+<h2 id="org0ab33ff">Instalación</h2>
+<div class="outline-text-2" id="text-org0ab33ff">
+<p>
+Conviene instalar dentro de un entorno virtual (en Debian, Ubuntu o con el
+Python de Homebrew, <code>pip</code> fuera de uno da <code>externally-managed-environment</code>):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install calcprop-qbank       # instala también calcprop
+</pre>
+</div>
+
+<p>
+El Manual (sección «Instalación paso a paso») lo explica despacio, también
+para Windows.
+</p>
+
+<p>
+Con soporte para el editor visual en Jupyter:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">pip install "calcprop-qbank[jupyter]"
+</pre>
+</div>
+
+<p>
+<code>qbank-init</code> y <code>lint</code> llegan con la 0.6.0: si <code>pip</code> te deja una versión
+anterior (<code>python -c "import qbank; print(qbank.__version__)"</code> falla o da
+menos de 0.6), actualiza con <code>pip install -U calcprop-qbank</code>. La versión en
+desarrollo se instala desde el repositorio:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">pip install "calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-qbank"
+</pre>
+</div>
+
+<p>
+Esa orden necesita <code>git</code> instalado. El paquete solo instala el código. El
+tutorial (<code>Tutorial.ipynb</code>), la guía de diseño (<code>GuiaDiseno.org</code> y su versión
+impresa <code>GuiaDiseno.pdf</code>), el manual (<code>Manual.org</code>, <code>Manual.pdf</code>) y los
+ejemplos de <code>ejemplosManual/</code> están
+en el <a href="https://github.com/mbujosab/calcprop-qbank">repositorio</a>: clónalo con
+<code>git clone https://github.com/mbujosab/calcprop-qbank</code> o abre el tutorial sin
+instalar nada con la insignia de MyBinder de arriba.
+</p>
+</div>
+</div>
+<div id="outline-container-org6f71dac" class="outline-2">
+<h2 id="org6f71dac">Crear un banco de preguntas</h2>
+<div class="outline-text-2" id="text-org6f71dac">
+<p>
+La forma recomendada de empezar es la plantilla de proyecto que se distribuye
+con el paquete (<code>qbank-init</code> necesita la versión 0.6 o posterior):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">qbank-init mi-banco
+cd mi-banco
+make lint          # comprueba las preguntas de ejemplo (sin LaTeX)
+make amc           # PDF de revisión (vista profe) en build/amc/
+</pre>
+</div>
+
+<p>
+El proyecto contiene cinco preguntas de ejemplo en <code>preguntas/</code>, los scripts
+que las exportan a AMC y Moodle, un <code>Makefile</code> (<code>lint</code>, <code>tabla</code>, <code>amc</code>,
+<code>amc-student</code>, <code>moodle</code>, <code>clean</code>, filtro <code>LECCION=N</code>) y <code>nueva_pregunta.py</code>, un
+guion para escribir una pregunta en Python y guardarla como JSON. Su
+<code>README.org</code> explica el flujo.
+</p>
+
+<p>
+<code>make</code> usa el intérprete <code>python3</code> del sistema. Si instalaste qbank en un
+entorno virtual, actívalo antes (<code>source .venv/bin/activate</code>) o indícalo con
+<code>PYTHON</code>: <code>make lint PYTHON=/ruta/al/.venv/bin/python</code>. Si ese intérprete no
+tiene qbank 0.6 o posterior, <code>make</code> se para y lo dice.
+</p>
+</div>
+</div>
+<div id="outline-container-org1aaffd8" class="outline-2">
+<h2 id="org1aaffd8">Uso rápido</h2>
+<div class="outline-text-2" id="text-org1aaffd8">
+<div class="org-src-container">
+<pre class="src src-python">from qbank import *
+
+p = ProblemaTipo(
+    [
+        "Sea $f$ una función ",
+        [   # mundos alternativos: en cada variante se sortea uno
+            Supuesto("estrictamente creciente", v('crec')),
+            Supuesto("estrictamente decreciente", v('decr')),
+        ],
+        " y sean $a &lt; b$. Entonces:",
+        [   # hueco 1: el alumno ve una de estas dos
+            Cuestion("$f(a) &lt; f(b)$", v('crec')),
+            Cuestion("$f(a) &gt; f(b)$", v('decr')),
+        ],
+        Cuestion("$f(a) = f(b)$", False),              # hueco 2: siempre
+        [   # hueco 3
+            Cuestion("$f(b) - f(a) &gt; 0$", v('crec')),
+            Cuestion("$f(b) - f(a) &lt; 0$", v('decr')),
+        ],
+    ],
+    export={"last_choice": True},   # + «Ninguna de las anteriores»
+)
+
+for etiqueta, partes in p.por_partes():
+    for enunciado, cuestiones in partes:
+        print(f"Variante {etiqueta}: {enunciado}")
+        for texto, correcto, activa, exp in cuestiones:
+            print(f"  {'✓' if correcto else '✗'} {texto}")
+</pre>
+</div>
+
+<p>
+Ocho variantes (pocas para un banco real: <code>lint</code> lo avisa), cada una con tres
+opciones más la opción por defecto («Ninguna de las anteriores», correcta solo
+si las otras tres son falsas). Una <b>lista</b> de <code>Cuestion</code> sortea una por
+variante; el alumno ve tantas opciones como elementos-Cuestion consecutivos
+haya (<code>GuiaDiseno.org</code> lo explica).
+</p>
+</div>
+</div>
+<div id="outline-container-org0fdad06" class="outline-2">
+<h2 id="org0fdad06">Características</h2>
+<div class="outline-text-2" id="text-org0fdad06">
+</div>
+<div id="outline-container-orga8b3a4a" class="outline-3">
+<h3 id="orga8b3a4a">Generación combinatoria de variantes</h3>
+<div class="outline-text-3" id="text-orga8b3a4a">
+<p>
+<code>ProblemaTipo</code> toma una lista de supuestos y cuestiones (cada uno con su semántica
+proposicional) y genera todas las combinaciones posibles. Para cada variante
+calcula automáticamente qué cuestiones son verdaderas y cuáles falsas. Las variantes
+con precondiciones insatisfechas se descartan. Las hipótesis contradictorias, en
+cambio, no se detectan (de ellas se deduce cualquier cosa y todo sale
+verdadero): se evitan con axiomas como <code>unoDe(v('A'), v('B'))</code>.
+</p>
+
+<p>
+El método <code>por_partes_profe()</code> muestra todas las cuestiones de cada hueco
+(marcando las rechazadas por su precondición en vez de descartar la variante),
+facilitando la revisión del banco.
+</p>
+</div>
+</div>
+<div id="outline-container-orgd68ead1" class="outline-3">
+<h3 id="orgd68ead1">Preguntas multi-parte</h3>
+<div class="outline-text-3" id="text-orgd68ead1">
+<p>
+La misma lista plana de componentes admite varias partes: cada vez que tras un
+bloque de cuestiones aparece texto o un <code>Supuesto</code> se abre una parte nueva. Es
+útil para preguntas AMC con múltiples apartados o para el formato cloze de
+Moodle. El método <code>por_partes()</code> devuelve, por variante, un par
+<code>(enunciado, cuestiones)</code> por parte:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">from qbank import *
+
+p = ProblemaTipo([
+    Supuesto("", unoDe(v("A"), v("B"))),    # axioma: exactamente una es verdadera
+    "Exactamente una de las proposiciones $A$ y $B$ es verdadera, y la verdadera es ",
+    [Supuesto("$A$.", v("A")),
+     Supuesto("$B$.", v("B"))],
+    " Sobre $A$:",                           # parte 1: tres huecos
+    [Cuestion("$A$ es verdadera.", v("A")), Cuestion("$A$ es falsa.", -v("A"))],
+    [Cuestion("$\\lnot A$ es verdadera.", -v("A")), Cuestion("$\\lnot A$ es falsa.", v("A"))],
+    [Cuestion("$A \\to B$ es verdadera.", v("A") &gt;&gt; v("B")),
+     Cuestion("$B \\to A$ es verdadera.", v("B") &gt;&gt; v("A"))],
+    "Sobre $B$:",                            # texto tras las cuestiones: parte 2
+    [Cuestion("$B$ es verdadera.", v("B")), Cuestion("$B$ es falsa.", -v("B"))],
+    [Cuestion("$\\lnot B$ es verdadera.", -v("B")), Cuestion("$\\lnot B$ es falsa.", v("B"))],
+    [Cuestion("$A \\land \\lnot B$ es verdadera.", v("A") &amp; -v("B")),
+     Cuestion("$\\lnot A \\land B$ es verdadera.", -v("A") &amp; v("B"))],
+], export={"last_choice": True})   # + «Ninguna de las anteriores» en cada parte
+
+for etiqueta, partes in p.por_partes():
+    for enunciado, cuestiones in partes:
+        ...
+</pre>
+</div>
+
+<p>
+Cada parte tiene tres huecos (una lista sortea una <code>Cuestion</code>, así que una
+sola lista daría una única opción) más la opción por defecto. Las negaciones
+<code>-v("A")</code> se deducen gracias al axioma <code>unoDe</code>; sin él, <code>lint</code> da ERROR
+<code>negacion</code>. Este ejemplo pasa <code>lint</code> sin avisos (128 variantes).
+</p>
+
+<p>
+(<code>ProblemaMultiParte</code> y <code>SubPregunta</code> siguen existiendo por compatibilidad,
+pero están deprecados y devuelven un <code>ProblemaTipo</code> equivalente.)
+</p>
+</div>
+</div>
+<div id="outline-container-org039494c" class="outline-3">
+<h3 id="org039494c">Preguntas paramétricas con <code>setup</code></h3>
+<div class="outline-text-3" id="text-org039494c">
+<p>
+El parámetro <code>setup</code> (código Python, como cadena) se ejecuta antes de cada
+variante; sus variables se interpolan en los textos con <code>@{variable}</code> y
+están disponibles en <code>ns</code> para semánticas y precondiciones escritas como
+<code>lambda</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">p = ProblemaTipo(
+    ["Sean $a = @{a}$ y $b = @{b}$. Entonces:",
+     [Cuestion("$a + b = @{suma}$", True),
+      Cuestion("$a + b = @{suma_falsa}$", False)],
+     [Cuestion("$a + b &gt; 10$", "lambda ns: ns['a'] + ns['b'] &gt; 10"),
+      Cuestion("$a + b &lt; 10$", "lambda ns: ns['a'] + ns['b'] &lt; 10")],
+     Cuestion("$a \\cdot b = @{producto}$", True)],
+    setup="import numpy as np\n"
+          "a, b = (int(x) for x in np.random.randint(1, 10, 2))\n"
+          "suma, suma_falsa, producto = a + b, a + b + 1, a * b",
+    seed=1, export={"last_choice": True, "instances": 15},
+)
+</pre>
+</div>
+
+<p>
+Con <code>seed</code> la pregunta es reproducible e <code>instances</code> fija cuántas instancias
+(sorteos del <code>setup</code>) se generan (aquí 4 variantes × 15 = 60, el mínimo que
+recomienda <code>lint</code> con <code>setup</code>). <code>seed</code> siembra <code>numpy.random</code> y <code>random</code>; usa
+<code>np.random</code> en el <code>setup</code>, porque los scripts de la vista profe solo siembran
+numpy.
+</p>
+</div>
+</div>
+<div id="outline-container-org206f17f" class="outline-3">
+<h3 id="org206f17f">Persistencia en formato JSON</h3>
+<div class="outline-text-3" id="text-org206f17f">
+<p>
+Guarda y carga problemas (<code>ProblemaTipo</code>, <code>ProblemaVF</code>) sin reescribir el
+código Python:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">from qbank import load_problema, save_problema
+
+p = load_problema('mi_problema.json')
+save_problema(p, 'copia.json')
+</pre>
+</div>
+
+<p>
+Para bancos de múltiples problemas: <code>load_banco</code> / <code>save_banco</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-org05b9ac8" class="outline-3">
+<h3 id="org05b9ac8">Editor visual en Jupyter</h3>
+<div class="outline-text-3" id="text-org05b9ac8">
+<p>
+<code>ProblemaTipoEditor</code> es un formulario interactivo (requiere <code>ipywidgets</code>) que
+permite construir, previsualizar y guardar problemas sin escribir código:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">from qbank import ProblemaTipoEditor
+
+editor = ProblemaTipoEditor()           # editor vacío
+editor = ProblemaTipoEditor('p.json')  # cargar desde fichero
+
+p = editor.to_problema()               # obtener el ProblemaTipo
+</pre>
+</div>
+
+<p>
+Ver <a href="https://github.com/mbujosab/calcprop-qbank/blob/main/Manual.org">Manual.org</a> si los widgets se muestran como texto en lugar del formulario.
+</p>
+</div>
+</div>
+<div id="outline-container-orgb715141" class="outline-3">
+<h3 id="orgb715141">Exportación a AMC y Moodle</h3>
+<div class="outline-text-3" id="text-orgb715141">
+</div>
+<div id="outline-container-orga5c2d84" class="outline-4">
+<h4 id="orga5c2d84">Formato AMC (LaTeX)</h4>
+<div class="outline-text-4" id="text-orga5c2d84">
+<p>
+Las funciones de exportación <b>no leen</b> el campo <code>export</code> del problema:
+pásales <code>last_choice=</code>, <code>instances=</code> y <code>cols=</code> tú mismo. Los scripts de un banco
+creado con <code>qbank-init</code> sí lo leen.
+</p>
+
+<p>
+<code>AMCblock</code> y <code>AMC_multipart</code> son funciones de bajo nivel que devuelven un bloque
+LaTeX listo para escribir al fichero. Una pregunta multi-parte necesita
+<code>AMC_multipart</code> (un único <code>questionmult</code> con un bloque de casillas por parte):
+un <code>AMCblock</code> por parte daría identificadores duplicados y la segunda parte sin
+las hipótesis.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">with open("preguntas.tex", "w") as f:
+    for etiqueta, partes in p.por_partes():
+        if len(partes) &gt; 1:
+            f.write(AMC_multipart("MiCuestionario", etiqueta, "", partes, last_choice=True))
+        else:
+            f.write(AMCblock("MiCuestionario", etiqueta, partes[0][0], partes[0][1],
+                             last_choice=True))
+</pre>
+</div>
+
+<p>
+Vista profe (todas las cuestiones de cada hueco, con marcas; usa <code>AMC_multipart</code>
+cuando hace falta):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">import os
+os.makedirs("exportaciones", exist_ok=True)
+
+n = QuizAMCProfe("MiCuestionario", "exportaciones", p, last_choice=True)
+print(f"{n} bloque(s) escritos")
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org92c18ec" class="outline-4">
+<h4 id="org92c18ec">Formato Moodle (XML vía LaTeX)</h4>
+<div class="outline-text-4" id="text-org92c18ec">
+<div class="org-src-container">
+<pre class="src src-python">import os
+os.makedirs("exportaciones", exist_ok=True)
+
+# Vista alumno
+n = QuizMoodle("MiCuestionario", "exportaciones/", p, last_choice=True)
+print(f"{n} variante(s) escritas")
+
+# Vista profe (fracciones de puntuación visibles); escribe también
+# &lt;nombre&gt;.tex, así que necesita otro nombre para no pisar la del alumno
+QuizMoodleProfe("MiCuestionarioProfe", "exportaciones/", p, last_choice=True)
+
+# Con paquete LaTeX adicional y texto de la opción por defecto personalizados
+QuizMoodle("MiCuestionario-b", "exportaciones/", p, last_choice=True,
+           aux_latex=r"\usepackage{nacal-moodle}",
+           last_choice_text="Ninguna de las otras opciones es correcta")
+</pre>
+</div>
+
+<p>
+<code>QuizMoodle</code> y <code>QuizMoodleProfe</code> devuelven un <code>int</code> con el número de variantes
+escritas, útil para logging en scripts de build.
+</p>
+
+<p>
+Para preguntas <code>ProblemaVF</code>: <code>QuizVFMoodle</code>.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org8191a81" class="outline-3">
+<h3 id="org8191a81">Exportación a código Python editable</h3>
+<div class="outline-text-3" id="text-org8191a81">
+<p>
+<code>save_problema_py</code> genera un fichero <code>.py</code> con la definición del problema como
+listas editables:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">from qbank import save_problema_py
+
+save_problema_py(p, 'mi_problema.py')
+</pre>
+</div>
+
+<p>
+El fichero resultante puede abrirse con cualquier editor, modificarse y
+ejecutarse directamente con Python.
+</p>
+</div>
+</div>
+<div id="outline-container-orgfb06cda" class="outline-3">
+<h3 id="orgfb06cda">Comprobación automática de preguntas (<code>lint</code>)</h3>
+<div class="outline-text-3" id="text-orgfb06cda">
+<p>
+<code>lint</code> revisa un problema (objeto, dict o ruta a JSON) sin modificar nada ni
+compilar LaTeX y devuelve una lista de <code>Aviso(nivel, codigo, mensaje, donde)</code>
+con nivel <code>ERROR</code>, <code>AVISO</code> o <code>INFO</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">from qbank import lint, tabla_mundos
+
+for a in lint("preguntas/L-01-FuncionMonotona.json"):
+    print(a)
+print(tabla_mundos("preguntas/L-01-FuncionMonotona.json"))   # Cuestion × mundo
+</pre>
+</div>
+
+<p>
+Desde la línea de órdenes (código de salida 1 si hay algún <code>ERROR</code>):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet]
+qbank-lint preguntas/*.json --quiet      # equivalente; omite INFO y ficheros OK
+</pre>
+</div>
+
+<p>
+Comprueba, entre otras cosas, la garantía de mezcla (<code>1 &lt;</code> correctas &lt;=
+opciones-1= en toda variante, contando la opción por defecto de <code>last_choice</code>),
+el número de variantes, negaciones <code>-v('X')</code> que nunca podrían deducirse por
+falta de un <code>unoDe(...)</code>, interpolaciones <code>@{var}</code> sin resolver, etiquetas
+huérfanas, la estructura del JSON y caracteres que rompen la exportación a
+Moodle. La tabla de mundos muestra el valor de cada <code>Cuestion</code> en cada
+combinación de <code>Supuesto</code> (<code>V</code>, <code>F</code> o <code>-</code> si la rechaza su <code>precond</code>), para
+localizar distractores constantes.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org2d48b03" class="outline-2">
+<h2 id="org2d48b03">Documentación</h2>
+<div class="outline-text-2" id="text-org2d48b03">
+<p>
+Todo se puede leer sin clonar el repositorio en
+<a href="https://mbujosab.github.io/calcprop-qbank/">mbujosab.github.io/calcprop-qbank</a> (HTML y PDF). En este orden:
+</p>
+
+<ul class="org-ul">
+<li><a href="https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb"><code>Tutorial.ipynb</code></a> — ejemplos progresivos ejecutables (también en MyBinder);
+<a href="https://github.com/mbujosab/calcprop-qbank/blob/main/ejemplosManual/Demo.ipynb"><code>ejemplosManual/Demo.ipynb</code></a> recorre la API Python.</li>
+<li><a href="https://github.com/mbujosab/calcprop-qbank/blob/main/GuiaDiseno.org"><code>GuiaDiseno.org</code></a> (impresa en <a href="https://github.com/mbujosab/calcprop-qbank/blob/main/GuiaDiseno.pdf"><code>GuiaDiseno.pdf</code></a>) — cómo diseñar buenas
+preguntas: la mecánica de listas y mundos, el patrón de tres huecos + opción por defecto, <code>setup</code>, redacción
+de cuestiones y explicaciones, trampas de LaTeX/Moodle y checklist.</li>
+<li><a href="https://github.com/mbujosab/calcprop-qbank/blob/main/Manual.org"><code>Manual.org</code></a> (<a href="https://github.com/mbujosab/calcprop-qbank/blob/main/Manual.pdf"><code>Manual.pdf</code></a>) — referencia completa de la API y del formato JSON.</li>
+<li><a href="https://github.com/mbujosab/calcprop-qbank/blob/main/CalcPropQuiz.org"><code>CalcPropQuiz.org</code></a> y <a href="https://github.com/mbujosab/calcprop-qbank/blob/main/CalcPropExport.org"><code>CalcPropExport.org</code></a> — código fuente comentado
+(programación literate) de los módulos <code>_quiz</code>, <code>_json</code>, <code>_widgets</code>, <code>_lint</code>,
+<code>_export</code> y <code>_plantilla</code>. Son la fuente de <code>src/qbank/</code>: los <code>.py</code> se generan con
+<code>org-babel-tangle</code> o, sin Emacs, con <code>python tools/orgtangle.py write</code>;
+<code>tests/test_literate.py</code> comprueba que coinciden.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org07f9edf" class="outline-2">
+<h2 id="org07f9edf">Tests</h2>
+<div class="outline-text-2" id="text-org07f9edf">
+<div class="org-src-container">
+<pre class="src src-bash">pytest
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org9484c01" class="outline-2">
+<h2 id="org9484c01">Autoría y licencia</h2>
+<div class="outline-text-2" id="text-org9484c01">
+<p>
+Copyright (C) 2020-2026  Andrés Bujosa, Marcos Bujosa (<code>_quiz</code>) <br>
+Copyright (C) 2020-2026  Marcos Bujosa (<code>_export</code>, <code>_json</code>, <code>_widgets</code>)
+</p>
+
+<p>
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+</p>
+
+<p>
+See the <a href="https://github.com/mbujosab/calcprop-qbank/blob/main/LICENSE">LICENSE</a> file for details.
+</p>
+</div>
+</div>
+</div>
+</body>
+</html>

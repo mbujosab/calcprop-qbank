@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<!-- 2026-10-19 lun 23:45 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Guía de diseño de preguntas con =qbank=</title>
+<meta name="author" content="Marcos Bujosa" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div id="content" class="content">
+<header>
+<h1 class="title">Guía de diseño de preguntas con <code>qbank</code></h1>
+</header><nav id="table-of-contents" role="doc-toc">
+<h2>&Iacute;ndice</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgc3e824b">1. La mecánica en una página</a>
+<ul>
+<li><a href="#org18138e1">1.1. Las tres piezas</a></li>
+<li><a href="#org97d9514">1.2. Vocabulario</a></li>
+<li><a href="#org9d9956e">1.3. Listas = sorteo; elementos consecutivos = opciones</a></li>
+<li><a href="#org383e314">1.4. Mundos, axiomas y la regla de la negación</a></li>
+<li><a href="#orgf67757b">1.5. Partes</a></li>
+<li><a href="#orgcc23817">1.6. Cómo se pegan los fragmentos del enunciado</a></li>
+<li><a href="#org13f5c8a">1.7. Un ejemplo completo comentado</a></li>
+</ul>
+</li>
+<li><a href="#org19ab601">2. El patrón recomendado: tres huecos y la opción por defecto</a>
+<ul>
+<li><a href="#org23e6345">2.1. Cuatro opciones con mezcla garantizada</a></li>
+<li><a href="#org7b50a69">2.2. Un hueco con una alternativa por mundo</a></li>
+<li><a href="#orgdf86877">2.3. Cuántas variantes</a></li>
+</ul>
+</li>
+<li><a href="#org7b7bc49">3. Preguntas con números: <code>setup</code>, <code>seed</code> e <code>instances</code></a>
+<ul>
+<li><a href="#orgaf4f8c6">3.1. <code>setup</code></a></li>
+<li><a href="#org52a1467">3.2. <code>seed</code></a></li>
+<li><a href="#org60957fe">3.3. <code>instances</code></a></li>
+<li><a href="#org67276ea">3.4. Sortear textos, no solo números</a></li>
+<li><a href="#orga4cb4e9">3.5. No afirmes nada falso sobre los números: <code>precond</code> con lambda</a></li>
+<li><a href="#org7cb1f21">3.6. Cuando la verdad depende de los números: <code>semantica</code> con lambda</a></li>
+<li><a href="#orgbf002c7">3.7. Casos especiales solo a veces</a></li>
+<li><a href="#org1e323b1">3.8. Dos trampas de los <code>setup</code> aleatorios</a></li>
+</ul>
+</li>
+<li><a href="#org7e3f416">4. Qué estilo de pregunta según el contenido</a></li>
+<li><a href="#orgaefea11">5. Redactar cuestiones</a>
+<ul>
+<li><a href="#orgdfeb9ef">5.1. Cada cuestión se sostiene sola</a></li>
+<li><a href="#org6e079cc">5.2. Símbolos definidos</a></li>
+<li><a href="#org5425c58">5.3. El enunciado desnudo; la justificación, en <code>exp</code></a></li>
+<li><a href="#orgfcd35fe">5.4. Gemelas: cada verdadera, con su falsa parecida</a></li>
+<li><a href="#org4f89856">5.5. Afirmaciones que no funcionan como opción</a></li>
+<li><a href="#org451622b">5.6. Textos cortos</a></li>
+</ul>
+</li>
+<li><a href="#orgb56f9e3">6. Escribir <code>exp</code></a></li>
+<li><a href="#orgf2b3ea1">7. LaTeX y Moodle: trampas conocidas</a></li>
+<li><a href="#orga6e0c2c">8. Proceso de trabajo</a>
+<ul>
+<li><a href="#org3c046fe">8.1. Checklist</a></li>
+</ul>
+</li>
+<li><a href="#org3a5d921">9. El mismo ejemplo en JSON</a></li>
+</ul>
+</div>
+</nav>
+<p>
+Esta guía explica <b>cómo diseñar buenas preguntas</b> con <code>qbank</code>: qué hace el
+motor con lo que escribes, qué patrón de pregunta conviene adoptar y qué
+errores de redacción se repiten una y otra vez. No es la referencia de la
+API (eso es el <i>Manual</i>, <code>Manual.org</code> o <code>Manual.pdf</code>) ni un recorrido por
+ejemplos (el cuaderno <code>Tutorial.ipynb</code>): es
+lo que hay que tener en la cabeza antes de escribir una pregunta y lo que
+hay que comprobar después.
+</p>
+
+<p>
+Supone que tienes un proyecto creado con <code>qbank-init</code> (el <code>README.org</code> que
+<code>qbank-init</code> deja en el proyecto explica el flujo de trabajo) y que sabes lanzar <code>make lint</code> y <code>make amc</code>
+desde la carpeta del proyecto. Los ejemplos se escriben como
+listas de Python, que se leen mejor; el JSON equivalente aparece una vez
+completo en la sección <a href="#org3a5d921">9</a> («El mismo ejemplo en JSON»). Todo lo que se dice vale
+igual para los dos formatos.
+</p>
+<div id="outline-container-orgc3e824b" class="outline-2">
+<h2 id="orgc3e824b"><span class="section-number-2">1.</span> La mecánica en una página</h2>
+<div class="outline-text-2" id="text-1">
+</div>
+<div id="outline-container-org18138e1" class="outline-3">
+<h3 id="org18138e1"><span class="section-number-3">1.1.</span> Las tres piezas</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+Una pregunta (<code>ProblemaTipo</code>) es una lista plana de componentes de tres tipos:
+</p>
+
+<ul class="org-ul">
+<li><b>Texto</b> (una cadena): fragmento fijo del enunciado.</li>
+<li><b>Supuesto</b>: fragmento de enunciado que, además de texto, aporta una
+<b>hipótesis lógica</b> (<code>semantica</code>) al resto de la variante.</li>
+<li><b>Cuestion</b>: una afirmación que se ofrece como opción de respuesta. Se
+marca <b>correcta</b> si su <code>semantica</code> es consecuencia lógica de las
+hipótesis acumuladas en esa variante; si no, incorrecta.</li>
+</ul>
+
+<p>
+Las dos últimas tienen un campo <code>precond</code>: la condición que deben cumplir
+las hipótesis ya aceptadas (o los números del <code>setup</code>) para que ese
+componente pueda aparecer. Si no se cumple, <b>toda la variante se
+descarta</b>: no se muestra al alumno. <code>precond</code> no convierte una opción en
+incorrecta; la quita de en medio.
+</p>
+
+<p>
+Las fórmulas se escriben con <code>calcprop</code>: <code>v('A')</code> es una proposición
+atómica cuyo nombre eliges tú y solo tiene que ser consistente dentro de la
+misma pregunta; <code>-</code>, <code>&amp;</code>, <code>|</code>, <code>&gt;&gt;</code> y <code>**</code> son negación, conjunción,
+disyunción, implicación y equivalencia; <code>unoDe(A, B, C)</code> («exactamente
+una») y <code>alguno(A, B, C)</code> («al menos una») evitan anidar operadores. <code>True</code>
+y <code>False</code> valen como fórmulas para afirmaciones siempre ciertas o siempre
+falsas sea cual sea el mundo.
+</p>
+
+<p>
+La pregunta que el motor se hace para cada <code>Cuestion</code> es «¿se deduce
+esto de las hipótesis?», no «¿es verdad en el mundo real?». Esa
+distinción está detrás de casi todo lo que sigue.
+</p>
+</div>
+</div>
+<div id="outline-container-org97d9514" class="outline-3">
+<h3 id="org97d9514"><span class="section-number-3">1.2.</span> Vocabulario</h3>
+<div class="outline-text-3" id="text-1-2">
+<dl class="org-dl">
+<dt><b>Hipótesis</b></dt><dd>lo que la variante da por supuesto: las fórmulas de los
+<code>Supuesto</code> activos. <b>Consecuencia lógica</b> de las hipótesis es lo que se
+sigue necesariamente de ellas (si las hipótesis son ciertas, eso es
+cierto). Es lo único que el motor comprueba.</dd>
+<dt><b>Etiqueta</b></dt><dd>cada <code>v('nombre')</code>: un nombre que tú eliges para una
+afirmación («el país es proteccionista», «la función crece»). Solo tiene
+que ser consistente dentro de la misma pregunta.</dd>
+<dt><b>Axioma</b></dt><dd>un <code>Supuesto</code> sin texto que añade una hipótesis en todas las
+variantes; casi siempre, que las etiquetas de los mundos son excluyentes
+(<code>unoDe</code>).</dd>
+<dt><b>Variante</b></dt><dd>cada una de las versiones concretas de la pregunta que ve
+un alumno: un enunciado y sus opciones, con las marcas de correcta o
+incorrecta ya calculadas.</dd>
+<dt><b>Mundo</b></dt><dd>el conjunto de hipótesis activas en una variante; viene
+determinado por qué <code>Supuesto</code> se han sorteado. Dos variantes con los
+mismos <code>Supuesto</code> viven en el mismo mundo aunque muestren opciones
+distintas.</dd>
+<dt><b>Hueco</b></dt><dd>cada posición de la pregunta que se convierte en una opción
+para el alumno: una <code>Cuestion</code> suelta, o una lista de <code>Cuestion</code> de la que
+se sortea una.</dd>
+<dt><b>Parte</b></dt><dd>cada bloque de opciones de una pregunta con varios (ver más
+abajo). La mayoría de preguntas tienen una sola.</dd>
+<dt><b>Opción por defecto</b></dt><dd>la opción «Ninguna de las anteriores» que añade
+<code>export.last_choice</code>; es correcta solo si las demás son incorrectas.</dd>
+<dt><b>Vista profe</b></dt><dd>el PDF de <code>make amc</code>: una entrada por mundo (no por
+variante) con <i>todas</i> las cuestiones de cada hueco (no solo la sorteada),
+su marca y las rechazadas por su precondición. Con <code>setup</code>, una entrada
+por <i>caso</i>: cada combinación distinta de mundo y patrón de marcas que
+aparece al explorar varios sorteos. <code>nueva_pregunta.py</code> imprime en texto
+las primeras entradas de esa vista (las rechazadas con <code>·</code>, sin su
+condición, y sin las explicaciones).</dd>
+<dt><b>Instancia</b></dt><dd>con <code>setup</code> aleatorio, cada ejecución del <code>setup</code>; con
+<code>export.instances = N</code> cada variante estructural se genera <span class="math">N</span> veces con
+números distintos.</dd>
+</dl>
+</div>
+</div>
+<div id="outline-container-org9d9956e" class="outline-3">
+<h3 id="org9d9956e"><span class="section-number-3">1.3.</span> Listas = sorteo; elementos consecutivos = opciones</h3>
+<div class="outline-text-3" id="text-1-3">
+<p>
+Cada componente de la lista plana es, o bien un valor suelto, o bien una
+<b>lista de dos o más valores del mismo tipo</b>. En cada variante:
+</p>
+
+<ul class="org-ul">
+<li>un valor suelto siempre se incluye;</li>
+<li>de una lista de <span class="math">N</span> alternativas se elige <b>una sola</b>.</li>
+</ul>
+
+<p>
+El número total de variantes es el producto de las longitudes de todas las
+listas. Y aquí está la consecuencia que rompe la intuición de casi todo el
+que empieza:
+</p>
+
+<blockquote>
+<p>
+Una lista de varias <code>Cuestion</code> <b>no</b> significa «estas <span class="math">N</span> afirmaciones se
+muestran juntas como las <span class="math">N</span> opciones de la pregunta». Significa «en cada
+variante se sorteará una de estas <span class="math">N</span>». El alumno ve tantas opciones como
+<b>elementos-Cuestion consecutivos</b> haya en la lista plana (sueltos o cada
+uno como su propia lista de alternativas), más la opción por defecto si
+<code>export.last_choice</code> está activo.
+</p>
+</blockquote>
+
+<p>
+En el esquema siguiente, <code>S1</code>, <code>S2</code>, <code>S3</code> son objetos <code>Supuesto</code> y <code>C1a</code>,
+<code>C1b</code>, <code>C2</code>, … son objetos <code>Cuestion</code>; las cadenas entre comillas son texto
+fijo:
+</p>
+
+<pre class="example" id="org10143c1">
+[ "Enunciado ",             ← cadena: texto fijo, aparece siempre
+  [ S1, S2, S3 ],           ← lista de Supuesto: 3 mundos, se sortea uno
+  " Entonces:",             ← cadena
+  [ C1a, C1b ],             ← hueco 1, lista de Cuestion: se muestra una de las dos
+  C2,                       ← hueco 2, Cuestion suelta: se muestra siempre
+  [ C3a, C3b, C3c ] ]       ← hueco 3, lista de Cuestion: se muestra una de las tres
+
+Variantes: 3 × 2 × 1 × 3 = 18.   Opciones por variante: 3 (+1 con last_choice).
+</pre>
+
+<p>
+Escribir las opciones como <b>una única lista</b> de cuatro <code>Cuestion</code> produce
+preguntas de una sola opción; escribirlas todas <b>sueltas</b> muestra siempre
+las mismas cuatro, sin variedad. <code>lint</code> avisa de las dos cosas: de la
+primera con <code>pocas-opciones</code>, de la segunda con <code>variantes</code> («solo 1
+variantes»).
+</p>
+
+<p>
+Una lista de varias <b>cadenas de texto</b> también es válida (alternativas de
+redacción sin lógica asociada), pero se usa poco.
+</p>
+</div>
+</div>
+<div id="outline-container-org383e314" class="outline-3">
+<h3 id="org383e314"><span class="section-number-3">1.4.</span> Mundos, axiomas y la regla de la negación</h3>
+<div class="outline-text-3" id="text-1-4">
+<p>
+Una lista de varios <code>Supuesto</code> consecutivos son <b>mundos alternativos</b>: en
+cada variante se activa uno, su texto entra en el enunciado y su fórmula
+en las hipótesis. Es la forma natural de las preguntas «si se cumple A,
+entonces…; si se cumple B, entonces…»: cada <code>Cuestion</code> lleva como
+<code>semantica</code> la etiqueta del mundo (o de los mundos) en que es cierta, y
+será correcta solo cuando ese sea el mundo sorteado.
+</p>
+
+<p>
+Un <code>Supuesto</code> suelto con <code>enunciado</code> vacío es un <b>axioma</b>: añade su
+fórmula sin añadir texto. Sirve para declarar relaciones entre etiquetas
+que el motor no conoce. La más habitual: que los mundos son excluyentes,
+<code>unoDe(v('A'), v('B'), v('C'))</code>.
+</p>
+
+<p>
+Sin ese axioma, el motor no puede deducir <b>negaciones</b>: de la hipótesis
+<code>v('crec')</code> no se sigue <code>-v('decr')</code>, porque nada dice que ambas no puedan
+ser ciertas a la vez. Una <code>Cuestion</code> con <code>semantica=-v('decr')</code> sería falsa
+en todos los mundos (<code>lint</code> lo marca como ERROR <code>negacion</code>). Dos salidas:
+formular en positivo (<code>semantica=v('crec')</code>) o añadir el axioma <code>unoDe</code>.
+Para una afirmación cierta en varios mundos no hace falta axioma: basta
+la disyunción de sus etiquetas (<code>semantica=v('A') | v('B')</code>).
+</p>
+</div>
+</div>
+<div id="outline-container-orgf67757b" class="outline-3">
+<h3 id="orgf67757b"><span class="section-number-3">1.5.</span> Partes</h3>
+<div class="outline-text-3" id="text-1-5">
+<p>
+Mientras encadenas elementos-Cuestion sin que aparezca ningún texto ni
+<code>Supuesto</code> en medio, todos pertenecen a la <b>misma parte</b> (un bloque de
+opciones). En cuanto, después de una <code>Cuestion</code>, vuelve a aparecer texto o
+un <code>Supuesto</code>, se abre una <b>parte nueva</b>: un ejercicio con varios bloques
+de opciones bajo un enunciado común. En Moodle se exporta como una
+pregunta <i>cloze</i> (un bloque de opciones por parte) y en AMC como una única
+pregunta con varios bloques de casillas, cada uno con su opción por
+defecto. Las hipótesis se acumulan a lo largo de todas las partes. Para la
+mayoría de preguntas basta una parte; no fuerces varias si no aportan
+claridad.
+</p>
+</div>
+</div>
+<div id="outline-container-orgcc23817" class="outline-3">
+<h3 id="orgcc23817"><span class="section-number-3">1.6.</span> Cómo se pegan los fragmentos del enunciado</h3>
+<div class="outline-text-3" id="text-1-6">
+<p>
+Dos fragmentos consecutivos se concatenan tal cual si alguno de los dos ya
+aporta separación (empieza o termina en espacio, o está vacío); si ninguno
+la aporta, <code>qbank</code> inserta un espacio. Para controlar la puntuación: pega
+la coma o el punto al fragmento anterior (<code>"…,"</code>) y antepón tú el espacio
+al siguiente (<code>" entonces"</code>). Y no pongas la puntuación justo después de
+un <code>Supuesto</code> que pueda estar vacío: con <code>[Supuesto("", …), Supuesto("y
+$B$", …)]</code> seguido de <code>", entonces"</code> la variante vacía produce «<span class="math">A</span> ,
+entonces». Pon la coma dentro de los <code>Supuesto</code> no vacíos («y <span class="math">B</span>,») o
+mueve el <code>Supuesto</code> vacío a otro sitio, y revisa <b>todas</b> las variantes
+renderizadas.
+</p>
+</div>
+</div>
+<div id="outline-container-org13f5c8a" class="outline-3">
+<h3 id="org13f5c8a"><span class="section-number-3">1.7.</span> Un ejemplo completo comentado</h3>
+<div class="outline-text-3" id="text-1-7">
+<div class="org-src-container">
+<pre class="src src-python">from qbank import *
+
+p = ProblemaTipo(
+    [
+        "Sea $f$ una función ",
+        [   # mundos: en cada variante se sortea uno
+            Supuesto("estrictamente creciente", v('crec')),
+            Supuesto("estrictamente decreciente", v('decr')),
+        ],
+        Supuesto("", unoDe(v('crec'), v('decr'))),      # axioma: exactamente uno
+        " y sean $a &lt; b$ dos puntos de su dominio. Entonces:",
+        [   # hueco 1: se muestra una de las dos
+            Cuestion("$f(a) &lt; f(b)$", v('crec'),
+                     exp="Si $f$ crece, $a&lt;b$ implica $f(a)&lt;f(b)$; si decrece, $f(a)&gt;f(b)$."),
+            Cuestion("$f(a) &gt; f(b)$", v('decr'),
+                     exp="Si $f$ crece, $a&lt;b$ implica $f(a)&lt;f(b)$; si decrece, $f(a)&gt;f(b)$."),
+        ],
+        Cuestion("$f(a) = f(b)$", False,                 # hueco 2: se muestra siempre
+                 exp="Una función estrictamente monótona no repite valores."),
+        [   # hueco 3
+            Cuestion("$f(b) - f(a) &gt; 0$", v('crec'),
+                     exp="El signo de $f(b)-f(a)$ con $a&lt;b$ es el de la monotonía."),
+            Cuestion("$f(b) - f(a) &lt; 0$", v('decr'),
+                     exp="El signo de $f(b)-f(a)$ con $a&lt;b$ es el de la monotonía."),
+        ],
+    ],
+    export={"last_choice": True, "cols": 2},
+    nombre="L-01-Monotonia",
+)
+</pre>
+</div>
+
+<p>
+Hay <span class="math">2 × 2 × 1 × 2 = 8</span> variantes; en todas el alumno ve
+tres opciones más «Ninguna de las anteriores». Dos de ellas, la 1 y la 6
+(el listado no incluye la opción por defecto, que va siempre al final):
+</p>
+
+<pre class="example" id="org7733f64">
+1 Sea $f$ una función estrictamente creciente y sean $a &lt; b$ dos puntos de su dominio. Entonces:
+    ✓ $f(a) &lt; f(b)$
+    ✗ $f(a) = f(b)$
+    ✓ $f(b) - f(a) &gt; 0$
+6 Sea $f$ una función estrictamente decreciente y sean $a &lt; b$ dos puntos de su dominio. Entonces:
+    ✗ $f(a) &lt; f(b)$
+    ✗ $f(a) = f(b)$
+    ✓ $f(b) - f(a) &lt; 0$
+</pre>
+
+<p>
+Fíjate en que <code>$f(a) &gt; f(b)$</code> no está escrita como negación de la otra:
+lleva <code>v('decr')</code> y es correcta solo en ese mundo. Y en que la opción fija
+<code>$f(a) = f(b)$</code> es siempre falsa: con <code>last_choice</code> eso no es un problema
+(hay variantes en las que las tres reales son falsas y la opción por
+defecto pasa a ser la correcta), pero es un distractor que el alumno
+aprende a descartar; <code>lint</code> lo señala como INFO <code>constante</code>.
+</p>
+
+<p>
+La tabla de mundos resume la lógica de un vistazo y es la forma más
+rápida de auditarla. Se pide con <code>make tabla PREGUNTA=&lt;nombre&gt;</code> (con o
+sin <code>.json</code>), que ejecuta <code>python -m qbank.lint preguntas/&lt;nombre&gt;.json
+--tabla</code>: para esta pregunta, una vez guardada en <code>preguntas/</code>,
+<code>make tabla PREGUNTA=L-01-Monotonia</code>; la plantilla de <code>qbank-init</code> trae
+una versión con <code>setup</code> de la misma idea:
+<code>make tabla PREGUNTA=L-01-FuncionMonotona</code>. Cada fila es
+una <code>Cuestion</code>, identificada por su posición en la lista plana (<code>[4.1]</code>:
+componente número 4 y, dentro de él, alternativa número 1, numerando ambos
+desde 0), cada columna un mundo, y <code>V</code> / <code>F</code> si en ese mundo la cuestión es
+correcta o incorrecta (<code>-</code> si su precondición la excluye):
+</p>
+
+<pre class="example" id="org2ed01c3">
+Mundos:
+  M1: estrictamente creciente
+  M2: estrictamente decreciente
+
+                         M1 M2
+[4.0] $f(a) &lt; f(b)$       V  F
+[4.1] $f(a) &gt; f(b)$       F  V
+[5.0] $f(a) = f(b)$       F  F
+[6.0] $f(b) - f(a) &gt; 0$   V  F
+[6.1] $f(b) - f(a) &lt; 0$   F  V
+</pre>
+
+<p>
+(La tabla se calcula con un solo sorteo del <code>setup</code>; si los mundos se
+filtran con precondiciones sobre los números —ver más abajo— solo aparecen
+los que ese sorteo admite. Por la misma razón, una <code>Cuestion</code> con
+<code>semantica</code> lambda que sale constante en la tabla es solo INFO
+<code>constante</code>: en otros sorteos puede cambiar. Para esas preguntas, la
+vista profe de <code>make amc</code> es la referencia.)
+</p>
+
+<p>
+Y <code>lint</code> dice exactamente lo que falta (<code>comp 5[0]</code> es la misma
+numeración de la tabla; «semantica literal» significa que la fórmula es
+el <code>False</code> literal, un distractor deliberado):
+</p>
+
+<pre class="example" id="orge8d69ac">
+AVISO [variantes] solo 8 variantes (mínimo recomendado 16)
+INFO  [constante] falsa en los 2 mundos en que aparece (semantica literal)  @ comp 5[0]: $f(a) = f(b)$
+</pre>
+
+<p>
+Ocho variantes son pocas; la sección siguiente dice cómo conseguir más sin
+alargar la pregunta.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org19ab601" class="outline-2">
+<h2 id="org19ab601"><span class="section-number-2">2.</span> El patrón recomendado: tres huecos y la opción por defecto</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+<div id="outline-container-org23e6345" class="outline-3">
+<h3 id="org23e6345"><span class="section-number-3">2.1.</span> Cuatro opciones con mezcla garantizada</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+Cada pregunta (cada parte, si hay varias) debe mostrar siempre el mismo
+número de opciones, con la garantía de que <b>al menos una es correcta y al
+menos una incorrecta</b> en toda variante (Moodle rechaza una pregunta sin
+ninguna correcta; un examen en papel con «todas verdaderas» regala la
+respuesta). Dos formas de lograrlo:
+</p>
+
+<ol class="org-ol">
+<li><b>Tres elementos-Cuestion consecutivos</b> + <code>"export": {"last_choice":
+   true}</code>. La cuarta opción («Ninguna de las anteriores» en AMC, «Las
+demás opciones son falsas» en Moodle) la calcula el motor: es correcta
+si y solo si las tres reales son incorrectas. Eso garantiza la mezcla
+sea cual sea la combinación sorteada, sin pensar. Es el patrón por
+defecto; las preguntas de ejemplo de <code>qbank-init</code> lo siguen.</li>
+<li><b>Cuatro elementos-Cuestion</b> sin <code>last_choice</code>, solo si puedes demostrar
+que, para cualquier combinación de mundo y alternativas, nunca salen
+las cuatro verdaderas ni las cuatro falsas.</li>
+</ol>
+
+<p>
+<code>lint</code> comprueba la garantía sobre <b>todas</b> las variantes (ERROR <code>mezcla</code>)
+con la misma regla que usan los exportadores.
+</p>
+</div>
+</div>
+<div id="outline-container-org7b50a69" class="outline-3">
+<h3 id="org7b50a69"><span class="section-number-3">2.2.</span> Un hueco con una alternativa por mundo</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+El patrón habitual para cada hueco cuando hay mundos: una lista con una
+<code>Cuestion</code> por mundo (con tres mundos A/B/C, tres cuestiones con
+<code>semantica</code> <code>v('A')</code>, <code>v('B')</code>, <code>v('C')</code>). En cada variante se sortea una,
+que será correcta solo si coincide con el mundo activo. El número de
+aciertos entre las tres sorteadas varía de forma natural entre variantes
+(0, 1, 2 o 3) sin forzarlo a mano.
+</p>
+
+<p>
+Cuando una afirmación es cierta en un mundo y falsa en el otro, prefiere
+<b>una sola</b> <code>Cuestion</code> con el mismo texto y <code>semantica=v('mundoA')</code> a dos
+redacciones (una en positivo para un mundo, otra en negativo para el
+otro): es más corta, y garantiza por construcción que la frase tiene
+sentido sea cual sea el mundo activo. Reserva la lista de alternativas
+para cuando de verdad hay varias formulaciones distintas que sortear.
+</p>
+
+<p>
+Cuando <b>no</b> hay alternativa natural para un hueco (una afirmación siempre
+verdadera o siempre falsa), déjala como <code>Cuestion</code> suelta; no inventes
+alternativas artificiales por rellenar.
+</p>
+</div>
+</div>
+<div id="outline-container-orgdf86877" class="outline-3">
+<h3 id="orgdf86877"><span class="section-number-3">2.3.</span> Cuántas variantes</h3>
+<div class="outline-text-3" id="text-2-3">
+<ul class="org-ul">
+<li>Sin <code>setup</code>: no menos de 16-20 variantes, salvo casos excepcionales.</li>
+<li>Con <code>setup</code> aleatorio: al menos 60 en total, ajustando <code>export.instances</code>
+(<code>lint</code> calcula el valor con un INFO <code>setup</code>). <code>lint</code> cuenta variantes,
+no variantes <i>distintas</i>: si el <code>setup</code> tiene pocos valores posibles, un
+<code>instances</code> alto repite variantes (<code>ejemplosManual/ej_e_lambda.json</code>,
+con 60 instancias, da solo 11 preguntas distintas). Mira la vista
+alumno (<code>make amc-student</code>).</li>
+</ul>
+
+<p>
+La forma más barata de ganar variedad sin alargar ninguna variante
+concreta es envolver en una lista de <b>dos o tres redacciones cortas
+equivalentes</b> (mismo significado, misma <code>semantica</code>) las <code>Cuestion</code> que
+iban sueltas: «está bien definida» / «se puede calcular» / «tiene sentido».
+Una pregunta con <span class="math">2 × 2 × 1 × 2 = 8</span> variantes pasa a
+<span class="math">2 × 2 × 3 × 2 = 24</span> sin que ninguna variante sea más larga.
+</p>
+
+<p>
+Añadir mundos solo porque sí no es buena idea: varias preguntas centradas,
+una por concepto, son mejores que una megapregunta con mundos anidados.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org7b7bc49" class="outline-2">
+<h2 id="org7b7bc49"><span class="section-number-2">3.</span> Preguntas con números: <code>setup</code>, <code>seed</code> e <code>instances</code></h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Úsalo cuando el contenido se preste a practicar un cálculo concreto y
+quieras que cada alumno vea números distintos. Para preguntas
+conceptuales (definiciones, propiedades, relaciones lógicas) no hace
+falta <code>setup</code>: bastan los mundos.
+</p>
+</div>
+<div id="outline-container-orgaf4f8c6" class="outline-3">
+<h3 id="orgaf4f8c6"><span class="section-number-3">3.1.</span> <code>setup</code></h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+Es código Python, como cadena, que se ejecuta una vez por variante. Todas
+las variables que define (salvo las que empiezan por <code>_</code>) quedan
+disponibles para:
+</p>
+
+<ul class="org-ul">
+<li>interpolación <code>@{variable}</code> en cualquier texto (enunciado, <code>Supuesto</code>,
+<code>Cuestion</code> y <code>exp</code>);</li>
+<li>lambdas en <code>semantica</code> y <code>precond</code>, vía <code>ns['variable']</code>.</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-python">SETUP = r"""
+import numpy as np
+a = int(np.random.randint(1, 10))
+b = int(np.random.randint(1, 10))
+while b == a:
+    b = int(np.random.randint(1, 10))
+cuad = (a + b) ** 2
+"""
+</pre>
+</div>
+
+<p>
+Usa <code>np.random</code> (no <code>random</code>): <code>seed</code> siembra <code>numpy.random</code> y <code>random</code>,
+pero los scripts de la vista profe (<code>make amc</code> y <code>nueva_pregunta.py</code>) solo
+siembran <code>numpy</code> en cada sorteo. Calcula en el <code>setup</code> todo lo que vaya a
+aparecer en los textos (la respuesta correcta, los distractores
+numéricos, cadenas enteras si hace falta): los textos solo interpolan, no
+calculan. Formatea ahí también los decimales como quieras que se lean
+(<code>f"{x:.2f}"</code>, o la coma decimal como <code>0{,}5</code>), porque la interpolación
+escribe el valor tal cual.
+</p>
+
+<p>
+La interpolación de un nombre desconocido <b>no falla</b>: deja <code>@{nombre}</code> tal
+cual. <code>lint</code> lo detecta (ERROR <code>interp</code>), pero revisa igualmente los
+enunciados generados. Si quieres que el alumno vea una arroba seguida de
+llaves, escríbela doble: <code>@@{x}</code> se imprime <code>@{x}</code> y no es un error.
+</p>
+</div>
+</div>
+<div id="outline-container-org52a1467" class="outline-3">
+<h3 id="org52a1467"><span class="section-number-3">3.2.</span> <code>seed</code></h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+Un entero fijo por pregunta, presente solo si el <code>setup</code> usa aleatorios.
+Garantiza que la variante «1» sea siempre la misma, independientemente de
+en qué orden se procesen los ficheros del banco. Un convenio cómodo: el
+número de la lección.
+</p>
+</div>
+</div>
+<div id="outline-container-org60957fe" class="outline-3">
+<h3 id="org60957fe"><span class="section-number-3">3.3.</span> <code>instances</code></h3>
+<div class="outline-text-3" id="text-3-3">
+<p>
+Cada recorrido de las variantes llama al <code>setup</code> una vez por variante; con
+<code>export.instances = N</code> se recorre <span class="math">N</span> veces con semillas distintas. La
+regla:
+</p>
+
+<pre class="example" id="orgf4c3a7e">
+instances = max(1, ceil(60 / variantes_por_instancia))
+</pre>
+
+<p>
+<code>lint</code> imprime el número de variantes por instancia y el <code>instances</code>
+necesario (si los <code>Supuesto</code> llevan precondiciones sobre los números, el
+número de variantes cambia de un sorteo a otro: <code>lint</code> usa la media, y el
+total real puede diferir un poco). Sin <code>setup</code> aleatorio, no pongas
+<code>instances</code> (o déjalo en 1).
+</p>
+</div>
+</div>
+<div id="outline-container-org67276ea" class="outline-3">
+<h3 id="org67276ea"><span class="section-number-3">3.4.</span> Sortear textos, no solo números</h3>
+<div class="outline-text-3" id="text-3-4">
+<p>
+El <code>setup</code> puede sortear cualquier cosa: nombres, países, décadas, frases.
+<code>np.random.choice</code> elige de una lista de cadenas o de números (conviértelo
+con <code>str()</code> o <code>int()</code> para que sea un valor normal de Python; con una lista
+de tuplas o de diccionarios falla, y entonces se sortea la posición:
+<code>datos[int(np.random.randint(len(datos)))]</code>), un diccionario resuelve las
+concordancias, y las lambdas comparan cadenas igual que números:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">SETUP = r"""
+import numpy as np
+pais = str(np.random.choice(["España", "Francia", "Portugal"]))
+gentilicio = {"España": "española", "Francia": "francesa", "Portugal": "portuguesa"}[pais]
+decada = int(np.random.choice([1880, 1890, 1900]))
+"""
+
+PREGUNTA = ProblemaTipo(
+    ["Suponga que en la década de @{decada} el gobierno de @{pais} ",
+     [Supuesto(r"establece un arancel del 20 \% sobre las importaciones.", v('prot')),
+      Supuesto("suprime todos los aranceles sobre las importaciones.", v('libre'))],
+     Supuesto("", unoDe(v('prot'), v('libre'))),
+     " A corto plazo:",
+     [Cuestion("los bienes importados se encarecen", v('prot')),
+      Cuestion("los bienes importados se abaratan", v('libre'))],
+     [Cuestion("la industria @{gentilicio} queda protegida de la competencia exterior", v('prot')),
+      Cuestion("la industria @{gentilicio} queda más expuesta a la competencia exterior", v('libre'))],
+     Cuestion("el país es @{pais}", "lambda ns: ns['pais'] == 'Francia'")],   # ejemplo de lambda sobre texto
+    setup=SETUP, seed=3, export={"last_choice": True, "cols": 1, "instances": 8},
+    nombre="L-03-PoliticaArancelaria")
+</pre>
+</div>
+
+<p>
+La pregunta <code>L-03-PoliticaArancelaria</code> de la plantilla es la versión
+completa de este ejemplo (sin la última cuestión, que solo ilustra la
+lambda). Dos detalles de prosa: el <code>%</code> lleva barra (<code>\%</code>) y la cadena que
+lo contiene es cruda (<code>r"…"</code>), ver la sección <a href="#orgf2b3ea1">7</a>; y con opciones de una
+línea o más conviene <code>cols = 1</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-orga4cb4e9" class="outline-3">
+<h3 id="orga4cb4e9"><span class="section-number-3">3.5.</span> No afirmes nada falso sobre los números: <code>precond</code> con lambda</h3>
+<div class="outline-text-3" id="text-3-5">
+<p>
+El motor razona de forma proposicional y <b>no conoce</b> los valores. Si
+ofreces los supuestos «<span class="math">a &gt; b</span>» y «<span class="math">a &lt; b</span>» sin más, generará variantes en
+las que el texto dice <span class="math">a &gt; b</span> con <span class="math">a = 3</span> y <span class="math">b = 7</span>. La solución es una
+precondición que solo deje pasar la variante cuando lo que afirma es
+cierto para los números sorteados:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">[
+    Supuesto("$a &gt; b$.", True, precond="lambda ns: ns['a'] &gt; ns['b']"),
+    Supuesto("$a &lt; b$.", True, precond="lambda ns: ns['a'] &lt; ns['b']"),
+],
+</pre>
+</div>
+
+<p>
+Las variantes cuyo <code>Supuesto</code> no supera la precondición se descartan sin
+más (no aparecen ni en la vista profe). Una <code>Cuestion</code> con precondición
+también se puede filtrar así (<code>precond="lambda ns: ns['k'] != 2"</code>): en la
+vista alumno la variante se descarta igual; en la vista profe la cuestión
+aparece al final, en «Exclusiones», con su condición.
+</p>
+
+<p>
+Las lambdas se escriben <b>como cadena</b> también en Python
+(<code>precond="lambda ns: …"</code>): así la pregunta puede guardarse en JSON. Una
+lambda escrita como función Python no se puede guardar.
+</p>
+</div>
+</div>
+<div id="outline-container-org7cb1f21" class="outline-3">
+<h3 id="org7cb1f21"><span class="section-number-3">3.6.</span> Cuando la verdad depende de los números: <code>semantica</code> con lambda</h3>
+<div class="outline-text-3" id="text-3-6">
+<p>
+Si lo que decide la corrección es un cálculo (no un mundo), la semántica
+es una lambda que devuelve <code>True</code> o <code>False</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">Cuestion("$a^2 &gt; b^2$", "lambda ns: ns['a'] ** 2 &gt; ns['b'] ** 2"),
+</pre>
+</div>
+
+<p>
+Una lambda también puede devolver una <b>fórmula</b> y así inyectar en las
+hipótesis el estado de los números (<code>lambda ns: v('gt') if ns['x'] &gt; 3 else
+-v('gt')</code> en la semántica de un <code>Supuesto</code> axioma);
+<code>ejemplosManual/ej_e_lambda.json</code> (el ejemplo E del cuaderno <code>Tutorial.ipynb</code>)
+lo desarrolla. Como <code>lint</code> no puede mirar dentro de una
+lambda, cuando un <code>Supuesto</code> inyecta fórmulas así no comprueba las
+etiquetas huérfanas y lo dice con un INFO.
+</p>
+</div>
+</div>
+<div id="outline-container-orgbf002c7" class="outline-3">
+<h3 id="orgbf002c7"><span class="section-number-3">3.7.</span> Casos especiales solo a veces</h3>
+<div class="outline-text-3" id="text-3-7">
+<p>
+Si quieres que un caso degenerado (un vector nulo, dos números iguales)
+aparezca ocasionalmente —ni nunca ni en la mitad de las variantes—, no lo
+controles con una lista de alternativas (eso daría el mismo peso a cada
+una): sortea una probabilidad dentro del <code>setup</code>, con ramas excluyentes,
+y condiciona la <code>semantica</code> con una lambda. Esto no añade factores a la
+combinatoria. Comprueba el porcentaje real contando sobre
+<code>p.por_partes(instances=…)</code> antes de aceptar la pregunta.
+</p>
+</div>
+</div>
+<div id="outline-container-org1e323b1" class="outline-3">
+<h3 id="org1e323b1"><span class="section-number-3">3.8.</span> Dos trampas de los <code>setup</code> aleatorios</h3>
+<div class="outline-text-3" id="text-3-8">
+<ul class="org-ul">
+<li><b>Condiciones incompletas.</b> Si una semántica depende de una propiedad
+estructural (independencia lineal, coprimalidad…), compruébala entera en
+el <code>setup</code> (rango, máximo común divisor), no solo el caso obvio («¿es
+nulo?»). Y pruébalo con muchas semillas distintas, no solo con la <code>seed</code>
+del banco: un caso raro puede no aparecer con esa semilla y aun así ser
+un fallo real cuando cambien <code>instances</code> o el rango de valores.</li>
+<li><b>Distractores que coinciden con la respuesta.</b> Si el <code>setup</code> calcula un
+valor falso para una opción (<code>$(a+b)^2 = @{cuad_falso}$</code>), asegúrate de
+que nunca coincide con el correcto; si puede, re-sortea hasta que
+difieran. En general, excluye en el enunciado o en el <code>setup</code> los casos
+degenerados en que un distractor pasa a ser cierto (un coeficiente
+nulo, dos valores iguales, un factor igual a <span class="math">± 1</span>, un vector nulo).</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-org7e3f416" class="outline-2">
+<h2 id="org7e3f416"><span class="section-number-2">4.</span> Qué estilo de pregunta según el contenido</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li><p>
+<b>Definiciones y propiedades</b>: pregunta puramente lógica, sin <code>setup</code>, a
+menudo sin mundos siquiera: un enunciado y tres huecos con afirmaciones
+siempre verdaderas o siempre falsas (y la opción por defecto):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">ProblemaTipo(
+    ["Sea $p$ un número primo mayor que 2. Entonces:",
+     [Cuestion("$p$ es impar", True),
+      Cuestion("$p$ es par", False)],
+     [Cuestion("$p$ tiene exactamente dos divisores positivos", True),
+      Cuestion("$p$ tiene exactamente un divisor positivo", False)],
+     [Cuestion("$p + 1$ es par", True),
+      Cuestion("$p + 1$ es primo", False)]],
+    export={"last_choice": True}, nombre="L-01-Primos")
+</pre>
+</div>
+
+<p>
+(Solo <span class="math">2 × 2 × 2 = 8</span> variantes: para un banco real añade
+redacciones alternativas o un cuarto hueco; aquí interesa la forma.)
+</p></li>
+
+<li><b>Resultados condicionales</b> («si se cumple tal hipótesis, entonces…»):
+mundos alternativos, uno por hipótesis relevante, y <code>Cuestion</code> cuya
+<code>semantica</code> depende del mundo. Úsalos cuando el contenido hace una
+distinción real; no los fuerces cuando no la hay (una pregunta con
+varias cuestiones independientes y sin <code>Supuesto</code> es perfectamente
+legítima).</li>
+<li><b>Cálculo numérico</b>: <code>setup</code> con <code>np.random</code> e interpolación.</li>
+<li><b>Una pregunta por concepto clave.</b> No fijes de antemano cuántas preguntas
+saldrán de un tema: cuenta los resultados genuinamente distintos y deja
+que ese número decida. Forzar más produce preguntas redundantes.</li>
+<li>Si un concepto de un tema anterior reaparece generalizado, reutilizar el
+patrón de aquella pregunta es un refuerzo didáctico legítimo: antes de
+diseñar una pregunta nueva, mira si ya existe una sobre el concepto que
+se generaliza.</li>
+<li><b>No evalúes contenido de temas futuros.</b> Que el material haga un «guiño» a
+algo que se demuestra más adelante no lo convierte en evaluable con las
+herramientas de este tema. Si quieres mencionarlo, hazlo en el enunciado
+o en <code>exp</code> como contexto, nunca como algo que juzgar verdadero o falso.
+Expresiones como «volveremos sobre esto» o «más adelante veremos» son la
+señal de alarma.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgaefea11" class="outline-2">
+<h2 id="orgaefea11"><span class="section-number-2">5.</span> Redactar cuestiones</h2>
+<div class="outline-text-2" id="text-5">
+</div>
+<div id="outline-container-orgdfeb9ef" class="outline-3">
+<h3 id="orgdfeb9ef"><span class="section-number-3">5.1.</span> Cada cuestión se sostiene sola</h3>
+<div class="outline-text-3" id="text-5-1">
+<p>
+Para <b>cada</b> <code>Cuestion</code> candidata (no solo las que salen en la primera
+variante), concatena mentalmente el enunciado fijo de esa variante
+(incluido el <code>Supuesto</code> activo) con el texto de esa cuestión <b>sola</b>. El
+resultado debe ser un texto con sentido pleno, cuya verdad o falsedad
+quede determinada por lo que dice esa concatenación, nunca por lo que
+«podría» haber salido en otro hueco. Como cada hueco se sortea de forma
+independiente, no hay garantía de que ninguna otra cuestión en concreto
+acompañe a la que revisas. Esto descarta:
+</p>
+
+<ul class="org-ul">
+<li>«esto ocurre porque…», «esa igualdad se cumple porque…», con un «esto»
+que presupone una afirmación de otro hueco. Si quieres preguntar por
+qué se cumple <span class="math">X</span>, repite <span class="math">X</span> entero dentro de la cuestión;</li>
+<li>cualquier <code>exp</code> que remita a «el principio anterior» o «la misma idea»
+señalando a otra cuestión que puede no haberse mostrado.</li>
+</ul>
+
+<p>
+Dos alternativas del <b>mismo</b> hueco nunca se muestran juntas; las de huecos
+distintos, solo a veces. Y una alternativa que es la negación literal de
+otra de <b>otro</b> hueco puede salir junto a ella y delatarla.
+</p>
+</div>
+</div>
+<div id="outline-container-org6e079cc" class="outline-3">
+<h3 id="org6e079cc"><span class="section-number-3">5.2.</span> Símbolos definidos</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+Todo símbolo que aparezca en una <code>Cuestion</code> (<span class="math">θ</span>, <span class="math">α</span>, <span class="math">n</span>, <span class="math">U</span>…)
+debe estar definido en el enunciado de esa variante o ser notación fija
+del curso que tu proyecto declare como conocida. Si el enunciado fija
+objetos <b>concretos</b> («sean <span class="math">x = (1,2)</span> e <span class="math">y = (3,1)</span>») y una <code>Cuestion</code>
+enuncia una identidad <b>general</b>, usa letras distintas en la identidad
+(<span class="math">u</span>, <span class="math">v</span>): con los mismos símbolos, «solo se cumple si <span class="math">x ⊥ y</span>» tiene
+doble lectura cuando esos <span class="math">x</span>, <span class="math">y</span> concretos resultan ser ortogonales.
+</p>
+
+<p>
+Cuidado también con una <code>Cuestion</code> que nombra un símbolo propio de un
+mundo concreto: si su <code>precond</code> es <code>True</code> (lo normal), puede sortearse bajo
+el mundo contrario, donde ese símbolo nunca se introdujo. Prefiere una
+redacción genérica («el vector que se suma») o restringe la alternativa a
+su mundo con <code>precond</code>.
+</p>
+
+<p>
+Si varios mundos introducen parámetros análogos, <b>usa el mismo símbolo en
+todos</b> los <code>Supuesto</code>: cada fórmula con ese símbolo es entonces una única
+<code>Cuestion</code> válida en cualquier mundo, con <code>semantica</code> igual a la disyunción
+de los mundos donde es cierta, en vez de repetir la misma fórmula varias
+veces con <code>precond</code> distintos.
+</p>
+</div>
+</div>
+<div id="outline-container-org5425c58" class="outline-3">
+<h3 id="org5425c58"><span class="section-number-3">5.3.</span> El enunciado desnudo; la justificación, en <code>exp</code></h3>
+<div class="outline-text-3" id="text-5-3">
+<p>
+No escribas «<span class="math">X</span> se cumple porque <span class="math">Y</span>» ni «<span class="math">X</span>, por el teorema <span class="math">Z</span>» dentro
+de una cuestión: pon «<span class="math">X</span>» y mueve el porqué a <code>exp</code>. Además de acortar la
+pregunta, evita el patrón más fácil de aprender que existe: <b>la opción
+larga es la verdadera</b>. Es real y medible: en un banco revisado, las
+opciones verdaderas medían de media entre 1,7 y 2 veces más que las falsas
+porque la verdadera llevaba su «porque…» y la falsa iba desnuda.
+Comprobación mecánica antes de aceptar una pregunta: media de caracteres
+de las opciones verdaderas frente a las falsas; si difieren en más de un
+30 %, quita las justificaciones de las verdaderas o da a las falsas una
+justificación plausible pero errónea.
+</p>
+</div>
+</div>
+<div id="outline-container-orgfcd35fe" class="outline-3">
+<h3 id="orgfcd35fe"><span class="section-number-3">5.4.</span> Gemelas: cada verdadera, con su falsa parecida</h3>
+<div class="outline-text-3" id="text-5-4">
+<p>
+La estrategia más eficaz para que una pregunta discrimine: <b>cada vez que
+escribas una cuestión verdadera, busca un distractor falso y parecido</b> en
+el mismo hueco. Es como preguntar lo mismo dos veces, una bien y otra mal:
+distingue a quien sabe por qué algo está bien y sabe identificar el error.
+Y evita los distractores de relleno sin sentido: cada falsa nace de una
+afirmación con sentido. Gemelas típicas: papeles intercambiados
+(numerador/denominador), el signo o la desigualdad al revés, la fórmula
+con el divisor equivocado, el valor numérico con los datos cruzados.
+</p>
+
+<p>
+Una afirmación numérica <b>siempre cierta y sin gemela</b>
+(<code>$(a+b)^2 = @{cuad}$</code> sin su <code>$(a+b)^2 = @{cuad_falso}$</code>) se marca sin
+comprobar nada.
+</p>
+</div>
+</div>
+<div id="outline-container-org4f89856" class="outline-3">
+<h3 id="org4f89856"><span class="section-number-3">5.5.</span> Afirmaciones que no funcionan como opción</h3>
+<div class="outline-text-3" id="text-5-5">
+<ul class="org-ul">
+<li><b>Igualdades con ambos lados ya calculados</b> («<span class="math">20 = 4</span>»): se responden
+por inspección visual. Deja la identidad simbólica o pregunta por el
+valor de una sola cantidad.</li>
+<li><b>Ejemplos en dimensión muy baja</b> para ilustrar un cálculo general: con
+dos datos, cada uno dista de la media lo mismo que el otro, un artefacto
+que no generaliza a tres. Reserva la dimensión baja para lo que solo
+tiene sentido ahí (ángulos, ortogonalidad visual).</li>
+<li><b>«Generalmente», «puede cambiar»</b>: busca la reformulación más fuerte y
+determinista que capture lo mismo («deja de ser exactamente el mismo»
+en vez de «generalmente cambia»).</li>
+<li><b>Afirmaciones compuestas</b> («<span class="math">n</span> es par y <span class="math">n² + 1</span> es par», mitad
+verdadera y mitad falsa): parte en dos o quédate con la mitad que evalúa
+el concepto.</li>
+<li><b>Cuestiones sobre el modo de exponer</b> («no hace falta una demostración
+nueva para esto»): no son una propiedad verificable.</li>
+<li><b>Repetir una cuestión de otro hueco con relleno distinto</b>: no es una
+alternativa nueva, y hace que unos alumnos vean menos alternativas
+realmente distintas que otros.</li>
+<li><b>Patrones fijos que se aprenden</b> («el primer caso siempre falla», «la
+tercera opción siempre es la buena»): si el <code>setup</code> lo produce,
+rómpelo (intercambio aleatorio de papeles).</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org451622b" class="outline-3">
+<h3 id="org451622b"><span class="section-number-3">5.6.</span> Textos cortos</h3>
+<div class="outline-text-3" id="text-5-6">
+<p>
+Cuanto más corta sea cada pregunta, más caben por página. Antes de dar un
+<code>Supuesto</code> o una <code>Cuestion</code> por buenos, pregúntate si puedes decir lo
+mismo con menos palabras: fuera incisos, ejemplos redundantes con el
+enunciado, explicaciones que ya van en <code>exp</code>, la palabra «exactamente»
+cuando no aporta («<span class="math">⇔</span>» vale por «ocurre exactamente
+cuando»). El límite es que la pregunta se siga entendiendo sin
+ambigüedad.
+</p>
+
+<p>
+Dos columnas (<code>export.cols = 2</code>) ocupan menos papel que una en casi todas
+las preguntas de opciones cortas; con opciones de una línea o más (lo
+habitual en prosa) usa <code>cols = 1</code>, y mira el PDF antes de decidir. Mide con la maquetación real del examen, no con el
+catálogo de revisión (que imprime el nombre de la pregunta en el
+encabezado).
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb56f9e3" class="outline-2">
+<h2 id="orgb56f9e3"><span class="section-number-2">6.</span> Escribir <code>exp</code></h2>
+<div class="outline-text-2" id="text-6">
+<p>
+<code>exp</code> es lo que Moodle muestra <b>después</b> de responder; el alumno la lee
+junto a la opción, en la variante concreta que le tocó. Reglas:
+</p>
+
+<ul class="org-ul">
+<li><b>Una razón para cada mundo alcanzable.</b> Si la <code>Cuestion</code> puede aparecer
+bajo varios mundos (su <code>precond</code> no la restringe a uno), <code>exp</code> debe dar,
+para cada uno, una razón concreta anclada en la hipótesis de <b>ese</b>
+mundo, tanto si ahí es verdadera como si es falsa. No basta con explicar
+el mundo «bueno». Si la razón es genuinamente la misma en varios mundos
+(un argumento dimensional, por ejemplo), basta una frase que los cubra;
+el fallo a vigilar es cubrir solo el subconjunto donde la explicación
+resulta más obvia y olvidar el resto.</li>
+<li><b>Sin jerga del diseño.</b> Nunca «en el mundo <span class="math">λ &gt; 0</span>», «en los demás
+mundos alcanzables», ni las etiquetas de <code>v('…')</code>. El alumno solo ve la
+hipótesis escrita en su enunciado: razona con ella («si <span class="math">f</span> es
+creciente, …; si es decreciente, …»).</li>
+<li><b>Sin desvelar el diseño global.</b> Nunca «esta opción es siempre falsa» o
+«en ninguno de los casos contemplados es cierto», aunque sea verdad: le
+permite memorizar «esta frase, descártala» en cualquier variante futura,
+justo lo contrario de lo que se busca al multiplicar variantes.</li>
+<li><b>Autocontenida.</b> Nada de «es la misma identidad de antes», «el valor
+anterior al cuadrado», «como en el ejemplo de arriba»: la otra
+alternativa estaba en el mismo hueco y nunca se muestra a la vez. Repite
+lo que haga falta (la fórmula, el ejemplo).</li>
+<li><b>Una razón, no un nombre.</b> «Es la fórmula del binomio» no explica nada;
+el porqué es justo lo que se quiere fijar. Y «nada obliga a…» donde la
+afirmación es rotundamente falsa debe sustituirse por la razón concreta.</li>
+<li><b>Compruébala como una demostración.</b> «<span class="math">a ≠ 0</span> y <span class="math">b ≠ 0</span>, así que
+<span class="math">a + b ≠ 0</span>» es un razonamiento falso (<span class="math">a = -b</span>). Cada <code>exp</code> es una
+afirmación matemática más que puede estar mal.</li>
+<li>Con <code>setup</code>, interpola los valores concretos (<code>@{a}</code>) en vez de quedarte
+en lo genérico; una sola <code>exp</code> con <code>@{…}</code> sirve para todas las variantes.
+Si la explicación depende de una condición numérica, calcula el texto
+en el <code>setup</code> como variable y pon <code>exp="@{texto_exp}"</code>; no escribas
+<code>exp</code> como <code>lambda</code> en JSON (llegaría literal al alumno).</li>
+<li>Si una <code>exp</code> no aporta nada más allá de lo obvio, déjala vacía.</li>
+</ul>
+
+<p>
+Revisa también las <code>Cuestion</code> con <code>semantica</code> <code>False</code> a secas: si hay
+mundos, comprueba en la tabla de mundos que esa afirmación no resulte
+accidentalmente cierta en alguno (dos cantidades que en general son
+distintas coinciden en un mundo degenerado). Si ocurre, cambia la
+semántica a la disyunción de los mundos en que es cierta, o excluye ese
+mundo con <code>precond</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-orgf2b3ea1" class="outline-2">
+<h2 id="orgf2b3ea1"><span class="section-number-2">7.</span> LaTeX y Moodle: trampas conocidas</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+Los textos (enunciados, cuestiones y explicaciones) son LaTeX, aunque no
+lleven ni una fórmula. En español puedes teclear tal cual <code>á é í ó ú ñ ¿ ¡</code>
+y las comillas tipográficas <code>“ ”</code>; lo que sigue, no. <code>lint</code> lo detecta
+(<code>texto</code>; el <code>%</code> sin barra es ERROR, el resto AVISO) y lo que no detecta lo
+detecta Moodle, que es más caro.
+</p>
+
+<ul class="org-ul">
+<li><b>El símbolo <code>%</code></b>: en LaTeX empieza un comentario. Escrito tal cual («un
+25 % del valor»), se pierde el resto de la línea, el PDF de AMC sale
+vacío o roto y Moodle no compila. Escribe siempre <code>\%</code> (<code>un 25 \% del valor</code>); en Python, dentro de una cadena cruda (<code>r"…"</code>) o como <code>\\%</code>.
+<code>lint</code> lo busca también en el texto ya interpolado, así que detecta un
+<code>%</code> que venga de una variable del <code>setup</code>. Y
+si va junto a una fórmula, <b>fuera de los dólares</b>: <code>al $5$\,\%</code>, nunca
+<code>al $5\,\%$</code>, porque el paquete <code>moodle</code> deja dentro de la fórmula un <code>%</code>
+desnudo que MathJax toma por comentario (en papel se ve bien; solo se
+nota en Moodle). <code>\,</code> es un espacio fino, el que va entre la cifra y el
+símbolo.</li>
+<li><b>Comillas</b>: ni las angulares <code>«»</code> (no existen en la codificación que usa
+el paquete <code>moodle</code>: la compilación falla) ni las rectas <code>"…"</code> (salen
+como <code>”…”</code>, cerradas por los dos lados). Escribe <code>``así''</code>: dos acentos
+graves para abrir y dos apóstrofos para cerrar.</li>
+<li><b>Grados</b>: <code>$180^\circ$</code>, nunca <code>°</code> (en modo matemático deja a <code>pdflatex</code>
+colgado sin error).</li>
+<li>Fórmulas con <code>$…$</code> y <code>$$…$$</code>; nunca <code>\(…\)</code> ni <code>\[…\]</code> directamente
+(<code>qbank</code> convierte <code>$$…$$</code> en <code>\[…\]</code> al exportar a AMC). Separa dos
+expresiones en línea contiguas con un espacio (<code>$A$ $B$</code>, no <code>$A$$B$</code>).</li>
+<li><b>Tablas con <code>array</code> dentro de <code>$$…$$</code></b>, con <code>\text{}</code> en las cabeceras,
+nunca <code>tabular</code>: el paquete <code>moodle</code> no lo convierte y el alumno vería el
+código.</li>
+<li>En Python, escribe los textos con LaTeX como <b>cadenas crudas</b>
+(<code>r"$\mathcal{A}$"</code>) o dobla las barras; en JSON, cada <code>\</code> es <code>\\</code>.</li>
+<li>No cites números de lección u otras referencias al material en el texto
+de la pregunta: las preguntas deben ser autocontenidas.</li>
+<li>Comprueba cada pregunta nueva en los dos destinos: <code>make amc</code> (el PDF) y
+<code>make moodle</code> (el XML, y a ser posible una vista previa en Moodle). Si
+<code>make</code> dice «ERROR en &lt;pregunta&gt;», la causa está en el <code>.log</code> que indica:
+busca la primera línea que empieza por <code>!</code>.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orga6e0c2c" class="outline-2">
+<h2 id="orga6e0c2c"><span class="section-number-2">8.</span> Proceso de trabajo</h2>
+<div class="outline-text-2" id="text-8">
+<ol class="org-ol">
+<li>Lee el material completo e identifica los resultados que merezca la
+pena evaluar. Cuenta cuántos son; ese es el número de preguntas.</li>
+<li>Para cada uno decide el estilo (mundos, <code>setup</code> o cuestiones
+independientes) y diseña sobre papel: qué <code>Supuesto</code>, qué huecos, qué
+<code>semantica</code> y <code>precond</code>, si hace falta <code>setup</code>.</li>
+<li>Escribe la pregunta (<code>nueva_pregunta.py</code> o el JSON) y pásale <code>lint</code>.
+Un ERROR es una pregunta rota; un AVISO hay que leerlo y decidir.</li>
+<li>Genera la vista profe (<code>make amc</code>) y repasa <b>todas</b> sus entradas, no
+la primera: enunciados bien formados, número de opciones esperado,
+marcas correctas en cada mundo, varias semillas si hay <code>setup</code>. La
+vista profe imprime cada <code>exp</code> en cursiva junto a su cuestión: es el
+sitio para revisarlas (el PDF de <code>make moodle</code> también las muestra).</li>
+<li>Pasa el checklist de abajo cuestión por cuestión.</li>
+<li>Si algo falla, corrige y vuelve al paso 3; no lo dejes para después.</li>
+<li>Antes de publicar, que la lea <b>otra persona</b> sin el contexto de quien la
+escribió, contra el material: la segunda mirada encuentra fallos de
+fondo que ni <code>lint</code> ni el autor ven.</li>
+</ol>
+</div>
+<div id="outline-container-org3c046fe" class="outline-3">
+<h3 id="org3c046fe"><span class="section-number-3">8.1.</span> Checklist</h3>
+<div class="outline-text-3" id="text-8-1">
+<ul class="org-ul">
+<li class="off"><code>[&#xa0;]</code> ¿Cada elemento suelto va sin envolver en una lista de un elemento, y
+ninguna lista mezcla tipos?</li>
+<li class="off"><code>[&#xa0;]</code> ¿Cada hueco es un elemento-Cuestion (suelto o lista de alternativas),
+y hay tres huecos consecutivos + <code>last_choice</code> (o cuatro con garantía
+demostrada)?</li>
+<li class="off"><code>[&#xa0;]</code> ¿Coincide <code>nombre</code> con el nombre del fichero, sin <code>:</code> ni espacios?</li>
+<li class="off"><code>[&#xa0;]</code> ¿Usa el <code>setup</code> <code>np.random</code> (no <code>random</code>)? ¿Lleva <code>seed</code> solo si el
+<code>setup</code> sortea, y da <code>instances</code> ≥ 60 variantes, sin demasiadas
+repetidas en la vista alumno? ¿Sin <code>setup</code>, hay ≥ 16?</li>
+<li class="off"><code>[&#xa0;]</code> ¿Las negaciones tienen su axioma <code>unoDe</code>, o están formuladas en
+positivo?</li>
+<li class="off"><code>[&#xa0;]</code> ¿Cada cuestión, sola con el enunciado de su variante, tiene sentido
+pleno y verdad inequívoca? ¿Nada remite a otra alternativa?</li>
+<li class="off"><code>[&#xa0;]</code> ¿Todo símbolo está definido, y las identidades generales usan letras
+distintas de los objetos concretos?</li>
+<li class="off"><code>[&#xa0;]</code> ¿El enunciado afirma solo lo que el <code>precond</code> garantiza sobre los
+números?</li>
+<li class="off"><code>[&#xa0;]</code> ¿Cada verdadera numérica tiene su gemela falsa? ¿Las opciones
+verdaderas y falsas miden parecido?</li>
+<li class="off"><code>[&#xa0;]</code> ¿Los casos degenerados en que un distractor se vuelve cierto están
+excluidos?</li>
+<li class="off"><code>[&#xa0;]</code> ¿Cada <code>exp</code> justifica cada mundo alcanzable, sin jerga del diseño,
+sin desvelar el diseño global y sin referencias a otras alternativas?</li>
+<li class="off"><code>[&#xa0;]</code> ¿Todo <code>%</code> lleva barra (<code>\%</code>) y va fuera de los dólares? ¿Sin <code>°</code>,
+sin <code>«»</code>, sin comillas rectas? ¿Fórmulas con <code>$</code> y tablas con <code>array</code>?</li>
+<li class="off"><code>[&#xa0;]</code> En prosa: ¿cada afirmación es claramente cierta en su mundo y
+claramente falsa en los otros, sin «depende»? ¿La hipótesis del
+<code>Supuesto</code> basta para decidirla, sin suponer conocimientos que no están
+en el enunciado?</li>
+<li class="off"><code>[&#xa0;]</code> ¿Has repasado todas las entradas de la vista profe y, con <code>setup</code>,
+varias semillas?</li>
+</ul>
+
+<p>
+Si alguna casilla falla, la pregunta no está lista.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org3a5d921" class="outline-2">
+<h2 id="org3a5d921"><span class="section-number-2">9.</span> El mismo ejemplo en JSON</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+Es lo que escribe <code>save_problema</code> (o <code>nueva_pregunta.py --guardar</code>) para el
+ejemplo de la primera sección, y lo que leen <code>lint</code> y los scripts de
+<code>make</code>. Las fórmulas y las lambdas van como cadenas; las barras de LaTeX
+se doblan.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-json">{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "L-01-Monotonia",
+  "setup": null,
+  "componentes": [
+    "Sea $f$ una función ",
+    [
+      {"tipo": "Supuesto", "enunciado": "estrictamente creciente",
+       "semantica": "v('crec')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "estrictamente decreciente",
+       "semantica": "v('decr')", "precond": "True"}
+    ],
+    {"tipo": "Supuesto", "enunciado": "",
+     "semantica": "unoDe(v('crec'), v('decr'))", "precond": "True"},
+    " y sean $a &lt; b$ dos puntos de su dominio. Entonces:",
+    [
+      {"tipo": "Cuestion", "enunciado": "$f(a) &lt; f(b)$",
+       "semantica": "v('crec')", "precond": "True",
+       "exp": "Si $f$ crece, $a&lt;b$ implica $f(a)&lt;f(b)$; si decrece, $f(a)&gt;f(b)$."},
+      {"tipo": "Cuestion", "enunciado": "$f(a) &gt; f(b)$",
+       "semantica": "v('decr')", "precond": "True",
+       "exp": "Si $f$ crece, $a&lt;b$ implica $f(a)&lt;f(b)$; si decrece, $f(a)&gt;f(b)$."}
+    ],
+    {"tipo": "Cuestion", "enunciado": "$f(a) = f(b)$",
+     "semantica": "False", "precond": "True",
+     "exp": "Una función estrictamente monótona no repite valores."},
+    [
+      {"tipo": "Cuestion", "enunciado": "$f(b) - f(a) &gt; 0$",
+       "semantica": "v('crec')", "precond": "True",
+       "exp": "El signo de $f(b)-f(a)$ con $a&lt;b$ es el de la monotonía."},
+      {"tipo": "Cuestion", "enunciado": "$f(b) - f(a) &lt; 0$",
+       "semantica": "v('decr')", "precond": "True",
+       "exp": "El signo de $f(b)-f(a)$ con $a&lt;b$ es el de la monotonía."}
+    ]
+  ],
+  "export": {"last_choice": true, "cols": 2}
+}
+</pre>
+</div>
+
+<p>
+El orden de las claves da igual. Con <code>setup</code>, el campo es una cadena con
+el código y los saltos de línea como <code>\n</code>; <code>seed</code> va al nivel superior
+(<code>save_problema</code> lo omite cuando no hay; escribir <code>"seed": null</code> es
+equivalente); <code>export.instances</code> junto a <code>last_choice</code> y <code>cols</code>. Puedes añadir claves propias de nivel superior
+(<code>"_nivel": "M"</code>, <code>"_tema": "…"</code>): <code>qbank</code> las ignora, así que sirven para
+tus metadatos sin romper nada.
+</p>
+</div>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<!-- 2026-10-19 lun 23:45 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>qbank — generador de bancos de preguntas de opción múltiple</title>
+<meta name="author" content="Marcos Bujosa" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div id="content" class="content">
+<header>
+<h1 class="title">qbank — generador de bancos de preguntas de opción múltiple</h1>
+</header>
+<figure id="orgce42622">
+<a href="https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt="badge_logo.svg" class="org-svg"></a>
+
+</figure>
+
+<p>
+Genera variantes de preguntas de opción múltiple cuyas respuestas correctas se
+determinan automáticamente mediante cálculo proposicional, y exporta el
+resultado a LaTeX (AMC, exámenes en papel) o a Moodle (XML vía LaTeX).
+</p>
+
+<p>
+Es para profesores que quieren un banco de preguntas con muchas variantes de
+cada una, todas corregidas automáticamente, sin tener que comprobar a mano
+qué opción es correcta en cada variante.
+</p>
+<div id="outline-container-orgdc6f050" class="outline-2">
+<h2 id="orgdc6f050">Instalación</h2>
+<div class="outline-text-2" id="text-orgdc6f050">
+<p>
+Dentro de un entorno virtual:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install calcprop-qbank       # instala también calcprop
+</pre>
+</div>
+
+<p>
+y después, para crear un banco con cinco preguntas de ejemplo:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">qbank-init mi-banco
+cd mi-banco
+make lint          # comprueba las preguntas de ejemplo (sin LaTeX)
+make amc           # PDF de revisión (vista profe) en build/amc/
+</pre>
+</div>
+
+<p>
+El Manual (sección «Instalación paso a paso») lo explica despacio, también
+para Windows.
+</p>
+</div>
+</div>
+<div id="outline-container-org8d09bf2" class="outline-2">
+<h2 id="org8d09bf2">Qué leer, en este orden</h2>
+<div class="outline-text-2" id="text-org8d09bf2">
+<ol class="org-ol">
+<li><b>README</b> (<a href="readme.html">HTML</a>): qué hace <code>qbank</code>, cómo instalarlo y crear un
+banco con <code>qbank-init</code>, y un recorrido rápido por sus características.</li>
+<li><b>Tutorial</b> (<a href="https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb">abrir en MyBinder</a>, sin instalar nada;
+<a href="https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb">verlo en GitHub</a>): cinco ejemplos progresivos ejecutables.</li>
+<li><b>README del banco</b> (<a href="plantilla.html">HTML</a>): el que <code>qbank-init</code> deja en cada proyecto.
+Qué hay en el proyecto, el flujo de trabajo con <code>make</code>, cómo leer la vista
+profe, los caracteres que rompen la exportación y cómo llevar las preguntas
+a un examen AMC o a Moodle.</li>
+<li><b>Guía de diseño</b> (<a href="guia.html">HTML</a>, <a href="GuiaDiseno.pdf">PDF</a>): cómo diseñar buenas preguntas: la
+mecánica de listas y mundos, el patrón de tres huecos + opción por
+defecto, <code>setup</code>, redacción de cuestiones y explicaciones, trampas de
+LaTeX/Moodle y checklist.</li>
+<li><b>Manual</b> (<a href="manual.html">HTML</a>, <a href="Manual.pdf">PDF</a>): referencia completa de la API y del formato
+JSON.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org0f1daa3" class="outline-2">
+<h2 id="org0f1daa3">Enlaces</h2>
+<div class="outline-text-2" id="text-org0f1daa3">
+<ul class="org-ul">
+<li>Paquete en PyPI: <a href="https://pypi.org/project/calcprop-qbank/">calcprop-qbank</a></li>
+<li>Repositorio: <a href="https://github.com/mbujosab/calcprop-qbank">github.com/mbujosab/calcprop-qbank</a></li>
+<li>Motor lógico: <a href="https://github.com/mbujosab/calcprop">calcprop</a></li>
+</ul>
+</div>
+</div>
+</div>
+</body>
+</html>
