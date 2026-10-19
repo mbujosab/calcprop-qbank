@@ -287,7 +287,9 @@ reescribe (sin salidas, kernel `qbank`) y, con `--ejecuta`, los ejecuta con
 
 1. Incrementar `version` en `pyproject.toml`.
 2. Commit + `git tag vX.Y.Z && git push && git push --tags`.
-3. `python -m build && twine upload dist/*`.
+3. `rm -rf dist && python -m build && twine check dist/* && twine upload dist/*`
+   (borrar `dist/` antes: si quedan ficheros de versiones anteriores, `twine`
+   intentaría subirlos también).
 4. Añadir `numpy` (y cualquier dependencia nueva) a `binder/requirements.txt`
    para forzar rebuild de la imagen MyBinder.
 5. Verificar que los tres notebooks arrancan en MyBinder.
