@@ -1,0 +1,6 @@
+#!/bin/bash
+# Binder (repo2docker) ejecuta este guion tras instalar requirements.txt.
+# Los cuadernos piden el kernel «qbank» (kernelspec.name = "qbank"); repo2docker
+# solo crea «python3», así que se registra el kernel con el Python del entorno.
+set -euo pipefail
+python -m ipykernel install --user --name qbank --display-name "Python (qbank)"
