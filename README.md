@@ -30,9 +30,10 @@ Con soporte para el editor visual en Jupyter:
 pip install "calcprop-qbank[jupyter]"
 ```
 
-La versión publicada en PyPI (0.5.0) todavía no trae `qbank-init` ni
-`lint`, que necesitan la 0.6. Mientras no se publique, instala desde el
-repositorio:
+`qbank-init` y `lint` llegan con la 0.6.0: si `pip` te deja una versión
+anterior (`python -c "import qbank; print(qbank.__version__)"` falla o
+da menos de 0.6), actualiza con `pip install -U calcprop-qbank`. La
+versión en desarrollo se instala desde el repositorio:
 
 ``` bash
 pip install "calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-qbank"
@@ -49,8 +50,8 @@ tutorial sin instalar nada con la insignia de MyBinder de arriba.
 # Crear un banco de preguntas
 
 La forma recomendada de empezar es la plantilla de proyecto que se
-distribuye con el paquete (`qbank-init` necesita la versión 0.6, que aún
-no está en PyPI: instala desde el repositorio como se indica arriba):
+distribuye con el paquete (`qbank-init` necesita la versión 0.6 o
+posterior):
 
 ``` bash
 qbank-init mi-banco
@@ -338,18 +339,26 @@ la rechaza su `precond`), para localizar distractores constantes.
 
 En este orden:
 
--   `Tutorial.ipynb` — ejemplos progresivos ejecutables (también en
-    MyBinder); `ejemplosManual/Demo.ipynb` recorre la API Python.
--   `GuiaDiseno.org` (impresa en `GuiaDiseno.pdf`) — cómo diseñar buenas
-    preguntas: la mecánica de listas y mundos, el patrón de tres
-    huecos + opción por defecto, `setup`, redacción de cuestiones y
-    explicaciones, trampas de LaTeX/Moodle y checklist.
--   `Manual.org` (`Manual.pdf`) — referencia completa de la API y del
-    formato JSON.
--   `CalcPropQuiz.org` y `CalcPropExport.org` — código fuente comentado
-    (programación literate) de los módulos `_quiz`, `_json`, `_widgets`,
-    `_lint`, `_export` y `_plantilla`. Son la fuente de `src/qbank/`:
-    los `.py` se generan con `org-babel-tangle` o, sin Emacs, con
+-   [`Tutorial.ipynb`](https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb)
+    — ejemplos progresivos ejecutables (también en MyBinder);
+    [`ejemplosManual/Demo.ipynb`](https://github.com/mbujosab/calcprop-qbank/blob/main/ejemplosManual/Demo.ipynb)
+    recorre la API Python.
+-   [`GuiaDiseno.org`](https://github.com/mbujosab/calcprop-qbank/blob/main/GuiaDiseno.org)
+    (impresa en
+    [`GuiaDiseno.pdf`](https://github.com/mbujosab/calcprop-qbank/blob/main/GuiaDiseno.pdf))
+    — cómo diseñar buenas preguntas: la mecánica de listas y mundos, el
+    patrón de tres huecos + opción por defecto, `setup`, redacción de
+    cuestiones y explicaciones, trampas de LaTeX/Moodle y checklist.
+-   [`Manual.org`](https://github.com/mbujosab/calcprop-qbank/blob/main/Manual.org)
+    ([`Manual.pdf`](https://github.com/mbujosab/calcprop-qbank/blob/main/Manual.pdf))
+    — referencia completa de la API y del formato JSON.
+-   [`CalcPropQuiz.org`](https://github.com/mbujosab/calcprop-qbank/blob/main/CalcPropQuiz.org)
+    y
+    [`CalcPropExport.org`](https://github.com/mbujosab/calcprop-qbank/blob/main/CalcPropExport.org)
+    — código fuente comentado (programación literate) de los módulos
+    `_quiz`, `_json`, `_widgets`, `_lint`, `_export` y `_plantilla`. Son
+    la fuente de `src/qbank/`: los `.py` se generan con
+    `org-babel-tangle` o, sin Emacs, con
     `python tools/orgtangle.py write`; `tests/test_literate.py`
     comprueba que coinciden.
 

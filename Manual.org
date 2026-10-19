@@ -87,8 +87,9 @@ y *vista profe* (todas las cuestiones de cada hueco con sus marcas).
 pip install calcprop-qbank
 #+end_src
 
-La versión publicada en PyPI (0.5.0) todavía no trae =qbank-init= ni =lint=, que
-necesitan la 0.6. Mientras no se publique, instala desde el repositorio:
+=qbank-init= y =lint= llegan con la 0.6.0; si tenías una versión anterior,
+actualiza con =pip install -U calcprop-qbank=. La versión en desarrollo se instala
+desde el repositorio (hace falta =git=):
 
 #+begin_src bash
 pip install "calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-qbank"
@@ -158,8 +159,7 @@ Con el entorno activo:
 pip install calcprop-qbank
 #+end_src
 
-o, mientras la 0.6 no esté en PyPI (ver la sección [[*Instalación rápida (para quien ya conoce Python)]]; hace falta
-tener =git=):
+o, para la versión en desarrollo (hace falta tener =git=):
 
 #+begin_src bash
 pip install "calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-qbank"
@@ -174,7 +174,8 @@ qbank-init --help
 
 Si ves =qbank 0.6.0= (o posterior) y la ayuda de =qbank-init=, todo está en orden.
 Si en cambio sale =AttributeError: … no attribute '__version__'= o =qbank-init= no
-existe, tienes una versión anterior a la 0.6: vuelve a instalar con la orden de =git=.
+existe, tienes una versión anterior a la 0.6: actualiza con
+=pip install -U calcprop-qbank=.
 Para los PDF y el XML de Moodle hace falta
 además =pdflatex= con los paquetes =automultiplechoice= (lo instala el programa
 [[https://www.auto-multiple-choice.net/][Auto Multiple Choice]]) y =moodle= (=tlmgr install moodle= en TeX Live).
@@ -1344,8 +1345,8 @@ un cuaderno de Jupyter, sin escribir la lista de listas a mano. Requiere =ipywid
 pip install "calcprop-qbank[jupyter]"
 #+end_src
 
-(o, mientras la 0.6 no esté en PyPI, la orden con =git+https://…= de la instalación
-rápida, que ya incluye el extra =[jupyter]=).
+(la orden con =git+https://…= de la instalación rápida ya incluye el extra
+=[jupyter]=).
 
 En *JupyterLab ≥ 4* es necesario que la extensión =@jupyter-widgets/jupyterlab-manager=
 esté habilitada: compruébalo con =jupyter labextension list=. Si el widget se muestra

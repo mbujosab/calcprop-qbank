@@ -21,8 +21,8 @@ procesan; solo quedan fuera cuando se filtra con =LECCION=.
 * Requisitos
 
 - Python 3.9 o superior con =calcprop-qbank= 0.6.0 o posterior (la versión
-  que trae =qbank-init=): =pip install calcprop-qbank= o, mientras la 0.6.0
-  no esté en PyPI, =pip install git+https://github.com/mbujosab/calcprop-qbank=.
+  que trae =qbank-init=): =pip install calcprop-qbank= (o =pip install -U
+  calcprop-qbank= para actualizar una anterior).
   Si usas un entorno virtual, actívalo antes de =make=, o pasa el
   intérprete: =make amc PYTHON=/ruta/al/venv/bin/python=. Cada objetivo
   comprueba primero que ese intérprete tenga =qbank= 0.6 o posterior (un
