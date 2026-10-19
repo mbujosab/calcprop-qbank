@@ -1,4 +1,4 @@
-[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/ejemplosManual)
+[![](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb)
 
 Genera variantes de preguntas de opción múltiple cuyas respuestas
 correctas se determinan automáticamente mediante cálculo proposicional.
@@ -20,12 +20,26 @@ Con soporte para el editor visual en Jupyter:
 pip install "calcprop-qbank[jupyter]"
 ```
 
+La versión publicada en PyPI (0.5.0) todavía no trae `qbank-init` ni
+`lint`, que necesitan la 0.6. Mientras no se publique, instala desde el
+repositorio:
+
+``` bash
+pip install "calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-qbank"
+```
+
+El paquete solo instala el código. El tutorial (`Tutorial.ipynb`), la
+guía de diseño (`GuiaDiseno.org`), el manual y los ejemplos de
+`ejemplosManual/` están en el
+[repositorio](https://github.com/mbujosab/calcprop-qbank): clónalo con
+`git clone https://github.com/mbujosab/calcprop-qbank` o abre el
+tutorial sin instalar nada con la insignia de MyBinder de arriba.
+
 # Crear un banco de preguntas
 
 La forma recomendada de empezar es la plantilla de proyecto que se
-distribuye con el paquete (desde la versión 0.6.0; con una versión
-anterior, instala desde el repositorio:
-`pip install git+https://github.com/mbujosab/calcprop-qbank`):
+distribuye con el paquete (`qbank-init` necesita la versión 0.6, que aún
+no está en PyPI: instala desde el repositorio como se indica arriba):
 
 ``` bash
 qbank-init mi-banco
@@ -39,6 +53,11 @@ scripts que las exportan a AMC y Moodle, un `Makefile` (`lint`, `tabla`,
 `amc`, `amc-student`, `moodle`, `clean`, filtro `LECCION=N`) y
 `nueva_pregunta.py`, un guion para escribir una pregunta en Python y
 guardarla como JSON. Su `README.org` explica el flujo.
+
+`make` usa el intérprete `python3` del sistema. Si instalaste qbank en
+un entorno virtual, actívalo antes (`source .venv/bin/activate`) o
+indícalo con `PYTHON`: `make lint PYTHON=/ruta/al/.venv/bin/python`. Con
+un qbank antiguo en el intérprete, `make` falla con mensajes engañosos.
 
 # Uso rápido
 
@@ -105,19 +124,32 @@ variante, un par `(enunciado, cuestiones)` por parte:
 from qbank import *
 
 p = ProblemaTipo([
-    "Suponga que ",
-    [Supuesto("$A$ es verdadero, ", v("A")),
-     Supuesto("$B$ es verdadero, ", v("B"))],
-    "¿Cuál es el valor de $A$? ",
-    [Cuestion("Verdadero.", v("A")), Cuestion("Falso.", -v("A"))],
-    "¿Cuál es el valor de $B$? ",
-    [Cuestion("Verdadero.", v("B")), Cuestion("Falso.", -v("B"))],
-])
+    Supuesto("", unoDe(v("A"), v("B"))),    # axioma: exactamente una es verdadera
+    "Exactamente una de las proposiciones $A$ y $B$ es verdadera, y la verdadera es ",
+    [Supuesto("$A$.", v("A")),
+     Supuesto("$B$.", v("B"))],
+    " Sobre $A$:",                           # parte 1: tres huecos
+    [Cuestion("$A$ es verdadera.", v("A")), Cuestion("$A$ es falsa.", -v("A"))],
+    [Cuestion("$\\lnot A$ es verdadera.", -v("A")), Cuestion("$\\lnot A$ es falsa.", v("A"))],
+    [Cuestion("$A \\to B$ es verdadera.", v("A") >> v("B")),
+     Cuestion("$B \\to A$ es verdadera.", v("B") >> v("A"))],
+    "Sobre $B$:",                            # texto tras las cuestiones: parte 2
+    [Cuestion("$B$ es verdadera.", v("B")), Cuestion("$B$ es falsa.", -v("B"))],
+    [Cuestion("$\\lnot B$ es verdadera.", -v("B")), Cuestion("$\\lnot B$ es falsa.", v("B"))],
+    [Cuestion("$A \\land \\lnot B$ es verdadera.", v("A") & -v("B")),
+     Cuestion("$\\lnot A \\land B$ es verdadera.", -v("A") & v("B"))],
+], export={"last_choice": True})   # + «Ninguna de las anteriores» en cada parte
 
 for etiqueta, partes in p.por_partes():
     for enunciado, cuestiones in partes:
         ...
 ```
+
+Cada parte tiene tres huecos (una lista sortea una `Cuestion`, así que
+una sola lista daría una única opción) más la opción por defecto. Las
+negaciones `-v("A")` se deducen gracias al axioma `unoDe`; sin él,
+`lint` da ERROR `negacion`. Este ejemplo pasa `lint` sin avisos (128
+variantes).
 
 (`ProblemaMultiParte` y `SubPregunta` siguen existiendo por
 compatibilidad, pero están deprecados y devuelven un `ProblemaTipo`
@@ -146,8 +178,10 @@ p = ProblemaTipo(
 ```
 
 Con `seed` la pregunta es reproducible e `instances` fija cuántas
-realizaciones numéricas se generan (aquí 4 variantes × 15 = 60, el
-mínimo que recomienda `lint` con `setup`).
+instancias (sorteos del `setup`) se generan (aquí 4 variantes × 15 = 60,
+el mínimo que recomienda `lint` con `setup`). `seed` siembra
+`numpy.random` y `random`; usa `np.random` en el `setup`, porque los
+scripts de la vista profe solo siembran numpy.
 
 ## Persistencia en formato JSON
 
@@ -186,36 +220,49 @@ si los widgets se muestran como texto en lugar del formulario.
 
 ### Formato AMC (LaTeX)
 
-Función de bajo nivel que devuelve un bloque LaTeX listo para escribir
-al fichero:
+Las funciones de exportación **no leen** el campo `export` del problema:
+pásales `last_choice=`, `instances=` y `cols=` tú mismo. Los scripts de
+un banco creado con `qbank-init` sí lo leen.
+
+`AMCblock` y `AMC_multipart` son funciones de bajo nivel que devuelven
+un bloque LaTeX listo para escribir al fichero. Una pregunta multi-parte
+necesita `AMC_multipart` (un único `questionmult` con un bloque de
+casillas por parte): un `AMCblock` por parte daría identificadores
+duplicados y la segunda parte sin las hipótesis.
 
 ``` python
 with open("preguntas.tex", "w") as f:
     for etiqueta, partes in p.por_partes():
-        for enunciado, cuestiones in partes:
-            f.write(AMCblock("MiCuestionario", etiqueta, enunciado, cuestiones))
+        if len(partes) > 1:
+            f.write(AMC_multipart("MiCuestionario", etiqueta, "", partes, last_choice=True))
+        else:
+            f.write(AMCblock("MiCuestionario", etiqueta, partes[0][0], partes[0][1],
+                             last_choice=True))
 ```
 
-Vista profe (todas las cuestiones de cada hueco, con marcas):
+Vista profe (todas las cuestiones de cada hueco, con marcas; usa
+`AMC_multipart` cuando hace falta):
 
 ``` python
-n = QuizAMCProfe("MiCuestionario", "exportaciones/", p)
+import os
+os.makedirs("exportaciones", exist_ok=True)
+
+n = QuizAMCProfe("MiCuestionario", "exportaciones", p, last_choice=True)
 print(f"{n} bloque(s) escritos")
 ```
-
-Para preguntas multi-parte, `AMC_multipart(nombre, etiqueta, "", partes,
-last_choice=…, cols=…)` produce un único `questionmult` con un bloque de
-casillas por parte.
 
 ### Formato Moodle (XML vía LaTeX)
 
 ``` python
+import os
+os.makedirs("exportaciones", exist_ok=True)
+
 # Vista alumno
 n = QuizMoodle("MiCuestionario", "exportaciones/", p, last_choice=True)
 print(f"{n} variante(s) escritas")
 
 # Vista profe (fracciones de puntuación visibles)
-QuizMoodleProfe("MiCuestionario", "exportaciones/", p)
+QuizMoodleProfe("MiCuestionario", "exportaciones/", p, last_choice=True)
 
 # Con paquete LaTeX adicional y texto de la opción por defecto personalizados
 QuizMoodle("MiCuestionario", "exportaciones/", p,
@@ -252,9 +299,9 @@ nada ni compilar LaTeX y devuelve una lista de
 ``` python
 from qbank import lint, tabla_mundos
 
-for a in lint("preguntas/L-01-ejemplo.json"):
+for a in lint("preguntas/L-01-FuncionMonotona.json"):
     print(a)
-print(tabla_mundos("preguntas/L-01-ejemplo.json"))   # Cuestion × mundo
+print(tabla_mundos("preguntas/L-01-FuncionMonotona.json"))   # Cuestion × mundo
 ```
 
 Desde la línea de órdenes (código de salida 1 si hay algún `ERROR`):
