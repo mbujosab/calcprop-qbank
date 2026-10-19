@@ -359,7 +359,7 @@ están incorporadas en lo que sigue. Suite: 128 → 160 tests.
 - Regla de =lint= «variantes distintas» (B5). Propuesta: contar variantes
   distintas (texto + marcas) y avisar si son muchas menos que las totales.
   =ej_e_lambda= con 60 instancias solo genera 11.
-- Kernel =qbank= en MyBinder (B7): =postBuild= añadido, sin probar → Fase 5.
+- Kernel =qbank= en MyBinder (B7): =postBuild= añadido; comprobado por Marcos el 19 de octubre de 2026 tras publicar la 0.6.0: el Tutorial arranca y ejecuta sin errores.
 - Propuestas de =lint= aplazadas (falsos negativos de gravedad baja):
   - =unoDe= condicional (=v('C') >> unoDe(…)=) aceptado como deducible.
   - =5\\%= (salto de línea + comentario) no detectado.
