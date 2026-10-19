@@ -22,6 +22,9 @@
 #+LATEX_HEADER: \newunicodechar{≥}{$\geq$}
 #+LATEX_HEADER: \usepackage{etoolbox}
 #+LATEX_HEADER: \AtBeginEnvironment{verbatim}{\small}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LATEX_HEADER: \definecolor{enlace}{RGB}{0,70,130}
+#+LATEX_HEADER: \hypersetup{colorlinks=true,linkcolor=enlace,urlcolor=enlace,citecolor=enlace}
 
 Esta guía explica *cómo diseñar buenas preguntas* con =qbank=: qué hace el
 motor con lo que escribes, qué patrón de pregunta conviene adoptar y qué
@@ -88,13 +91,17 @@ uno como su propia lista de alternativas), más la opción por defecto si
 =export.last_choice= está activo.
 #+end_quote
 
+En el esquema siguiente, =S1=, =S2=, =S3= son objetos =Supuesto= y =C1a=,
+=C1b=, =C2=, … son objetos =Cuestion=; las cadenas entre comillas son texto
+fijo:
+
 #+begin_example
-  [ "Enunciado ",
-    [ S1, S2, S3 ],          ← lista de Supuesto: 3 mundos, se sortea uno
-    " Entonces:",
-    [ C1a, C1b ],            ← hueco 1: se muestra una de las dos
-    C2,                      ← hueco 2: se muestra siempre
-    [ C3a, C3b, C3c ] ]      ← hueco 3: se muestra una de las tres
+  [ "Enunciado ",             ← cadena: texto fijo, aparece siempre
+    [ S1, S2, S3 ],           ← lista de Supuesto: 3 mundos, se sortea uno
+    " Entonces:",             ← cadena
+    [ C1a, C1b ],             ← hueco 1, lista de Cuestion: se muestra una de las dos
+    C2,                       ← hueco 2, Cuestion suelta: se muestra siempre
+    [ C3a, C3b, C3c ] ]       ← hueco 3, lista de Cuestion: se muestra una de las tres
 
   Variantes: 3 × 2 × 1 × 3 = 18.   Opciones por variante: 3 (+1 con last_choice).
 #+end_example
