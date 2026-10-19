@@ -48,10 +48,13 @@ def bloque(nombre, etiqueta, partes, cols):
 
 
 def bloques_profe(p, nombre):
+    """(bloques, número de mundos). Sin setup, una entrada por mundo; con
+    setup, una por caso (mundo × patrón de marcas)."""
     cols = p.export.get('cols', 1)
     if p.setup is None:
-        return [bloque(nombre, etiqueta, partes, cols)
-                for etiqueta, partes in p.por_partes_profe(verbose=False)]
+        bloques = [bloque(nombre, etiqueta, partes, cols)
+                   for etiqueta, partes in p.por_partes_profe(verbose=False)]
+        return bloques, len(bloques)
     p.seed = None                       # manda la semilla de cada sorteo
     bloques, mundos, casos = [], {}, {}
     for sorteo in range(config.N_SORTEOS_PROFE):
@@ -67,21 +70,25 @@ def bloques_profe(p, nombre):
             if len(casos) >= config.MAX_CASOS_PROFE:
                 print(f'  AVISO: {nombre} tiene más de {config.MAX_CASOS_PROFE} casos distintos; '
                       'se imprimen los primeros')
-                return bloques
+                return bloques, len(mundos)
             m = mundos.setdefault(mundo, len(mundos) + 1)
             k = sum(1 for mu, _ in casos if mu == mundo) + 1
             casos[(mundo, marcas)] = (m, k)
             bloques.append(bloque(nombre, f'mundo{m}-caso{k}', partes, cols))
-    return bloques
+    return bloques, len(mundos)
 
 
 sin_variantes = []
 for ruta in preguntas(args.leccion):
     nombre = ruta.stem
-    bloques = bloques_profe(load_problema(str(ruta)), nombre)
+    p = load_problema(str(ruta))
+    bloques, n_mundos = bloques_profe(p, nombre)
     cambiado = escribe_si_cambia(SALIDA / f'{nombre}.tex', ''.join(bloques))
     escribe_si_cambia(SALIDA / f'{nombre}-doc.tex', documento_amc(nombre, explain=True))
-    print(f'  {nombre}.tex  ({len(bloques)} caso(s){"" if cambiado else ", sin cambios"})')
+    # La vista profe tiene una entrada por mundo; con setup, una por caso.
+    cuenta = (f'{n_mundos} mundo(s)' if p.setup is None
+              else f'{n_mundos} mundo(s), {len(bloques)} caso(s)')
+    print(f'  {nombre}.tex  ({cuenta}{"" if cambiado else ", sin cambios"})')
     if not bloques:
         sin_variantes.append(nombre)
         print(f'  ERROR: {nombre} no produce ninguna variante válida (pasa make lint)')

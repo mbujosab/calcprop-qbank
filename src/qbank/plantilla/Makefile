@@ -2,6 +2,7 @@
 # Objetivos:
 #   make lint         — comprueba las preguntas con qbank.lint (sin LaTeX)
 #   make tabla PREGUNTA=L-01-Nombre — lint de una pregunta con su tabla de mundos
+#                       (con o sin .json)
 #   make amc          — build/amc/<pregunta>.pdf: vista profe (todas las cuestiones con marcas)
 #   make amc-student  — build/amc-student/<pregunta>.pdf: vista alumno (variantes)
 #   make moodle       — build/moodle/<pregunta>-moodle.xml (+ PDF de revisión) y
@@ -12,8 +13,8 @@
 # LECCION limita cualquier objetivo a las preguntas L-NN-* de esas lecciones:
 #   make amc LECCION=2        make lint LECCION=2-3        make moodle LECCION=1,3
 #
-# PYTHON es el intérprete que tiene instalado qbank (por defecto, python3 del
-# PATH: activa el entorno virtual antes, o pasa PYTHON=/ruta/al/venv/bin/python).
+# PYTHON es el intérprete que tiene instalado qbank >= 0.6 (por defecto, python3
+# del PATH: activa el entorno virtual antes, o pasa PYTHON=/ruta/al/venv/bin/python).
 #
 # Solo se recompila lo que ha cambiado: los scripts gen_*.py reescriben un .tex
 # únicamente si su contenido cambia, y cada PDF/XML depende de su .tex.
@@ -28,19 +29,28 @@ NOMBRES      := $(shell $(PYTHON) scripts/_comun.py --leccion "$(LECCION)")
 
 all: amc amc-student moodle
 
-# ¿Tiene qbank el intérprete elegido? Si no, el mensaje dice qué hacer.
+# ¿Tiene el intérprete elegido un qbank reciente (con qbank.lint y versión >=
+# QBANK_MIN)? Un python3 del sistema puede cargar un qbank viejo (p. ej. de
+# ~/.local) que no lo tiene: el mensaje dice qué hacer.
+QBANK_MIN := 0.6
 comprueba:
-	@$(PYTHON) -c "import qbank" 2>/dev/null || { \
-	  echo "ERROR: qbank no está instalado en '$(PYTHON)'."; \
-	  echo "       Activa el entorno virtual o usa: make ... PYTHON=/ruta/al/venv/bin/python"; \
+	@$(PYTHON) -c "import re, qbank, qbank.lint; \
+	  v = getattr(qbank, '__version__', '0'); \
+	  n = tuple(int(x) for x in re.findall(r'\d+', v)[:2]); \
+	  raise SystemExit(0 if not n or n >= tuple(int(x) for x in '$(QBANK_MIN)'.split('.')) else 1)" \
+	  2>/dev/null || { \
+	  echo "ERROR: qbank no está instalado en '$(PYTHON)', o es anterior a la $(QBANK_MIN)."; \
+	  echo "       Activa el entorno virtual del banco o usa: make ... PYTHON=/ruta/al/venv/bin/python"; \
 	  exit 1; }
 
 lint: comprueba
-	$(PYTHON) -m qbank.lint $(addprefix preguntas/,$(addsuffix .json,$(NOMBRES)))
+	@if test -z "$(NOMBRES)"; then echo "lint: no hay preguntas que comprobar$(if $(LECCION), en LECCION=$(LECCION))"; \
+	 else $(PYTHON) -m qbank.lint $(addprefix preguntas/,$(addsuffix .json,$(NOMBRES))); fi
 
+# PREGUNTA admite el nombre con o sin .json (y con preguntas/ delante).
 tabla: comprueba
-	@test -n "$(PREGUNTA)" || { echo "uso: make tabla PREGUNTA=L-01-Nombre (sin .json)"; exit 1; }
-	$(PYTHON) -m qbank.lint preguntas/$(PREGUNTA).json --tabla
+	@test -n "$(PREGUNTA)" || { echo "uso: make tabla PREGUNTA=L-01-Nombre"; exit 1; }
+	$(PYTHON) -m qbank.lint preguntas/$(notdir $(PREGUNTA:.json=)).json --tabla
 
 # Antes de exportar, lint: un ERROR (p. ej. un «%» sin barra, que LaTeX toma
 # por comentario y no siempre delata) detiene la exportación.

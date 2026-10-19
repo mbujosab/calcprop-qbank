@@ -3,15 +3,15 @@
 
 Desde la carpeta del proyecto (la que contiene preguntas/ y el Makefile):
 
-    python nueva_pregunta.py             # imprime las primeras variantes (vista profe) y el lint
+    python nueva_pregunta.py             # imprime el principio de la vista profe y el lint
     python nueva_pregunta.py --guardar   # además escribe preguntas/<NOMBRE>.json
 
 Copia este fichero con otro nombre en esta misma carpeta (o edítalo), cambia
 NOMBRE, SETUP y PREGUNTA, ejecútalo hasta que lo que imprime y el lint te
 convenzan, y guarda. A partir de ahí la pregunta vive en preguntas/<NOMBRE>.json,
 que es lo que leen make lint, make amc y make moodle; este .py puedes borrarlo o
-conservarlo como borrador. La vista profe completa (todas las variantes, en PDF)
-es la de `make amc`.
+conservarlo como borrador. La vista profe completa (una entrada por mundo y, con
+setup, por caso; en PDF) es la de `make amc`.
 
 Recordatorio de la mecánica (la trampa habitual al empezar):
   * una LISTA de Cuestion sortea UNA de ellas por variante (son alternativas);
@@ -29,7 +29,8 @@ NOMBRE = "L-00-SignoYCuadrado"     # nombre del fichero JSON (sin .json); sin ':
 
 # Código que se ejecuta antes de cada variante. Sus variables se interpolan con
 # @{nombre} en los textos y están en ns['nombre'] para las lambdas. None si no
-# hace falta. Usa np.random (no random) para que seed e instances funcionen.
+# hace falta. Usa np.random: seed siembra numpy y random, pero la vista profe de
+# los scripts (make amc, y este fichero) solo siembra numpy en cada sorteo.
 SETUP = r"""
 import numpy as np
 x = int(np.random.choice([-9, -7, -5, -3, -2, 2, 3, 5, 7, 9]))
@@ -66,12 +67,13 @@ PREGUNTA = ProblemaTipo(
 )
 
 
-MAX_VARIANTES = 4      # cuántas variantes se imprimen (la vista completa es make amc)
+MAX_VARIANTES = 4      # cuántas entradas de la vista profe se imprimen (completa: make amc)
 MAX_SORTEOS = 50       # con setup, cuántos sorteos se prueban para reunirlas
 
 
 def primeras_variantes(p, n):
-    """Las n primeras variantes de la vista profe. Con setup aleatorio recorre
+    """Las n primeras entradas de la vista profe (una por mundo; con setup, una
+    por mundo y sorteo). Con setup aleatorio recorre
     varios sorteos: un Supuesto cuya precond rechaza los números de un sorteo
     hace desaparecer la variante entera, y un solo sorteo puede no dar ninguna."""
     out = []
@@ -95,11 +97,12 @@ def primeras_variantes(p, n):
 
 
 def main(argv):
-    print(f"── {NOMBRE}: primeras {MAX_VARIANTES} variantes de la vista profe "
-          "(✓ correcta, ✗ incorrecta, · Cuestion rechazada por su precond) ──")
+    por = "mundo y sorteo" if PREGUNTA.setup is not None else "mundo"
+    print(f"── {NOMBRE}: vista profe, hasta {MAX_VARIANTES} entradas (una por {por}; "
+          "✓ correcta, ✗ incorrecta, · Cuestion rechazada por su precond) ──")
     variantes = primeras_variantes(PREGUNTA, MAX_VARIANTES)
     if not variantes:
-        print(f"\n   ninguna variante en {MAX_SORTEOS} sorteos: todos los Supuesto quedan "
+        print(f"\n   ninguna entrada en {MAX_SORTEOS} sorteos: todos los Supuesto quedan "
               "rechazados por su precond (revisa el setup y las precondiciones)")
     for i, (etiqueta, partes) in enumerate(variantes, 1):
         for enunciado, cuestiones in partes:

@@ -251,6 +251,48 @@ def test_make_sin_preguntas_termina(proyecto):
     assert r.returncode != 0 and "qbank no está instalado" in r.stdout + r.stderr
 
 
+@pytest.mark.skipif(shutil.which("make") is None, reason="sin make")
+def test_make_lint_y_tabla_comodos(proyecto):
+    def make(*args):
+        return subprocess.run(["make", *args, f"PYTHON={sys.executable}"],
+                              cwd=proyecto, capture_output=True, text=True, timeout=60)
+    r = make("lint", "LECCION=9")                       # lección sin preguntas
+    assert r.returncode == 0 and "no hay preguntas" in r.stdout, r.stdout + r.stderr
+    for pregunta in ("L-01-FuncionMonotona", "L-01-FuncionMonotona.json",
+                     "preguntas/L-01-FuncionMonotona.json"):
+        r = make("tabla", f"PREGUNTA={pregunta}")
+        assert r.returncode == 0 and "Mundos:" in r.stdout, r.stdout + r.stderr
+
+
+@pytest.mark.skipif(shutil.which("make") is None, reason="sin make")
+def test_make_rechaza_un_qbank_antiguo(proyecto, tmp_path):
+    # Un intérprete que carga un qbank viejo (como el python3 del sistema con un
+    # qbank 0.3 en ~/.local) debe dar el mensaje de PYTHON=, no fallar después.
+    for version, con_lint in (("0.5.0", True), (None, False)):
+        falso = tmp_path / f"falso-{version}"
+        (falso / "qbank").mkdir(parents=True)
+        (falso / "qbank" / "__init__.py").write_text(
+            f"__version__ = {version!r}\n" if version else "")
+        if con_lint:
+            (falso / "qbank" / "lint.py").write_text("")
+        py = tmp_path / f"python-{version}"
+        py.write_text(f"#!/bin/sh\nPYTHONPATH={falso} exec {sys.executable} \"$@\"\n")
+        py.chmod(0o755)
+        r = subprocess.run(["make", "lint", f"PYTHON={py}"], cwd=proyecto,
+                           capture_output=True, text=True, timeout=60)
+        salida = r.stdout + r.stderr
+        assert r.returncode != 0 and "anterior a la 0.6" in salida and "PYTHON=" in salida, salida
+
+
+def test_gen_amc_cuenta_mundos_y_solo_casos_con_setup(proyecto):
+    import json
+    salida = _run(proyecto, "scripts/gen_amc.py")
+    for ruta in sorted((proyecto / "preguntas").glob("L-*.json")):
+        linea = next(l for l in salida.splitlines() if f"{ruta.stem}.tex" in l)
+        con_setup = json.loads(ruta.read_text(encoding="utf-8")).get("setup") is not None
+        assert "mundo(s)" in linea and ("caso(s)" in linea) == con_setup, linea
+
+
 def test_nombre_con_guion_bajo_usa_el_grupo_sanitizado(proyecto):
     import json
     origen = proyecto / "preguntas" / "L-01-ParidadSumaProducto.json"

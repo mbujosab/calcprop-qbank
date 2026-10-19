@@ -1,8 +1,11 @@
 """Ajustes del banco. Los scripts de scripts/ importan este fichero."""
 
 # LaTeX adicional para los documentos AMC (vista profe y vista alumno):
-# paquetes, macros del curso, etc. Se inserta en el preámbulo.
+# paquetes, macros del curso, etc. Se inserta en el preámbulo. babel en español
+# parte bien las palabras (sin él, «con-stante»); es-noshorthands desactiva los
+# atajos de babel para el español (", ~, <, >), que alterarían textos y fórmulas.
 PREAMBULO_AMC = r"""
+\usepackage[spanish,es-noshorthands]{babel}
 \usepackage{amsmath,amssymb}
 """
 
