@@ -52,5 +52,3 @@ ejemplosManual/exportaciones/
 !ejemplosManual/*.json
 !ejemplosManual/*.ipynb
 
-# Carpeta local obsoleta (pendiente de borrar a mano)
-/banco_pregunas_econometria/

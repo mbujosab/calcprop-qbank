@@ -104,7 +104,7 @@ CLOSED: [2026-10-19]
 - [X] Marcadores =@var= unificados a =@{var}= en Manual, README, Demo y los
   JSON de =ejemplosManual/= (ambas formas funcionan; se documenta una).
 - [X] =.gitignore= y =CLAUDE.md= actualizados.
-- [ ] Borrar la basura local no versionada (lo hace el autor a mano):
+- [X] Borrar la basura local no versionada (hecho el 19 de octubre de 2026):
   =banco_pregunas_econometria/=, =mis_problemas/=, =tmp/=, =ejemplos/=,
   =Untitled.ipynb=, =mi_problema.json=, =problema.json=, =preguntas*.tex=,
   =*.tex= de los PDF literate.
