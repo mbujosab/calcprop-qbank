@@ -39,6 +39,8 @@
 #+LATEX_HEADER: \usepackage{xcolor}
 #+LATEX_HEADER: \definecolor{enlace}{RGB}{0,70,130}
 #+LATEX_HEADER: \hypersetup{colorlinks=true,linkcolor=enlace,urlcolor=enlace,citecolor=enlace}
+#+LATEX_HEADER: \usepackage{tabularx}
+#+LATEX_HEADER: \emergencystretch=3em   % deja que el código en línea largo no invada el margen
 
 #+TOC: headlines 2
 #+LATEX: \clearpage
@@ -93,7 +95,7 @@
   :UNNUMBERED: t
   :END:
 
-El módulo completo está compuesto varios fragmentos de código se son descritos en los siguientes capítulos.
+El módulo completo está compuesto por varios fragmentos de código que se describen en los siguientes capítulos.
 #+begin_src python :tangle src/qbank/_quiz.py :exports none
 # Copyright (C) 2020-2026  Andrés Bujosa, Marcos Bujosa
 #
@@ -140,7 +142,7 @@ Para usar este módulo, primero se debe ejecutar
 from qbank import *
 #+END_SRC
 
-El fichero =__init__.py= del paquete reúne la interfaz pública reexportando los submódulos. De =_lint= solo se exportan =lint=, =tabla_mundos= y =Aviso= (el resto es maquinaria interna y el punto de entrada de línea de órdenes). El editor visual (=_widgets=) se importa dentro de un =try/except= porque depende de =ipywidgets=, que es una dependencia opcional: si no está instalada, el resto del paquete sigue funcionando.
+El fichero =__init__.py= del paquete reúne la interfaz pública reexportando los submódulos. De =_lint= solo se exportan =lint=, =tabla_mundos= y =Aviso= (el resto es maquinaria interna y el punto de entrada de línea de órdenes). El editor visual (=_widgets=) se importa dentro de un =try/except= porque depende de =ipywidgets=, que es una dependencia opcional: si no está instalada, el resto del paquete sigue funcionando. =__version__= se lee de los metadatos del paquete instalado (=calcprop-qbank=); el =Makefile= de la plantilla lo usa para comprobar que el intérprete elegido tiene una versión reciente de =qbank=.
 
 #+begin_src python :tangle src/qbank/__init__.py :exports none
 # Copyright (C) 2020-2026  Andrés Bujosa, Marcos Bujosa
@@ -163,6 +165,12 @@ El fichero =__init__.py= del paquete reúne la interfaz pública reexportando lo
 
 #+NAME: qbank/__init__.py
 #+begin_src python :tangle src/qbank/__init__.py
+try:
+    from importlib.metadata import version as _version
+    __version__ = _version("calcprop-qbank")
+except Exception:                   # sin metadatos: p. ej. src/ en el path sin instalar
+    __version__ = "desconocida"
+
 from qbank._quiz import *
 from qbank._export import *
 from qbank._json import *
@@ -183,7 +191,7 @@ Las funciones =_ns_eval= y =_ns_interp= permiten que los atributos de =Supuesto=
 
 - =_ns_eval(val, ns)= :: si =val= es callable, lo invoca con =ns= y devuelve el resultado; si no, devuelve =val= tal cual.
 - =_ns_interp(s, ns, strict=None)= :: interpola en la cadena =s= los marcadores =@{variable}= (también se admite =@variable=, pero la documentación usa siempre la forma con llaves) usando el diccionario =ns=. Usa =string.Template.safe_substitute= con delimitador =@= (en lugar del =\$= estándar, para evitar conflictos con el modo matemático de \LaTeX{}). Los marcadores desconocidos y las llaves ={...}= de \LaTeX{} no se ven afectados. Para obtener una arroba literal en el texto, escribe =@@=. Con =strict=True= (o poniendo la variable de módulo =STRICT_INTERP= a =True=) lanza =ValueError= si tras la sustitución queda algún =@{variable}= sin resolver; =_vars_sin_resolver= es la función auxiliar que los localiza. Por defecto se mantiene el comportamiento silencioso: es =qbank.lint= quien detecta las interpolaciones fallidas.
-- =_fuente_precond(componente)= :: devuelve una representación *legible* de la precondición de un =Supuesto= o =Cuestion= para los mensajes de rechazo. Si el componente se cargó desde JSON (atributo =_json=) usa la cadena de código original (p. ej. =lambda ns: ns['a'] > ns['b']=); en otro caso recurre a =repr()= (que para una lambda definida en Python da algo como =<function <lambda> at 0x...>=). Así los avisos «=… rechazado por …=» muestran la condición y no la dirección de memoria de la función.
+- =_fuente_precond(componente)= :: devuelve una representación *legible* de la precondición de un =Supuesto= o =Cuestion= para los mensajes de rechazo. Si el componente se cargó desde JSON (atributo =_json=) usa la cadena de código original (p. ej. =lambda ns: ns['a'] > ns['b']=); en otro caso recurre a =repr()= (que para una lambda definida en Python da algo como =<function <lambda> at 0x...>=). Así los avisos de rechazo (~Supuesto: … rechazado por …~) muestran la condición y no la dirección de memoria de la función.
 - =_eval_expr(expr)= :: si =expr= es una cadena (="v('A') & v('B')"=, ="True"=, ="lambda ns: ns['x'] > 0"=) la evalúa en el espacio de nombres de =calcprop= (=_EVAL_NS=); cualquier otro valor se devuelve tal cual. Es la misma evaluación que hace el formato JSON, de modo que =Supuesto= y =Cuestion= aceptan sus semánticas y precondiciones escritas como cadenas también desde Python, y un problema así construido puede guardarse en JSON sin perder las lambdas (cuyo código fuente no es recuperable desde un objeto función).
 - =_setup_desde_str(code_str)= :: convierte el código Python de un =setup= (una cadena) en el callable que ejecuta =ProblemaTipo= al comienzo de cada variante; devuelve el diccionario de variables definidas, sin las que empiezan por guion bajo.
 
@@ -331,7 +339,7 @@ class Marcador:
 
 Además, para construir un iterador necesitamos los métodos =__iter__= y =__next__=.
 
-- =__iter__= :: El método especial =__iter__= es el encargado de hacer que un objeto sea iterable en Python, permitiendo que pueda ser utilizado directamente en bucles =for=, comprensiones de listas o cualquier contexto que requiera recorrer elementos uno a uno. Su papel preciso es devolver un objeto iterador (que puede ser el propio objeto =self= si este implementa el método =__next__=, o un objeto iterador dedicado de otra clase), estableciendo así el protocolo de iteración de Python. Al invocar este método, Python sabe exactamente cómo comenzar el recorrido de la estructura de datos, ya sea una colección nativa como una lista o una clase personalizada que hayas diseñado. Para comprender a fondo cómo implementar este método junto con el protocolo de iteración y los generadores, puede consultar la sección sobre iteradores en la [[https://www.google.com/search?q=https://docs.python.org/3/tutorial/classes.html%23iterators][Documentación Oficial de Python]].
+- =__iter__= :: El método especial =__iter__= es el encargado de hacer que un objeto sea iterable en Python, permitiendo que pueda ser utilizado directamente en bucles =for=, comprensiones de listas o cualquier contexto que requiera recorrer elementos uno a uno. Su papel preciso es devolver un objeto iterador (que puede ser el propio objeto =self= si este implementa el método =__next__=, o un objeto iterador dedicado de otra clase), estableciendo así el protocolo de iteración de Python. Al invocar este método, Python sabe exactamente cómo comenzar el recorrido de la estructura de datos, ya sea una colección nativa como una lista o una clase personalizada que hayas diseñado. Para comprender a fondo cómo implementar este método junto con el protocolo de iteración y los generadores, puede consultar la sección sobre iteradores en la [[https://docs.python.org/3/tutorial/classes.html#iterators][Documentación Oficial de Python]].
 
 - =__next__= :: El método especial =__next__= es la pieza fundamental que hace funcionar a un objeto *iterador* en Python, siendo el encargado de devolver el siguiente elemento disponible cada vez que se avanza en una secuencia. Este método es invocado automáticamente entre bastidores por la función nativa =next()= o al recorrer un bucle, y tiene la responsabilidad crucial de lanzar la excepción estándar =StopIteration= cuando se han agotado todos los elementos, lo que le indica a Python que la iteración ha terminado de forma segura. Junto con =__iter__=, conforma el protocolo de iteración completo de Python, permitiendo un control milimétrico sobre cómo se calculan y entregan los datos (incluso bajo demanda o de forma infinita). Para ver ejemplos prácticos de su implementación y entender cómo gestiona el flujo de datos, puede revisar la documentación sobre tipos iteradores en la [[https://docs.python.org/3/library/stdtypes.html#iterator-types][Referencia de la Biblioteca Estándar de Python]].
 
@@ -605,13 +613,13 @@ print("Fase 1 OK: segmentar + validar_componentes")
 
 La clase =ProblemaTipo= permite, a partir de una lista de posibles enunciados y varias listas de posibles preguntas, generar muchas variantes de ejercicios de opción múltiple por simple combinatoria. 
 Combina enunciados con una sublista de preguntas y, para cada pregunta calcula su veracidad o falsedad dados los supuestos del enunciado. 
-Si no es posible decidir la veracidad o falsedad de una pregunta para un enunciado concreto, esa combinación enunciado-pregunta es descartada.
+Si la veracidad de una pregunta no se deduce de los supuestos del enunciado, la pregunta se marca como falsa (=test()= es consecuencia lógica); la combinación solo se descarta cuando no se cumple alguna precondición.
 
 *** Implementación
 
 La clase =ProblemaTipo= es un iterador que genera todas las versiones aceptables de un problema.
 Cada variante resulta de tomar una de las opciones de cada una de las listas en =supuestos_y_cuestiones=. 
-Si la precondición de alguna de las opciones elegidas es =False= (o resulta refutable), la variante entera del problema es rechazada y se evalúa la siguiente combinación disponible.
+Si la precondición de alguna de las opciones elegidas no se deduce de las hipótesis (=test()= da =False=), la variante entera del problema es rechazada y se evalúa la siguiente combinación disponible.
 
 - El atributo =self.e= contiene la lista =supuestos_y_cuestiones=.
   El argumento =supuestos_y_cuestiones= es una lista de listas de strings, objetos =Supuesto= o objetos =Cuestion=.
@@ -647,7 +655,7 @@ class ProblemaTipo:
 
 El argumento =setup= puede ser una función sin argumentos que devuelve el diccionario de variables de la variante, o directamente el *código Python como cadena* (lo mismo que guarda el campo =setup= del JSON): en ese caso =ProblemaTipo= lo compila con =_setup_desde_str= y conserva la cadena en =_setup_str=, de modo que el problema puede guardarse con =save_problema=. Un =setup= definido como función Python no puede guardarse (su código fuente no es recuperable); es la forma recomendada solo para uso interactivo.
 
-Los argumentos =export=, =seed= y =nombre= no intervienen en la generación de variantes: son metadatos que acompañan al problema. =export= es el diccionario con las preferencias de exportación (=last_choice=, =cols=, =instances=) que guardan y leen las funciones JSON y usan los scripts de los bancos; =seed= es la semilla con la que se inicializa =numpy.random= antes de recorrer las variantes cuando el =setup= usa aleatorios, de modo que un mismo JSON produzca siempre las mismas variantes; =nombre= es el identificador del problema (el campo =nombre= del JSON, que debe coincidir con el nombre del fichero).
+Los argumentos =export=, =seed= y =nombre= no intervienen en la generación de variantes: son metadatos que acompañan al problema. =export= es el diccionario con las preferencias de exportación (=last_choice=, =cols=, =instances=) que guardan y leen las funciones JSON y usan los scripts de los bancos; =seed= es la semilla con la que se inicializan =numpy.random= y el módulo =random= (=_siembra=) antes de recorrer las variantes cuando el =setup= usa aleatorios, de modo que un mismo JSON produzca siempre las mismas variantes; =nombre= es el identificador del problema (el campo =nombre= del JSON, que debe coincidir con el nombre del fichero).
 
 Internamente, =ProblemaTipo= calcula las /partes/ del ejercicio (regla I2, vía =_plan_partes=) y genera, por cada combinación válida del marcador, la estructura =[(enunciado, cuestiones), …]= con una entrada por parte. Las hipótesis se acumulan a lo largo de /todas/ las partes: una cuestión de la parte $k$ ve los =Supuesto= de las partes anteriores.
 
@@ -660,7 +668,7 @@ Si un ejercicio multiparte se itera por la vía histórica de tres elementos, se
 
 **** Generador interno =_variantes(self)=
 
-Normaliza la lista, calcula el plan de partes (=_plan_partes=) y recorre el marcador combinatorio. Para cada variante construye un enunciado y una lista de cuestiones *por parte*, compartiendo una única lista =hipotesis= que crece a medida que se aceptan =Supuesto= (de ahí la acumulación entre partes). Si algún =Supuesto= o =Cuestion= resulta refutado, la variante completa se descarta. El contador =c= numera solo las variantes efectivamente emitidas.
+Normaliza la lista, calcula el plan de partes (=_plan_partes=) y recorre el marcador combinatorio. Para cada variante construye un enunciado y una lista de cuestiones *por parte*, compartiendo una única lista =hipotesis= que crece a medida que se aceptan =Supuesto= (de ahí la acumulación entre partes). Si la precondición de algún =Supuesto= o =Cuestion= no se deduce de las hipótesis, la variante completa se descarta. El contador =c= numera solo las variantes efectivamente emitidas.
 
 #+NAME: Generador interno de variantes por partes
 #+begin_src python :noweb no-export
@@ -690,7 +698,7 @@ El fragmento =<<Tratamiento del componente por partes>>= procesa cada =component
 
 - Una cadena se concatena al enunciado de su parte.
 - Un =Supuesto= testea su precondición contra las =hipotesis= acumuladas; si pasa, su texto se añade al enunciado de su parte y su semántica se incorpora a las =hipotesis= (visibles para las partes siguientes). Si se refuta, se descarta la variante.
-- Una =Cuestion= testea su precondición; si pasa, el par (texto, veracidad) se añade a las cuestiones de su parte. Si se refuta, se descarta la variante.
+- Una =Cuestion= testea su precondición; si pasa, la tupla =(texto, veracidad, 1, exp)= se añade a las cuestiones de su parte. Si no se deduce, se descarta la variante.
 
 #+NAME: Tratamiento del componente por partes
 #+begin_src python :noweb yes
@@ -1110,14 +1118,16 @@ print("Fase 2 OK: por_partes() separa partes y acumula hipótesis entre ellas")
 #+END_SRC
 
 
-** Clase =ProblemaTipoProfe=
+** Clase =ProblemaTipoProfe= (deprecada)
 
-Para facilitar la revisión y el mantenimiento de cada ejercicio, es preferible ver el conjunto completo de cuestiones para cada uno de los  enunciados. La clase =ProblemaTipoProfe= lo hace, indicando en cada caso si son =True= o =False= (o si serán descartadas). Para ello utiliza el procedimiento auxiliar =CuestionesJuntas=, que crea una sublista con cada =Cuestion=. De este modo, como al iterar se toma un elemento de cada una de las sublistas, se mostrarán todas las cuestiones a la vez.
+=ProblemaTipoProfe= está deprecada (emite =DeprecationWarning=): la vista profe vigente es =ProblemaTipo(...).por_partes_profe()=, que admite además ejercicios multiparte. Se conserva por compatibilidad y como explicación del mecanismo.
+
+Para facilitar la revisión y el mantenimiento de cada ejercicio, es preferible ver el conjunto completo de cuestiones para cada uno de los  enunciados. La clase =ProblemaTipoProfe= lo hace, indicando en cada caso si son =True= o =False= (o si serán descartadas). Para ello utiliza el procedimiento auxiliar =CuestionesJuntas=, que pone cada =Cuestion= en un hueco propio, de un solo elemento. De este modo, como al iterar se toma un elemento de cada hueco, se mostrarán todas las cuestiones a la vez.
 
 *** Implementación
 
 Hay dos diferencias entre el código de la clase =ProblemaTipoProfe= y el la clase  =ProblemaTipo=. 
-- La primera es que en =self.e= cada =Cuestion= aparece como único elemento de una sublista, para así lograr que se ven todas las cuestiones en cada iteración.
+- La primera es que en =self.e= cada =Cuestion= aparece como único elemento de su hueco, para así lograr que se ven todas las cuestiones en cada iteración.
 - La segunda diferencia se produce en la definición del método =__next__=, que aquí no oculta las cuestiones que sí son rechazadas cuando usamos =ProblemaTipo=.
 
 =ProblemaTipoProfe= conserva el esquema clásico de iteración (=self.l=, =self.long=, =self.i=, =self.c=) y su propio =__iter__=, ya que la vista del profesor es de una sola parte y no comparte el motor por partes de =ProblemaTipo=.
@@ -1211,17 +1221,17 @@ elif isinstance(componente, Cuestion):
 
 **** Función auxiliar =CuestionesJuntas=
 
-Este bloque de código define la función =CuestionesJuntas(lista)=, cuyo objetivo principal es *aislar cada objeto de la clase =Cuestion= dentro de su propia sublista individual*, manteniendo otros tipos de datos (como cadenas o listas de supuestos) intactos.
+Este bloque de código define la función =CuestionesJuntas(lista)=, cuyo objetivo principal es *aislar cada objeto de la clase =Cuestion= en un hueco propio, de un solo elemento*, manteniendo otros tipos de datos (como cadenas o listas de supuestos) intactos.
 
 En detalle:
 1. *=CreaLista(t)=*: Una función auxiliar que asegura que cualquier elemento sea tratado como una lista (si no lo es, lo envuelve en una para poder indexarlo).
 2. *Iteración*: Recorre cada elemento =e= de la lista de entrada =lista=.
 3. *Strings y No-Cuestiones*: Si el elemento es una cadena o si el primer elemento de su contenido (tras pasarlo por =CreaLista=) no es de tipo =Cuestion= (por ejemplo, un objeto de la clase =Supuesto=), se añade directamente a la lista resultante =p= mediante =append=.
-4. *Aislamiento de =Cuestion=*: Si el elemento es una instancia de =Cuestion= o pertenece a una lista de cuestiones, se utiliza =extend(CreaLista(e))=, lo que descompone cualquier agrupación previa de =cuestiones=, añadiendo cada =Cuestion= como una sublista independiente (y con un único elemento) dentro de =p=.
+4. *Aislamiento de =Cuestion=*: Si el elemento es una instancia de =Cuestion= o pertenece a una lista de cuestiones, se utiliza =extend(CreaLista(e))=, lo que descompone cualquier agrupación previa de =cuestiones=, añadiendo cada =Cuestion= como un hueco independiente (con un único elemento) dentro de =p=.
 
-*En resumen:* Transforma una lista mixta de modo que cada objeto =Cuestion= acabe confinado en una sublista propia. De este modo, el generador multidimensional las procesa de forma independiente y simultánea.
+*En resumen:* Transforma una lista mixta de modo que cada objeto =Cuestion= acabe en un hueco propio. De este modo, el generador multidimensional las procesa de forma independiente y simultánea.
 
-*Objetivo:* Esto permite que la clase [[Clase =ProblemaTipoProfe=][=ProblemaTipoProfe=]] muestre todas las cuestiones posibles para cada enunciado en lugar de una sola.
+*Objetivo:* Esto permite que la clase [[Clase =ProblemaTipoProfe= (deprecada)][=ProblemaTipoProfe=]] (deprecada) muestre todas las cuestiones posibles para cada enunciado en lugar de una sola.
 
 #+NAME: Metodo auxiliar para juntar cuestiones en formato para profe
 #+begin_src python :noweb yes
@@ -1693,7 +1703,7 @@ Un banco con múltiples problemas agrupa varios dicts bajo la clave ="banco"=:
 
 ** Evaluación de expresiones en el espacio de nombres de =calcprop=
 
-Las semánticas y precondiciones se guardan en JSON como cadenas de texto y se recuperan evaluándolas con =eval()= en el espacio de nombres del módulo =calcprop=. Así, expresiones como =v('A') & v('B')= se resuelven correctamente al deserializar. La evaluación la hacen =_EVAL_NS= y =_eval_expr=, definidas en =qbank._quiz= (sección «Funciones auxiliares para =setup= paramétrico»), porque los propios constructores de =Supuesto= y =Cuestion= aceptan cadenas: este módulo solo las importa. =_eval_expr= gestiona los booleanos literales antes de delegar en =eval=, de modo que ="True"= y ="False"= se convierten en =True= y =False= solo si el usuario ha escrito exactamente esas cadenas.
+Las semánticas y precondiciones se guardan en JSON como cadenas de texto y se recuperan evaluándolas con =eval()= en el espacio de nombres del módulo =calcprop=. Así, expresiones como =v('A') & v('B')= se resuelven correctamente al deserializar. La evaluación la hacen =_EVAL_NS= y =_eval_expr=, definidas en =qbank._quiz= (sección «Funciones auxiliares para =setup= paramétrico»), porque los propios constructores de =Supuesto= y =Cuestion= aceptan cadenas: este módulo solo las importa. =_eval_expr= gestiona los booleanos literales antes de delegar en =eval=, de modo que ="True"= y ="False"= (en cualquier combinación de mayúsculas y minúsculas, como ="true"= o ="FALSE"=) se convierten en =True= y =False=.
 
 ** Función de =setup= desde código Python
 
@@ -1995,6 +2005,8 @@ for etiqueta, enunciado, cuestiones in p:
 #+end_src
 
 #+begin_src jupyter-python
+import os
+os.makedirs("tmp", exist_ok=True)
 save_problema(p, "./tmp/ejemplo.json")
 p2 = load_problema("./tmp/ejemplo.json")
 for etiqueta, enunciado, cuestiones in p2:
@@ -2159,7 +2171,7 @@ Para instalarlo en el entorno virtual:
 pip install "calcprop-qbank[jupyter]"
 #+end_example
 
-En *JupyterLab ≥ 4* es necesario que la extensión =@jupyter-widgets/jupyterlab-manager= aparezca como habilitada en =jupyter labextension list=. Si los widgets muestran su representación textual (=VBox(children=...=) en lugar del formulario), el síntoma es que JupyterLab no está escaneando el directorio =share/jupyter/labextensions= del entorno virtual. La solución consiste en crear un enlace simbólico al directorio de extensiones del usuario:
+En *JupyterLab ≥ 4* es necesario que la extensión =@jupyter-widgets/jupyterlab-manager= aparezca como habilitada en =jupyter labextension list=. Si los widgets muestran su representación textual (~VBox(children=...)~ en lugar del formulario), el síntoma es que JupyterLab no está escaneando el directorio =share/jupyter/labextensions= del entorno virtual. La solución consiste en crear un enlace simbólico al directorio de extensiones del usuario:
 
 #+begin_example
 mkdir -p ~/.local/share/jupyter/labextensions/@jupyter-widgets
@@ -2242,29 +2254,29 @@ def _need_widgets():
 
 
 <<Widget de alternativa>>
-<<Widget de slot>>
+<<Widget de hueco>>
 <<Editor principal ProblemaTipoEditor>>
 #+end_src
 
 
 ** Widget de alternativa (=_AltWidget=)
 
-El widget =_AltWidget= representa una única alternativa dentro de un slot. Su *tipo* (=kind=) no lo elige la alternativa, sino que lo *fija el slot padre*: =texto=, =Supuesto= o =Cuestion=. Así un slot nunca puede mezclar tipos (invariante de homogeneidad I1). Sus campos, según el tipo, son:
+El widget =_AltWidget= representa una única alternativa dentro de un hueco. Su *tipo* (=kind=) no lo elige la alternativa, sino que lo *fija el hueco padre*: =texto=, =Supuesto= o =Cuestion=. Así un hueco nunca puede mezclar tipos (invariante de homogeneidad I1). Sus campos, según el tipo, son:
 
 - =e= (enunciado) :: texto de la alternativa (único campo del tipo =texto=).
 - =s= (semántica) :: expresión calcprop (cadena), o =True= / =False=, o una lambda para problemas paramétricos (="lambda ns: ns['x'] > 0"=); en =Supuesto= y =Cuestion=.
 - =p= (precondición) :: expresión calcprop; por defecto =True=; en =Supuesto= y =Cuestion=.
 - =x= (explicación) :: texto de feedback para Moodle; solo en =Cuestion=.
 
-Los botones ▲ / ▼ reordenan la alternativa dentro de su slot (callback =_on_move=) y ✕ la elimina (=_on_delete=). Como el tipo es fijo, ya no hay dropdown ni lógica de visibilidad: cada =_AltWidget= construye exactamente los campos que su tipo necesita. El método =raw= devuelve los datos comunes (para conservarlos si el slot cambia de tipo) y =to_json= devuelve la cadena (tipo =texto=) o el dict (=Supuesto= / =Cuestion=) que espera =problema_from_dict=.
+Los botones ▲ / ▼ reordenan la alternativa dentro de su hueco (callback =_on_move=) y ✕ la elimina (=_on_delete=). Como el tipo es fijo, ya no hay dropdown ni lógica de visibilidad: cada =_AltWidget= construye exactamente los campos que su tipo necesita. El método =raw= devuelve los datos comunes (para conservarlos si el hueco cambia de tipo) y =to_json= devuelve la cadena (tipo =texto=) o el dict (=Supuesto= / =Cuestion=) que espera =problema_from_dict=.
 
 #+NAME: Widget de alternativa
 #+begin_src python :noweb yes
 # ── Widget de una alternativa (texto | Supuesto | Cuestion) ──────────────────
 
 class _AltWidget:
-    """Una alternativa dentro de un slot. Su tipo (=kind=) lo fija el slot
-    padre, de modo que un slot nunca mezcla tipos (invariante I1)."""
+    """Una alternativa dentro de un hueco. Su tipo (=kind=) lo fija el hueco
+    padre, de modo que un hueco nunca mezcla tipos (invariante I1)."""
 
     def __init__(self, kind='Cuestion', d=None, on_delete=None, on_move=None):
         self._kind = kind
@@ -2315,7 +2327,7 @@ class _AltWidget:
         self.box = _w.HBox(fila + [up_btn, dn_btn, del_btn])
 
     def raw(self):
-        """Datos comunes de la alternativa, para conservarlos cuando el slot
+        """Datos comunes de la alternativa, para conservarlos cuando el hueco
         padre cambia de tipo."""
         d = {'enunciado': self.e.value}
         if self._kind != 'texto':
@@ -2336,29 +2348,29 @@ class _AltWidget:
 #+end_src
 
 
-** Widget de slot (=_SlotWidget=)
+** Widget de hueco (=_SlotWidget=)
 
-Un slot es uno de los «huecos» estructurales del problema: una lista de alternativas *homogéneas* de un único tipo, que =ProblemaTipo= recorre eligiendo una por variante. El dropdown =_tipo_dd= fija ese tipo y, con él, el de todas las alternativas:
+Un hueco es uno de los componentes estructurales del problema: una lista de alternativas *homogéneas* de un único tipo, que =ProblemaTipo= recorre eligiendo una por variante. El dropdown =_tipo_dd= fija ese tipo y, con él, el de todas las alternativas:
 
 - *texto*: una o varias cadenas alternativas (texto del enunciado).
 - *supuestos*: una o varias alternativas =Supuesto=.
 - *cuestiones*: una o varias alternativas =Cuestion=.
 
-Como el tipo vive en el slot (y no en cada alternativa), la homogeneidad I1 queda garantizada por construcción: ya no es posible mezclar =Supuesto= y =Cuestion= en una misma sublista. El botón =+ alt= añade una fila del tipo del slot; el =_AltWidget= la reordena (▲ / ▼, vía =_move_alt=) o elimina (✕). En la cabecera del slot, los botones ▲ / ▼ reordenan el slot entero dentro del problema (callback =_on_move= del editor), ＋ inserta un slot nuevo justo debajo (=_on_insert=, útil para añadir un slot a una parte anterior) y ✕ borra el slot. Al cambiar el tipo del slot, =_on_tipo= reconstruye las alternativas conservando los datos comunes (vía =raw=) y avisa al editor (=_on_change=) para repintar los separadores de parte.
+Como el tipo vive en el hueco (y no en cada alternativa), la homogeneidad I1 queda garantizada por construcción: ya no es posible mezclar =Supuesto= y =Cuestion= en un mismo hueco. El botón =+ alt= añade una fila del tipo del hueco; el =_AltWidget= la reordena (▲ / ▼, vía =_move_alt=) o elimina (✕). En la cabecera del hueco, los botones ▲ / ▼ reordenan el hueco entero dentro del problema (callback =_on_move= del editor), ＋ inserta un hueco nuevo justo debajo (=_on_insert=, útil para añadir un hueco a una parte anterior) y ✕ borra el hueco. Al cambiar el tipo del hueco, =_on_tipo= reconstruye las alternativas conservando los datos comunes (vía =raw=) y avisa al editor (=_on_change=) para repintar los separadores de parte.
 
-El separador =── Parte k ──= se dibuja *encima* del primer slot de cada parte, que por la regla I2 es siempre un slot de texto o supuestos posterior a un slot de cuestiones. Para que ese separador no aparezca de forma prematura mientras el docente aún encadena cuestiones, el botón =+ slot= del editor crea el nuevo slot *con el mismo tipo que el último* (véase =_add_slot=): así, tras una cuestión se añade otra cuestión (misma parte, sin separador), y la parte nueva solo se marca cuando el docente cambia explícitamente el tipo del slot a texto o supuestos.
+El separador =── Parte k ──= se dibuja *encima* del primer hueco de cada parte, que por la regla I2 es siempre un hueco de texto o supuestos posterior a un hueco de cuestiones. Para que ese separador no aparezca de forma prematura mientras el docente aún encadena cuestiones, el botón =+ hueco= del editor crea el nuevo hueco *con el mismo tipo que el último* (véase =_add_slot=): así, tras una cuestión se añade otra cuestión (misma parte, sin separador), y la parte nueva solo se marca cuando el docente cambia explícitamente el tipo del hueco a texto o supuestos.
 
-El método =to_json= devuelve el slot en el formato que espera =problema_from_dict=: una *cadena suelta* si el tipo es =texto= y hay una sola alternativa (un texto con una única alternativa se serializa como cadena directa, no dentro de una sublista), una *sublista de cadenas* si hay varias, o una *lista de dicts* para =supuestos= / =cuestiones=.
+El método =to_json= devuelve el hueco en el formato que espera =problema_from_dict=: una *cadena suelta* si el tipo es =texto= y hay una sola alternativa (un texto con una única alternativa se serializa como cadena directa, no dentro de una lista), una *lista de cadenas* si hay varias, o una *lista de dicts* para =supuestos= / =cuestiones=.
 
-#+NAME: Widget de slot
+#+NAME: Widget de hueco
 #+begin_src python :noweb yes
-# ── Widget de un slot (texto | supuestos | cuestiones) ───────────────────────
+# ── Widget de un hueco (texto | supuestos | cuestiones) ───────────────────────
 
 class _SlotWidget:
     """Un «hueco» del problema: lista de alternativas homogéneas de un único
-    tipo. El tipo del slot fija el de sus alternativas, garantizando I1."""
+    tipo. El tipo del hueco fija el de sus alternativas, garantizando I1."""
 
-    # tipo de slot -> kind de las alternativas
+    # tipo de hueco -> kind de las alternativas
     _KIND = {'texto': 'texto', 'supuestos': 'Supuesto', 'cuestiones': 'Cuestion'}
 
     def __init__(self, data=None, tipo=None, on_delete=None, on_change=None,
@@ -2370,7 +2382,7 @@ class _SlotWidget:
         self._alts = []
 
         if data is None and tipo is not None:
-            tipo_init, alts_init = tipo, []       # slot nuevo del tipo indicado
+            tipo_init, alts_init = tipo, []       # hueco nuevo del tipo indicado
         else:
             tipo_init, alts_init = self._inferir(data)
 
@@ -2378,7 +2390,7 @@ class _SlotWidget:
             options=['texto', 'supuestos', 'cuestiones'], value=tipo_init,
             layout=_w.Layout(width='110px'))
         self._lbl = _w.Label(
-            f'Slot {index + 1}', layout=_w.Layout(width='52px'))
+            f'Hueco {index + 1}', layout=_w.Layout(width='62px'))
 
         self._alts_box = _w.VBox([])
         add_btn = _w.Button(
@@ -2387,13 +2399,13 @@ class _SlotWidget:
         add_btn.on_click(lambda _: self._add_alt())
 
         up_btn = _w.Button(
-            description='▲', tooltip='subir slot',
+            description='▲', tooltip='subir hueco',
             layout=_w.Layout(width='auto', height='28px'))
         dn_btn = _w.Button(
-            description='▼', tooltip='bajar slot',
+            description='▼', tooltip='bajar hueco',
             layout=_w.Layout(width='auto', height='28px'))
         ins_btn = _w.Button(
-            description='＋', tooltip='insertar slot debajo', button_style='success',
+            description='＋', tooltip='insertar hueco debajo', button_style='success',
             layout=_w.Layout(width='auto', height='28px'))
         up_btn.on_click(lambda _: self._on_move(self, -1) if self._on_move else None)
         dn_btn.on_click(lambda _: self._on_move(self, +1) if self._on_move else None)
@@ -2412,7 +2424,7 @@ class _SlotWidget:
 
         for a in alts_init:
             self._add_alt(a)
-        if not self._alts:                        # un slot nuevo arranca con
+        if not self._alts:                        # un hueco nuevo arranca con
             self._add_alt()                       # una alternativa vacía
 
     @staticmethod
@@ -2427,7 +2439,7 @@ class _SlotWidget:
             return ('supuestos' if tipo == 'Supuesto' else 'cuestiones'), [data]
         if not data:                              # lista vacía
             return 'texto', []
-        first = data[0]                           # sublista homogénea
+        first = data[0]                           # lista homogénea
         if isinstance(first, str):
             return 'texto', list(data)
         tipo = first.get('tipo', 'Cuestion') if isinstance(first, dict) else 'Cuestion'
@@ -2470,14 +2482,14 @@ class _SlotWidget:
         self._alts_box.children = [a.box for a in self._alts]
 
     def update_label(self, i):
-        self._lbl.value = f'Slot {i + 1}'
+        self._lbl.value = f'Hueco {i + 1}'
 
     def to_json(self):
         if self._tipo_dd.value == 'texto':
             textos = [a.to_json() for a in self._alts]
             if len(textos) <= 1:                  # cadena suelta (no en [...])
                 return textos[0] if textos else ''
-            return textos                         # sublista de textos alternativos
+            return textos                         # lista de textos alternativos
         return [a.to_json() for a in self._alts]
 #+end_src
 
@@ -2493,13 +2505,14 @@ El parámetro =source= admite cuatro tipos:
 - =dict= :: se interpreta directamente como descripción del problema (en el mismo formato JSON).
 - =ProblemaTipo= :: el objeto (que debe llevar el atributo =_json= en sus componentes, es decir, debe haber sido cargado con =load_problema= o =problema_from_dict=) se serializa con =problema_to_dict= y se muestra en el editor.
 
-Los controles inferiores se disponen en *dos filas* para no saturar una sola: arriba la *previsualización* (=▶ Preview=, =vars=, casilla =vista profe=, =\{ \} JSON= y =</> .py=) y abajo el *fichero* (ruta, =💾 Guardar=, =📂 Cargar=, =⬇ .json= y =⬇ .py=).
+Los controles inferiores se disponen en *dos filas* para no saturar una sola: arriba la *previsualización* (=▶ Preview=, =vars=, casilla =vista profe=, ={ } JSON= y =</> .py=) y abajo el *fichero* (ruta, =💾 Guardar=, =📂 Cargar=, =⬇ .json= y =⬇ .py=).
 
+#+ATTR_LATEX: :environment tabularx :width \textwidth :align lX
 | Botón          | Acción                                                                              |
 |----------------+-------------------------------------------------------------------------------------|
-| =▶ Preview=    | Muestra hasta =vars= variantes *por partes* (enunciado de cada parte y, debajo, sus cuestiones). La casilla =vista profe= elige la vista y viene *marcada por defecto* (el profesor es quien edita): marcada, =por_partes_profe()= (todas las cuestiones de cada sublista, con ⊘ para las rechazadas por precondición); desmarcada, =por_partes()= (lo que ven el alumno y los exportadores, WYSIWYG). |
-| =\{ \} JSON=   | Muestra el JSON equivalente al estado actual del editor en el área de salida.       |
-| =</> .py=      | Previsualiza en el área de salida el guión Python (=problema_to_python=), análogo a =\{ \} JSON= pero con la representación =.py= (sin generar enlace de descarga). |
+| =▶ Preview=    | Muestra hasta =vars= variantes *por partes* (enunciado de cada parte y, debajo, sus cuestiones). La casilla =vista profe= elige la vista y viene *marcada por defecto* (el profesor es quien edita): marcada, =por_partes_profe()= (todas las cuestiones de cada hueco, con ⊘ para las rechazadas por precondición); desmarcada, =por_partes()= (lo que ven el alumno y los exportadores, WYSIWYG). |
+| ={ } JSON=   | Muestra el JSON equivalente al estado actual del editor en el área de salida.       |
+| =</> .py=      | Previsualiza en el área de salida el guión Python (=problema_to_python=), análogo a ={ } JSON= pero con la representación =.py= (sin generar enlace de descarga). |
 | =💾 Guardar=   | Serializa el estado actual y lo guarda en el fichero indicado en el campo =filepath=. |
 | =📂 Cargar=    | Lee el fichero indicado y actualiza el editor con su contenido.                     |
 | =⬇ .json=      | Muestra en el área de salida un enlace HTML (=data URI=, atributo =download=) para guardar el JSON en el navegador, sin ejecutar JavaScript (que JupyterLab bloquea desde un callback de botón). |
@@ -2558,10 +2571,10 @@ class ProblemaTipoEditor:
                      self._cols]),
         ])
 
-        # ── Zona de slots ──
+        # ── Zona de huecos ──
         self._slots_box = _w.VBox([])
         add_slot_btn = _w.Button(
-            description='+ slot', button_style='success',
+            description='+ hueco', button_style='success',
             layout=_w.Layout(width='85px'))
         add_slot_btn.on_click(lambda _: self._add_slot())
 
@@ -2628,7 +2641,7 @@ class ProblemaTipoEditor:
 
         _display(self._ui)
 
-    # ── Gestión de slots ──────────────────────────────────────────
+    # ── Gestión de huecos ──────────────────────────────────────────
 
     def _make_slot(self, data=None, tipo=None):
         return _SlotWidget(data=data, tipo=tipo, on_delete=self._del_slot,
@@ -2636,7 +2649,7 @@ class ProblemaTipoEditor:
                            on_insert=self._insert_slot_after)
 
     def _add_slot(self, data=None):
-        # Un slot nuevo (botón «+ slot») hereda el tipo del último, de modo que
+        # Un hueco nuevo (botón «+ hueco») hereda el tipo del último, de modo que
         # encadenar varias cuestiones no dispare un separador de parte prematuro:
         # la parte nueva solo se marca cuando el docente elige un tipo texto o
         # supuestos tras las cuestiones (inicio explícito de la nueva parte).
@@ -2645,8 +2658,8 @@ class ProblemaTipoEditor:
         self._refresh()
 
     def _insert_slot_after(self, slot):
-        # Inserta un slot nuevo justo debajo de `slot`, heredando su tipo (p. ej.
-        # para añadir otra sublista a una parte anterior antes del separador).
+        # Inserta un hueco nuevo justo debajo de `slot`, heredando su tipo (p. ej.
+        # para añadir otro hueco a una parte anterior antes del separador).
         i = self._slots.index(slot)
         self._slots.insert(i + 1, self._make_slot(tipo=slot.tipo()))
         self._refresh()
@@ -2663,7 +2676,7 @@ class ProblemaTipoEditor:
         self._refresh()
 
     def _plan_partes(self):
-        """Índice de parte de cada slot (regla I2), reutilizando la lógica
+        """Índice de parte de cada hueco (regla I2), reutilizando la lógica
         canónica de =_quiz=: un slot 'cuestiones' aporta una Cuestion; los
         demás (texto / supuestos), una cadena."""
         muestra = [Cuestion('', 'True') if s.tipo() == 'cuestiones' else ''
@@ -2768,7 +2781,7 @@ class ProblemaTipoEditor:
                 # Con la casilla «vista profe» desmarcada se usa por_partes() —la
                 # misma salida que ven el alumno y los exportadores (WYSIWYG)—;
                 # marcada, por_partes_profe() muestra TODAS las cuestiones de cada
-                # sublista y marca como rechazadas (⊘) las que no superan su
+                # hueco y marca como rechazadas (⊘) las que no superan su
                 # precondición, en vez de descartar la variante.
                 p     = self.to_problema()
                 n     = self._n_prev.value
@@ -2899,6 +2912,9 @@ class ProblemaTipoEditor:
 Al crecer los bancos de preguntas, las comprobaciones que se hacían a ojo —¿hay alguna variante con todas las opciones correctas?, ¿puede deducirse alguna vez esta negación?, ¿se ha quedado algún =@{var}= sin sustituir?— dejaron de ser viables. El módulo =_lint= las automatiza: recibe un problema (objeto, =dict= o ruta a JSON), no modifica nada ni compila \LaTeX{}, y devuelve una lista de avisos. Se usa desde Python (=lint=, =tabla_mundos=) o desde la línea de órdenes (=python -m qbank.lint=, o el script =qbank-lint= que registra =pyproject.toml=). El módulo se describe siguiendo el orden de sus secciones.
 
 ** Estructura del módulo =qbank._lint=
+   :PROPERTIES:
+   :UNNUMBERED: t
+   :END:
 
 #+begin_src python :tangle src/qbank/_lint.py :exports none
 # Copyright (C) 2020-2026  Marcos Bujosa
@@ -2991,37 +3007,51 @@ Reglas (código del aviso entre paréntesis):
 1. Garantía de mezcla (``mezcla``, ERROR): en toda variante y parte,
    ``1 <= correctas <= opciones - 1``, contando la opción por defecto si
    ``export.last_choice`` está activo (misma regla que ``AMCblock``). Si el
-   número de opciones de una parte no es constante entre variantes
-   (``opciones``, AVISO). Si una parte muestra al alumno menos de
+   número de opciones de una parte no es constante entre variantes, o una
+   parte no tiene ninguna ``Cuestion`` (``opciones``, AVISO; esa parte no
+   da además ``mezcla``). Si una parte muestra al alumno menos de
    ``MIN_OPCIONES`` (3) opciones (``pocas-opciones``, AVISO): una lista de
    ``Cuestion`` sortea UNA por variante; para mostrar varias a la vez van
    como elementos consecutivos.
-2. Número de variantes (``variantes``, AVISO): < 16 sin ``setup``; < 60 con
-   ``setup`` (contando ``instances``). Más de 300 (INFO): un solo examcopy
-   AMC con tantas variantes puede agotar la memoria de pdflatex.
+2. Número de variantes (``variantes``): ninguna variante válida, ERROR;
+   < 16 sin ``setup`` o < 60 con ``setup`` (contando ``instances``), AVISO;
+   más de 300, INFO (un solo examcopy AMC con tantas variantes puede agotar
+   la memoria de pdflatex). Si el ``setup`` o el recorrido lanzan una
+   excepción, ERROR ``ejecucion``.
 3. Tabla texto → mundo (``constante``, AVISO/INFO; ``solape``, AVISO): una
    ``Cuestion`` verdadera (o falsa) en TODOS los mundos en que puede
-   aparecer es candidata a distractor memorizable; dos ``Cuestion`` con el
-   mismo texto en el mismo slot no deberían poder aparecer en un mismo mundo.
-4. Negación sin ``unoDe`` (``negacion``, ERROR): ``-v('X')`` en una
-   ``semantica`` o ``precond`` que se evalúa con ``test()`` solo puede
-   deducirse si un ``Supuesto`` suelto declara ``unoDe(..., v('X'), ...)``.
+   aparecer es candidata a distractor memorizable (INFO si su semántica es
+   el literal True/False, o una lambda con setup: la tabla usa un solo
+   sorteo); dos ``Cuestion`` con el mismo texto en el mismo hueco no
+   deberían poder aparecer en un mismo mundo.
+4. Negación (``negacion``): ``-v('X')`` en una ``semantica`` o ``precond``
+   que se evalúa con ``test()`` solo se deduce si algún ``Supuesto`` lo
+   permite: un ``unoDe(..., v('X'), ...)`` a cualquier profundidad, o
+   ``-v('X')`` afirmado o como consecuente (``>> -v('X')``). Si no, y
+   ``v('X')`` es una alternativa de una lista, ERROR; si niega un
+   ``Supuesto`` suelto (siempre presente), AVISO: nunca será cierta.
 5. Interpolación fallida (``interp``, ERROR): ``@{...}`` que sobrevive en el
-   texto renderizado.
+   texto renderizado (salvo el escape ``@@{x}``, que da «@{x}»).
 6. Etiquetas huérfanas (``huerfana``, AVISO; ``sin-uso``, INFO). Si algún
    ``Supuesto`` tiene semántica lambda (inyecta fórmulas calculadas en el
    setup) las etiquetas no son visibles y la regla se degrada a un único
    INFO que lista las etiquetas no localizadas (incluidas las que fueran
    huérfanas de verdad: revísalas a mano).
-7. Estructura (``tipo``, ``nombre``, ``estructura``, ERROR; ``lista-1``,
-   ``seed``, ``instances``, AVISO).
+7. Estructura (``carga``, ``tipo``, ``nombre``, ``estructura``, ERROR;
+   ``lista-1``, ``seed``, ``instances``, AVISO). ``carga``: el JSON no se
+   lee o ``load_problema`` falla. ``nombre``: no coincide con el fichero,
+   lleva ``:`` o espacios (los scripts del banco ignoran esos ficheros).
+   ``estructura``: listas vacías, mixtas o anidadas; ``seed`` que no es un
+   entero (``true`` tampoco); ``export`` mal tipado.
 8. Texto (``texto``): un ``%`` sin barra es ERROR (en LaTeX empieza un
    comentario y el PDF sale vacío o roto sin que pdflatex pare); son AVISO
    ``\\%`` dentro de ``$...$`` (Moodle lo pierde), ``°``/``«»`` y comillas
    rectas ``"`` (no existen en la codificación del paquete ``moodle`` o
-   salen como ”), delimitadores ``\\( \\)``, citas a números de lección,
-   ``@{`` sin cerrar, dobles espacios, comillas simples, textos que
-   parecen código ``lambda ns:`` (desde JSON no se evalúan).
+   salen como ”), delimitadores ``\\( \\)`` y ``\\[ \\]``, citas a
+   números de lección, ``@{`` sin cerrar, dobles espacios, comillas
+   simples, textos que parecen código ``lambda ns:`` (desde JSON no se
+   evalúan). Las dos reglas de ``%`` se aplican también al texto
+   interpolado con unos sorteos del ``setup``.
 9. Setup (``setup``, INFO): instancias necesarias para llegar a 60 variantes.
 """
 
@@ -3184,7 +3214,7 @@ def _carga(x, avisos):
 
 ** Regla 7: estructura
 
-La estructura se comprueba sobre el objeto ya cargado: =validar_componentes= detecta listas vacías, mixtas o anidadas; después se avisa de las listas de un solo elemento (deberían ir sueltas), de la incoherencia entre =seed= y el uso de aleatorios en el =setup= (se busca la palabra =random= en el código), y de =export.instances > 1= sin =setup=. El =nombre= debe coincidir con el fichero (sin =.json=) y no contener =:=, que rompe =make=.
+La estructura se comprueba sobre el objeto ya cargado: =validar_componentes= detecta listas vacías, mixtas o anidadas; después se avisa de las listas de un solo elemento (deberían ir sueltas), de la incoherencia entre =seed= y el uso de aleatorios en el =setup= (se busca la palabra =random= en el código), y de =export.instances > 1= sin =setup=. El =nombre= debe coincidir con el fichero (sin =.json=) y no contener =:= ni espacios, que rompen =make= (los scripts de la plantilla ignoran esos ficheros al exportar, así que la pregunta desaparecería del banco sin más aviso). Una =seed= que no sea un entero es un error de estructura; =true= también, aunque en Python =bool= sea subclase de =int=.
 
 #+NAME: lint: Regla 7: estructura
 #+begin_src python :noweb yes
@@ -3195,6 +3225,12 @@ def _regla_estructura(p, avisos, ruta):
                             f"'nombre' ({nombre!r}) no coincide con el fichero ({ruta.stem!r})"))
     if ':' in nombre:
         avisos.append(Aviso(ERROR, 'nombre', f"'nombre' contiene ':' ({nombre!r})"))
+    fichero = ruta.name if ruta is not None else ''
+    if any(ch.isspace() for ch in nombre + fichero):
+        quien = f"el fichero ({fichero!r})" if any(ch.isspace() for ch in fichero) else f"'nombre' ({nombre!r})"
+        avisos.append(Aviso(ERROR, 'nombre',
+                            f"{quien} lleva espacios: rompen make y LaTeX, y los scripts del "
+                            "banco ignoran ese fichero al exportar"))
 
     try:
         _validar_componentes(p.e)        # listas vacías, mixtas o anidadas
@@ -3219,7 +3255,7 @@ def _regla_estructura(p, avisos, ruta):
         if not usa_random and p.seed is not None:
             avisos.append(Aviso(AVISO, 'seed', "'seed' presente sin setup aleatorio"))
 
-    if p.seed is not None and not isinstance(p.seed, int):
+    if p.seed is not None and (not isinstance(p.seed, int) or isinstance(p.seed, bool)):
         avisos.append(Aviso(ERROR, 'estructura', f"'seed' debe ser un entero, no {p.seed!r}"))
 
     export = p.export if isinstance(p.export, dict) else {}
@@ -3244,7 +3280,7 @@ def _regla_estructura(p, avisos, ruta):
 
 ** Regla 8: texto
 
-Cada comprobación de texto es un par (expresión regular, mensaje) aplicado a todos los textos literales del problema: cadenas sueltas, enunciados y explicaciones. Las expresiones evitan los falsos positivos más habituales en \LaTeX{}: =\\[= (salto de línea con espacio) no se confunde con =\[=, y las primas =$f'(x)$= o =\hat{y}'= no se toman por comillas simples. La última comprobación avisa de enunciados o explicaciones que empiezan por =lambda ns:=: desde JSON solo se evalúan =semantica= y =precond=, así que ese texto llegaría literal al alumno (el mecanismo para textos dependientes de los datos es =@{var}=, calculando el texto en el =setup=).
+Cada comprobación de texto es un par (expresión regular, mensaje) aplicado a todos los textos literales del problema: cadenas sueltas, enunciados y explicaciones. Las expresiones evitan los falsos positivos más habituales en \LaTeX{}: =\\[= (salto de línea con espacio) no se confunde con =\[=, y las primas =$f'(x)$= o =\hat{y}'= no se toman por comillas simples. La cita de un número de lección exige límite de palabra (=\blecci[oó]n=), para que «elección 2019» o «colección 2» no salten. La última comprobación avisa de enunciados o explicaciones que empiezan por =lambda ns:=: desde JSON solo se evalúan =semantica= y =precond=, así que ese texto llegaría literal al alumno (el mecanismo para textos dependientes de los datos es =@{var}=, calculando el texto en el =setup=). Las dos comprobaciones sobre =%= se repiten además sobre el texto interpolado con =_N_SORTEOS_TEXTO= (20) sorteos del =setup= (=_sorteos_ns=, sembrados con =seed= o 42 y sin alterar el estado de los generadores), porque un =%= que llega con =@{var}= (por ejemplo, con ~pct = f'{p} %'~ en el =setup=) no está en el literal; si el literal ya da el aviso, no se repite.
 
 #+NAME: lint: Regla 8: texto
 #+begin_src python :noweb yes
@@ -3280,7 +3316,7 @@ _CHECKS_TEXTO = [
      "(dos acentos graves para abrir, dos apóstrofos para cerrar)"),
     (AVISO, _re.compile(r'(?<!\\)\\[()\[\]]'),
      "delimitadores \\( \\) \\[ \\] en vez de $...$ / $$...$$"),
-    (AVISO, _re.compile(r'lecci[oó]n\s*\d', _re.IGNORECASE),
+    (AVISO, _re.compile(r'\blecci[oó]n\s*\d', _re.IGNORECASE),
      "cita un número de lección"),
     (AVISO, _re.compile(r'@\{[^}]*(?:@\{|$)'),
      "'@{' sin cerrar"),
@@ -3291,6 +3327,46 @@ _CHECKS_TEXTO = [
     (AVISO, _re.compile(r'^\s*lambda\s+ns\s*:'),
      "parece código lambda: desde JSON no se evalúa (usa @{var} y calcula el texto en setup)"),
 ]
+
+
+_CHECKS_PCT = _CHECKS_TEXTO[:2]   # los de '%': se aplican también al texto interpolado
+_N_SORTEOS_TEXTO = 20             # sorteos del setup con que se interpolan los textos
+
+
+def _aplica(check, texto):
+    """Fragmento problemático que encuentra una comprobación de texto, o None."""
+    if callable(check):
+        return check(texto)
+    m = check.search(texto)
+    return m.group(0) if m else None
+
+
+def _sorteos_ns(p, n=_N_SORTEOS_TEXTO):
+    """Hasta n espacios de nombres del setup, sembrados con ``seed`` (o 42) como
+    la tabla de mundos, sin alterar el estado de los generadores aleatorios.
+    Si el setup falla devuelve los que haya: la regla de variantes ya lo
+    informa (``ejecucion``)."""
+    if p.setup is None:
+        return []
+    import random as _random
+    estado = _random.getstate()
+    try:
+        import numpy as _np
+        estado_np = _np.random.get_state()
+    except ImportError:
+        _np = None
+    out = []
+    try:
+        _siembra(p.seed if p.seed is not None else 42)
+        for _ in range(n):
+            out.append(p.setup())
+    except Exception:                               # noqa: BLE001
+        pass
+    finally:
+        _random.setstate(estado)
+        if _np is not None:
+            _np.random.set_state(estado_np)
+    return out
 
 
 def _textos(p):
@@ -3310,16 +3386,29 @@ def _textos(p):
 
 
 def _regla_texto(p, avisos):
-    for donde, texto in _textos(p):
+    textos = _textos(p)
+    nss = _sorteos_ns(p) if any('@' in t for _, t in textos) else []
+    for donde, texto in textos:
         for nivel, check, msg in _CHECKS_TEXTO:
-            if callable(check):
-                hit = check(texto)
-            else:
-                m = check.search(texto)
-                hit = m.group(0) if m else None
+            hit = _aplica(check, texto)
             if hit:
                 avisos.append(Aviso(nivel, 'texto', f"{msg}: {_rec(hit, 30)!r}",
                                     f"{donde}: {_rec(texto)}"))
+        if '@' not in texto:
+            continue
+        # Un '%' que llega con @{var} (p. ej. pct = f'{p} %' en el setup) solo
+        # se ve en el texto interpolado; si el literal ya da el aviso, no se repite.
+        for nivel, check, msg in _CHECKS_PCT:
+            if _aplica(check, texto):
+                continue
+            for ns in nss:
+                t = _ns_interp(texto, ns)
+                hit = _aplica(check, t)
+                if hit:
+                    avisos.append(Aviso(nivel, 'texto',
+                                        f"{msg}: {_rec(hit, 30)!r} (en el texto interpolado)",
+                                        f"{donde}: {_rec(t)}"))
+                    break
 #+end_src
 
 ** Reglas 4 y 6: etiquetas
@@ -3397,7 +3486,7 @@ def _regla_etiquetas(p, avisos):
 
 ** Reglas 1, 2, 5 y 9: variantes
 
-Estas reglas recorren de verdad todas las variantes con =por_partes(instances=...)=, exactamente como hará la exportación, y aplican por parte la misma regla que =AMCblock= y =QuizMoodle= para la opción por defecto: es correcta si y solo si ninguna real lo es. La garantía de mezcla se comprueba sobre el total de opciones. Como una =Cuestion= rechazada por su precondición descarta la variante entera, el número de opciones por parte es constante en el motor actual; el aviso =opciones= queda por si eso cambiara. El aviso =pocas-opciones= (menos de =MIN_OPCIONES=, 3, opciones por parte, contando la opción por defecto) ataca el error más frecuente al empezar con =qbank=: escribir las opciones como una única lista de =Cuestion= creyendo que se mostrarán juntas, cuando una lista sortea una sola por variante. Las interpolaciones fallidas se buscan como =@{...}= superviviente en enunciados, cuestiones y explicaciones, y los avisos repetidos se agrupan por texto. Con =setup=, la regla 9 estima las instancias necesarias para llegar a 60 variantes a partir de la media de variantes por instancia. Por encima de =MAX_VARIANTES_AMC= (300) se informa de que la vista alumno de AMC, que mete todas las variantes en un único =examcopy=, puede agotar la memoria de =pdflatex= (ocurrió con 792 variantes; con 192 compila).
+Estas reglas recorren de verdad todas las variantes con ~por_partes(instances=...)~, exactamente como hará la exportación, y aplican por parte la misma regla que =AMCblock= y =QuizMoodle= para la opción por defecto: es correcta si y solo si ninguna real lo es. La garantía de mezcla se comprueba sobre el total de opciones. Como una =Cuestion= rechazada por su precondición descarta la variante entera, el número de opciones por parte es constante en el motor actual; el aviso =opciones= queda por si eso cambiara. El aviso =pocas-opciones= (menos de =MIN_OPCIONES=, 3, opciones por parte, contando la opción por defecto) ataca el error más frecuente al empezar con =qbank=: escribir las opciones como una única lista de =Cuestion= creyendo que se mostrarán juntas, cuando una lista sortea una sola por variante. Una parte sin ninguna =Cuestion= (un texto suelto tras la última) da solo el AVISO =opciones=: la garantía de mezcla no se comprueba en ella, porque sus «1 correctas de 1 opciones» serían el mismo problema repetido. Las interpolaciones fallidas se buscan como =@{...}= superviviente en enunciados, cuestiones y explicaciones, salvo las que vienen del escape =@@{x}= (que se renderiza a propósito como «@{x}»), y los avisos repetidos se agrupan por texto. Con =setup=, la regla 9 estima las instancias necesarias para llegar a 60 variantes a partir de la media de variantes por instancia. Por encima de =MAX_VARIANTES_AMC= (300) se informa de que la vista alumno de AMC, que mete todas las variantes en un único =examcopy=, puede agotar la memoria de =pdflatex= (ocurrió con 792 variantes; con 192 compila).
 
 #+NAME: lint: Reglas 1, 2, 5 y 9: variantes
 #+begin_src python :noweb yes
@@ -3428,6 +3517,8 @@ def _regla_variantes(p, avisos, instances, seed):
     n_reales = _defaultdict(set)
     mezcla   = []
     interp   = {}
+    # @@{x} es el escape documentado: se renderiza como «@{x}» a propósito
+    escapadas = {m[1:] for _, t in _textos(p) for m in _re.findall(r'@@\{[^}]*\}', t)}
     for etiqueta, partes in variantes:
         for k, (enunciado, cuestiones) in enumerate(partes):
             reales    = len(cuestiones)
@@ -3438,7 +3529,7 @@ def _regla_variantes(p, avisos, instances, seed):
                 total, corr = reales, correctas
             opciones[k].add(total)
             n_reales[k].add(reales)
-            if not (1 <= corr <= total - 1):
+            if reales and not (1 <= corr <= total - 1):    # parte vacía: solo AVISO opciones
                 mezcla.append((etiqueta, k, corr, total, enunciado))
             textos = [('enunciado', enunciado)]
             for c in cuestiones:
@@ -3447,7 +3538,8 @@ def _regla_variantes(p, avisos, instances, seed):
                     textos.append(('exp', c[3]))
             for tipo, t in textos:
                 for m in _RE_INTERP.findall(t):
-                    interp.setdefault((m, tipo, _rec(t)), etiqueta)
+                    if m not in escapadas:
+                        interp.setdefault((m, tipo, _rec(t)), etiqueta)
 
     for etiqueta, k, corr, total, enunciado in mezcla[:_MAX_REPETIDOS]:
         avisos.append(Aviso(ERROR, 'mezcla',
@@ -3498,7 +3590,7 @@ def _regla_variantes(p, avisos, instances, seed):
 
 ** Regla 3: tabla texto → mundo
 
-=_mundos= reimplementa el recorrido del motor pero solo sobre los slots de enunciado: cada combinación de =Supuesto= que supera sus precondiciones es un /mundo/, identificado por el texto visible de los =Supuesto= activos. En cada mundo se evalúan /todas/ las cuestiones candidatas (no una por slot), anotando =True=, =False= o ='rechazada'=. Con esa tabla, =_regla_mundos= avisa de las cuestiones constantes en todos los mundos en que pueden aparecer (candidatas a distractor memorizable; solo INFO si su semántica es el literal =True=/=False=, que es un distractor deliberado) y de los textos idénticos dentro de un mismo slot cuyas precondiciones se solapan. =tabla_mundos= imprime la misma información en texto plano, una fila por cuestión y una columna por mundo.
+=_mundos= reimplementa el recorrido del motor pero solo sobre los huecos de enunciado: cada combinación de =Supuesto= que supera sus precondiciones es un /mundo/, identificado por el texto visible de los =Supuesto= activos. En cada mundo se evalúan /todas/ las cuestiones candidatas (no una por hueco), anotando =True=, =False= o ='rechazada'=. Con esa tabla, =_regla_mundos= avisa de las cuestiones constantes en todos los mundos en que pueden aparecer (candidatas a distractor memorizable; solo INFO si su semántica es el literal =True=/=False=, que es un distractor deliberado, o una =lambda= en un problema con =setup=: la tabla usa un único sorteo, y en otras variantes la lambda puede cambiar de valor) y de los textos idénticos dentro de un mismo hueco cuyas precondiciones se solapan. =tabla_mundos= imprime la misma información en texto plano, una fila por cuestión y una columna por mundo.
 
 #+NAME: lint: Regla 3: tabla texto → mundo
 #+begin_src python :noweb yes
@@ -3562,6 +3654,7 @@ def _regla_mundos(p, avisos):
     if len(mundos) < 2:
         return
 
+    L = [s for _, s, _ in _slots(p)]
     for i, j, texto, literal, vals in filas:
         alcanzables = {m: v - {'rechazada'} for m, v in vals.items() if v - {'rechazada'}}
         if len(alcanzables) < 2:
@@ -3569,9 +3662,14 @@ def _regla_mundos(p, avisos):
         union = set().union(*alcanzables.values())
         if union == {True} or union == {False}:
             valor = 'verdadera' if union == {True} else 'falsa'
-            avisos.append(Aviso(INFO if literal else AVISO, 'constante',
-                                f"{valor} en los {len(alcanzables)} mundos en que aparece"
-                                + (" (semantica literal)" if literal else ""),
+            # Una semantica lambda depende del setup y la tabla usa un solo sorteo:
+            # en otras variantes puede cambiar de valor, así que solo se informa.
+            lam = p.setup is not None and callable(L[i][j].s)
+            nota = (" (semantica literal)" if literal else
+                    " en el sorteo de la tabla (semantica lambda: depende del setup y puede "
+                    "cambiar en otras variantes; compruébalo con la vista profe)" if lam else "")
+            avisos.append(Aviso(INFO if literal or lam else AVISO, 'constante',
+                                f"{valor} en los {len(alcanzables)} mundos en que aparece" + nota,
                                 _donde(i, j, texto)))
 
     por_texto = _defaultdict(list)
@@ -3738,7 +3836,7 @@ if __name__ == '__main__':
 
 * ¿Y ahora qué?
 
-*** ¿Qué tenemos?
+** ¿Qué tenemos?
 
 - Contamos con un módulo de cálculo proposicional que determina la veracidad o falsedad de cada enunciado, basada en los supuestos de cada caso particular.
 - Poseemos una metodología para programar ejercicios utilizando listas de sublistas que incluyen textos, supuestos y cuestiones.
@@ -3746,6 +3844,6 @@ if __name__ == '__main__':
 
 Con esto, hemos desarrollado un procedimiento para generar un amplio conjunto de variantes de ejercicios de opción múltiple.
 
-*** ¿Qué nos falta?
+** ¿Qué nos falta?
 
-Falta dar formato a lo que hemos desarrollado para ser usado con los estudiantes. El módulo =CalcProp-export= nos permitirá crear bancos de preguntas en formato \LaTeX{}, que podrán ser utilizados con [[https://www.auto-multiple-choice.net/][Auto Multiple Choice (AMC)]], así como también generar bancos en formato =xml= para su empleo en el entorno Moodle mediante el paquete de \LaTeX{} [[https://ctan.org/pkg/moodle][moodle]], específicamente para cuestiones de [[https://docs.moodle.org/502/en/Question_types][opción múltiple]].
+Falta dar formato a lo que hemos desarrollado para ser usado con los estudiantes. El módulo =qbank._export= (documentado en =CalcPropExport.org=) nos permitirá crear bancos de preguntas en formato \LaTeX{}, que podrán ser utilizados con [[https://www.auto-multiple-choice.net/][Auto Multiple Choice (AMC)]], así como también generar bancos en formato =xml= para su empleo en el entorno Moodle mediante el paquete de \LaTeX{} [[https://ctan.org/pkg/moodle][moodle]], específicamente para cuestiones de [[https://docs.moodle.org/502/en/Question_types][opción múltiple]].

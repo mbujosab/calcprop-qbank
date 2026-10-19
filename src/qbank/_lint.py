@@ -36,37 +36,51 @@ Reglas (código del aviso entre paréntesis):
 1. Garantía de mezcla (``mezcla``, ERROR): en toda variante y parte,
    ``1 <= correctas <= opciones - 1``, contando la opción por defecto si
    ``export.last_choice`` está activo (misma regla que ``AMCblock``). Si el
-   número de opciones de una parte no es constante entre variantes
-   (``opciones``, AVISO). Si una parte muestra al alumno menos de
+   número de opciones de una parte no es constante entre variantes, o una
+   parte no tiene ninguna ``Cuestion`` (``opciones``, AVISO; esa parte no
+   da además ``mezcla``). Si una parte muestra al alumno menos de
    ``MIN_OPCIONES`` (3) opciones (``pocas-opciones``, AVISO): una lista de
    ``Cuestion`` sortea UNA por variante; para mostrar varias a la vez van
    como elementos consecutivos.
-2. Número de variantes (``variantes``, AVISO): < 16 sin ``setup``; < 60 con
-   ``setup`` (contando ``instances``). Más de 300 (INFO): un solo examcopy
-   AMC con tantas variantes puede agotar la memoria de pdflatex.
+2. Número de variantes (``variantes``): ninguna variante válida, ERROR;
+   < 16 sin ``setup`` o < 60 con ``setup`` (contando ``instances``), AVISO;
+   más de 300, INFO (un solo examcopy AMC con tantas variantes puede agotar
+   la memoria de pdflatex). Si el ``setup`` o el recorrido lanzan una
+   excepción, ERROR ``ejecucion``.
 3. Tabla texto → mundo (``constante``, AVISO/INFO; ``solape``, AVISO): una
    ``Cuestion`` verdadera (o falsa) en TODOS los mundos en que puede
-   aparecer es candidata a distractor memorizable; dos ``Cuestion`` con el
-   mismo texto en el mismo slot no deberían poder aparecer en un mismo mundo.
-4. Negación sin ``unoDe`` (``negacion``, ERROR): ``-v('X')`` en una
-   ``semantica`` o ``precond`` que se evalúa con ``test()`` solo puede
-   deducirse si un ``Supuesto`` suelto declara ``unoDe(..., v('X'), ...)``.
+   aparecer es candidata a distractor memorizable (INFO si su semántica es
+   el literal True/False, o una lambda con setup: la tabla usa un solo
+   sorteo); dos ``Cuestion`` con el mismo texto en el mismo hueco no
+   deberían poder aparecer en un mismo mundo.
+4. Negación (``negacion``): ``-v('X')`` en una ``semantica`` o ``precond``
+   que se evalúa con ``test()`` solo se deduce si algún ``Supuesto`` lo
+   permite: un ``unoDe(..., v('X'), ...)`` a cualquier profundidad, o
+   ``-v('X')`` afirmado o como consecuente (``>> -v('X')``). Si no, y
+   ``v('X')`` es una alternativa de una lista, ERROR; si niega un
+   ``Supuesto`` suelto (siempre presente), AVISO: nunca será cierta.
 5. Interpolación fallida (``interp``, ERROR): ``@{...}`` que sobrevive en el
-   texto renderizado.
+   texto renderizado (salvo el escape ``@@{x}``, que da «@{x}»).
 6. Etiquetas huérfanas (``huerfana``, AVISO; ``sin-uso``, INFO). Si algún
    ``Supuesto`` tiene semántica lambda (inyecta fórmulas calculadas en el
    setup) las etiquetas no son visibles y la regla se degrada a un único
    INFO que lista las etiquetas no localizadas (incluidas las que fueran
    huérfanas de verdad: revísalas a mano).
-7. Estructura (``tipo``, ``nombre``, ``estructura``, ERROR; ``lista-1``,
-   ``seed``, ``instances``, AVISO).
+7. Estructura (``carga``, ``tipo``, ``nombre``, ``estructura``, ERROR;
+   ``lista-1``, ``seed``, ``instances``, AVISO). ``carga``: el JSON no se
+   lee o ``load_problema`` falla. ``nombre``: no coincide con el fichero,
+   lleva ``:`` o espacios (los scripts del banco ignoran esos ficheros).
+   ``estructura``: listas vacías, mixtas o anidadas; ``seed`` que no es un
+   entero (``true`` tampoco); ``export`` mal tipado.
 8. Texto (``texto``): un ``%`` sin barra es ERROR (en LaTeX empieza un
    comentario y el PDF sale vacío o roto sin que pdflatex pare); son AVISO
    ``\\%`` dentro de ``$...$`` (Moodle lo pierde), ``°``/``«»`` y comillas
    rectas ``"`` (no existen en la codificación del paquete ``moodle`` o
-   salen como ”), delimitadores ``\\( \\)``, citas a números de lección,
-   ``@{`` sin cerrar, dobles espacios, comillas simples, textos que
-   parecen código ``lambda ns:`` (desde JSON no se evalúan).
+   salen como ”), delimitadores ``\\( \\)`` y ``\\[ \\]``, citas a
+   números de lección, ``@{`` sin cerrar, dobles espacios, comillas
+   simples, textos que parecen código ``lambda ns:`` (desde JSON no se
+   evalúan). Las dos reglas de ``%`` se aplican también al texto
+   interpolado con unos sorteos del ``setup``.
 9. Setup (``setup``, INFO): instancias necesarias para llegar a 60 variantes.
 """
 
@@ -228,6 +242,12 @@ def _regla_estructura(p, avisos, ruta):
                             f"'nombre' ({nombre!r}) no coincide con el fichero ({ruta.stem!r})"))
     if ':' in nombre:
         avisos.append(Aviso(ERROR, 'nombre', f"'nombre' contiene ':' ({nombre!r})"))
+    fichero = ruta.name if ruta is not None else ''
+    if any(ch.isspace() for ch in nombre + fichero):
+        quien = f"el fichero ({fichero!r})" if any(ch.isspace() for ch in fichero) else f"'nombre' ({nombre!r})"
+        avisos.append(Aviso(ERROR, 'nombre',
+                            f"{quien} lleva espacios: rompen make y LaTeX, y los scripts del "
+                            "banco ignoran ese fichero al exportar"))
 
     try:
         _validar_componentes(p.e)        # listas vacías, mixtas o anidadas
@@ -252,7 +272,7 @@ def _regla_estructura(p, avisos, ruta):
         if not usa_random and p.seed is not None:
             avisos.append(Aviso(AVISO, 'seed', "'seed' presente sin setup aleatorio"))
 
-    if p.seed is not None and not isinstance(p.seed, int):
+    if p.seed is not None and (not isinstance(p.seed, int) or isinstance(p.seed, bool)):
         avisos.append(Aviso(ERROR, 'estructura', f"'seed' debe ser un entero, no {p.seed!r}"))
 
     export = p.export if isinstance(p.export, dict) else {}
@@ -309,7 +329,7 @@ _CHECKS_TEXTO = [
      "(dos acentos graves para abrir, dos apóstrofos para cerrar)"),
     (AVISO, _re.compile(r'(?<!\\)\\[()\[\]]'),
      "delimitadores \\( \\) \\[ \\] en vez de $...$ / $$...$$"),
-    (AVISO, _re.compile(r'lecci[oó]n\s*\d', _re.IGNORECASE),
+    (AVISO, _re.compile(r'\blecci[oó]n\s*\d', _re.IGNORECASE),
      "cita un número de lección"),
     (AVISO, _re.compile(r'@\{[^}]*(?:@\{|$)'),
      "'@{' sin cerrar"),
@@ -320,6 +340,46 @@ _CHECKS_TEXTO = [
     (AVISO, _re.compile(r'^\s*lambda\s+ns\s*:'),
      "parece código lambda: desde JSON no se evalúa (usa @{var} y calcula el texto en setup)"),
 ]
+
+
+_CHECKS_PCT = _CHECKS_TEXTO[:2]   # los de '%': se aplican también al texto interpolado
+_N_SORTEOS_TEXTO = 20             # sorteos del setup con que se interpolan los textos
+
+
+def _aplica(check, texto):
+    """Fragmento problemático que encuentra una comprobación de texto, o None."""
+    if callable(check):
+        return check(texto)
+    m = check.search(texto)
+    return m.group(0) if m else None
+
+
+def _sorteos_ns(p, n=_N_SORTEOS_TEXTO):
+    """Hasta n espacios de nombres del setup, sembrados con ``seed`` (o 42) como
+    la tabla de mundos, sin alterar el estado de los generadores aleatorios.
+    Si el setup falla devuelve los que haya: la regla de variantes ya lo
+    informa (``ejecucion``)."""
+    if p.setup is None:
+        return []
+    import random as _random
+    estado = _random.getstate()
+    try:
+        import numpy as _np
+        estado_np = _np.random.get_state()
+    except ImportError:
+        _np = None
+    out = []
+    try:
+        _siembra(p.seed if p.seed is not None else 42)
+        for _ in range(n):
+            out.append(p.setup())
+    except Exception:                               # noqa: BLE001
+        pass
+    finally:
+        _random.setstate(estado)
+        if _np is not None:
+            _np.random.set_state(estado_np)
+    return out
 
 
 def _textos(p):
@@ -339,16 +399,29 @@ def _textos(p):
 
 
 def _regla_texto(p, avisos):
-    for donde, texto in _textos(p):
+    textos = _textos(p)
+    nss = _sorteos_ns(p) if any('@' in t for _, t in textos) else []
+    for donde, texto in textos:
         for nivel, check, msg in _CHECKS_TEXTO:
-            if callable(check):
-                hit = check(texto)
-            else:
-                m = check.search(texto)
-                hit = m.group(0) if m else None
+            hit = _aplica(check, texto)
             if hit:
                 avisos.append(Aviso(nivel, 'texto', f"{msg}: {_rec(hit, 30)!r}",
                                     f"{donde}: {_rec(texto)}"))
+        if '@' not in texto:
+            continue
+        # Un '%' que llega con @{var} (p. ej. pct = f'{p} %' en el setup) solo
+        # se ve en el texto interpolado; si el literal ya da el aviso, no se repite.
+        for nivel, check, msg in _CHECKS_PCT:
+            if _aplica(check, texto):
+                continue
+            for ns in nss:
+                t = _ns_interp(texto, ns)
+                hit = _aplica(check, t)
+                if hit:
+                    avisos.append(Aviso(nivel, 'texto',
+                                        f"{msg}: {_rec(hit, 30)!r} (en el texto interpolado)",
+                                        f"{donde}: {_rec(t)}"))
+                    break
 
 
 # ── Reglas 4 y 6: etiquetas ──────────────────────────────────────────────────
@@ -449,6 +522,8 @@ def _regla_variantes(p, avisos, instances, seed):
     n_reales = _defaultdict(set)
     mezcla   = []
     interp   = {}
+    # @@{x} es el escape documentado: se renderiza como «@{x}» a propósito
+    escapadas = {m[1:] for _, t in _textos(p) for m in _re.findall(r'@@\{[^}]*\}', t)}
     for etiqueta, partes in variantes:
         for k, (enunciado, cuestiones) in enumerate(partes):
             reales    = len(cuestiones)
@@ -459,7 +534,7 @@ def _regla_variantes(p, avisos, instances, seed):
                 total, corr = reales, correctas
             opciones[k].add(total)
             n_reales[k].add(reales)
-            if not (1 <= corr <= total - 1):
+            if reales and not (1 <= corr <= total - 1):    # parte vacía: solo AVISO opciones
                 mezcla.append((etiqueta, k, corr, total, enunciado))
             textos = [('enunciado', enunciado)]
             for c in cuestiones:
@@ -468,7 +543,8 @@ def _regla_variantes(p, avisos, instances, seed):
                     textos.append(('exp', c[3]))
             for tipo, t in textos:
                 for m in _RE_INTERP.findall(t):
-                    interp.setdefault((m, tipo, _rec(t)), etiqueta)
+                    if m not in escapadas:
+                        interp.setdefault((m, tipo, _rec(t)), etiqueta)
 
     for etiqueta, k, corr, total, enunciado in mezcla[:_MAX_REPETIDOS]:
         avisos.append(Aviso(ERROR, 'mezcla',
@@ -579,6 +655,7 @@ def _regla_mundos(p, avisos):
     if len(mundos) < 2:
         return
 
+    L = [s for _, s, _ in _slots(p)]
     for i, j, texto, literal, vals in filas:
         alcanzables = {m: v - {'rechazada'} for m, v in vals.items() if v - {'rechazada'}}
         if len(alcanzables) < 2:
@@ -586,9 +663,14 @@ def _regla_mundos(p, avisos):
         union = set().union(*alcanzables.values())
         if union == {True} or union == {False}:
             valor = 'verdadera' if union == {True} else 'falsa'
-            avisos.append(Aviso(INFO if literal else AVISO, 'constante',
-                                f"{valor} en los {len(alcanzables)} mundos en que aparece"
-                                + (" (semantica literal)" if literal else ""),
+            # Una semantica lambda depende del setup y la tabla usa un solo sorteo:
+            # en otras variantes puede cambiar de valor, así que solo se informa.
+            lam = p.setup is not None and callable(L[i][j].s)
+            nota = (" (semantica literal)" if literal else
+                    " en el sorteo de la tabla (semantica lambda: depende del setup y puede "
+                    "cambiar en otras variantes; compruébalo con la vista profe)" if lam else "")
+            avisos.append(Aviso(INFO if literal or lam else AVISO, 'constante',
+                                f"{valor} en los {len(alcanzables)} mundos en que aparece" + nota,
                                 _donde(i, j, texto)))
 
     por_texto = _defaultdict(list)

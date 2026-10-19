@@ -169,3 +169,86 @@ class TestExpDinamico:
             contenido = Path(d, "q.tex").read_text()
         assert codchar("Porque 3+5=8.") in contenido
 
+
+
+# ---------------------------------------------------------------------------
+# Revisión de la Fase 3 (2026-10-19)
+# ---------------------------------------------------------------------------
+
+class TestOpcionPorDefectoVistaProfe:
+    """En la vista profe una cuestión rechazada lleva en c[1] el motivo (una
+    cadena, verdadera como valor lógico): no debe contar como correcta."""
+
+    def test_rechazada_no_cuenta_como_correcta(self):
+        from qbank import AMCblock
+        cuestiones = [("a", False, 1, ""), ("b", False, 1, ""), ("c", "rechazada por x", 0)]
+        s = AMCblock("X", "1", "E", cuestiones, last_choice=True, profe=True)
+        assert r"\correctchoice{Ninguna de las anteriores}" in s
+
+    def test_con_una_activa_verdadera_es_wrongchoice(self):
+        from qbank import AMCblock
+        cuestiones = [("a", True, 1, ""), ("b", False, 1, ""), ("c", "rechazada por x", 0)]
+        s = AMCblock("X", "1", "E", cuestiones, last_choice=True, profe=True)
+        assert "Ninguna de las anteriores" in s
+        assert r"\correctchoice{Ninguna de las anteriores}" not in s
+
+    def test_amc_multipart_igual(self):
+        from qbank import AMC_multipart
+        partes = [("P1", [("a", False, 1, ""), ("c", "rechazada por x", 0)]),
+                  ("P2", [("b", True, 1, "")])]
+        s = AMC_multipart("X", "1", "", partes, last_choice=True, profe=True)
+        assert s.count(r"\correctchoice{Ninguna de las anteriores}") == 1
+
+
+class TestQuizMoodleProfeLastChoiceInstances:
+    @pytest.fixture()
+    def con_setup(self):
+        return ProblemaTipo([
+            "Sea $x=@{x}$ ",
+            [Supuesto("y A. ", v("A")), Supuesto("y B. ", v("B"))],
+            Cuestion("A", v("A")), Cuestion("B", v("B")),
+        ], setup="import numpy as np\nx = int(np.random.randint(100))", seed=3)
+
+    def test_last_choice_anade_opcion_por_defecto(self, problema_simple):
+        with tempfile.TemporaryDirectory() as d:
+            QuizMoodleProfe("q", d, problema_simple, last_choice=True)
+            tex = (Path(d) / "q.tex").read_text()
+        assert codchar("Las demás opciones son falsas") in tex
+
+    def test_sin_last_choice_no_la_anade(self, problema_simple):
+        with tempfile.TemporaryDirectory() as d:
+            QuizMoodleProfe("q", d, problema_simple)
+            tex = (Path(d) / "q.tex").read_text()
+        assert codchar("Las demás opciones son falsas") not in tex
+
+    def test_last_choice_text(self, problema_simple):
+        with tempfile.TemporaryDirectory() as d:
+            QuizMoodleProfe("q", d, problema_simple, last_choice=True,
+                            last_choice_text="Ninguna es cierta")
+            tex = (Path(d) / "q.tex").read_text()
+        assert "Ninguna es cierta" in tex
+
+    def test_opcion_por_defecto_correcta_si_ninguna_lo_es(self):
+        # Mundo B con una única cuestión «A»: la opción por defecto es la correcta
+        p = ProblemaTipo(["Sea ", [Supuesto("B. ", v("B"))], Cuestion("A", v("A")),
+                          Cuestion("C", v("C"))])
+        with tempfile.TemporaryDirectory() as d:
+            QuizMoodleProfe("q", d, p, last_choice=True, last_choice_text="Ninguna")
+            tex = (Path(d) / "q.tex").read_text()
+        assert r"\item[fraction=100,\feedback={}]Ninguna" in tex
+
+    def test_mismas_variantes_que_quizmoodle(self, con_setup):
+        with tempfile.TemporaryDirectory() as d1, tempfile.TemporaryDirectory() as d2:
+            n_alu = QuizMoodle("q", d1, con_setup, last_choice=True, instances=3)
+            n_pro = QuizMoodleProfe("q", d2, con_setup, last_choice=True, instances=3)
+            alu = (Path(d1) / "q.tex").read_text()
+            pro = (Path(d2) / "q.tex").read_text()
+        assert n_alu == n_pro == 6
+        import re
+        enun = lambda t: re.findall(r"Sea \$x=\d+\$", t)
+        assert enun(alu) == enun(pro)
+
+    def test_solo_por_palabra_clave(self, problema_simple):
+        with tempfile.TemporaryDirectory() as d:
+            with pytest.raises(TypeError):
+                QuizMoodleProfe("q", d, problema_simple, True)

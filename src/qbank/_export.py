@@ -47,11 +47,11 @@ def AMCblock(nombre, etiqueta, enunciado, cuestiones,
     etiqueta         : etiqueta de la variante
     enunciado        : texto del enunciado (``$$...$$`` se convierte a ``\\[...\\]``)
     cuestiones       : lista de (texto, correcto, activa[, exp])
-    last_choice      : si True, añade opción comodín con ``\\lastchoices``
+    last_choice      : si True, añade la opción por defecto con ``\\lastchoices``
     cols             : número de columnas multicols (1 = sin multicols)
     profe            : si True, añade ``\\explain`` con cuestiones rechazadas
     aux_latex        : instrucciones LaTeX extra dentro del bloque \\element{}
-    last_choice_text : texto de la opción comodín
+    last_choice_text : texto de la opción por defecto
     """
     nombre_tex = _sanitize_name(nombre)
     s  = '\\element{' + nombre_tex + '}{' + aux_latex + '\n'
@@ -92,7 +92,7 @@ def _amc_choices(cuestiones, last_choice, cols, profe, last_choice_text):
 
     if last_choice:
         s += ' ' * 7 + '\\lastchoices\n'
-        s += ' ' * 7 + ('\\wrongchoice  {' if any(c[1] for c in cuestiones) else '\\correctchoice{') + last_choice_text + '}\n'
+        s += ' ' * 7 + ('\\wrongchoice  {' if any(c[2] and c[1] for c in cuestiones) else '\\correctchoice{') + last_choice_text + '}\n'
 
     s += ch_indent + '\\end{choices}\n'
 
@@ -203,11 +203,11 @@ def QuizMoodle(nombre, directorio, problema, last_choice=False,
     Parámetros
     ----------
     nombre           : nombre del quiz (identifica el grupo en Moodle)
-    directorio       : ruta al directorio de salida (con '/' al final)
+    directorio       : ruta al directorio de salida (con o sin '/' final)
     problema         : ProblemaTipo o dict {nombre: ProblemaTipo}
-    last_choice      : si True, añade la opción comodín «las demás son falsas»
+    last_choice      : si True, añade la opción por defecto «las demás son falsas»
     aux_latex        : cabecera LaTeX adicional (p.ej. \\usepackage{...})
-    last_choice_text : texto de la opción comodín
+    last_choice_text : texto de la opción por defecto
     instances        : número de instancias con semillas distintas (ver por_partes())
 
     Retorna
@@ -230,22 +230,29 @@ def QuizMoodle(nombre, directorio, problema, last_choice=False,
         f.write("\\end{quiz}\n\n\\end{document}\n")
     return count
 
-def QuizMoodleProfe(nombre, directorio, problema, *, aux_latex=""):
+def QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="",
+                    last_choice=False, instances=1,
+                    last_choice_text="Las demás opciones son falsas"):
     """Vista profe para Moodle: mismas variantes que el alumno con fracciones visibles.
 
-    Exporta exactamente las mismas variantes que QuizMoodle pero con el esquema
-    de corrección visible (porcentajes de puntuación por opción). Útil para que
-    el profesor revise cómo puntúa Moodle cada variante.
+    Exporta las mismas variantes que QuizMoodle con los mismos last_choice e
+    instances, pero con el esquema de corrección visible (porcentajes de
+    puntuación por opción). Útil para que el profesor revise cómo puntúa
+    Moodle cada variante.
 
-    Para la vista aplanada (todas las cuestiones de cada sublista con marcas),
-    usa QuizAMCProfe() que genera un PDF AMC con \\explain{} para rechazadas.
+    Para ver todas las cuestiones de cada hueco con sus marcas, usa
+    QuizAMCProfe(), que genera un PDF AMC con \\explain{} para las rechazadas.
 
     Parámetros
     ----------
-    nombre      : nombre del quiz (identifica el grupo en Moodle)
-    directorio  : ruta al directorio de salida (con '/' al final)
-    problema    : ProblemaTipo o dict {nombre: ProblemaTipo}
-    aux_latex   : cabecera LaTeX adicional (p.ej. \\usepackage{...})
+    nombre           : nombre del quiz (identifica el grupo en Moodle)
+    directorio       : ruta al directorio de salida (con o sin '/' final)
+    problema         : ProblemaTipo o dict {nombre: ProblemaTipo}
+    aux_latex        : cabecera LaTeX adicional (p.ej. \\usepackage{...})
+    last_choice      : si True, añade la opción por defecto (correcta solo si
+                       las demás son falsas), como QuizMoodle(last_choice=True)
+    instances        : número de instancias con semillas distintas (ver por_partes())
+    last_choice_text : texto de la opción por defecto
 
     Retorna
     -------
@@ -254,12 +261,19 @@ def QuizMoodleProfe(nombre, directorio, problema, *, aux_latex=""):
     def creaDiccionario(x, key='key'):
         return x if isinstance(x, dict) else {key: x}
     problema = creaDiccionario(problema, nombre)
+
+    def cuerpo(cuestiones):
+        if last_choice:
+            ninguna = not any(c[2] and c[1] for c in cuestiones)
+            cuestiones = cuestiones + [(last_choice_text, ninguna, 1, '')]
+        return _ClozeMultiProfe(cuestiones)
+
     count = 0
     with open(_os.path.join(directorio, nombre + ".tex"), "w") as f:
         f.write(_moodle_header(nombre, auxLaTeX=aux_latex))
         for nom in problema:
-            for etiqueta, partes in problema[nom].por_partes():
-                f.write(_ClozeBlock(nom, etiqueta, partes, _ClozeMultiProfe))
+            for etiqueta, partes in problema[nom].por_partes(instances=instances):
+                f.write(_ClozeBlock(nom, etiqueta, partes, cuerpo))
                 count += 1
         f.write("\\end{quiz}\n\n\\end{document}\n")
     return count
@@ -268,9 +282,9 @@ def QuizMoodleProfe(nombre, directorio, problema, *, aux_latex=""):
 def QuizAMCProfe(nombre, directorio, problema, cols=1, *,
                  last_choice=False, aux_latex="",
                  last_choice_text="Ninguna de las anteriores"):
-    """Vista profe aplanada para AMC: todas las cuestiones de cada sublista.
+    """Vista profe para AMC: todas las cuestiones de cada hueco.
 
-    Usa por_partes_profe() para mostrar TODAS las cuestiones de cada sublista
+    Usa por_partes_profe() para mostrar TODAS las cuestiones de cada hueco
     (no solo la seleccionada para el alumno) con marcas de correcto/incorrecto.
     Las cuestiones rechazadas por precondición aparecen en \\explain{}.
 
@@ -280,12 +294,12 @@ def QuizAMCProfe(nombre, directorio, problema, cols=1, *,
     Parámetros
     ----------
     nombre           : identificador del grupo AMC
-    directorio       : ruta al directorio de salida (con '/' al final)
+    directorio       : ruta al directorio de salida (con o sin '/' final)
     problema         : ProblemaTipo o dict {nombre: ProblemaTipo}
     cols             : número de columnas multicols (1 = sin multicols)
-    last_choice      : si True, añade la opción comodín (como en la vista alumno)
+    last_choice      : si True, añade la opción por defecto (como en la vista alumno)
     aux_latex        : instrucciones LaTeX extra dentro del bloque \\element{}
-    last_choice_text : texto de la opción comodín (solo con last_choice)
+    last_choice_text : texto de la opción por defecto (solo con last_choice)
 
     Retorna
     -------

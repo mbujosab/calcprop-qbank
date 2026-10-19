@@ -426,3 +426,128 @@ class TestPendiente:
 
     def test_menos_de_300_sin_info(self):
         assert not [a for a in lint(base()) if a.codigo == "variantes"]
+
+
+# ---------------------------------------------------------------------------
+# Revisión de la Fase 3 (2026-10-19): falsos positivos y negativos de lint
+# ---------------------------------------------------------------------------
+
+class TestRevisionFase3:
+    def test_arroba_doble_no_es_interp(self):
+        d = base()
+        d["componentes"][0] = "Escriba @@{x} literal"
+        assert "interp" not in codigos(lint(d))
+
+    def test_arroba_sin_resolver_sigue_siendo_interp(self):
+        d = base()
+        d["componentes"][0] = "Escriba @@{x} y @{y}"
+        av = [a for a in lint(d) if a.codigo == "interp"]
+        assert av and all("@{y}" in a.mensaje for a in av)
+
+    @pytest.mark.parametrize("texto", ["En la elección 2019", "Tras la selección 3",
+                                       "De la colección 2", "Por la Elección 4"])
+    def test_palabras_con_leccion_dentro_no_avisan(self, texto):
+        d = base()
+        d["componentes"][0] = texto
+        assert not [a for a in lint(d) if "lección" in a.mensaje]
+
+    @pytest.mark.parametrize("texto", ["Como en la lección 3", "Lección 12: repaso", "leccion 2"])
+    def test_numero_de_leccion_si_avisa(self, texto):
+        d = base()
+        d["componentes"][0] = texto
+        assert [a for a in lint(d) if "lección" in a.mensaje]
+
+    def _con_lambda(self):
+        d = base()
+        d["setup"] = "import numpy as np\nx = int(np.random.randint(0, 10))"
+        d["seed"] = 2
+        d["export"]["instances"] = 3
+        d["componentes"][5] = [C("$x > 4$", "lambda ns: ns['x'] > 4"),
+                               C("entonces A", "v('A')"), C("nada", "False")]
+        return d
+
+    def test_constante_lambda_con_setup_es_info(self):
+        av = [a for a in lint(self._con_lambda()) if a.codigo == "constante" and "x > 4" in a.donde]
+        # con seed=2 el único sorteo de la tabla da x > 4 en los dos mundos
+        assert av and av[0].nivel == INFO and "lambda" in av[0].mensaje
+
+    def test_constante_no_lambda_sigue_siendo_aviso(self):
+        d = base()
+        d["componentes"][5] = [C("A o B", "v('A') | v('B')"), C("entonces A", "v('A')")]
+        av = [a for a in lint(d) if a.codigo == "constante"]
+        assert av and av[0].nivel == AVISO
+
+    def test_pct_sin_barra_en_texto_interpolado(self):
+        d = base()
+        d["setup"] = "import numpy as np\np = int(np.random.randint(1, 9))\npct = f'{p} %'"
+        d["seed"] = 2
+        d["componentes"][0] = "Sea @{pct}"
+        av = [a for a in lint(d) if a.codigo == "texto" and a.nivel == ERROR]
+        assert len(av) == 1 and "interpolado" in av[0].mensaje
+
+    def test_pct_en_math_en_texto_interpolado(self):
+        d = base()
+        d["setup"] = "import numpy as np\np = int(np.random.randint(1, 9))\npct = f'{p}\\\\%'"
+        d["seed"] = 2
+        d["componentes"][0] = "Sea $@{pct}$"
+        av = [a for a in lint(d) if a.codigo == "texto" and "dentro de $" in a.mensaje]
+        assert len(av) == 1 and av[0].nivel == AVISO and "interpolado" in av[0].mensaje
+
+    def test_pct_literal_no_se_duplica(self):
+        d = base()
+        d["setup"] = "import numpy as np\np = int(np.random.randint(1, 9))"
+        d["seed"] = 2
+        d["componentes"][0] = "Sea @{p} %"
+        av = [a for a in lint(d) if a.codigo == "texto" and a.nivel == ERROR]
+        assert len(av) == 1 and "interpolado" not in av[0].mensaje
+
+    def test_pct_escapado_interpolado_sin_aviso(self):
+        d = base()
+        d["setup"] = "import numpy as np\np = int(np.random.randint(1, 9))\npct = f'{p}\\\\,\\\\%'"
+        d["seed"] = 2
+        d["componentes"][0] = "Sea @{pct}"
+        assert not [a for a in lint(d) if a.codigo == "texto"]
+
+    def test_sorteo_de_texto_no_cambia_las_variantes(self):
+        d = base()
+        d["setup"] = "import numpy as np\np = int(np.random.randint(1, 9))"
+        d["componentes"][0] = "Sea @{p}"          # sin seed: depende del estado global
+        import numpy as np
+        np.random.seed(0)
+        estado = np.random.get_state()[1].copy()
+        from qbank._lint import _sorteos_ns
+        _sorteos_ns(load_problema_dict(d))
+        assert (np.random.get_state()[1] == estado).all()
+
+    def test_nombre_con_espacios_es_error(self):
+        d = base()
+        d["nombre"] = "con espacios"
+        av = [a for a in lint(d) if a.codigo == "nombre"]
+        assert av and av[0].nivel == ERROR and "espacios" in av[0].mensaje
+
+    def test_fichero_con_espacios_es_error(self, tmp_path):
+        d = base()
+        d["nombre"] = "con espacios"
+        f = tmp_path / "con espacios.json"
+        f.write_text(json.dumps(d), encoding="utf-8")
+        av = [a for a in lint(f) if a.codigo == "nombre"]
+        assert av and av[0].nivel == ERROR and "ignoran" in av[0].mensaje
+
+    def test_seed_bool_es_error_estructura(self):
+        d = base()
+        d["setup"] = "import numpy as np\nx = int(np.random.randint(3))"
+        d["seed"] = True
+        av = [a for a in lint(d) if a.codigo == "estructura"]
+        assert av and av[0].nivel == ERROR and "seed" in av[0].mensaje
+
+    def test_parte_sin_cuestion_solo_aviso_opciones(self):
+        d = base()
+        d["componentes"].append("Texto final suelto.")
+        avisos = lint(d)
+        assert "mezcla" not in codigos(avisos)
+        assert "opciones" in codigos(avisos, AVISO)
+
+
+def load_problema_dict(d):
+    from qbank import load_problema
+    return load_problema(copy.deepcopy(d))

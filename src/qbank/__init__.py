@@ -15,6 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+try:
+    from importlib.metadata import version as _version
+    __version__ = _version("calcprop-qbank")
+except Exception:                   # sin metadatos: p. ej. src/ en el path sin instalar
+    __version__ = "desconocida"
+
 from qbank._quiz import *
 from qbank._export import *
 from qbank._json import *

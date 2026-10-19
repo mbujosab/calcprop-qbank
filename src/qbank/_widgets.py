@@ -63,8 +63,8 @@ def _need_widgets():
 # ── Widget de una alternativa (texto | Supuesto | Cuestion) ──────────────────
 
 class _AltWidget:
-    """Una alternativa dentro de un slot. Su tipo (=kind=) lo fija el slot
-    padre, de modo que un slot nunca mezcla tipos (invariante I1)."""
+    """Una alternativa dentro de un hueco. Su tipo (=kind=) lo fija el hueco
+    padre, de modo que un hueco nunca mezcla tipos (invariante I1)."""
 
     def __init__(self, kind='Cuestion', d=None, on_delete=None, on_move=None):
         self._kind = kind
@@ -115,7 +115,7 @@ class _AltWidget:
         self.box = _w.HBox(fila + [up_btn, dn_btn, del_btn])
 
     def raw(self):
-        """Datos comunes de la alternativa, para conservarlos cuando el slot
+        """Datos comunes de la alternativa, para conservarlos cuando el hueco
         padre cambia de tipo."""
         d = {'enunciado': self.e.value}
         if self._kind != 'texto':
@@ -133,13 +133,13 @@ class _AltWidget:
         if self._kind == 'Cuestion':
             d['exp'] = self.x.value
         return d
-# ── Widget de un slot (texto | supuestos | cuestiones) ───────────────────────
+# ── Widget de un hueco (texto | supuestos | cuestiones) ───────────────────────
 
 class _SlotWidget:
     """Un «hueco» del problema: lista de alternativas homogéneas de un único
-    tipo. El tipo del slot fija el de sus alternativas, garantizando I1."""
+    tipo. El tipo del hueco fija el de sus alternativas, garantizando I1."""
 
-    # tipo de slot -> kind de las alternativas
+    # tipo de hueco -> kind de las alternativas
     _KIND = {'texto': 'texto', 'supuestos': 'Supuesto', 'cuestiones': 'Cuestion'}
 
     def __init__(self, data=None, tipo=None, on_delete=None, on_change=None,
@@ -151,7 +151,7 @@ class _SlotWidget:
         self._alts = []
 
         if data is None and tipo is not None:
-            tipo_init, alts_init = tipo, []       # slot nuevo del tipo indicado
+            tipo_init, alts_init = tipo, []       # hueco nuevo del tipo indicado
         else:
             tipo_init, alts_init = self._inferir(data)
 
@@ -159,7 +159,7 @@ class _SlotWidget:
             options=['texto', 'supuestos', 'cuestiones'], value=tipo_init,
             layout=_w.Layout(width='110px'))
         self._lbl = _w.Label(
-            f'Slot {index + 1}', layout=_w.Layout(width='52px'))
+            f'Hueco {index + 1}', layout=_w.Layout(width='62px'))
 
         self._alts_box = _w.VBox([])
         add_btn = _w.Button(
@@ -168,13 +168,13 @@ class _SlotWidget:
         add_btn.on_click(lambda _: self._add_alt())
 
         up_btn = _w.Button(
-            description='▲', tooltip='subir slot',
+            description='▲', tooltip='subir hueco',
             layout=_w.Layout(width='auto', height='28px'))
         dn_btn = _w.Button(
-            description='▼', tooltip='bajar slot',
+            description='▼', tooltip='bajar hueco',
             layout=_w.Layout(width='auto', height='28px'))
         ins_btn = _w.Button(
-            description='＋', tooltip='insertar slot debajo', button_style='success',
+            description='＋', tooltip='insertar hueco debajo', button_style='success',
             layout=_w.Layout(width='auto', height='28px'))
         up_btn.on_click(lambda _: self._on_move(self, -1) if self._on_move else None)
         dn_btn.on_click(lambda _: self._on_move(self, +1) if self._on_move else None)
@@ -193,7 +193,7 @@ class _SlotWidget:
 
         for a in alts_init:
             self._add_alt(a)
-        if not self._alts:                        # un slot nuevo arranca con
+        if not self._alts:                        # un hueco nuevo arranca con
             self._add_alt()                       # una alternativa vacía
 
     @staticmethod
@@ -208,7 +208,7 @@ class _SlotWidget:
             return ('supuestos' if tipo == 'Supuesto' else 'cuestiones'), [data]
         if not data:                              # lista vacía
             return 'texto', []
-        first = data[0]                           # sublista homogénea
+        first = data[0]                           # lista homogénea
         if isinstance(first, str):
             return 'texto', list(data)
         tipo = first.get('tipo', 'Cuestion') if isinstance(first, dict) else 'Cuestion'
@@ -251,14 +251,14 @@ class _SlotWidget:
         self._alts_box.children = [a.box for a in self._alts]
 
     def update_label(self, i):
-        self._lbl.value = f'Slot {i + 1}'
+        self._lbl.value = f'Hueco {i + 1}'
 
     def to_json(self):
         if self._tipo_dd.value == 'texto':
             textos = [a.to_json() for a in self._alts]
             if len(textos) <= 1:                  # cadena suelta (no en [...])
                 return textos[0] if textos else ''
-            return textos                         # sublista de textos alternativos
+            return textos                         # lista de textos alternativos
         return [a.to_json() for a in self._alts]
 # ── Editor principal ───────────────────────────────────────────────────────────
 
@@ -309,10 +309,10 @@ class ProblemaTipoEditor:
                      self._cols]),
         ])
 
-        # ── Zona de slots ──
+        # ── Zona de huecos ──
         self._slots_box = _w.VBox([])
         add_slot_btn = _w.Button(
-            description='+ slot', button_style='success',
+            description='+ hueco', button_style='success',
             layout=_w.Layout(width='85px'))
         add_slot_btn.on_click(lambda _: self._add_slot())
 
@@ -379,7 +379,7 @@ class ProblemaTipoEditor:
 
         _display(self._ui)
 
-    # ── Gestión de slots ──────────────────────────────────────────
+    # ── Gestión de huecos ──────────────────────────────────────────
 
     def _make_slot(self, data=None, tipo=None):
         return _SlotWidget(data=data, tipo=tipo, on_delete=self._del_slot,
@@ -387,7 +387,7 @@ class ProblemaTipoEditor:
                            on_insert=self._insert_slot_after)
 
     def _add_slot(self, data=None):
-        # Un slot nuevo (botón «+ slot») hereda el tipo del último, de modo que
+        # Un hueco nuevo (botón «+ hueco») hereda el tipo del último, de modo que
         # encadenar varias cuestiones no dispare un separador de parte prematuro:
         # la parte nueva solo se marca cuando el docente elige un tipo texto o
         # supuestos tras las cuestiones (inicio explícito de la nueva parte).
@@ -396,8 +396,8 @@ class ProblemaTipoEditor:
         self._refresh()
 
     def _insert_slot_after(self, slot):
-        # Inserta un slot nuevo justo debajo de `slot`, heredando su tipo (p. ej.
-        # para añadir otra sublista a una parte anterior antes del separador).
+        # Inserta un hueco nuevo justo debajo de `slot`, heredando su tipo (p. ej.
+        # para añadir otro hueco a una parte anterior antes del separador).
         i = self._slots.index(slot)
         self._slots.insert(i + 1, self._make_slot(tipo=slot.tipo()))
         self._refresh()
@@ -414,7 +414,7 @@ class ProblemaTipoEditor:
         self._refresh()
 
     def _plan_partes(self):
-        """Índice de parte de cada slot (regla I2), reutilizando la lógica
+        """Índice de parte de cada hueco (regla I2), reutilizando la lógica
         canónica de =_quiz=: un slot 'cuestiones' aporta una Cuestion; los
         demás (texto / supuestos), una cadena."""
         muestra = [Cuestion('', 'True') if s.tipo() == 'cuestiones' else ''
@@ -519,7 +519,7 @@ class ProblemaTipoEditor:
                 # Con la casilla «vista profe» desmarcada se usa por_partes() —la
                 # misma salida que ven el alumno y los exportadores (WYSIWYG)—;
                 # marcada, por_partes_profe() muestra TODAS las cuestiones de cada
-                # sublista y marca como rechazadas (⊘) las que no superan su
+                # hueco y marca como rechazadas (⊘) las que no superan su
                 # precondición, en vez de descartar la variante.
                 p     = self.to_problema()
                 n     = self._n_prev.value
