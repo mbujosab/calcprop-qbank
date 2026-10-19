@@ -116,9 +116,9 @@ p = ProblemaTipo([s, [s1, s2], [c1, c2]], setup=None, export=None, seed=None, no
 `src/qbank/plantilla/` a `DIR`: `preguntas/*.json`, `scripts/gen_amc.py`,
 `gen_amc_student.py`, `gen_moodle.py`, `_comun.py` (filtro `--leccion`,
 escritura solo-si-cambia, preámbulo AMC), `fix_moodle_xml.py`,
-`merge_moodle_xml.py`, `Makefile` (`lint`, `amc`, `amc-student`, `moodle`,
-`clean`, `LECCION=`; `PYTHON=` para el intérprete), `config.py`,
-`nueva_pregunta.py`, `README.org`. Los scripts leen `export` de cada JSON.
+`merge_moodle_xml.py`, `Makefile` (`lint`, `tabla PREGUNTA=`, `amc`,
+`amc-student`, `moodle`, `all`, `clean`, `LECCION=`; `PYTHON=` para el
+intérprete), `config.py`, `nueva_pregunta.py`, `README.org`. Los scripts leen `export` de cada JSON.
 `tests/test_plantilla.py` ejecuta los scripts sobre las preguntas de ejemplo
 (sin compilar LaTeX); las preguntas de ejemplo deben pasar `lint` sin AVISO.
 
@@ -180,10 +180,11 @@ Formato JSON (`version: "1"`, `tipo: "ProblemaTipo"`):
 ```python
 # Bloque AMC para una variante
 AMCblock(nombre, etiqueta, enunciado, cuestiones,
-         last_choice=False, cols=1, profe=False,
+         last_choice=False, cols=1, profe=False, *, aux_latex="",
          last_choice_text="Ninguna de las anteriores")
 
-# Quiz AMC completo (vista profe)
+# Quiz AMC completo (vista profe): directorio/nombre_profe.tex, una entrada
+# por mundo; devuelve el número de mundos
 QuizAMCProfe(nombre, directorio, problema, cols=1, *,
              last_choice=False, aux_latex="",
              last_choice_text="Ninguna de las anteriores")
@@ -195,16 +196,19 @@ QuizAMCProfe(nombre, directorio, problema, cols=1, *,
 # Escribe directorio/nombre.tex; al compilarlo con pdflatex (paquete moodle)
 # salen nombre.pdf y nombre-moodle.xml
 QuizMoodle(nombre, directorio, problema,
-           last_choice=False, instances=1,
+           last_choice=False, instances=1, *, aux_latex="",
            last_choice_text="Las demás opciones son falsas")
 
-# Vista profe (fracciones visibles); mismos last_choice/instances
+# Vista profe (fracciones visibles); mismos last_choice/instances. Escribe
+# también directorio/nombre.tex: usar otro nombre que la vista alumno
 QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="",
                 last_choice=False, instances=1,
                 last_choice_text="Las demás opciones son falsas")
 ```
 
 - Los nombres sanitizan `:` y `_` → `-` para compatibilidad LaTeX.
+- Los `Quiz*` escriben el `.tex` en UTF-8 explícito (en Windows `open()`
+  usaría cp1252 y «¿», que `codchar` no convierte, rompía `gen_moodle.py`).
 - (AMC, no Moodle) `AMCblock` y `AMC_multipart` convierten `$$...$$` a `\[...\]`.
 - **Multiparte en AMC**: `AMC_multipart(nombre, etiqueta, "", partes,
   last_choice=, cols=, profe=, last_choice_text=)` — un solo `questionmult`
@@ -235,8 +239,10 @@ sin `unoDe`, `interp` —`@{var}` sin resolver—, `estructura`, `nombre`,
 `tipo`, `carga`, `ejecucion` —el `setup` lanza—, `variantes` —ninguna
 variante válida—, `texto` —`%` sin barra—), `AVISO` (revisar: pocas
 variantes, `pocas-opciones`, `opciones`, `constante`, `lista-1`,
-`seed`/`instances` incoherentes, `negacion` de un Supuesto fijo, `texto`
-sospechoso —comillas rectas, `\(…\)`, `\[…\]`, `\%` en `$…$`…—), `INFO`.
+`seed`/`instances` incoherentes, `negacion` de un Supuesto fijo, `solape`,
+`huerfana`, `texto` sospechoso —comillas rectas, `\(…\)`, `\[…\]`, `\%` en
+`$…$`…—), `INFO` (`setup` —instancias necesarias—, `variantes` —más de ~300—,
+`constante` de literales o de lambdas con `setup`, `huerfana` con lambdas).
 
 - La regla de negación considera deducible `-v('X')` si hay `unoDe(...)`
   con `v('X')` en un `Supuesto` suelto **o** si algún `Supuesto` afirma
