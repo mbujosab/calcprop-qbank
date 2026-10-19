@@ -3,6 +3,8 @@
 #+OPTIONS: toc:nil num:nil
 
 # Fuente de docs/index.html (tools/web.sh). Las frases salen del README.
+# Los enlaces #orgXXXXXXX son los ids que web.el genera con semilla fija:
+# cambian si cambia el .org de destino (comprobar tras tools/web.sh).
 
 [[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb][https://mybinder.org/badge_logo.svg]]
 
@@ -15,6 +17,16 @@ cada una, todas corregidas automáticamente, sin tener que comprobar a mano
 qué opción es correcta en cada variante.
 
 * Instalación
+
+Antes de empezar hace falta:
+
+- Python 3.9 o superior.
+- GNU =make= (en Windows, desde Git Bash, MSYS2 o WSL).
+- LaTeX, solo para los PDF y el XML de Moodle: sin él se pueden escribir y
+  comprobar preguntas con =make lint= y =make tabla=.
+- El programa Auto Multiple Choice, solo si vas a usar exámenes AMC.
+
+Los detalles, en los [[file:plantilla.html#org3d675b1][requisitos del README del banco]].
 
 Dentro de un entorno virtual:
 
@@ -33,15 +45,19 @@ make lint          # comprueba las preguntas de ejemplo (sin LaTeX)
 make amc           # PDF de revisión (vista profe) en build/amc/
 #+end_src
 
-El Manual (sección «Instalación paso a paso») lo explica despacio, también
-para Windows.
+Instalar Python y crear el entorno virtual paso a paso, también en Windows:
+[[file:manual.html#org5f0dd8f][«Instalación paso a paso» del Manual]]. =make= y LaTeX en Windows y macOS:
+[[file:plantilla.html#org3d675b1][requisitos del README del banco]]. Cómo importar el XML en Moodle (tras
+=make moodle=): paso «Exporta» del [[file:plantilla.html#org5f0dd8f][flujo de trabajo del README del banco]].
 
 * Qué leer, en este orden
 
 1. *README* ([[file:readme.html][HTML]]): qué hace =qbank=, cómo instalarlo y crear un
    banco con =qbank-init=, y un recorrido rápido por sus características.
 2. *Tutorial* ([[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb][abrir en MyBinder]], sin instalar nada;
-   [[https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb][verlo en GitHub]]): cinco ejemplos progresivos ejecutables.
+   [[https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb][verlo en GitHub]]): cinco ejemplos progresivos ejecutables. Es un
+   cuaderno Jupyter y se puede saltar: sin cuadernos, el camino es README →
+   Guía → Manual, trabajando en el proyecto que crea =qbank-init=.
 3. *README del banco* ([[file:plantilla.html][HTML]]): el que =qbank-init= deja en cada proyecto.
    Qué hay en el proyecto, el flujo de trabajo con =make=, cómo leer la vista
    profe, los caracteres que rompen la exportación y cómo llevar las preguntas
@@ -49,7 +65,9 @@ para Windows.
 4. *Guía de diseño* ([[file:guia.html][HTML]], [[file:GuiaDiseno.pdf][PDF]]): cómo diseñar buenas preguntas: la
    mecánica de listas y mundos, el patrón de tres huecos + opción por
    defecto, =setup=, redacción de cuestiones y explicaciones, trampas de
-   LaTeX/Moodle y checklist.
+   LaTeX/Moodle y checklist. Las palabras que usa toda la documentación
+   (hipótesis, mundo, variante, hueco, parte, opción por defecto, vista
+   profe…) están en su [[file:guia.html#org5f0dd8f][Vocabulario]].
 5. *Manual* ([[file:manual.html][HTML]], [[file:Manual.pdf][PDF]]): referencia completa de la API y del formato
    JSON.
 

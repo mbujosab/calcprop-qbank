@@ -34,6 +34,22 @@ qué opción es correcta en cada variante.
 <h2 id="org5f0dd8f">Instalación</h2>
 <div class="outline-text-2" id="text-org5f0dd8f">
 <p>
+Antes de empezar hace falta:
+</p>
+
+<ul class="org-ul">
+<li>Python 3.9 o superior.</li>
+<li>GNU <code>make</code> (en Windows, desde Git Bash, MSYS2 o WSL).</li>
+<li>LaTeX, solo para los PDF y el XML de Moodle: sin él se pueden escribir y
+comprobar preguntas con <code>make lint</code> y <code>make tabla</code>.</li>
+<li>El programa Auto Multiple Choice, solo si vas a usar exámenes AMC.</li>
+</ul>
+
+<p>
+Los detalles, en los <a href="plantilla.html#org3d675b1">requisitos del README del banco</a>.
+</p>
+
+<p>
 Dentro de un entorno virtual:
 </p>
 
@@ -57,8 +73,10 @@ make amc           # PDF de revisión (vista profe) en build/amc/
 </div>
 
 <p>
-El Manual (sección «Instalación paso a paso») lo explica despacio, también
-para Windows.
+Instalar Python y crear el entorno virtual paso a paso, también en Windows:
+<a href="manual.html#org5f0dd8f">«Instalación paso a paso» del Manual</a>. <code>make</code> y LaTeX en Windows y macOS:
+<a href="plantilla.html#org3d675b1">requisitos del README del banco</a>. Cómo importar el XML en Moodle (tras
+<code>make moodle</code>): paso «Exporta» del <a href="plantilla.html#org5f0dd8f">flujo de trabajo del README del banco</a>.
 </p>
 </div>
 </div>
@@ -69,7 +87,9 @@ para Windows.
 <li><b>README</b> (<a href="readme.html">HTML</a>): qué hace <code>qbank</code>, cómo instalarlo y crear un
 banco con <code>qbank-init</code>, y un recorrido rápido por sus características.</li>
 <li><b>Tutorial</b> (<a href="https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb">abrir en MyBinder</a>, sin instalar nada;
-<a href="https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb">verlo en GitHub</a>): cinco ejemplos progresivos ejecutables.</li>
+<a href="https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb">verlo en GitHub</a>): cinco ejemplos progresivos ejecutables. Es un
+cuaderno Jupyter y se puede saltar: sin cuadernos, el camino es README →
+Guía → Manual, trabajando en el proyecto que crea <code>qbank-init</code>.</li>
 <li><b>README del banco</b> (<a href="plantilla.html">HTML</a>): el que <code>qbank-init</code> deja en cada proyecto.
 Qué hay en el proyecto, el flujo de trabajo con <code>make</code>, cómo leer la vista
 profe, los caracteres que rompen la exportación y cómo llevar las preguntas
@@ -77,7 +97,9 @@ a un examen AMC o a Moodle.</li>
 <li><b>Guía de diseño</b> (<a href="guia.html">HTML</a>, <a href="GuiaDiseno.pdf">PDF</a>): cómo diseñar buenas preguntas: la
 mecánica de listas y mundos, el patrón de tres huecos + opción por
 defecto, <code>setup</code>, redacción de cuestiones y explicaciones, trampas de
-LaTeX/Moodle y checklist.</li>
+LaTeX/Moodle y checklist. Las palabras que usa toda la documentación
+(hipótesis, mundo, variante, hueco, parte, opción por defecto, vista
+profe…) están en su <a href="guia.html#org5f0dd8f">Vocabulario</a>.</li>
 <li><b>Manual</b> (<a href="manual.html">HTML</a>, <a href="Manual.pdf">PDF</a>): referencia completa de la API y del formato
 JSON.</li>
 </ol>
