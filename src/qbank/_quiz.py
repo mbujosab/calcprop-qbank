@@ -18,6 +18,29 @@
 from calcprop import *
 from string import Template
 
+import calcprop as _calcprop_mod
+
+_EVAL_NS = vars(_calcprop_mod).copy()   # espacio de nombres para evaluar cadenas
+
+def _eval_expr(expr):
+    """Evalúa una semántica o precondición escrita como cadena en el espacio
+    de nombres de calcprop; los valores que no son cadenas se devuelven tal cual."""
+    if not isinstance(expr, str):
+        return expr
+    if expr == "True":
+        return True
+    if expr == "False":
+        return False
+    return eval(expr, _EVAL_NS)
+
+def _setup_desde_str(code_str):
+    """Callable setup() a partir del código Python (cadena) de un setup."""
+    def setup():
+        ns = {}
+        exec(code_str, ns)
+        return {k: v for k, v in ns.items() if not k.startswith('_')}
+    return setup
+
 class _NsTemplate(Template):
     delimiter = '@'
 
@@ -94,8 +117,9 @@ class Marcador:
 class Supuesto:
     def __init__(self, enunciado, semantica, precond=True):
         self.e = enunciado
-        self.s = semantica
-        self.p = precond
+        self.s = _eval_expr(semantica)
+        self.p = _eval_expr(precond)
+        self._orig = (semantica, precond)   # tal como se escribieron, para serializar
 
     def __repr__(self):
         """Método de representación"""
@@ -103,9 +127,10 @@ class Supuesto:
 class Cuestion:
     def __init__(self, enunciado, semantica, precond=True, exp=""):
         self.e = enunciado
-        self.s = semantica
-        self.p = precond
+        self.s = _eval_expr(semantica)
+        self.p = _eval_expr(precond)
         self.x = exp
+        self._orig = (semantica, precond)   # tal como se escribieron, para serializar
 
     def __repr__(self):
         """Método de representación"""
@@ -189,11 +214,18 @@ def _plan_partes(L):
         plan.append(parte)
     return plan
 class ProblemaTipo:
-    def __init__(self, supuestos_y_cuestiones, setup=None, export=None, seed=None):
+    def __init__(self, supuestos_y_cuestiones, setup=None, export=None, seed=None, nombre=None):
         self.e = supuestos_y_cuestiones
-        self.setup = setup
+        if isinstance(setup, str):
+            setup = setup.strip() or None
+            if setup:
+                self._setup_str = setup      # se conserva para guardar el problema en JSON
+                setup = _setup_desde_str(setup)
+        self.setup  = setup
         self.export = export if export is not None else {}
         self.seed   = seed
+        if nombre is not None:
+            self._nombre = nombre
 
     def _variantes(self, _skip_seed=False, verbose=True):
         if not _skip_seed and self.seed is not None and self.setup is not None:

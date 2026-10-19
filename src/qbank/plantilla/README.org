@@ -1,0 +1,84 @@
+#+TITLE: Banco de preguntas (plantilla qbank)
+#+LANGUAGE: es
+
+Proyecto creado con =qbank-init=. Contiene todo lo necesario para escribir
+preguntas de opción múltiple con =qbank=, comprobarlas y exportarlas a AMC
+(exámenes en papel) y a Moodle. Sustituye las preguntas de ejemplo por las
+tuyas y borra este párrafo.
+
+* Qué hay aquí
+
+| =preguntas/=         | Una pregunta por fichero JSON: =L-NN-Descripcion.json= (NN = lección o tema). |
+| =nueva_pregunta.py=  | Guion para escribir una pregunta en Python y guardarla como JSON.             |
+| =config.py=          | Preámbulo LaTeX propio y textos de la opción por defecto.                     |
+| =scripts/=           | Generadores de AMC y Moodle que lee el =Makefile=; no hace falta tocarlos.    |
+| =Makefile=           | =make lint=, =make amc=, =make amc-student=, =make moodle=, =make clean=.     |
+| =build/=             | Todo lo generado (PDF, XML, .tex). No se versiona.                            |
+
+* Requisitos
+
+- Python con =calcprop-qbank= instalado (=pip install calcprop-qbank=), el mismo
+  que creó este proyecto. Si usas un entorno virtual, actívalo antes de =make=,
+  o pasa el intérprete: =make amc PYTHON=/ruta/al/venv/bin/python=.
+- Para los PDF y el XML: =pdflatex= con los paquetes =automultiplechoice=
+  (AMC) y =moodle= (en TeX Live: =tlmgr install moodle=; AMC se instala con
+  el programa [[https://www.auto-multiple-choice.net/][Auto Multiple Choice]]).
+  Sin LaTeX puedes igualmente escribir preguntas y pasar =make lint=.
+
+* Flujo de trabajo
+
+1. *Escribe la pregunta.* Dos caminos equivalentes:
+   - En Python: copia =nueva_pregunta.py=, edita =NOMBRE=, =SETUP= y
+     =PREGUNTA=, ejecútalo (=python nueva_pregunta.py=) hasta que la vista
+     profe y el lint te convenzan, y guarda con =--guardar=. Deja el JSON en
+     =preguntas/=.
+   - Directamente en JSON, copiando una de las preguntas de ejemplo de
+     =preguntas/= (el formato se explica en el Manual de =qbank=).
+2. *Compruébala:* =make lint= (o =make lint LECCION=3= para una sola lección).
+   Un =ERROR= significa que la pregunta está rota (p. ej. una variante con
+   todas las opciones correctas); un =AVISO= hay que leerlo y decidir.
+3. *Revísala en PDF:* =make amc= genera =build/amc/<pregunta>.pdf=, la vista
+   del profesor: todas las cuestiones de cada variante con su marca y las
+   rechazadas por su precondición. Es lo que conviene leer antes de dar una
+   pregunta por buena.
+4. *Exporta:*
+   - =make amc-student= → =build/amc-student/<pregunta>.pdf= con las variantes
+     tal como las verá el alumno, y =build/amc-student/_catalogo.tex= con un
+     =\input= por pregunta, para incluir en un examen AMC real.
+   - =make moodle= → =build/moodle/<pregunta>-moodle.xml= (y un PDF de
+     revisión) por pregunta, y =build/moodle/_banco.xml= con todas: en Moodle,
+     /Banco de preguntas → Importar → Formato Moodle XML/.
+
+=make= solo recompila lo que ha cambiado; =make clean= borra =build/=.
+
+* La mecánica en tres frases (lo que más confunde al empezar)
+
+- Una *lista* de =Cuestion= no son «las opciones que se muestran juntas»: en
+  cada variante se sortea *una* de la lista. El alumno ve tantas opciones
+  como *elementos-Cuestion consecutivos* haya (sueltos o listas), más la
+  opción por defecto si =export.last_choice= es =true=.
+- Una *lista* de =Supuesto= son mundos alternativos: se sortea uno y su
+  fórmula pasa a ser hipótesis; la =semantica= de cada =Cuestion= se evalúa
+  contra esas hipótesis. Un =Supuesto= suelto con =enunciado: ""= es un
+  axioma (añade su fórmula sin texto).
+- Patrón recomendado: tres elementos-Cuestion consecutivos +
+  ="export": {"last_choice": true}=. Así siempre hay cuatro opciones y al
+  menos una correcta y una incorrecta, sea cual sea la combinación.
+
+Las cuatro preguntas de =preguntas/= ilustran, en este orden: mundos y
+axioma (=L-01-ParidadSumaProducto=), =setup= con =seed= e =instances=
+(=L-01-FuncionMonotona=), multiparte con =precond= (=L-02-MatrizInvertible=)
+y semántica =lambda= sobre los datos con pareja verdadera/falsa
+(=L-02-ComparacionNumerica=).
+
+* Campo =export= de cada pregunta
+
+| =last_choice= | Añade la opción por defecto («Ninguna de las anteriores» / «Las demás opciones son falsas»), correcta solo si las demás son falsas. |
+| =cols=        | Columnas en que se disponen las opciones en AMC.                                                                                   |
+| =instances=   | Solo con =setup= aleatorio: cuántas realizaciones numéricas distintas se generan. Objetivo: ≥ 60 variantes (=lint= lo calcula).   |
+
+* Más documentación
+
+En el repositorio de [[https://github.com/mbujosab/calcprop-qbank][qbank]]: =Tutorial.ipynb= (ejemplos progresivos),
+=GuiaDiseno.org= (cómo diseñar buenas preguntas) y =Manual.org= (referencia
+completa de la API y del formato JSON).

@@ -37,7 +37,10 @@ Reglas (código del aviso entre paréntesis):
    ``1 <= correctas <= opciones - 1``, contando la opción por defecto si
    ``export.last_choice`` está activo (misma regla que ``AMCblock``). Si el
    número de opciones de una parte no es constante entre variantes
-   (``opciones``, AVISO).
+   (``opciones``, AVISO). Si una parte muestra al alumno menos de
+   ``MIN_OPCIONES`` (3) opciones (``pocas-opciones``, AVISO): una lista de
+   ``Cuestion`` sortea UNA por variante; para mostrar varias a la vez van
+   como elementos consecutivos.
 2. Número de variantes (``variantes``, AVISO): < 16 sin ``setup``; < 60 con
    ``setup`` (contando ``instances``). Más de 300 (INFO): un solo examcopy
    AMC con tantas variantes puede agotar la memoria de pdflatex.
@@ -82,6 +85,7 @@ _ORDEN = {ERROR: 0, AVISO: 1, INFO: 2}
 
 MIN_VARIANTES_SIN_SETUP = 16
 MIN_VARIANTES_CON_SETUP = 60
+MIN_OPCIONES            = 3       # opciones que debe ver el alumno en cada parte (con last_choice)
 MAX_VARIANTES_AMC       = 300     # por encima, la vista alumno AMC en un solo examcopy agota pdflatex
 _MAX_REPETIDOS = 5          # avisos idénticos que se listan antes de resumir
 
@@ -397,6 +401,11 @@ def _regla_variantes(p, avisos, instances, seed):
             avisos.append(Aviso(AVISO, 'opciones',
                                 f"parte {k + 1}: el número de opciones varía entre variantes: "
                                 f"{sorted(ns_)}"))
+        if min(ns_) < MIN_OPCIONES:
+            avisos.append(Aviso(AVISO, 'pocas-opciones',
+                                f"parte {k + 1}: el alumno solo ve {min(ns_)} opción(es). Una lista "
+                                "de Cuestion sortea UNA por variante: para mostrar varias a la vez "
+                                "ponlas como elementos consecutivos (y/o activa export.last_choice)"))
     for (m, tipo, t), etiqueta in interp.items():
         avisos.append(Aviso(ERROR, 'interp',
                             f"{m} sin interpolar en {tipo} (variante {etiqueta})", t))

@@ -67,8 +67,8 @@ En semantica y precond se admiten:
 """
 
 import json as _json
-import calcprop as _calcprop_mod
-from qbank._quiz import Supuesto, Cuestion, ProblemaTipo, ProblemaVF
+from qbank._quiz import (Supuesto, Cuestion, ProblemaTipo, ProblemaVF,
+                         _EVAL_NS, _eval_expr)
 
 __all__ = [
     'problema_from_dict',
@@ -81,23 +81,6 @@ __all__ = [
     'save_problema_py',
 ]
 
-_EVAL_NS = vars(_calcprop_mod).copy()
-def _eval_expr(expr):
-    """Evalúa una expresión (string o bool) en el namespace de calcprop."""
-    if isinstance(expr, bool):
-        return expr
-    if expr == "True":
-        return True
-    if expr == "False":
-        return False
-    return eval(expr, _EVAL_NS)
-def _make_setup_fn(code_str):
-    """Crea un callable setup() a partir de código Python en string."""
-    def setup():
-        ns = {}
-        exec(code_str, ns)
-        return {k: v for k, v in ns.items() if not k.startswith('_')}
-    return setup
 def _componente_from_dict(d):
     tipo          = d.get("tipo")
     enunciado     = d["enunciado"]
@@ -131,14 +114,16 @@ def _slot_from_json(slot):
 def _expr_to_str(val, campo):
     """Convierte una semántica o precondición al string JSON equivalente.
 
-    Usa repr() sobre objetos calcprop (cuyo repr es evaluable con _eval_expr).
-    Falla con un mensaje claro si val es un callable (lambda de setup paramétrico).
+    Devuelve la cadena original si se escribió como tal, repr() sobre objetos
+    calcprop (cuyo repr es evaluable con _eval_expr), y falla con un mensaje
+    claro si val es una función Python (lambda), cuyo código no es recuperable.
     """
+    if isinstance(val, str):
+        return val
     if callable(val):
         raise ValueError(
-            f"El campo '{campo}' es un callable (lambda). "
-            "Los componentes con semánticas o precondiciones lambda solo pueden "
-            "serializarse si fueron cargados con load_problema() o problema_from_dict().")
+            f"El campo '{campo}' es una función Python (lambda) y no puede guardarse. "
+            "Escríbela como cadena, p. ej. precond=\"lambda ns: ns['x'] > 0\".")
     return repr(val)
 
 
@@ -148,13 +133,13 @@ def _slot_to_json(slot):
     elif isinstance(slot, (Supuesto, Cuestion)):
         if hasattr(slot, '_json'):
             return slot._json
-        # Fallback para objetos creados directamente en Python:
-        # repr() de cualquier fórmula calcprop es evaluable por _eval_expr.
+        # Objetos creados directamente en Python: valores tal como se escribieron.
+        semantica, precond = getattr(slot, '_orig', (slot.s, slot.p))
         d = {
             'tipo':      'Supuesto' if isinstance(slot, Supuesto) else 'Cuestion',
             'enunciado': slot.e,
-            'semantica': _expr_to_str(slot.s, 'semantica'),
-            'precond':   _expr_to_str(slot.p, 'precond'),
+            'semantica': _expr_to_str(semantica, 'semantica'),
+            'precond':   _expr_to_str(precond, 'precond'),
         }
         if isinstance(slot, Cuestion):
             d['exp'] = slot.x
@@ -169,14 +154,9 @@ def problema_from_dict(d):
 
     if tipo == "ProblemaTipo":
         componentes = [_slot_from_json(s) for s in d["componentes"]]
-        setup_str   = d.get("setup")
-        setup       = _make_setup_fn(setup_str) if setup_str else None
-        export      = d.get("export", {})
-        seed        = d.get("seed")
-        p = ProblemaTipo(componentes, setup=setup, export=export, seed=seed)
-        p._nombre    = d.get("nombre", "")
-        p._setup_str = setup_str
-        return p
+        return ProblemaTipo(componentes, setup=d.get("setup") or None,
+                            export=d.get("export", {}), seed=d.get("seed"),
+                            nombre=d.get("nombre", ""))
 
     elif tipo == "ProblemaMultiParte":
         # Schema heredado: se aplana a un ProblemaTipo multiparte unificado.
@@ -187,14 +167,9 @@ def problema_from_dict(d):
         for sp in d["subpreguntas"]:
             componentes.append(sp["intro"])
             componentes.append([_componente_from_dict(c) for c in sp["cuestiones"]])
-        setup_str = d.get("setup")
-        setup     = _make_setup_fn(setup_str) if setup_str else None
-        export    = d.get("export", {})
-        seed      = d.get("seed")
-        p = ProblemaTipo(componentes, setup=setup, export=export, seed=seed)
-        p._nombre    = d.get("nombre", "")
-        p._setup_str = setup_str
-        return p
+        return ProblemaTipo(componentes, setup=d.get("setup") or None,
+                            export=d.get("export", {}), seed=d.get("seed"),
+                            nombre=d.get("nombre", ""))
 
     elif tipo == "ProblemaVF":
         enunciado  = d["enunciado"]
@@ -220,10 +195,9 @@ def problema_to_dict(problema):
         setup_str = getattr(problema, '_setup_str', None)
         if setup_str is None and problema.setup is not None:
             raise ValueError(
-                "ProblemaTipo tiene un setup callable pero no fue creado desde JSON. "
-                "No es posible serializar un setup definido directamente en Python. "
-                "Escribe el código del setup como cadena y carga el problema con "
-                "problema_from_dict().")
+                "El setup de este ProblemaTipo es una función Python y su código no es "
+                "recuperable. Pásalo como cadena de código: "
+                "ProblemaTipo(..., setup=\"import numpy as np\\nx = ...\").")
         d = {
             "version":     "1",
             "tipo":        "ProblemaTipo",

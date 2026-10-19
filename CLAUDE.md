@@ -23,6 +23,9 @@ src/qbank/
   _json.py      — load_problema, save_problema, load_banco, save_banco
   _widgets.py   — widgets Jupyter (importación opcional)
   _lint.py      — lint, tabla_mundos, Aviso; lint.py es el shim de `python -m qbank.lint`
+  _plantilla.py — qbank-init: copia plantilla/ (proyecto de banco) a un directorio
+  plantilla/    — datos del paquete: preguntas/ de ejemplo, scripts/, Makefile,
+                  config.py, nueva_pregunta.py, README.org (ver tests/test_plantilla.py)
 ```
 
 ## Fuentes de verdad y ficheros generados
@@ -56,8 +59,31 @@ from qbank import *
 
 s = Supuesto("Enunciado", semantica, precond=True)
 c = Cuestion("¿Verdad?", semantica, precond=True, exp="")
-p = ProblemaTipo("nombre", [s, [s1, s2], [c1, c2]])
+p = ProblemaTipo([s, [s1, s2], [c1, c2]], setup=None, export=None, seed=None, nombre=None)
 ```
+
+- `semantica` y `precond` admiten también la **cadena** que los representa
+  (`"v('A') >> v('B')"`, `"lambda ns: ns['x'] > 0"`), evaluada igual que
+  desde JSON; los originales se guardan en `_orig` y `save_problema` los
+  serializa. Una lambda escrita como función Python no se puede guardar.
+- `setup` admite el **código Python como cadena** (lo que guarda el JSON);
+  `ProblemaTipo` lo compila y conserva `_setup_str`. Un `setup` función
+  tampoco se puede guardar.
+- `nombre=` fija `_nombre` (el campo `nombre` del JSON).
+- Flujo recomendado para escribir a mano: lista Python → `save_problema` →
+  JSON en `preguntas/` (es lo que hace `plantilla/nueva_pregunta.py`).
+
+### Proyecto de banco (`qbank-init`)
+
+`qbank-init DIR` (o `python -m qbank._plantilla DIR`) copia
+`src/qbank/plantilla/` a `DIR`: `preguntas/*.json`, `scripts/gen_amc.py`,
+`gen_amc_student.py`, `gen_moodle.py`, `_comun.py` (filtro `--leccion`,
+escritura solo-si-cambia, preámbulo AMC), `fix_moodle_xml.py`,
+`merge_moodle_xml.py`, `Makefile` (`lint`, `amc`, `amc-student`, `moodle`,
+`clean`, `LECCION=`; `PYTHON=` para el intérprete), `config.py`,
+`nueva_pregunta.py`, `README.org`. Los scripts leen `export` de cada JSON.
+`tests/test_plantilla.py` ejecuta los scripts sobre las preguntas de ejemplo
+(sin compilar LaTeX); las preguntas de ejemplo deben pasar `lint` sin AVISO.
 
 ### Iteración de variantes
 
@@ -164,6 +190,10 @@ elemento, seed/instances incoherentes, texto sospechoso), `INFO`.
   `-v('X')`).
 - Una `Cuestion` con `semantica` literal `True`/`False` constante en todos
   sus mundos es INFO, no AVISO (es un distractor deliberado).
+- `pocas-opciones` (AVISO): una parte muestra al alumno menos de
+  `MIN_OPCIONES` (3) opciones, contando `last_choice`. Detecta el error
+  típico de poner las opciones en una única lista de `Cuestion` (una lista
+  sortea una). No salta en ninguna pregunta de los dos bancos.
 - `_ns_interp(s, ns, strict=None)`: con `strict=True` (o
   `qbank._quiz.STRICT_INTERP = True`) lanza `ValueError` ante `@{var}`
   desconocida. Por defecto sigue dejando el texto intacto.

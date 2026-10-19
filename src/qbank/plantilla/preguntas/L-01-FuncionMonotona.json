@@ -1,0 +1,48 @@
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "L-01-FuncionMonotona",
+  "seed": 1,
+  "setup": "import numpy as np\na = int(np.random.randint(-5, 5))\nb = int(a + np.random.randint(2, 6))\nc = int(np.random.randint(a + 1, b))",
+  "export": {"last_choice": true, "cols": 2, "instances": 2},
+  "componentes": [
+    "Sea $f$ una función ",
+    [
+      {"tipo": "Supuesto", "enunciado": "estrictamente creciente",
+       "semantica": "v('crec')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "estrictamente decreciente",
+       "semantica": "v('decr')", "precond": "True"}
+    ],
+    " y sean $a = @{a}$, $b = @{b}$ y $c = @{c}$, de modo que $a < c < b$. Entonces:",
+    [
+      {"tipo": "Cuestion", "enunciado": "$f(@{a}) < f(@{b})$",
+       "semantica": "v('crec')", "precond": "True",
+       "exp": "Como $@{a} < @{b}$: si $f$ es creciente, $f(@{a}) < f(@{b})$; si es decreciente, $f(@{a}) > f(@{b})$."},
+      {"tipo": "Cuestion", "enunciado": "$f(@{a}) > f(@{b})$",
+       "semantica": "v('decr')", "precond": "True",
+       "exp": "Como $@{a} < @{b}$: si $f$ es creciente, $f(@{a}) < f(@{b})$; si es decreciente, $f(@{a}) > f(@{b})$."}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "$f(@{b}) - f(@{a}) > 0$",
+       "semantica": "v('crec')", "precond": "True",
+       "exp": "El signo de $f(b) - f(a)$ con $a < b$ es el de la monotonía: positivo si $f$ crece, negativo si decrece."},
+      {"tipo": "Cuestion", "enunciado": "$f(@{b}) - f(@{a}) < 0$",
+       "semantica": "v('decr')", "precond": "True",
+       "exp": "El signo de $f(b) - f(a)$ con $a < b$ es el de la monotonía: positivo si $f$ crece, negativo si decrece."},
+      {"tipo": "Cuestion", "enunciado": "$f(@{a}) = f(@{b})$",
+       "semantica": "False", "precond": "True",
+       "exp": "Una función estrictamente monótona no repite valores: $@{a} \\neq @{b}$ implica $f(@{a}) \\neq f(@{b})$."}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "$f(@{c})$ está entre $f(@{a})$ y $f(@{b})$",
+       "semantica": "True", "precond": "True",
+       "exp": "Como $@{a} < @{c} < @{b}$ y $f$ es estrictamente monótona, $f(@{c})$ queda entre $f(@{a})$ y $f(@{b})$ sea cual sea el sentido."},
+      {"tipo": "Cuestion", "enunciado": "$f(@{c}) > f(@{a})$",
+       "semantica": "v('crec')", "precond": "True",
+       "exp": "Como $@{a} < @{c}$: $f(@{c}) > f(@{a})$ si $f$ crece y $f(@{c}) < f(@{a})$ si decrece."},
+      {"tipo": "Cuestion", "enunciado": "$f(@{c}) < f(@{b})$",
+       "semantica": "v('crec')", "precond": "True",
+       "exp": "Como $@{c} < @{b}$: $f(@{c}) < f(@{b})$ si $f$ crece y $f(@{c}) > f(@{b})$ si decrece."}
+    ]
+  ]
+}

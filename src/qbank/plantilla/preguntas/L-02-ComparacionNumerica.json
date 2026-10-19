@@ -1,0 +1,42 @@
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "L-02-ComparacionNumerica",
+  "seed": 2,
+  "setup": "import numpy as np\na = int(np.random.randint(1, 10))\nb = int(np.random.randint(1, 10))\nwhile b == a:\n    b = int(np.random.randint(1, 10))\ncuad = (a + b) ** 2\ncuad_falso = a ** 2 + b ** 2\ncuad_a, cuad_b = a ** 2, b ** 2\ndif, dif_inv = a - b, b - a",
+  "export": {"last_choice": true, "cols": 2, "instances": 10},
+  "componentes": [
+    "Sean $a = @{a}$ y $b = @{b}$ dos números naturales. Se sabe que ",
+    [
+      {"tipo": "Supuesto", "enunciado": "$a > b$.",
+       "semantica": "True", "precond": "lambda ns: ns['a'] > ns['b']"},
+      {"tipo": "Supuesto", "enunciado": "$a < b$.",
+       "semantica": "True", "precond": "lambda ns: ns['a'] < ns['b']"}
+    ],
+    " Entonces:",
+    [
+      {"tipo": "Cuestion", "enunciado": "$a^2 > b^2$",
+       "semantica": "lambda ns: ns['a'] ** 2 > ns['b'] ** 2", "precond": "True",
+       "exp": "Para números positivos, elevar al cuadrado conserva el orden: $@{a}^2 = @{cuad_a}$ y $@{b}^2 = @{cuad_b}$."},
+      {"tipo": "Cuestion", "enunciado": "$a^2 < b^2$",
+       "semantica": "lambda ns: ns['a'] ** 2 < ns['b'] ** 2", "precond": "True",
+       "exp": "Para números positivos, elevar al cuadrado conserva el orden: $@{a}^2 = @{cuad_a}$ y $@{b}^2 = @{cuad_b}$."}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "$a - b > 0$",
+       "semantica": "lambda ns: ns['a'] - ns['b'] > 0", "precond": "True",
+       "exp": "$a - b = @{a} - @{b} = @{dif}$."},
+      {"tipo": "Cuestion", "enunciado": "$b - a > 0$",
+       "semantica": "lambda ns: ns['b'] - ns['a'] > 0", "precond": "True",
+       "exp": "$b - a = @{b} - @{a} = @{dif_inv}$."}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "$(a + b)^2 = @{cuad}$",
+       "semantica": "True", "precond": "True",
+       "exp": "$(a + b)^2 = a^2 + 2ab + b^2 = @{cuad}$."},
+      {"tipo": "Cuestion", "enunciado": "$(a + b)^2 = @{cuad_falso}$",
+       "semantica": "False", "precond": "True",
+       "exp": "Falta el doble producto: $(a + b)^2 = a^2 + 2ab + b^2 = @{cuad}$, no $a^2 + b^2 = @{cuad_falso}$."}
+    ]
+  ]
+}

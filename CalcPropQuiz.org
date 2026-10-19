@@ -179,9 +179,34 @@ Las funciones =_ns_eval= y =_ns_interp= permiten que los atributos de =Supuesto=
 - =_ns_eval(val, ns)= :: si =val= es callable, lo invoca con =ns= y devuelve el resultado; si no, devuelve =val= tal cual.
 - =_ns_interp(s, ns, strict=None)= :: interpola en la cadena =s= los marcadores =@variable= o =@{variable}= usando el diccionario =ns=. Usa =string.Template.safe_substitute= con delimitador =@= (en lugar del =\$= estándar, para evitar conflictos con el modo matemático de \LaTeX{}). Los marcadores desconocidos y las llaves ={...}= de \LaTeX{} no se ven afectados. Para obtener una arroba literal en el texto, escribe =@@=. Con =strict=True= (o poniendo la variable de módulo =STRICT_INTERP= a =True=) lanza =ValueError= si tras la sustitución queda algún =@{variable}= sin resolver; =_vars_sin_resolver= es la función auxiliar que los localiza. Por defecto se mantiene el comportamiento silencioso: es =qbank.lint= quien detecta las interpolaciones fallidas.
 - =_fuente_precond(componente)= :: devuelve una representación *legible* de la precondición de un =Supuesto= o =Cuestion= para los mensajes de rechazo. Si el componente se cargó desde JSON (atributo =_json=) usa la cadena de código original (p. ej. =lambda ns: ns['a'] > ns['b']=); en otro caso recurre a =repr()= (que para una lambda definida en Python da algo como =<function <lambda> at 0x...>=). Así los avisos «=… rechazado por …=» muestran la condición y no la dirección de memoria de la función.
+- =_eval_expr(expr)= :: si =expr= es una cadena (="v('A') & v('B')"=, ="True"=, ="lambda ns: ns['x'] > 0"=) la evalúa en el espacio de nombres de =calcprop= (=_EVAL_NS=); cualquier otro valor se devuelve tal cual. Es la misma evaluación que hace el formato JSON, de modo que =Supuesto= y =Cuestion= aceptan sus semánticas y precondiciones escritas como cadenas también desde Python, y un problema así construido puede guardarse en JSON sin perder las lambdas (cuyo código fuente no es recuperable desde un objeto función).
+- =_setup_desde_str(code_str)= :: convierte el código Python de un =setup= (una cadena) en el callable que ejecuta =ProblemaTipo= al comienzo de cada variante; devuelve el diccionario de variables definidas, sin las que empiezan por guion bajo.
 
 #+NAME: Funciones auxiliares para setup paramétrico
 #+begin_src python :noweb yes
+import calcprop as _calcprop_mod
+
+_EVAL_NS = vars(_calcprop_mod).copy()   # espacio de nombres para evaluar cadenas
+
+def _eval_expr(expr):
+    """Evalúa una semántica o precondición escrita como cadena en el espacio
+    de nombres de calcprop; los valores que no son cadenas se devuelven tal cual."""
+    if not isinstance(expr, str):
+        return expr
+    if expr == "True":
+        return True
+    if expr == "False":
+        return False
+    return eval(expr, _EVAL_NS)
+
+def _setup_desde_str(code_str):
+    """Callable setup() a partir del código Python (cadena) de un setup."""
+    def setup():
+        ns = {}
+        exec(code_str, ns)
+        return {k: v for k, v in ns.items() if not k.startswith('_')}
+    return setup
+
 class _NsTemplate(Template):
     delimiter = '@'
 
@@ -359,13 +384,16 @@ La clase =Supuesto= define la estructura para almacenar tres aspectos (atributos
 - =precond= :: es una proposición o bien cualquiera de los valores =True= o =False=.
   El objeto =Supuesto= será incluido en el problema solo si la evaluación de =precond= es =True=.
 
+Tanto =semantica= como =precond= admiten, además de la fórmula =calcprop= o el booleano, la *cadena* que los representa (="v('A') >> v('B')"=, ="lambda ns: ns['x'] > 0"=), que se evalúa con =_eval_expr= igual que al cargar un JSON. Los valores originales se conservan en =_orig= para que =problema_to_dict= pueda guardar el problema aunque contenga lambdas.
+
 #+NAME: Definición de la clase Supuesto
 #+begin_src python :noweb yes
 class Supuesto:
     def __init__(self, enunciado, semantica, precond=True):
         self.e = enunciado
-        self.s = semantica
-        self.p = precond
+        self.s = _eval_expr(semantica)
+        self.p = _eval_expr(precond)
+        self._orig = (semantica, precond)   # tal como se escribieron, para serializar
 
     def __repr__(self):
         """Método de representación"""
@@ -390,9 +418,10 @@ De manera análoga, la clase =Cuestion= define la estructura para almacenar cuat
 class Cuestion:
     def __init__(self, enunciado, semantica, precond=True, exp=""):
         self.e = enunciado
-        self.s = semantica
-        self.p = precond
+        self.s = _eval_expr(semantica)
+        self.p = _eval_expr(precond)
         self.x = exp
+        self._orig = (semantica, precond)   # tal como se escribieron, para serializar
 
     def __repr__(self):
         """Método de representación"""
@@ -557,18 +586,27 @@ Si la precondición de alguna de las opciones elegidas es =False= (o resulta ref
 #+NAME: Definición de la clase ProblemaTipo
 #+begin_src python :noweb no-export
 class ProblemaTipo:
-    def __init__(self, supuestos_y_cuestiones, setup=None, export=None, seed=None):
+    def __init__(self, supuestos_y_cuestiones, setup=None, export=None, seed=None, nombre=None):
         self.e = supuestos_y_cuestiones
-        self.setup = setup
+        if isinstance(setup, str):
+            setup = setup.strip() or None
+            if setup:
+                self._setup_str = setup      # se conserva para guardar el problema en JSON
+                setup = _setup_desde_str(setup)
+        self.setup  = setup
         self.export = export if export is not None else {}
         self.seed   = seed
+        if nombre is not None:
+            self._nombre = nombre
 
     <<Generador interno de variantes por partes>>
     <<Generador profe de variantes por partes>>
     <<Iteración pública de ProblemaTipo>>
 #+end_src
 
-Los argumentos =export= y =seed= no intervienen en la generación de variantes: son metadatos que acompañan al problema. =export= es el diccionario con las preferencias de exportación (=last_choice=, =cols=, =instances=) que guardan y leen las funciones JSON y usan los scripts de los bancos; =seed= es la semilla con la que se inicializa =numpy.random= antes de recorrer las variantes cuando el =setup= usa aleatorios, de modo que un mismo JSON produzca siempre las mismas variantes.
+El argumento =setup= puede ser una función sin argumentos que devuelve el diccionario de variables de la variante, o directamente el *código Python como cadena* (lo mismo que guarda el campo =setup= del JSON): en ese caso =ProblemaTipo= lo compila con =_setup_desde_str= y conserva la cadena en =_setup_str=, de modo que el problema puede guardarse con =save_problema=. Un =setup= definido como función Python no puede guardarse (su código fuente no es recuperable); es la forma recomendada solo para uso interactivo.
+
+Los argumentos =export=, =seed= y =nombre= no intervienen en la generación de variantes: son metadatos que acompañan al problema. =export= es el diccionario con las preferencias de exportación (=last_choice=, =cols=, =instances=) que guardan y leen las funciones JSON y usan los scripts de los bancos; =seed= es la semilla con la que se inicializa =numpy.random= antes de recorrer las variantes cuando el =setup= usa aleatorios, de modo que un mismo JSON produzca siempre las mismas variantes; =nombre= es el identificador del problema (el campo =nombre= del JSON, que debe coincidir con el nombre del fichero).
 
 Internamente, =ProblemaTipo= calcula las /partes/ del ejercicio (regla I2, vía =_plan_partes=) y genera, por cada combinación válida del marcador, la estructura =[(enunciado, cuestiones), …]= con una entrada por parte. Las hipótesis se acumulan a lo largo de /todas/ las partes: una cuestión de la parte $k$ ve los =Supuesto= de las partes anteriores.
 
@@ -1528,8 +1566,8 @@ En semantica y precond se admiten:
 #+NAME: qbank/_json.py
 #+begin_src python :tangle src/qbank/_json.py :noweb no-export
 import json as _json
-import calcprop as _calcprop_mod
-from qbank._quiz import Supuesto, Cuestion, ProblemaTipo, ProblemaVF
+from qbank._quiz import (Supuesto, Cuestion, ProblemaTipo, ProblemaVF,
+                         _EVAL_NS, _eval_expr)
 
 __all__ = [
     'problema_from_dict',
@@ -1542,9 +1580,6 @@ __all__ = [
     'save_problema_py',
 ]
 
-<<Espacio de nombres calcprop para JSON>>
-<<Evaluación de expresiones JSON>>
-<<Función setup desde string>>
 <<Componente desde dict JSON>>
 <<Slot desde JSON>>
 <<Slot a JSON>>
@@ -1622,47 +1657,13 @@ Un banco con múltiples problemas agrupa varios dicts bajo la clave ="banco"=:
 
 ** Evaluación de expresiones en el espacio de nombres de =calcprop=
 
-Las semánticas y precondiciones se guardan en JSON como cadenas de texto y se recuperan evaluándolas con =eval()= en el espacio de nombres del módulo =calcprop=. Así, expresiones como =v('A') & v('B')= se resuelven correctamente al deserializar.
-
-El espacio de nombres se construye una sola vez al importar el módulo:
-
-#+NAME: Espacio de nombres calcprop para JSON
-#+begin_src python :noweb yes
-_EVAL_NS = vars(_calcprop_mod).copy()
-#+end_src
-
-La función =_eval_expr= gestiona los casos especiales (booleanos literales) antes de delegar en =eval=, evitando así que ="True"= se evalúe como el nombre Python =True= solo si el usuario ha escrito exactamente esa cadena:
-
-#+NAME: Evaluación de expresiones JSON
-#+begin_src python :noweb yes
-def _eval_expr(expr):
-    """Evalúa una expresión (string o bool) en el namespace de calcprop."""
-    if isinstance(expr, bool):
-        return expr
-    if expr == "True":
-        return True
-    if expr == "False":
-        return False
-    return eval(expr, _EVAL_NS)
-#+end_src
-
+Las semánticas y precondiciones se guardan en JSON como cadenas de texto y se recuperan evaluándolas con =eval()= en el espacio de nombres del módulo =calcprop=. Así, expresiones como =v('A') & v('B')= se resuelven correctamente al deserializar. La evaluación la hacen =_EVAL_NS= y =_eval_expr=, definidas en =qbank._quiz= (sección «Funciones auxiliares para =setup= paramétrico»), porque los propios constructores de =Supuesto= y =Cuestion= aceptan cadenas: este módulo solo las importa. =_eval_expr= gestiona los booleanos literales antes de delegar en =eval=, de modo que ="True"= y ="False"= se convierten en =True= y =False= solo si el usuario ha escrito exactamente esas cadenas.
 
 ** Función de =setup= desde código Python
 
-El campo =setup= permitirá realizar cálculos con python para dar valores a preguntas con parámentros.
+El campo =setup= permite realizar cálculos con Python para dar valores a preguntas con parámetros.
 
-Cuando el campo =setup= no es =null=, contiene el código Python (como cadena) que se ejecuta al comienzo de cada iteración de =ProblemaTipo=. La función =_make_setup_fn= lo convierte en un callable que devuelve el diccionario de variables definidas, excluyendo las que empiezan por guión bajo (convención para internas de Python):
-
-#+NAME: Función setup desde string
-#+begin_src python :noweb yes
-def _make_setup_fn(code_str):
-    """Crea un callable setup() a partir de código Python en string."""
-    def setup():
-        ns = {}
-        exec(code_str, ns)
-        return {k: v for k, v in ns.items() if not k.startswith('_')}
-    return setup
-#+end_src
+Cuando el campo =setup= no es =null=, contiene el código Python (como cadena) que se ejecuta al comienzo de cada iteración de =ProblemaTipo=. Es el propio constructor de =ProblemaTipo= quien, al recibir una cadena, la convierte con =_setup_desde_str= (en =qbank._quiz=) en un callable que devuelve el diccionario de variables definidas, excluyendo las que empiezan por guion bajo (convención para internas de Python), y la conserva en =_setup_str= para poder guardar el problema de nuevo.
 
 Por ejemplo, si el JSON contiene:
 
@@ -1727,23 +1728,25 @@ def _slot_from_json(slot):
 
 ** Serialización de componentes
 
-La función =_slot_to_json= recorre el problema en sentido inverso. Cuando el objeto tiene el atributo =_json= (cargado desde JSON), lo devuelve directamente. Cuando el objeto fue creado a mano en Python, usa =repr()= sobre la semántica y la precondición: =repr()= de cualquier fórmula =calcprop= produce exactamente la cadena que =_eval_expr= sabe leer (p.ej. =v('A') >> v('C')=), por lo que el round-trip es transparente. Esta propiedad permite serializar problemas escritos directamente en Python sin modificarlos.
+La función =_slot_to_json= recorre el problema en sentido inverso. Cuando el objeto tiene el atributo =_json= (cargado desde JSON), lo devuelve directamente. Cuando el objeto fue creado a mano en Python, parte de los valores originales que guardó el constructor en =_orig=: si la semántica o la precondición se escribieron como cadena, esa cadena se guarda tal cual (así sobreviven las lambdas); si son fórmulas =calcprop=, usa =repr()=, que produce exactamente la cadena que =_eval_expr= sabe leer (p.ej. =v('A') >> v('C')=), por lo que el round-trip es transparente.
 
-La función auxiliar =_expr_to_str= gestiona el caso especial de los callables (lambdas de =setup= paramétrico), cuyo código fuente no es recuperable desde el objeto función:
+La función auxiliar =_expr_to_str= gestiona el caso que no tiene solución: una lambda escrita como función Python, cuyo código fuente no es recuperable desde el objeto función. El mensaje de error indica la alternativa: escribirla como cadena.
 
 #+NAME: Slot a JSON
 #+begin_src python :noweb yes
 def _expr_to_str(val, campo):
     """Convierte una semántica o precondición al string JSON equivalente.
 
-    Usa repr() sobre objetos calcprop (cuyo repr es evaluable con _eval_expr).
-    Falla con un mensaje claro si val es un callable (lambda de setup paramétrico).
+    Devuelve la cadena original si se escribió como tal, repr() sobre objetos
+    calcprop (cuyo repr es evaluable con _eval_expr), y falla con un mensaje
+    claro si val es una función Python (lambda), cuyo código no es recuperable.
     """
+    if isinstance(val, str):
+        return val
     if callable(val):
         raise ValueError(
-            f"El campo '{campo}' es un callable (lambda). "
-            "Los componentes con semánticas o precondiciones lambda solo pueden "
-            "serializarse si fueron cargados con load_problema() o problema_from_dict().")
+            f"El campo '{campo}' es una función Python (lambda) y no puede guardarse. "
+            "Escríbela como cadena, p. ej. precond=\"lambda ns: ns['x'] > 0\".")
     return repr(val)
 
 
@@ -1753,13 +1756,13 @@ def _slot_to_json(slot):
     elif isinstance(slot, (Supuesto, Cuestion)):
         if hasattr(slot, '_json'):
             return slot._json
-        # Fallback para objetos creados directamente en Python:
-        # repr() de cualquier fórmula calcprop es evaluable por _eval_expr.
+        # Objetos creados directamente en Python: valores tal como se escribieron.
+        semantica, precond = getattr(slot, '_orig', (slot.s, slot.p))
         d = {
             'tipo':      'Supuesto' if isinstance(slot, Supuesto) else 'Cuestion',
             'enunciado': slot.e,
-            'semantica': _expr_to_str(slot.s, 'semantica'),
-            'precond':   _expr_to_str(slot.p, 'precond'),
+            'semantica': _expr_to_str(semantica, 'semantica'),
+            'precond':   _expr_to_str(precond, 'precond'),
         }
         if isinstance(slot, Cuestion):
             d['exp'] = slot.x
@@ -1775,7 +1778,7 @@ def _slot_to_json(slot):
 
 Las funciones públicas =problema_from_dict= y =problema_to_dict= realizan la conversión bidireccional entre dicts Python y objetos =ProblemaTipo= / =ProblemaVF=.
 
-=problema_from_dict= distingue el tipo de problema por el campo ="tipo"= del dict, reconstruye los componentes llamando a =_slot_from_json= para cada uno, y convierte el campo ="setup"= (si no es =null=) en un callable mediante =_make_setup_fn=. Los metadatos =_nombre= y =_setup_str= se guardan como atributos del objeto para que =problema_to_dict= pueda recuperarlos sin necesidad de solicitarlos de nuevo al usuario.
+=problema_from_dict= distingue el tipo de problema por el campo ="tipo"= del dict, reconstruye los componentes llamando a =_slot_from_json= para cada uno, y pasa el campo ="setup"= (la cadena de código, o =None=) y el ="nombre"= directamente al constructor de =ProblemaTipo=, que es quien compila el =setup= y guarda los metadatos =_setup_str= y =_nombre= para que =problema_to_dict= pueda recuperarlos.
 
 #+NAME: Problema desde dict JSON
 #+begin_src python :noweb yes
@@ -1785,14 +1788,9 @@ def problema_from_dict(d):
 
     if tipo == "ProblemaTipo":
         componentes = [_slot_from_json(s) for s in d["componentes"]]
-        setup_str   = d.get("setup")
-        setup       = _make_setup_fn(setup_str) if setup_str else None
-        export      = d.get("export", {})
-        seed        = d.get("seed")
-        p = ProblemaTipo(componentes, setup=setup, export=export, seed=seed)
-        p._nombre    = d.get("nombre", "")
-        p._setup_str = setup_str
-        return p
+        return ProblemaTipo(componentes, setup=d.get("setup") or None,
+                            export=d.get("export", {}), seed=d.get("seed"),
+                            nombre=d.get("nombre", ""))
 
     elif tipo == "ProblemaMultiParte":
         # Schema heredado: se aplana a un ProblemaTipo multiparte unificado.
@@ -1803,14 +1801,9 @@ def problema_from_dict(d):
         for sp in d["subpreguntas"]:
             componentes.append(sp["intro"])
             componentes.append([_componente_from_dict(c) for c in sp["cuestiones"]])
-        setup_str = d.get("setup")
-        setup     = _make_setup_fn(setup_str) if setup_str else None
-        export    = d.get("export", {})
-        seed      = d.get("seed")
-        p = ProblemaTipo(componentes, setup=setup, export=export, seed=seed)
-        p._nombre    = d.get("nombre", "")
-        p._setup_str = setup_str
-        return p
+        return ProblemaTipo(componentes, setup=d.get("setup") or None,
+                            export=d.get("export", {}), seed=d.get("seed"),
+                            nombre=d.get("nombre", ""))
 
     elif tipo == "ProblemaVF":
         enunciado  = d["enunciado"]
@@ -1844,10 +1837,9 @@ def problema_to_dict(problema):
         setup_str = getattr(problema, '_setup_str', None)
         if setup_str is None and problema.setup is not None:
             raise ValueError(
-                "ProblemaTipo tiene un setup callable pero no fue creado desde JSON. "
-                "No es posible serializar un setup definido directamente en Python. "
-                "Escribe el código del setup como cadena y carga el problema con "
-                "problema_from_dict().")
+                "El setup de este ProblemaTipo es una función Python y su código no es "
+                "recuperable. Pásalo como cadena de código: "
+                "ProblemaTipo(..., setup=\"import numpy as np\\nx = ...\").")
         d = {
             "version":     "1",
             "tipo":        "ProblemaTipo",
@@ -2940,7 +2932,10 @@ Reglas (código del aviso entre paréntesis):
    ``1 <= correctas <= opciones - 1``, contando la opción por defecto si
    ``export.last_choice`` está activo (misma regla que ``AMCblock``). Si el
    número de opciones de una parte no es constante entre variantes
-   (``opciones``, AVISO).
+   (``opciones``, AVISO). Si una parte muestra al alumno menos de
+   ``MIN_OPCIONES`` (3) opciones (``pocas-opciones``, AVISO): una lista de
+   ``Cuestion`` sortea UNA por variante; para mostrar varias a la vez van
+   como elementos consecutivos.
 2. Número de variantes (``variantes``, AVISO): < 16 sin ``setup``; < 60 con
    ``setup`` (contando ``instances``). Más de 300 (INFO): un solo examcopy
    AMC con tantas variantes puede agotar la memoria de pdflatex.
@@ -2985,6 +2980,7 @@ _ORDEN = {ERROR: 0, AVISO: 1, INFO: 2}
 
 MIN_VARIANTES_SIN_SETUP = 16
 MIN_VARIANTES_CON_SETUP = 60
+MIN_OPCIONES            = 3       # opciones que debe ver el alumno en cada parte (con last_choice)
 MAX_VARIANTES_AMC       = 300     # por encima, la vista alumno AMC en un solo examcopy agota pdflatex
 _MAX_REPETIDOS = 5          # avisos idénticos que se listan antes de resumir
 
@@ -3264,7 +3260,7 @@ def _regla_etiquetas(p, avisos):
 
 ** Reglas 1, 2, 5 y 9: variantes
 
-Estas reglas recorren de verdad todas las variantes con =por_partes(instances=...)=, exactamente como hará la exportación, y aplican por parte la misma regla que =AMCblock= y =QuizMoodle= para la opción por defecto: es correcta si y solo si ninguna real lo es. La garantía de mezcla se comprueba sobre el total de opciones. Como una =Cuestion= rechazada por su precondición descarta la variante entera, el número de opciones por parte es constante en el motor actual; el aviso =opciones= queda por si eso cambiara. Las interpolaciones fallidas se buscan como =@{...}= superviviente en enunciados, cuestiones y explicaciones, y los avisos repetidos se agrupan por texto. Con =setup=, la regla 9 estima las instancias necesarias para llegar a 60 variantes a partir de la media de variantes por instancia. Por encima de =MAX_VARIANTES_AMC= (300) se informa de que la vista alumno de AMC, que mete todas las variantes en un único =examcopy=, puede agotar la memoria de =pdflatex= (ocurrió con 792 variantes; con 192 compila).
+Estas reglas recorren de verdad todas las variantes con =por_partes(instances=...)=, exactamente como hará la exportación, y aplican por parte la misma regla que =AMCblock= y =QuizMoodle= para la opción por defecto: es correcta si y solo si ninguna real lo es. La garantía de mezcla se comprueba sobre el total de opciones. Como una =Cuestion= rechazada por su precondición descarta la variante entera, el número de opciones por parte es constante en el motor actual; el aviso =opciones= queda por si eso cambiara. El aviso =pocas-opciones= (menos de =MIN_OPCIONES=, 3, opciones por parte, contando la opción por defecto) ataca el error más frecuente al empezar con =qbank=: escribir las opciones como una única lista de =Cuestion= creyendo que se mostrarán juntas, cuando una lista sortea una sola por variante. Las interpolaciones fallidas se buscan como =@{...}= superviviente en enunciados, cuestiones y explicaciones, y los avisos repetidos se agrupan por texto. Con =setup=, la regla 9 estima las instancias necesarias para llegar a 60 variantes a partir de la media de variantes por instancia. Por encima de =MAX_VARIANTES_AMC= (300) se informa de que la vista alumno de AMC, que mete todas las variantes en un único =examcopy=, puede agotar la memoria de =pdflatex= (ocurrió con 792 variantes; con 192 compila).
 
 #+NAME: lint: Reglas 1, 2, 5 y 9: variantes
 #+begin_src python :noweb yes
@@ -3324,6 +3320,11 @@ def _regla_variantes(p, avisos, instances, seed):
             avisos.append(Aviso(AVISO, 'opciones',
                                 f"parte {k + 1}: el número de opciones varía entre variantes: "
                                 f"{sorted(ns_)}"))
+        if min(ns_) < MIN_OPCIONES:
+            avisos.append(Aviso(AVISO, 'pocas-opciones',
+                                f"parte {k + 1}: el alumno solo ve {min(ns_)} opción(es). Una lista "
+                                "de Cuestion sortea UNA por variante: para mostrar varias a la vez "
+                                "ponlas como elementos consecutivos (y/o activa export.last_choice)"))
     for (m, tipo, t), etiqueta in interp.items():
         avisos.append(Aviso(ERROR, 'interp',
                             f"{m} sin interpolar en {tipo} (variante {etiqueta})", t))

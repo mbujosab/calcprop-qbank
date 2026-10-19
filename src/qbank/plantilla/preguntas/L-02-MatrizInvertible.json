@@ -1,0 +1,59 @@
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "L-02-MatrizInvertible",
+  "seed": null,
+  "setup": null,
+  "export": {"last_choice": true, "cols": 2},
+  "componentes": [
+    "Sea $A$ una matriz cuadrada ",
+    [
+      {"tipo": "Supuesto", "enunciado": "invertible.",
+       "semantica": "v('inv')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "singular.",
+       "semantica": "v('sing')", "precond": "True"}
+    ],
+    {"tipo": "Supuesto", "enunciado": "",
+     "semantica": "unoDe(v('inv'), v('sing'))", "precond": "True"},
+    " Sobre su determinante:",
+    [
+      {"tipo": "Cuestion", "enunciado": "$\\det(A) \\neq 0$",
+       "semantica": "v('inv')", "precond": "True",
+       "exp": "Una matriz cuadrada es invertible si y solo si su determinante no es nulo."},
+      {"tipo": "Cuestion", "enunciado": "$\\det(A) = 0$",
+       "semantica": "v('sing')", "precond": "True",
+       "exp": "Una matriz cuadrada es invertible si y solo si su determinante no es nulo."}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "$\\det(A^{-1}) = 1/\\det(A)$",
+       "semantica": "True", "precond": "v('inv')",
+       "exp": "De $A A^{-1} = I$ se sigue $\\det(A)\\det(A^{-1}) = 1$."},
+      {"tipo": "Cuestion", "enunciado": "$\\det(A^\\top) = \\det(A)$",
+       "semantica": "True", "precond": "True",
+       "exp": "El determinante de la traspuesta coincide siempre con el de la matriz."},
+      {"tipo": "Cuestion", "enunciado": "$\\det(A^\\top) = -\\det(A)$",
+       "semantica": "v('sing')", "precond": "True",
+       "exp": "Como $\\det(A^\\top) = \\det(A)$, la igualdad $\\det(A) = -\\det(A)$ solo se cumple si $\\det(A) = 0$, es decir, si $A$ es singular."}
+    ],
+    " Sobre el sistema homogéneo $A\\boldsymbol{x} = \\boldsymbol{0}$:",
+    [
+      {"tipo": "Cuestion", "enunciado": "tiene solo la solución trivial $\\boldsymbol{x} = \\boldsymbol{0}$",
+       "semantica": "v('inv')", "precond": "True",
+       "exp": "Si $A$ es invertible, $\\boldsymbol{x} = A^{-1}\\boldsymbol{0} = \\boldsymbol{0}$; si es singular, hay un núcleo no trivial y, por tanto, infinitas soluciones."},
+      {"tipo": "Cuestion", "enunciado": "tiene infinitas soluciones",
+       "semantica": "v('sing')", "precond": "True",
+       "exp": "Si $A$ es invertible, $\\boldsymbol{x} = A^{-1}\\boldsymbol{0} = \\boldsymbol{0}$; si es singular, hay un núcleo no trivial y, por tanto, infinitas soluciones."}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "las columnas de $A$ son linealmente independientes",
+       "semantica": "v('inv')", "precond": "True",
+       "exp": "Las columnas son linealmente independientes exactamente cuando $A\\boldsymbol{x} = \\boldsymbol{0}$ solo tiene la solución trivial, es decir, cuando $A$ es invertible."},
+      {"tipo": "Cuestion", "enunciado": "alguna columna de $A$ es combinación lineal de las demás",
+       "semantica": "v('sing')", "precond": "True",
+       "exp": "Las columnas son linealmente dependientes exactamente cuando $A\\boldsymbol{x} = \\boldsymbol{0}$ tiene soluciones no triviales, es decir, cuando $A$ es singular."},
+      {"tipo": "Cuestion", "enunciado": "el rango de $A$ es menor que su orden",
+       "semantica": "v('sing')", "precond": "True",
+       "exp": "El rango es el número de columnas linealmente independientes: igual al orden si $A$ es invertible y menor si es singular."}
+    ]
+  ]
+}

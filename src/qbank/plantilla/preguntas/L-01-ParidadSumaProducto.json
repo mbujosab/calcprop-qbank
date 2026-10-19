@@ -1,0 +1,49 @@
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "L-01-ParidadSumaProducto",
+  "seed": null,
+  "setup": null,
+  "export": {"last_choice": true, "cols": 2},
+  "componentes": [
+    "Sean $n$ y $m$ dos números enteros. Suponga que ",
+    [
+      {"tipo": "Supuesto", "enunciado": "ambos son pares.",
+       "semantica": "v('pp')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "ambos son impares.",
+       "semantica": "v('ii')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "uno es par y el otro impar.",
+       "semantica": "v('pi')", "precond": "True"}
+    ],
+    {"tipo": "Supuesto", "enunciado": "",
+     "semantica": "unoDe(v('pp'), v('ii'), v('pi'))", "precond": "True"},
+    " Entonces:",
+    [
+      {"tipo": "Cuestion", "enunciado": "$n + m$ es par",
+       "semantica": "v('pp') | v('ii')", "precond": "True",
+       "exp": "La suma de dos números de la misma paridad es par; la de dos de distinta paridad, impar."},
+      {"tipo": "Cuestion", "enunciado": "$n + m$ es impar",
+       "semantica": "v('pi')", "precond": "True",
+       "exp": "La suma de dos números de la misma paridad es par; la de dos de distinta paridad, impar."}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "$n \\cdot m$ es par",
+       "semantica": "v('pp') | v('pi')", "precond": "True",
+       "exp": "El producto es par en cuanto uno de los factores lo es; solo es impar si los dos son impares."},
+      {"tipo": "Cuestion", "enunciado": "$n \\cdot m$ es impar",
+       "semantica": "v('ii')", "precond": "True",
+       "exp": "El producto es par en cuanto uno de los factores lo es; solo es impar si los dos son impares."}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "$n^2 + m^2$ es par",
+       "semantica": "v('pp') | v('ii')", "precond": "True",
+       "exp": "Un cuadrado tiene la paridad de su base, así que $n^2 + m^2$ tiene la paridad de $n + m$."},
+      {"tipo": "Cuestion", "enunciado": "$n^2 + m^2$ es impar",
+       "semantica": "v('pi')", "precond": "True",
+       "exp": "Un cuadrado tiene la paridad de su base, así que $n^2 + m^2$ tiene la paridad de $n + m$."},
+      {"tipo": "Cuestion", "enunciado": "$n^2 - m^2$ es impar",
+       "semantica": "v('pi')", "precond": "True",
+       "exp": "$n^2 - m^2 = (n + m)(n - m)$: es impar solo si $n$ y $m$ tienen distinta paridad."}
+    ]
+  ]
+}

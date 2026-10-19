@@ -20,6 +20,24 @@ Con soporte para el editor visual en Jupyter:
 pip install "calcprop-qbank[jupyter]"
 ```
 
+# Crear un banco de preguntas
+
+La forma recomendada de empezar es la plantilla de proyecto que se
+distribuye con el paquete:
+
+``` bash
+qbank-init mi-banco
+cd mi-banco
+make lint          # comprueba las preguntas de ejemplo (sin LaTeX)
+make amc           # PDF de revisión (vista profe) en build/amc/
+```
+
+El proyecto contiene cuatro preguntas de ejemplo en `preguntas/`, los
+scripts que las exportan a AMC y Moodle, un `Makefile` (`lint`, `amc`,
+`amc-student`, `moodle`, filtro `LECCION=N`) y `nueva_pregunta.py`, un
+guion para escribir una pregunta en Python y guardarla como JSON. Su
+`README.org` explica el flujo.
+
 # Uso rápido
 
 ``` python

@@ -1,0 +1,6 @@
+# Todo lo generado por make
+build/
+
+# Python
+__pycache__/
+*.pyc

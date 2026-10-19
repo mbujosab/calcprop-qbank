@@ -109,25 +109,28 @@ CLOSED: [2026-10-19]
   =Untitled.ipynb=, =mi_problema.json=, =problema.json=, =preguntas*.tex=,
   =*.tex= de los PDF literate.
 
-** TODO Fase 1 — Proyecto plantilla y =qbank-init=
-- [ ] =ProblemaTipo= acepta =setup= como cadena y =save_problema= lo
-  serializa (cambio en =CalcPropQuiz.org= + tangle + test).
-- [ ] =src/qbank/plantilla/= con: =preguntas/= (3–4 JSON que cubran mundos,
-  =precond=, =setup= + =seed= + =instances=, multiparte, todos con
-  =export= y el patrón 3 cuestiones + =last_choice=), =scripts/gen_amc.py=,
-  =gen_amc_student.py=, =gen_moodle.py=, =_leccion.py=,
-  =merge_moodle_xml.py= (generalizados desde los bancos: sin rutas
-  absolutas ni macros del curso), =Makefile= (=lint=, =amc=, =amc-student=,
-  =moodle=, =clean=, filtro =LECCION=), =nueva_pregunta.py= (plantilla
-  Python → JSON), =README.org= («copia, escribe, make lint, make amc»),
-  =.gitignore=.
-- [ ] Orden =qbank-init DIR= (copia la plantilla) en =pyproject.toml=.
-- [ ] Test: los scripts de la plantilla generan =.tex= válidos para sus
-  preguntas (sin compilar LaTeX).
-- [ ] Regla nueva de =lint= (AVISO =opciones=): una parte muestra menos de
-  3 opciones al alumno → «¿querías que las N cuestiones de la lista
-  aparecieran juntas? Una lista sortea una; ponlas como elementos
-  consecutivos». Ataca directamente la confusión nº 1.
+** DONE Fase 1 — Proyecto plantilla y =qbank-init=
+CLOSED: [2026-10-19]
+- [X] =ProblemaTipo= acepta =setup= como cadena y =nombre=; =Supuesto= y
+  =Cuestion= aceptan =semantica= y =precond= como cadena (incluidas
+  lambdas), y =save_problema= lo serializa todo. Así una pregunta escrita
+  en Python con =setup= o lambdas se guarda en JSON (antes era imposible).
+- [X] =src/qbank/plantilla/=: cuatro preguntas de ejemplo (mundos y axioma;
+  =setup= + =seed= + =instances=; multiparte con =precond=; semántica
+  =lambda= con pareja verdadera/falsa), =scripts/= generalizados desde los
+  bancos (=_comun.py= sustituye a =_leccion.py= y escribe solo si cambia,
+  para que =make= recompile solo lo tocado), =Makefile= con reglas de patrón
+  por pregunta, =config.py=, =nueva_pregunta.py=, =README.org=, =.gitignore=.
+- [X] =qbank-init DIR= (=qbank._plantilla=, en =CalcPropExport.org=).
+- [X] =tests/test_plantilla.py= (13 tests): autoría en Python, regla de
+  lint, copia de la plantilla, scripts sobre las preguntas de ejemplo.
+  Además, probado a mano el pipeline completo con =pdflatex= (AMC profe y
+  alumno, Moodle XML, caché).
+- [X] Regla de =lint= =pocas-opciones= (AVISO): no salta en ninguna
+  pregunta de los dos bancos; sí en 6 de los 9 JSON de =ejemplosManual/=
+  (que también tienen errores de mezcla: arreglarlos es parte de la Fase 3).
+- [ ] Publicar 0.6.0 en PyPI para que =pip install calcprop-qbank= traiga
+  =qbank-init= (checklist de =CLAUDE.md=).
 
 ** TODO Fase 2 — =GuiaDiseno.org= (para personas)
 Destilar de =PROMPT-qbank-generico.org= §2 y §5–§10, sin fechas ni
@@ -152,6 +155,10 @@ checklist final. Ejemplos en listas Python con un JSON completo (D2).
   =np.random=; relegar =ProblemaVF=, el editor de widgets y las clases
   deprecadas a un apéndice «API avanzada»; =Ejemplos.ipynb= escribe en
   =banco_preguntas_econometria/= → usar =salida/=.
+- [ ] =ejemplosManual/*.json=: =numeros=, =superheroes=, =ejercicio= y
+  =matriz_rango= tienen errores de mezcla y avisos =pocas-opciones=;
+  rehacerlos con el patrón 3 cuestiones + =last_choice= (son los que usan
+  Demo.ipynb y el Manual).
 - [ ] Notebooks: dejar claro el papel de cada uno (Tutorial = camino del
   autor de bancos; Demo = recorrido de la API; Ejemplos = caso de
   econometría) o fundir Demo en Tutorial.
