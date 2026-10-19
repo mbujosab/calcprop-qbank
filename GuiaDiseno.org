@@ -1,7 +1,7 @@
 #+TITLE: Guía de diseño de preguntas con =qbank=
 #+AUTHOR: Marcos Bujosa
 #+LANGUAGE: es
-#+OPTIONS: toc:2 num:t
+#+OPTIONS: toc:nil num:t
 #+STARTUP: overview
 
 # ─── Copyright ──────────────────────────────────────────────────────────────
@@ -20,11 +20,14 @@
 #+LATEX_HEADER: \newunicodechar{✓}{\checkmark}
 #+LATEX_HEADER: \newunicodechar{✗}{$\times$}
 #+LATEX_HEADER: \newunicodechar{≥}{$\geq$}
-#+LATEX_HEADER: \usepackage{etoolbox}
-#+LATEX_HEADER: \AtBeginEnvironment{verbatim}{\small}
+#+LATEX_HEADER: \usepackage{fvextra}
+#+LATEX_HEADER: \RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines=true,breakanywhere=true,fontsize=\small}
 #+LATEX_HEADER: \usepackage{xcolor}
 #+LATEX_HEADER: \definecolor{enlace}{RGB}{0,70,130}
 #+LATEX_HEADER: \hypersetup{colorlinks=true,linkcolor=enlace,urlcolor=enlace,citecolor=enlace}
+
+#+TOC: headlines 2
+#+LATEX: \clearpage
 
 Esta guía explica *cómo diseñar buenas preguntas* con =qbank=: qué hace el
 motor con lo que escribes, qué patrón de pregunta conviene adoptar y qué
