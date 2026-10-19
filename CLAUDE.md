@@ -82,7 +82,13 @@ p = ProblemaTipo([s, [s1, s2], [c1, c2]], setup=None, export=None, seed=None, no
   `setup` se conserva tal cual en `_setup_str` y se ejecuta con `dedent`.
 - `problema_to_python` emite `_SETUP = r"""…"""`, las lambdas entre comillas y
   `nombre=`: el `.py` resultante vuelve a guardarse con `save_problema`.
-- `QuizAMCProfe(..., last_choice=False)` (nuevo parámetro).
+- `QuizAMCProfe(nombre, directorio, problema, cols=1, *, last_choice=False, …)`
+  y `QuizMoodleProfe(..., *, last_choice=False, instances=1, …)`: las mismas
+  variantes que la vista alumno. Las funciones de exportación **no leen**
+  `export`: hay que pasarles `last_choice=`, `instances=`, `cols=` (los
+  scripts de la plantilla sí lo leen).
+- `qbank.__version__` (de los metadatos); el `Makefile` de la plantilla exige
+  ≥ 0.6 en `comprueba`.
 - `seed` / `base_seed` siembran `numpy.random` **y** el módulo `random`
   (`_siembra`); `por_partes(base_seed=S)` también actúa con `instances=1`.
   `tabla_mundos` siembra con `seed` (o 42) y, como el motor, cada `Cuestion`
@@ -97,7 +103,10 @@ p = ProblemaTipo([s, [s1, s2], [c1, c2]], setup=None, export=None, seed=None, no
   `Supuesto` a cualquier profundidad (`>> -v('X')`, `unoDe` dentro de una
   conjunción o en Supuestos de lista); `sin-uso` calla si alguna `Cuestion`
   usa lambdas; `doble espacio` ignora el interior de `$…$`; `export` y
-  `seed` mal tipados son ERROR `estructura` (no revientan).
+  `seed` mal tipados (también `seed: true`) son ERROR `estructura` (no
+  revientan); `@@{x}` no es ERROR `interp`; `constante` es INFO si la
+  `Cuestion` es lambda con `setup`; las reglas de `%` miran también el texto
+  interpolado; espacios en `nombre` o en el fichero son ERROR `nombre`.
 - Flujo recomendado para escribir a mano: lista Python → `save_problema` →
   JSON en `preguntas/` (es lo que hace `plantilla/nueva_pregunta.py`).
 
@@ -175,7 +184,9 @@ AMCblock(nombre, etiqueta, enunciado, cuestiones,
          last_choice_text="Ninguna de las anteriores")
 
 # Quiz AMC completo (vista profe)
-QuizAMCProfe(nombre, directorio, problema, last_choice=False, cols=1)
+QuizAMCProfe(nombre, directorio, problema, cols=1, *,
+             last_choice=False, aux_latex="",
+             last_choice_text="Ninguna de las anteriores")
 ```
 
 ### Exportación Moodle
@@ -186,6 +197,11 @@ QuizAMCProfe(nombre, directorio, problema, last_choice=False, cols=1)
 QuizMoodle(nombre, directorio, problema,
            last_choice=False, instances=1,
            last_choice_text="Las demás opciones son falsas")
+
+# Vista profe (fracciones visibles); mismos last_choice/instances
+QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="",
+                last_choice=False, instances=1,
+                last_choice_text="Las demás opciones son falsas")
 ```
 
 - Los nombres sanitizan `:` y `_` → `-` para compatibilidad LaTeX.
@@ -214,10 +230,13 @@ CLI: `python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla]
 omite los INFO y los ficheros sin avisos.
 
 Implementación en `src/qbank/_lint.py` (el docstring lista las 9 reglas y
-sus códigos). Niveles: `ERROR` (la pregunta está rota: mezcla, negación sin
-`unoDe`, `@{var}` sin resolver, estructura, nombre), `AVISO` (revisar:
-pocas variantes, `Cuestion` constante en todos sus mundos, lista de un
-elemento, seed/instances incoherentes, texto sospechoso), `INFO`.
+sus códigos). Niveles: `ERROR` (la pregunta está rota: `mezcla`, `negacion`
+sin `unoDe`, `interp` —`@{var}` sin resolver—, `estructura`, `nombre`,
+`tipo`, `carga`, `ejecucion` —el `setup` lanza—, `variantes` —ninguna
+variante válida—, `texto` —`%` sin barra—), `AVISO` (revisar: pocas
+variantes, `pocas-opciones`, `opciones`, `constante`, `lista-1`,
+`seed`/`instances` incoherentes, `negacion` de un Supuesto fijo, `texto`
+sospechoso —comillas rectas, `\(…\)`, `\[…\]`, `\%` en `$…$`…—), `INFO`.
 
 - La regla de negación considera deducible `-v('X')` si hay `unoDe(...)`
   con `v('X')` en un `Supuesto` suelto **o** si algún `Supuesto` afirma
@@ -229,7 +248,8 @@ elemento, seed/instances incoherentes, texto sospechoso), `INFO`.
   `MIN_OPCIONES` (3) opciones, contando `last_choice`. Detecta el error
   típico de poner las opciones en una única lista de `Cuestion` (una lista
   sortea una). No salta en ninguna pregunta de los dos bancos. Una parte sin
-  ninguna `Cuestion` (texto suelto tras la última) da AVISO `opciones`.
+  ninguna `Cuestion` (texto suelto tras la última) da solo AVISO `opciones`
+  (sin los `mezcla` de esa parte).
 - `_ns_interp(s, ns, strict=None)`: con `strict=True` (o
   `qbank._quiz.STRICT_INTERP = True`) lanza `ValueError` ante `@{var}`
   desconocida. Por defecto sigue dejando el texto intacto.
