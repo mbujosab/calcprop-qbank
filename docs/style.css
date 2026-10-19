@@ -1,0 +1,72 @@
+/* Hoja única de la documentación de qbank (docs/, generado con tools/web.sh). */
+
+:root {
+  --texto: #1f2328;
+  --suave: #57606a;
+  --fondo: #ffffff;
+  --codigo: #f4f6f8;
+  --borde: #d0d7de;
+  --enlace: #0b5394;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  padding: 1.5rem 1rem 4rem;
+  background: var(--fondo);
+  color: var(--texto);
+  font: 1.0625rem/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+#content, #preamble, #postamble { max-width: 70ch; margin: 0 auto; }
+
+h1.title { font-size: 1.9rem; line-height: 1.25; margin: 0 0 1.5rem; }
+h2 { font-size: 1.45rem; margin: 2.5rem 0 0.75rem; padding-bottom: 0.25rem; border-bottom: 1px solid var(--borde); }
+h3 { font-size: 1.2rem; margin: 2rem 0 0.5rem; }
+h4, h5 { font-size: 1.05rem; margin: 1.5rem 0 0.5rem; }
+.section-number-2, .section-number-3, .section-number-4 { color: var(--suave); margin-right: 0.4em; }
+
+a { color: var(--enlace); }
+a:hover { text-decoration-thickness: 2px; }
+
+/* Índice de contenidos */
+#table-of-contents { margin: 0 0 2rem; padding: 0.75rem 1rem; border: 1px solid var(--borde); border-radius: 6px; }
+#table-of-contents h2 { font-size: 1.1rem; margin: 0 0 0.5rem; border: 0; padding: 0; }
+#table-of-contents ul { margin: 0; padding-left: 1.2rem; }
+#table-of-contents li { margin: 0.15rem 0; }
+
+/* Código */
+code, pre, kbd, samp { font-family: ui-monospace, SFMono-Regular, "DejaVu Sans Mono", Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: var(--codigo); padding: 0.1em 0.3em; border-radius: 3px; overflow-wrap: break-word; }
+td:first-child code { white-space: nowrap; }   /* nombres de la primera columna enteros */
+pre {
+  background: var(--codigo);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  line-height: 1.45;
+}
+pre code { background: none; padding: 0; }
+.org-src-container { margin: 1rem 0; }
+
+/* Tablas: las anchas se desplazan en horizontal en vez de desbordar */
+table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.95em;
+}
+th, td { border: 1px solid var(--borde); padding: 0.35rem 0.6rem; vertical-align: top; text-align: left; }
+th { background: var(--codigo); }
+
+/* Fórmulas sencillas (tools/web.el las pasa a Unicode) */
+.math { font-family: "Latin Modern Math", "STIX Two Math", "Cambria Math", serif; font-style: italic; }
+
+dt { font-weight: 600; margin-top: 0.6rem; }
+dd { margin-left: 1.5rem; }
+blockquote { margin: 1rem 0; padding: 0 1rem; color: var(--suave); border-left: 3px solid var(--borde); }
+img { max-width: 100%; height: auto; }

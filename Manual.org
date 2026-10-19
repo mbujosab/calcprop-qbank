@@ -241,7 +241,7 @@ Las fórmulas se construyen combinando variables con los operadores de Python:
 |---------------------------------------------+-------------------------------+---------------------------------------------|
 | =-v('A')=                                   | Negación  (¬A)                | =-v('A')=                                   |
 | =v('A') & v('B')=                           | Conjunción  (A $\land$ B)     | =v('A') & v('B')=                           |
-| @@latex:\texttt{v('A') \textbar{} v('B')}@@ | Disyunción  (A $\lor$ B)      | @@latex:\texttt{v('A') \textbar{} v('B')}@@ |
+| @@latex:\texttt{v('A') \textbar{} v('B')}@@@@html:<code>v('A') &#124; v('B')</code>@@ | Disyunción  (A $\lor$ B)      | @@latex:\texttt{v('A') \textbar{} v('B')}@@@@html:<code>v('A') &#124; v('B')</code>@@ |
 | =v('A') >> v('B')=                          | Implicación  (A $\implies$ B) | =v('A') >> v('B')=                          |
 | =v('A') ** v('B')=                          | Bicondicional  (A $\iff$ B)   | =v('A') ** v('B')=                          |
 | =alguno(v('A'), v('B'), v('C'))=            | Alguna verdadera              | =alguno(v('A'), v('B'), v('C'))=            |

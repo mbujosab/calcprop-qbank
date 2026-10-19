@@ -1,0 +1,60 @@
+#+TITLE: qbank — generador de bancos de preguntas de opción múltiple
+#+LANGUAGE: es
+#+OPTIONS: toc:nil num:nil
+
+# Fuente de docs/index.html (tools/web.sh). Las frases salen del README.
+
+[[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb][https://mybinder.org/badge_logo.svg]]
+
+Genera variantes de preguntas de opción múltiple cuyas respuestas correctas se
+determinan automáticamente mediante cálculo proposicional, y exporta el
+resultado a LaTeX (AMC, exámenes en papel) o a Moodle (XML vía LaTeX).
+
+Es para profesores que quieren un banco de preguntas con muchas variantes de
+cada una, todas corregidas automáticamente, sin tener que comprobar a mano
+qué opción es correcta en cada variante.
+
+* Instalación
+
+Dentro de un entorno virtual:
+
+#+begin_src bash
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install calcprop-qbank       # instala también calcprop
+#+end_src
+
+y después, para crear un banco con cinco preguntas de ejemplo:
+
+#+begin_src bash
+qbank-init mi-banco
+cd mi-banco
+make lint          # comprueba las preguntas de ejemplo (sin LaTeX)
+make amc           # PDF de revisión (vista profe) en build/amc/
+#+end_src
+
+El Manual (sección «Instalación paso a paso») lo explica despacio, también
+para Windows.
+
+* Qué leer, en este orden
+
+1. *README* ([[file:readme.html][HTML]]): qué hace =qbank=, cómo instalarlo y crear un
+   banco con =qbank-init=, y un recorrido rápido por sus características.
+2. *Tutorial* ([[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb][abrir en MyBinder]], sin instalar nada;
+   [[https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb][verlo en GitHub]]): cinco ejemplos progresivos ejecutables.
+3. *README del banco* ([[file:plantilla.html][HTML]]): el que =qbank-init= deja en cada proyecto.
+   Qué hay en el proyecto, el flujo de trabajo con =make=, cómo leer la vista
+   profe, los caracteres que rompen la exportación y cómo llevar las preguntas
+   a un examen AMC o a Moodle.
+4. *Guía de diseño* ([[file:guia.html][HTML]], [[file:GuiaDiseno.pdf][PDF]]): cómo diseñar buenas preguntas: la
+   mecánica de listas y mundos, el patrón de tres huecos + opción por
+   defecto, =setup=, redacción de cuestiones y explicaciones, trampas de
+   LaTeX/Moodle y checklist.
+5. *Manual* ([[file:manual.html][HTML]], [[file:Manual.pdf][PDF]]): referencia completa de la API y del formato
+   JSON.
+
+* Enlaces
+
+- Paquete en PyPI: [[https://pypi.org/project/calcprop-qbank/][calcprop-qbank]]
+- Repositorio: [[https://github.com/mbujosab/calcprop-qbank][github.com/mbujosab/calcprop-qbank]]
+- Motor lógico: [[https://github.com/mbujosab/calcprop][calcprop]]
