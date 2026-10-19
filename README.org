@@ -13,9 +13,17 @@ Construido sobre [[https://github.com/mbujosab/calcprop][=calcprop=]].
 
 * Instalación
 
+Conviene instalar dentro de un entorno virtual (en Debian, Ubuntu o con el
+Python de Homebrew, =pip= fuera de uno da =externally-managed-environment=):
+
 #+begin_src bash
-pip install calcprop calcprop-qbank
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install calcprop-qbank       # instala también calcprop
 #+end_src
+
+El Manual (sección «Instalación paso a paso») lo explica despacio, también
+para Windows.
 
 Con soporte para el editor visual en Jupyter:
 
@@ -30,8 +38,10 @@ que necesitan la 0.6. Mientras no se publique, instala desde el repositorio:
 pip install "calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-qbank"
 #+end_src
 
-El paquete solo instala el código. El tutorial (=Tutorial.ipynb=), la guía de
-diseño (=GuiaDiseno.org=), el manual y los ejemplos de =ejemplosManual/= están
+Esa orden necesita =git= instalado. El paquete solo instala el código. El
+tutorial (=Tutorial.ipynb=), la guía de diseño (=GuiaDiseno.org= y su versión
+impresa =GuiaDiseno.pdf=), el manual (=Manual.org=, =Manual.pdf=) y los
+ejemplos de =ejemplosManual/= están
 en el [[https://github.com/mbujosab/calcprop-qbank][repositorio]]: clónalo con
 =git clone https://github.com/mbujosab/calcprop-qbank= o abre el tutorial sin
 instalar nada con la insignia de MyBinder de arriba.
@@ -57,8 +67,8 @@ guion para escribir una pregunta en Python y guardarla como JSON. Su
 
 =make= usa el intérprete =python3= del sistema. Si instalaste qbank en un
 entorno virtual, actívalo antes (=source .venv/bin/activate=) o indícalo con
-=PYTHON=: =make lint PYTHON=/ruta/al/.venv/bin/python=. Con un qbank antiguo en
-el intérprete, =make= falla con mensajes engañosos.
+=PYTHON=: =make lint PYTHON=/ruta/al/.venv/bin/python=. Si ese intérprete no
+tiene qbank 0.6 o posterior, =make= se para y lo dice.
 
 * Uso rápido
 
@@ -106,7 +116,9 @@ haya (=GuiaDiseno.org= lo explica).
 =ProblemaTipo= toma una lista de supuestos y cuestiones (cada uno con su semántica
 proposicional) y genera todas las combinaciones posibles. Para cada variante
 calcula automáticamente qué ítems son verdaderos y cuáles falsos. Las variantes
-con hipótesis incoherentes o precondiciones insatisfechas se descartan.
+con precondiciones insatisfechas se descartan. Las hipótesis contradictorias, en
+cambio, no se detectan (de ellas se deduce cualquier cosa y todo sale
+verdadero): se evitan con axiomas como =unoDe(v('A'), v('B'))=.
 
 El método =por_partes_profe()= muestra todas las cuestiones de cada hueco
 (marcando las rechazadas por su precondición en vez de descartar la variante),
@@ -256,13 +268,14 @@ os.makedirs("exportaciones", exist_ok=True)
 n = QuizMoodle("MiCuestionario", "exportaciones/", p, last_choice=True)
 print(f"{n} variante(s) escritas")
 
-# Vista profe (fracciones de puntuación visibles)
-QuizMoodleProfe("MiCuestionario", "exportaciones/", p, last_choice=True)
+# Vista profe (fracciones de puntuación visibles); escribe también
+# <nombre>.tex, así que necesita otro nombre para no pisar la del alumno
+QuizMoodleProfe("MiCuestionarioProfe", "exportaciones/", p, last_choice=True)
 
 # Con paquete LaTeX adicional y texto de la opción por defecto personalizados
-QuizMoodle("MiCuestionario", "exportaciones/", p,
+QuizMoodle("MiCuestionario-b", "exportaciones/", p, last_choice=True,
            aux_latex=r"\usepackage{nacal-moodle}",
-           last_choice_text="Las demás opciones son falsas")
+           last_choice_text="Ninguna de las otras opciones es correcta")
 #+end_src
 
 =QuizMoodle= y =QuizMoodleProfe= devuelven un =int= con el número de variantes
@@ -320,10 +333,10 @@ En este orden:
 
 - =Tutorial.ipynb= — ejemplos progresivos ejecutables (también en MyBinder);
   =ejemplosManual/Demo.ipynb= recorre la API Python.
-- =GuiaDiseno.org= — cómo diseñar buenas preguntas: la mecánica de listas y
+- =GuiaDiseno.org= (impresa en =GuiaDiseno.pdf=) — cómo diseñar buenas preguntas: la mecánica de listas y
   mundos, el patrón de tres huecos + opción por defecto, =setup=, redacción
   de cuestiones y explicaciones, trampas de LaTeX/Moodle y checklist.
-- =Manual.org= — referencia completa de la API y del formato JSON.
+- =Manual.org= (=Manual.pdf=) — referencia completa de la API y del formato JSON.
 - =CalcPropQuiz.org= y =CalcPropExport.org= — código fuente comentado
   (programación literate) de los módulos =_quiz=, =_json=, =_widgets=, =_lint=,
   =_export= y =_plantilla=. Son la fuente de =src/qbank/=: los =.py= se generan con
