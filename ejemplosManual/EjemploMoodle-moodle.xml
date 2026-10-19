@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="iso-8859-1"?>
-<!-- This file was generated on 2026-06-02 by pdfLaTeX -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This file was generated on 2026-10-19 by XeLaTeX -->
 <!-- running on *NIX with the package moodle v0.9 -->
 
 <quiz>
@@ -10,173 +10,533 @@
   </category>
 </question>
  
-<question type="multichoice">
+<question type="cloze">
   <name format="html">
     <text><![CDATA[EjemploMoodle-1]]></text>
   </name>
   <questiontext format="html">
-    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:=se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~=se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
   </questiontext>
-  <defaultgrade>1</defaultgrade>
   <generalfeedback format="html"><text/></generalfeedback>
   <penalty>0.10</penalty>
   <hidden>0</hidden>
-  <single>false</single>
-  <shuffleanswers>1</shuffleanswers>
-  <answernumbering>abc</answernumbering>
-  <answer fraction="100" format="html">
-    <text><![CDATA[<p>Entonces \(\mathcal {C}\) es verdadero</p>]]></text>
-  </answer>
-  <answer fraction="-100" format="html">
-    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
-  </answer>
 </question>
-<question type="multichoice">
+<question type="cloze">
   <name format="html">
     <text><![CDATA[EjemploMoodle-2]]></text>
   </name>
   <questiontext format="html">
-    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:=se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
   </questiontext>
-  <defaultgrade>1</defaultgrade>
   <generalfeedback format="html"><text/></generalfeedback>
   <penalty>0.10</penalty>
   <hidden>0</hidden>
-  <single>false</single>
-  <shuffleanswers>1</shuffleanswers>
-  <answernumbering>abc</answernumbering>
-  <answer fraction="-100" format="html">
-    <text><![CDATA[<p>Entonces \(\mathcal {D}\) es verdadero</p>]]></text>
-  </answer>
-  <answer fraction="100" format="html">
-    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
-  </answer>
 </question>
-<question type="multichoice">
+<question type="cloze">
   <name format="html">
     <text><![CDATA[EjemploMoodle-3]]></text>
   </name>
   <questiontext format="html">
-    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:=se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
   </questiontext>
-  <defaultgrade>1</defaultgrade>
   <generalfeedback format="html"><text/></generalfeedback>
   <penalty>0.10</penalty>
   <hidden>0</hidden>
-  <single>false</single>
-  <shuffleanswers>1</shuffleanswers>
-  <answernumbering>abc</answernumbering>
-  <answer fraction="-100" format="html">
-    <text><![CDATA[<p>Entonces \(\mathcal {C}\) es verdadero</p>]]></text>
-  </answer>
-  <answer fraction="100" format="html">
-    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
-  </answer>
 </question>
-<question type="multichoice">
+<question type="cloze">
   <name format="html">
     <text><![CDATA[EjemploMoodle-4]]></text>
   </name>
   <questiontext format="html">
-    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:=se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~=se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
   </questiontext>
-  <defaultgrade>1</defaultgrade>
   <generalfeedback format="html"><text/></generalfeedback>
   <penalty>0.10</penalty>
   <hidden>0</hidden>
-  <single>false</single>
-  <shuffleanswers>1</shuffleanswers>
-  <answernumbering>abc</answernumbering>
-  <answer fraction="-100" format="html">
-    <text><![CDATA[<p>Entonces \(\mathcal {D}\) es verdadero</p>]]></text>
-  </answer>
-  <answer fraction="100" format="html">
-    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
-  </answer>
 </question>
-<question type="multichoice">
+<question type="cloze">
   <name format="html">
     <text><![CDATA[EjemploMoodle-5]]></text>
   </name>
   <questiontext format="html">
-    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:=se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
   </questiontext>
-  <defaultgrade>1</defaultgrade>
   <generalfeedback format="html"><text/></generalfeedback>
   <penalty>0.10</penalty>
   <hidden>0</hidden>
-  <single>false</single>
-  <shuffleanswers>1</shuffleanswers>
-  <answernumbering>abc</answernumbering>
-  <answer fraction="-100" format="html">
-    <text><![CDATA[<p>Entonces \(\mathcal {C}\) es verdadero</p>]]></text>
-  </answer>
-  <answer fraction="100" format="html">
-    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
-  </answer>
 </question>
-<question type="multichoice">
+<question type="cloze">
   <name format="html">
     <text><![CDATA[EjemploMoodle-6]]></text>
   </name>
   <questiontext format="html">
-    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:=se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
   </questiontext>
-  <defaultgrade>1</defaultgrade>
   <generalfeedback format="html"><text/></generalfeedback>
   <penalty>0.10</penalty>
   <hidden>0</hidden>
-  <single>false</single>
-  <shuffleanswers>1</shuffleanswers>
-  <answernumbering>abc</answernumbering>
-  <answer fraction="-100" format="html">
-    <text><![CDATA[<p>Entonces \(\mathcal {D}\) es verdadero</p>]]></text>
-  </answer>
-  <answer fraction="100" format="html">
-    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
-  </answer>
 </question>
-<question type="multichoice">
+<question type="cloze">
   <name format="html">
     <text><![CDATA[EjemploMoodle-7]]></text>
   </name>
   <questiontext format="html">
-    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~=se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
   </questiontext>
-  <defaultgrade>1</defaultgrade>
   <generalfeedback format="html"><text/></generalfeedback>
   <penalty>0.10</penalty>
   <hidden>0</hidden>
-  <single>false</single>
-  <shuffleanswers>1</shuffleanswers>
-  <answernumbering>abc</answernumbering>
-  <answer fraction="-100" format="html">
-    <text><![CDATA[<p>Entonces \(\mathcal {C}\) es verdadero</p>]]></text>
-  </answer>
-  <answer fraction="100" format="html">
-    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
-  </answer>
 </question>
-<question type="multichoice">
+<question type="cloze">
   <name format="html">
     <text><![CDATA[EjemploMoodle-8]]></text>
   </name>
   <questiontext format="html">
-    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Indique qu&eacute; opci&oacute;n es correcta: </p>]]></text>
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
   </questiontext>
-  <defaultgrade>1</defaultgrade>
   <generalfeedback format="html"><text/></generalfeedback>
   <penalty>0.10</penalty>
   <hidden>0</hidden>
-  <single>false</single>
-  <shuffleanswers>1</shuffleanswers>
-  <answernumbering>abc</answernumbering>
-  <answer fraction="100" format="html">
-    <text><![CDATA[<p>Entonces \(\mathcal {D}\) es verdadero</p>]]></text>
-  </answer>
-  <answer fraction="-100" format="html">
-    <text><![CDATA[<p>Las dem&aacute;s opciones son falsas</p>]]></text>
-  </answer>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-9]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-10]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~=se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-11]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-12]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-13]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-14]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-15]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-16]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-17]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-18]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-19]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-20]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-21]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-22]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-23]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-24]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {A}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-25]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-26]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-27]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-28]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-29]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-30]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-31]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-32]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-33]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-34]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-35]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-36]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {A}\Rightarrow \mathcal {C}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-37]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-38]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~=se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-39]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~=Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-40]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-41]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~=se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-42]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:se da \(\mathcal {C\}\)#Solo se deduce \(\mathcal {C\}\) de \(\mathcal {A\}\) junto con \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~=se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-43]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:=se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-44]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:=se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~=se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-45]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:=se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~se da \(\mathcal {A\}\)#Si se considera \(\mathcal {A\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {B\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {A\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-46]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:=se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se dan \(\mathcal {A\}\) y \(\mathcal {C\}\)#Hace falta \(\mathcal {A\}\) como hip&oacute;tesis y la implicaci&oacute;n \(\mathcal {A\}\Rightarrow \mathcal {C\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-47]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:=se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~=se dan \(\mathcal {B\}\) y \(\mathcal {D\}\)#Hace falta \(\mathcal {B\}\) como hip&oacute;tesis y la equivalencia \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
+</question>
+<question type="cloze">
+  <name format="html">
+    <text><![CDATA[EjemploMoodle-48]]></text>
+  </name>
+  <questiontext format="html">
+    <text><![CDATA[<p>Considere \(\mathcal {B}\) y que \(\mathcal {B}\Leftrightarrow \mathcal {D}\). Entonces, con toda seguridad: {3:MULTIRESPONSE_S:=se da \(\mathcal {D\}\)#Solo se deduce \(\mathcal {D\}\) de \(\mathcal {B\}\) junto con \(\mathcal {B\}\Leftrightarrow \mathcal {D\}\).~=se da \(\mathcal {B\}\)#Si se considera \(\mathcal {B\}\), se da por hip&oacute;tesis; si se considera \(\mathcal {A\}\), ninguna de las hip&oacute;tesis implica \(\mathcal {B\}\), que puede ser falsa.~se da \(\mathcal {E\}\)#Nada se afirma sobre \(\mathcal {E\}\): no se deduce de las hip&oacute;tesis.~Las dem&aacute;s opciones son falsas}<BR/></p>]]></text>
+  </questiontext>
+  <generalfeedback format="html"><text/></generalfeedback>
+  <penalty>0.10</penalty>
+  <hidden>0</hidden>
 </question>
  
 </quiz>

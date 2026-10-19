@@ -621,9 +621,9 @@ La clase =ProblemaTipo= es un iterador que genera todas las versiones aceptables
 Cada variante resulta de tomar una de las opciones de cada una de las listas en =supuestos_y_cuestiones=. 
 Si la precondición de alguna de las opciones elegidas no se deduce de las hipótesis (=test()= da =False=), la variante entera del problema es rechazada y se evalúa la siguiente combinación disponible.
 
-- El atributo =self.e= contiene la lista =supuestos_y_cuestiones=.
-  El argumento =supuestos_y_cuestiones= es una lista de listas de strings, objetos =Supuesto= o objetos =Cuestion=.
-  Cada lista representa un conjunto de opciones excluyentes.
+- El atributo =self.e= guarda el argumento =supuestos_y_cuestiones=: una lista
+  de listas de strings, objetos =Supuesto= u objetos =Cuestion=. Cada lista
+  representa un conjunto de opciones excluyentes.
 
   Por tanto, cada elemento de =supuestos_y_cuestiones= es a su vez una lista de opciones (excluyentes) correspondiente a cada componente (cada parte) del texto del problema.
 
@@ -1221,7 +1221,7 @@ elif isinstance(componente, Cuestion):
 
 **** Función auxiliar =CuestionesJuntas=
 
-Este bloque de código define la función =CuestionesJuntas(lista)=, cuyo objetivo principal es *aislar cada objeto de la clase =Cuestion= en un hueco propio, de un solo elemento*, manteniendo otros tipos de datos (como cadenas o listas de supuestos) intactos.
+La función =CuestionesJuntas(lista)= tiene como objetivo principal *aislar cada objeto de la clase =Cuestion= en un hueco propio, de un solo elemento*, manteniendo otros tipos de datos (como cadenas o listas de supuestos) intactos.
 
 En detalle:
 1. *=CreaLista(t)=*: Una función auxiliar que asegura que cualquier elemento sea tratado como una lista (si no lo es, lo envuelve en una para poder indexarlo).
