@@ -1,7 +1,7 @@
 #+TITLE: qbank — módulo de generación de preguntas (parte export)
 #+AUTHOR: Marcos Bujosa
 #+LANGUAGE: es
-#+OPTIONS: toc:t num:t H:4
+#+OPTIONS: toc:nil num:t H:4
 #+STARTUP: overview
 
 # ─── Configuración de org-babel ───────────────────────────────────
@@ -9,11 +9,11 @@
 #+PROPERTY: header-args:jupyter-python :kernel qbank
 
 # ─── LaTeX export ────────────────────────────────────────────────
-#+LATEX_CLASS: report
-#+LATEX_CLASS_OPTIONS: [10pt,a4paper]
+#+LATEX_CLASS: article
+#+LATEX_CLASS_OPTIONS: [11pt,a4paper]
+#+LATEX_HEADER: \usepackage[margin=2.5cm]{geometry}
 
 #+LATEX_HEADER: \usepackage{fontspec}          % para fuentes Unicode
-#+LATEX_HEADER: \usepackage{lmodern}           % o mejor, define una fuente explícita
 #+LATEX_HEADER: \setmainfont{Latin Modern Roman} % o cualquier otra que quieras
 #+LATEX_HEADER: \setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase] % cubre ─ → ≥ ✓ ▲ ▼ … del código
 #+LATEX_HEADER: \usepackage{newunicodechar}
@@ -31,10 +31,16 @@
 #+LATEX_HEADER: \newunicodechar{⟺}{{\fallbackfont ⟺}}
 #+LATEX_HEADER: \newunicodechar{≥}{\ensuremath{\geq}}
 #+LATEX_HEADER: \newunicodechar{＋}{+}
-#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[spanish,es-noshorthands]{babel}
 
-#+LATEX_HEADER: \usepackage{etoolbox}          % para reducir las fuentes de salidas verbatim
-#+LATEX_HEADER: \AtBeginEnvironment{verbatim}{\footnotesize}
+#+LATEX_HEADER: \usepackage{fvextra}
+#+LATEX_HEADER: \RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines=true,breakanywhere=true,fontsize=\small}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LATEX_HEADER: \definecolor{enlace}{RGB}{0,70,130}
+#+LATEX_HEADER: \hypersetup{colorlinks=true,linkcolor=enlace,urlcolor=enlace,citecolor=enlace}
+
+#+TOC: headlines 2
+#+LATEX: \clearpage
 
 # +LATEX_HEADER: \usepackage{pdfpages}          % para inportar páginas pdf
 
