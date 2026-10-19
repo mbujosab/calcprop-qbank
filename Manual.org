@@ -1,7 +1,7 @@
 #+TITLE: Manual de uso de =qbank=
 #+AUTHOR: Marcos Bujosa
 #+LANGUAGE: es
-#+OPTIONS: toc:nil num:t
+#+OPTIONS: toc:nil num:t d:nil
 #+STARTUP: overview
 
 # ─── Copyright ──────────────────────────────────────────────────────────────
@@ -15,7 +15,7 @@
 #   - activa el entorno virtual en Emacs (M-x pyvenv-activate RET .venv), o
 #   - cambia «python3» en la línea de abajo por la ruta del intérprete del venv,
 #     p. ej. :python .venv/bin/python (ruta relativa a este fichero).
-# El primer bloque Python (no se exporta) comprueba la versión y se detiene con
+# El primer bloque Python (en un cajón :COMPRUEBA:, que no se exporta) comprueba la versión y se detiene con
 # un mensaje claro si el intérprete no es el adecuado. Los bloques se ejecutan en
 # una sola sesión y en orden; ninguno modifica los JSON de ejemplosManual/.
 #+PROPERTY: header-args:python :python python3 :session *qbank* :eval never-export
@@ -63,8 +63,16 @@ comprobador =lint=, con sus firmas exactas. No es el sitio por donde empezar:
 
 - =README.org= explica cómo instalar y cómo crear un banco con =qbank-init=.
 - =Tutorial.ipynb= recorre cinco ejemplos progresivos ejecutables.
-- =GuiaDiseno.org= explica cómo diseñar buenas preguntas: la mecánica de listas y
-  mundos, el patrón recomendado, la redacción y las trampas de LaTeX y Moodle.
+- La /Guía de diseño/ (=GuiaDiseno.org=, impresa en =GuiaDiseno.pdf=) explica cómo
+  diseñar buenas preguntas: la mecánica de listas y mundos, el patrón recomendado,
+  la redacción y las trampas de LaTeX y Moodle.
+
+Los ejemplos ejecutables de este manual cargan los JSON de la carpeta
+=ejemplosManual/=, que está en el repositorio pero no viene con =pip install=. Para
+ejecutarlos, clona el repositorio
+(=git clone https://github.com/mbujosab/calcprop-qbank=) y lánzalos desde su
+carpeta raíz. Para crear tu banco no hace falta: =qbank-init= trae sus propias
+preguntas de ejemplo.
 
 El vocabulario que usa este manual es el de la Guía: *variante* (cada versión concreta
 de la pregunta), *mundo* (las hipótesis activas en una variante), *hueco* (cada
@@ -150,7 +158,7 @@ Con el entorno activo:
 pip install calcprop-qbank
 #+end_src
 
-o, mientras la 0.6 no esté en PyPI (ver la sección anterior):
+o, mientras la 0.6 no esté en PyPI (ver «Instalación rápida»; hace falta tener =git=):
 
 #+begin_src bash
 pip install "calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-qbank"
@@ -164,14 +172,16 @@ qbank-init --help
 #+end_src
 
 Si ves =qbank 0.6.0= (o posterior) y la ayuda de =qbank-init=, todo está en orden.
+Si en cambio sale =AttributeError: … no attribute '__version__'= o =qbank-init= no
+existe, tienes una versión anterior a la 0.6: vuelve a instalar con la orden de =git=.
 Para los PDF y el XML de Moodle hace falta
 además =pdflatex= con los paquetes =automultiplechoice= (lo instala el programa
 [[https://www.auto-multiple-choice.net/][Auto Multiple Choice]]) y =moodle= (=tlmgr install moodle= en TeX Live).
 
 ** Nota para usuarios de Windows
 
-En Windows, dentro del entorno virtual, usa =python= (no =python3=). Si el primer
-=py -m venv .venv= falla con un error de permisos en PowerShell, ejecuta antes:
+En Windows, dentro del entorno virtual, usa =python= (no =python3=). Si al activarlo
+en PowerShell (=.venv\Scripts\Activate.ps1=) sale un error de permisos, ejecuta antes:
 
 #+begin_example
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
@@ -202,14 +212,20 @@ motor lógico. Las variables proposicionales (en la Guía, /etiquetas/) se crean
 =v()= y los nombres los eliges tú; solo tienen que ser consistentes dentro de la
 misma pregunta:
 
+:COMPRUEBA:
 #+begin_src python :results silent :exports none
 # Comprobación del intérprete (ver la cabecera de este fichero).
 import qbank
 _version = getattr(qbank, "__version__", "0.0")     # las versiones antiguas no lo tienen
-if tuple(int(x) for x in _version.split(".")[:2]) < (0, 6):
+try:
+    _antiguo = tuple(int(x) for x in _version.split(".")[:2]) < (0, 6)
+except ValueError:                                  # «desconocida»: src/ sin instalar
+    _antiguo = False
+if _antiguo:
     raise RuntimeError(f"qbank {_version} en {qbank.__file__}: el Manual "
                        "necesita qbank >= 0.6; usa el python del entorno virtual")
 #+end_src
+:END:
 
 #+begin_src python :results silent
 from qbank import *
@@ -306,7 +322,7 @@ Cuestion(enunciado, semantica, precond=True, exp="")
 Cuestion("Entonces $\\mathcal{C}$ es verdadero", v("C"))
 Cuestion("Esta afirmación es siempre falsa", False)
 Cuestion("$\\mathcal{B}$ es consecuencia de $\\mathcal{A}$", v("B"), precond=v("A"))
-Cuestion("$f(@{a}) < f(@{b})$", v("crec"), exp="Porque @{a} < @{b} y $f$ es creciente.")
+Cuestion("$f(@{a}) < f(@{b})$", v("crec"), exp="Porque $@{a} < @{b}$ y $f$ es creciente.")
 #+end_src
 
 *Semánticas y precondiciones como cadenas.* Tanto =Supuesto= como =Cuestion= aceptan
@@ -528,11 +544,11 @@ ordenar = ProblemaTipo(
 Para cada combinación el =setup= genera una tirada nueva; si su precondición no se
 cumple, esa variante se descarta (con =verbose=True= verás, por ejemplo, el mensaje
 ~Supuesto: … rechazado por …~). Por eso el número de variantes por instancia no es fijo:
-de las $3 \times 2 \times 2 = 12$ combinaciones sobreviven unas cuatro por instancia
-(las del supuesto que coincide con la tirada), y =lint= calcula que hacen falta 15
-instancias para llegar a 60 (aquí salen 69). El problema
-=ejemplosManual/numeros.json=, que carga el editor visual
-en =Demo.ipynb=, es una versión ampliada de esta idea.
+de las $3 \times 2 \times 2 = 12$ combinaciones sobreviven unas cinco por instancia
+(las del supuesto que coincide con la tirada), y =lint= calcula que hacen falta 14
+instancias para llegar a 60 (con las 15 de =export= salen 69). El problema
+=ejemplosManual/numeros.json= (el que carga el editor visual del cuaderno
+=Demo.ipynb=) es una versión ampliada de esta idea.
 
 Con precondiciones numéricas, =por_partes_profe()= hace *un solo sorteo* por mundo, y
 un mundo cuya precondición no se cumple en ese sorteo no aparece: con =seed=7=,
@@ -749,7 +765,7 @@ literales, tres huecos), =ej_b_mundos= (una lista de =Supuesto=), =ej_c_precond=
 (axioma =unoDe= y =precond= por mundo), =ej_d_setup_vars= (=setup=, =@{var}=, =seed=,
 =instances= y =exp= dinámico) y =ej_e_lambda= (semántica =lambda= que inyecta fórmulas).
 Los otros cuatro (=ejercicio=, =matriz_rango=, =numeros= y =superheroes=) son los que
-usan este manual y =Demo.ipynb=. Todos pasan =lint= sin avisos.
+usan este manual y =Demo.ipynb=. Todos pasan =lint= sin =ERROR= ni =AVISO=.
 
 * Exportar a AMC (LaTeX)
 
@@ -834,8 +850,9 @@ de la primera parte ya contiene las hipótesis. Los demás parámetros son los d
 =AMCblock=.
 
 #+begin_src python
+multi = load_problema("ejemplosManual/superheroes.json")      # tres partes
 with open("preguntas_multi.tex", "w") as f:
-    for etiqueta, partes in p.por_partes():
+    for etiqueta, partes in multi.por_partes():
         if len(partes) > 1:
             f.write(AMC_multipart("Superheroes", etiqueta, "", partes, last_choice=True))
         else:
@@ -847,11 +864,11 @@ with open("preguntas_multi.tex", "w") as f:
 #+begin_src python :eval no
 QuizAMCProfe(nombre, directorio, problema, cols=1, *, last_choice=False,
              aux_latex="", last_choice_text="Ninguna de las anteriores")
-# Devuelve int: número de variantes escritas
+# Devuelve int: número de entradas escritas (una por mundo)
 #+end_src
 
 Recorre =por_partes_profe()= y escribe en =directorio/nombre_profe.tex= una pregunta AMC
-por variante (con =AMC_multipart= si tiene varias partes), con todas las cuestiones de
+por mundo (con =AMC_multipart= si tiene varias partes), con todas las cuestiones de
 cada hueco marcadas y las rechazadas en =\explain{}=. =problema= puede ser un
 =ProblemaTipo= o un diccionario ={nombre: ProblemaTipo}=. =directorio= admite =/= final
 o no.
@@ -911,6 +928,8 @@ QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="",
 
 =QuizMoodleProfe= solo admite =last_choice=, =instances= y =last_choice_text= por
 palabra clave; con los mismos valores que en =QuizMoodle= escribe las mismas variantes.
+Las dos escriben =directorio/nombre.tex=: para tener ambas vistas, dales nombres
+distintos (p. ej. =MiCuestionario= y =MiCuestionario-profe=).
 Como el resto de exportadores, ninguna de las dos lee =export= del problema: pásale
 =last_choice=True= si la pregunta usa la opción por defecto (o, con =ejercicio.json=,
 16 de las 48 variantes saldrían sin ninguna opción correcta).
@@ -942,8 +961,8 @@ cd ejemplosManual
 xelatex EjemploMoodle.tex
 #+end_src
 
-Se generan [[file:ejemplosManual/EjemploMoodle-moodle.xml][=EjemploMoodle-moodle.xml=]] (para importar en Moodle) y
-[[file:ejemplosManual/EjemploMoodle.pdf][=EjemploMoodle.pdf=]] (vista previa de las preguntas). Las vocales acentuadas
+Se generan =ejemplosManual/EjemploMoodle-moodle.xml= (para importar en Moodle) y
+=ejemplosManual/EjemploMoodle.pdf= (vista previa de las preguntas). Las vocales acentuadas
 minúsculas y la =ñ= las convierte =codchar= (ver la referencia) de forma automática.
 
 ** Preguntas con varias partes
@@ -994,10 +1013,19 @@ Acepta un =ProblemaTipo=, un dict o la ruta a un fichero, no modifica nada ni co
 LaTeX, y devuelve una lista de =Aviso(nivel, codigo, mensaje, donde)= con nivel
 =ERROR=, =AVISO= o =INFO=, errores primero:
 
-#+begin_src python
+#+begin_src python :results output :exports both
 for aviso in lint("ejemplosManual/ej_c_precond.json"):
     print(aviso)
 #+end_src
+
+#+RESULTS:
+: INFO  [constante] falsa en los 2 mundos en que aparece (semantica literal)  @ comp 4[2]: $\det(A)$ puede ser cualquier número real
+: INFO  [constante] falsa en los 2 mundos en que aparece (semantica literal)  @ comp 5[3]: $A^{-1} = A^\top$ necesariamente
+: INFO  [constante] falsa en los 2 mundos en que aparece (semantica literal)  @ comp 6[2]: el sistema $Ax=b$ tiene siempre infinitas soluciones
+
+Cada aviso lleva su nivel, su código entre corchetes, el mensaje y, tras =@=, dónde
+está: =comp 4[2]= es el componente 4 de la lista (contando desde 0), elemento 2.
+Aquí son tres =INFO=: tres distractores siempre falsos, puestos a propósito.
 
 Un =ERROR= significa que la pregunta está rota; un =AVISO= hay que leerlo y decidir;
 un =INFO= es información. Las reglas, con el código de cada aviso:
@@ -1075,8 +1103,9 @@ ProblemaTipo(componentes, setup=None, export=None, seed=None, nombre=None)
     → .por_partes(instances=1, base_seed=None, verbose=False)   vista alumno, por partes
     → .por_partes_profe(verbose=True)                           vista profe: todas las cuestiones
     → itera (etiqueta, enunciado, cuestiones)                    solo ejercicios de una parte
-ProblemaVF(enunciado, lista, n)                                  verdadero/falso (apéndice)
+ProblemaVF(enunciado, cuestiones, NumPreguntas)                  verdadero/falso (apéndice)
 ProblemaTipoEditor(source=None)                                  editor visual en Jupyter (apéndice)
+qbank.__version__                                                versión instalada, p. ej. "0.6.0"
 #+end_example
 
 ** Funciones JSON
@@ -1102,7 +1131,7 @@ AMC_multipart(nombre, etiqueta, enunciado, partes,
               last_choice=False, cols=1, profe=False, *,
               aux_latex="", last_choice_text="Ninguna de las anteriores")      → str
 QuizAMCProfe (nombre, directorio, problema, cols=1, *, last_choice=False,
-              aux_latex="", last_choice_text="Ninguna de las anteriores")      → int (variantes)
+              aux_latex="", last_choice_text="Ninguna de las anteriores")      → int (mundos)
 AMC_VF       (nombre, etiqueta, enunciado, cuestiones, opc=None)               → str (ProblemaVF)
 #+end_example
 
@@ -1204,8 +1233,8 @@ sabe de mapas de bits: hace falta un PNG del mismo nombre y compilar con
 =pdflatex -shell-escape=, porque llama a =base64=. Un patrón que funciona: generar
 =fig.pdf= y =fig.png= (p. ej. con =pdftoppm -png -r 200=), referenciar el PDF en el JSON
 y, en el script de Moodle, sustituir =.pdf= por =.png= en el =.tex= (con =width= igual a
-la anchura natural del PDF, para que Moodle no lo agrande); el banco
-=qbank-PEconometria= lo hace así en =scripts/gen_moodle.py=. Si la ruta de la figura
+la anchura natural del PDF, para que Moodle no lo agrande); el banco de
+Probabilidad y Estadística del autor lo hace así en su =scripts/gen_moodle.py=. Si la ruta de la figura
 va en el =setup= como variable e interpolada con =@{fig}=, la misma pregunta sirve para
 los dos destinos. Ten en cuenta el tamaño: una figura en cada una de 150 variantes
 multiplica el XML.
