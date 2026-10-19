@@ -810,13 +810,20 @@ documentación de AMC para el formato del documento.
 * Exportar a Moodle (vía LaTeX)
 
 Las funciones =Quiz*= escriben un fichero =.tex= autónomo que usa el paquete LaTeX
-=moodle=; al compilarlo con =pdflatex= se obtienen un PDF de revisión y el fichero
+=moodle=; al compilarlo se obtienen un PDF de revisión y el fichero
 =nombre-moodle.xml= importable en Moodle (/Banco de preguntas → Importar → Formato
 Moodle XML/).
 
 #+begin_example
-Python (qbank)  →  nombre.tex  →  pdflatex  →  nombre.pdf + nombre-moodle.xml  →  Moodle
+Python (qbank)  →  nombre.tex  →  xelatex / pdflatex  →  nombre.pdf + nombre-moodle.xml  →  Moodle
 #+end_example
+
+El =.tex= compila con cualquier motor (su cabecera distingue =pdflatex= de
+=xelatex=/=lualatex=). Si lo compilas *a mano*, usa =xelatex=: el XML sale declarado en
+UTF-8. Con =pdflatex= el paquete =moodle= lo declara en =iso-8859-1= aunque escribe en
+UTF-8 los caracteres que =codchar= no convierte (=¿=, =¡=…), y Moodle los mostraría
+como =Â¿=; los proyectos de =qbank-init= compilan con =pdflatex= y corrigen la
+declaración después (=scripts/fix_moodle_xml.py=, que =make moodle= ejecuta).
 
 El paquete =moodle= se instala con =tlmgr install moodle= (TeX Live) o
 =sudo apt install texlive-latex-extra= (Debian/Ubuntu). Dos avisos: el paquete declara el
@@ -864,7 +871,7 @@ QuizMoodle("EjemploMoodle", "ejemplosManual/", p, last_choice=True)
 
 #+begin_src bash :results silent
 cd ejemplosManual
-pdflatex EjemploMoodle.tex
+xelatex EjemploMoodle.tex
 #+end_src
 
 Se generan [[file:ejemplosManual/EjemploMoodle-moodle.xml][=EjemploMoodle-moodle.xml=]] (para importar en Moodle) y
