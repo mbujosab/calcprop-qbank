@@ -421,6 +421,10 @@ class ProblemaTipo:
         return (etiqueta, enunciado, cuestiones)
 class ProblemaTipoProfe:
     def __init__(self, supuestos_y_cuestiones, setup=None):
+        import warnings
+        warnings.warn(
+            "ProblemaTipoProfe está deprecada: usa ProblemaTipo(...).por_partes_profe().",
+            DeprecationWarning, stacklevel=2)
         self.e = CuestionesJuntas(supuestos_y_cuestiones)
         self.setup = setup
 

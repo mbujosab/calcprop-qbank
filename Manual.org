@@ -9,7 +9,7 @@
 # GNU General Public License v3 or later — see <https://www.gnu.org/licenses/>
 
 # ─── Configuración de org-babel ───────────────────────────────────
-#+PROPERTY: header-args:python :python python3 :session *qbank*
+#+PROPERTY: header-args:python :python python3 :session *qbank* :eval never-export
 # Para ejecutar los bloques con el entorno virtual de este repo, ajusta la ruta:
 # #+PROPERTY: header-args:python :python /ruta/a/qbank/.venv/bin/python3 :session *qbank*
 
@@ -25,8 +25,7 @@
 #+LATEX_HEADER: \usepackage{xcolor}
 #+LATEX_HEADER: \definecolor{enlace}{RGB}{0,70,130}
 #+LATEX_HEADER: \hypersetup{colorlinks=true,linkcolor=enlace,urlcolor=enlace,citecolor=enlace}
-# +LATEX_HEADER: \usepackage{parskip}
-#+LATEX_HEADER: \usepackage{tabularx} 
+#+LATEX_HEADER: \usepackage{tabularx}
 #+LATEX_HEADER: \usepackage{newunicodechar}
 #+LATEX_HEADER: \usepackage{amssymb}
 #+LATEX_HEADER: \newunicodechar{✓}{\checkmark}
@@ -43,29 +42,32 @@
 * Introducción
 
 =qbank= es una librería Python para generar bancos de preguntas de opción múltiple
-cuyas respuestas correctas se determinan automáticamente mediante cálculo proposicional.
+cuyas respuestas correctas se determinan automáticamente mediante cálculo
+proposicional. A partir de una lista de supuestos y cuestiones, genera todas las
+variantes posibles de una pregunta combinando los elementos alternativos; para cada
+variante calcula qué respuestas son correctas y cuáles no, y exporta el resultado a
+LaTeX/AMC (exámenes en papel) o a Moodle. Se apoya en
+[[https://github.com/mbujosab/calcprop][=calcprop=]], el motor de cálculo proposicional.
 
-A partir de una lista de supuestos y cuestiones definidos por el usuario, =qbank=
-genera todas las variantes posibles de una pregunta combinando los elementos alternativos.
-Para cada variante calcula cuáles respuestas son correctas y cuáles son falsas, y exporta
-el resultado a los formatos LaTeX/AMC o Moodle.
+Este documento es la *referencia*: la API, el formato JSON, los exportadores y el
+comprobador =lint=, con sus firmas exactas. No es el sitio por donde empezar:
 
-La librería se apoya en [[https://github.com/mbujosab/calcprop][=calcprop=]], que proporciona el motor de cálculo proposicional.
+- =README.org= explica cómo instalar y cómo crear un banco con =qbank-init=.
+- =Tutorial.ipynb= recorre cinco ejemplos progresivos ejecutables.
+- =GuiaDiseno.org= explica cómo diseñar buenas preguntas: la mecánica de listas y
+  mundos, el patrón recomendado, la redacción y las trampas de LaTeX y Moodle.
 
-** Qué puede hacer =qbank=
-
-- Definir preguntas con supuestos e ítems intercambiables.
-- Calcular automáticamente la corrección de cada ítem según las hipótesis activas en
-  cada variante.
-- Exportar las variantes generadas a:
-  - Ficheros =.tex= compatibles con [[https://www.auto-multiple-choice.net/][AMC]] (Auto Multiple Choice).
-  - Ficheros =.tex= compilables con el paquete LaTeX =moodle=, que produce un =.xml=
-    importable en Moodle.
+El vocabulario que usa este manual es el de la Guía: *variante* (cada versión concreta
+de la pregunta), *mundo* (las hipótesis activas en una variante), *hueco* (cada
+posición que se convierte en una opción: una =Cuestion= suelta o una lista de la que
+se sortea una), *parte* (cada bloque de opciones de una pregunta con varios),
+*opción por defecto* («Ninguna de las anteriores», que añade =export.last_choice=)
+y *vista profe* (todas las cuestiones de cada hueco con sus marcas).
 
 ** Instalación rápida (para quien ya conoce Python)
 
 #+begin_src bash
-pip install calcprop calcprop-qbank
+pip install calcprop-qbank
 #+end_src
 
 Si no estás familiarizado con Python o los entornos virtuales, lee la sección siguiente.
@@ -124,21 +126,24 @@ Cuando el entorno está activo, verás su nombre entre paréntesis al comienzo d
 prompt, por ejemplo =(.venv)=. A partir de ese momento, =pip= y =python= apuntan
 al entorno virtual y no al sistema.
 
-** Instalar =calcprop= y =calcprop-qbank=
+** Instalar =calcprop-qbank=
 
 Con el entorno activo:
 
 #+begin_src bash
-pip install calcprop calcprop-qbank
+pip install calcprop-qbank
 #+end_src
 
 Verifica la instalación:
 
 #+begin_src bash
 python -c "from qbank import *; print('qbank OK')"
+qbank-init --help
 #+end_src
 
-Si ves =qbank OK= todo está en orden.
+Si ves =qbank OK= todo está en orden. Para los PDF y el XML de Moodle hace falta
+además =pdflatex= con los paquetes =automultiplechoice= (lo instala el programa
+[[https://www.auto-multiple-choice.net/][Auto Multiple Choice]]) y =moodle= (=tlmgr install moodle= en TeX Live).
 
 ** Nota para usuarios de Windows
 
@@ -149,12 +154,30 @@ En Windows, dentro del entorno virtual, usa =python= (no =python3=). Si el prime
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 #+end_example
 
+** Crear un banco de preguntas
+
+La forma recomendada de trabajar es un proyecto creado con =qbank-init=:
+
+#+begin_src bash
+qbank-init mi-banco
+cd mi-banco
+make lint          # comprueba las preguntas de ejemplo (sin LaTeX)
+make amc           # PDF de revisión (vista profe) en build/amc/
+#+end_src
+
+El proyecto contiene cinco preguntas de ejemplo, los scripts que las exportan, un
+=Makefile= y =nueva_pregunta.py=, un guion para escribir una pregunta en Python y
+guardarla como JSON. Su =README.org= explica el flujo completo. El resto de este
+manual describe las piezas que esos scripts usan.
+
 * Conceptos fundamentales
 
-** Variables proposicionales con =calcprop=
+** Fórmulas con =calcprop=
 
-=qbank= importa automáticamente =calcprop=, así que al escribir =from qbank import *=
-tienes acceso al motor lógico. Las variables proposicionales se crean con =v()=:
+=qbank= importa =calcprop=, así que al escribir =from qbank import *= tienes acceso al
+motor lógico. Las variables proposicionales (en la Guía, /etiquetas/) se crean con
+=v()= y los nombres los eliges tú; solo tienen que ser consistentes dentro de la
+misma pregunta:
 
 #+begin_src python :results silent
 from qbank import *
@@ -173,13 +196,13 @@ Las fórmulas se construyen combinando variables con los operadores de Python:
 | =v('A') ** v('B')=                          | Bicondicional  (A $\iff$ B)   | =v('A') ** v('B')=                          |
 | =alguno(v('A'), v('B'), v('C'))=            | Alguna verdadera              | =alguno(v('A'), v('B'), v('C'))=            |
 | =unoDe(v('A'), v('B'), v('C'))=             | Exactamente una verdadera     | =unoDe(v('A'), v('B'), v('C'))=             |
-La semantica también acepta =True= (siempre verdadero) o  =False= (siempre falso).
-=alguno= y =unoDe= aceptan cualquier número de proposiciones: =alguno(P, Q, R)= es verdadera
-si alguna de la lista lo es, y =unoDe(P, Q, R)= es verdadera si lo es exactamente una.
+
+La semántica también acepta =True= (siempre verdadero) o =False= (siempre falso).
+=alguno= y =unoDe= aceptan cualquier número de proposiciones.
 
 *Atención — precedencia de operadores:* la precedencia de Python difiere de la lógica
 matemática. En lógica, =→= tiene menor precedencia que =∧= y =∨=, por lo que =A ∧ B → C=
-se lee como =(A ∧ B) → C=. En Python, =>>=  tiene *mayor* precedencia que =&= y =|=,
+se lee como =(A ∧ B) → C=. En Python, =>>= tiene *mayor* precedencia que =&= y =|=,
 así que =v('A') & v('B') >> v('C')= se evalúa como =v('A') & (v('B') >> v('C'))=, que
 no es lo que se espera. Usa siempre paréntesis explícitos en implicaciones compuestas:
 
@@ -187,8 +210,6 @@ no es lo que se espera. Usa siempre paréntesis explícitos en implicaciones com
 (v('A') & v('B')) >> v('C')   # correcto: (A ∧ B) → C
 v('A') & v('B') >> v('C')     # incorrecto: A ∧ (B → C)
 #+end_src
-
-#+latex: \bigskip
 
 La función =test(formula, hipotesis)= comprueba si una fórmula es consecuencia lógica
 de una lista de fórmulas hipótesis:
@@ -200,8 +221,10 @@ test(True,   [])                            # True
 test(False,  [])                            # False
 #+end_src
 
-No necesitas llamar a =test= directamente: =qbank= lo invoca internamente al generar
-las variantes.
+No necesitas llamar a =test= directamente: =qbank= lo invoca al generar las variantes.
+Conviene tener presente lo que responde: «¿se deduce esto de las hipótesis?», no «¿es
+verdad?». De la hipótesis =v('crec')= no se sigue =-v('decr')=, salvo que un axioma
+declare que ambas son excluyentes (=unoDe(v('crec'), v('decr'))=).
 
 ** =Supuesto= — una hipótesis del enunciado
 
@@ -212,599 +235,423 @@ se incorpora como hipótesis para evaluar las cuestiones que le siguen.
 Supuesto(enunciado, semantica, precond=True)
 #+end_src
 
-#+ATTR_LATEX: :environment tabularx :width \textwidth :align llX 
+#+ATTR_LATEX: :environment tabularx :width \textwidth :align llX
 | Parámetro   | Tipo         | Descripción                                                                                                                      |
 |-------------+--------------+----------------------------------------------------------------------------------------------------------------------------------|
-| =enunciado= | cadena       | Texto LaTeX del supuesto, tal como aparecerá impreso.                                                                            |
+| =enunciado= | cadena       | Texto LaTeX del supuesto, tal como aparecerá impreso. Admite =@{variable}= (ver =setup=).                                        |
 | =semantica= | fórmula      | Fórmula proposicional que el supuesto afirma verdadera.                                                                          |
 | =precond=   | fórmula/bool | El supuesto solo se activa si esta precondición se cumple bajo las hipótesis ya acumuladas. Por defecto =True= (siempre activo). |
 
-Ejemplo:
+Un =Supuesto= con =enunciado= vacío es un *axioma*: añade su fórmula sin texto.
 
 #+begin_src python
 Supuesto('$\\mathcal{A}$ es verdadero. ', v('A'))
 Supuesto('$\\mathcal{A} \\Rightarrow \\mathcal{C}$. ', v('A') >> v('C'))
+Supuesto('', unoDe(v('inv'), v('sing')))          # axioma: los dos mundos son excluyentes
 #+end_src
 
 Si la precondición de un supuesto no se cumple en una variante concreta, esa variante
-se descarta silenciosamente.
+se descarta.
 
 ** =Cuestion= — un ítem de respuesta
 
-Una =Cuestion= es una posible respuesta en el cuestionario. =qbank= determina
-automáticamente si es verdadera o falsa según las hipótesis activas en cada variante.
+Una =Cuestion= es una posible respuesta. =qbank= determina si es correcta o no según las
+hipótesis activas en cada variante.
 
 #+begin_src python
 Cuestion(enunciado, semantica, precond=True, exp="")
 #+end_src
 
-#+ATTR_LATEX: :environment tabularx :width \textwidth :align llX 
-| Parámetro   | Tipo         | Descripción                                                                                    |
-|-------------+--------------+------------------------------------------------------------------------------------------------|
-| =enunciado= | cadena       | Texto LaTeX del ítem de respuesta.                                                             |
-| =semantica= | fórmula/bool | Fórmula cuya veracidad determina si el ítem es correcto.                                       |
-| =precond=   | fórmula/bool | La cuestión solo aparece en la pregunta si esta precondición se satisface. Por defecto =True=. |
-| =exp=       | cadena       | Explicación/retroalimentación (feedback) en LaTeX. Opcional.                                   |
-
-Ejemplos:
+#+ATTR_LATEX: :environment tabularx :width \textwidth :align llX
+| Parámetro   | Tipo         | Descripción                                                                                                        |
+|-------------+--------------+--------------------------------------------------------------------------------------------------------------------|
+| =enunciado= | cadena       | Texto LaTeX del ítem de respuesta. Admite =@{variable}=.                                                           |
+| =semantica= | fórmula/bool | Fórmula cuya veracidad (como consecuencia de las hipótesis) determina si el ítem es correcto.                      |
+| =precond=   | fórmula/bool | La cuestión solo aparece si esta precondición se satisface; si no, la variante se descarta. Por defecto =True=.    |
+| =exp=       | cadena       | Explicación (retroalimentación) que Moodle muestra tras responder. Admite =@{variable}=. Opcional.                |
 
 #+begin_src python
-# Ítem siempre incluido; correcto cuando C es verdadero
 Cuestion("Entonces $\\mathcal{C}$ es verdadero", v("C"))
-
-# Ítem siempre falso (False como semántica)
 Cuestion("Esta afirmación es siempre falsa", False)
-
-# Ítem que solo aparece cuando A es verdadero; correcto cuando también B lo es
 Cuestion("$\\mathcal{B}$ es consecuencia de $\\mathcal{A}$", v("B"), precond=v("A"))
-
-# Ítem con retroalimentación para el alumno
-Cuestion("Las columnas son linealmente independientes", -v("Mcoli"),
-         exp=r"Solo cuando $rg(\mathbf{X}) = k$")
+Cuestion("$f(@{a}) < f(@{b})$", v("crec"), exp="Porque @{a} < @{b} y $f$ es creciente.")
 #+end_src
 
-=exp= admite la misma interpolación =@{var}= que =enunciado= (o directamente
-=lambda ns: ...=), evaluada con los valores concretos de cada variante. Así una
-única explicación sirve para todas las variantes, sin depender del enunciado
-que las acompañe:
-
-#+begin_src python
-Cuestion("$f(@{a}) < f(@{b})$", v("crec"),
-         exp="Porque @{a} < @{b} y $f$ es creciente.")
-#+end_src
-
+*Semánticas y precondiciones como cadenas.* Tanto =Supuesto= como =Cuestion= aceptan
+=semantica= y =precond= escritas como la cadena que las representa (="v('A') >> v('B')"=,
+="True"=, ="lambda ns: ns['x'] > 0"=), que es exactamente lo que guarda el formato
+JSON. Es la forma de escribir una lambda en Python si la pregunta se va a guardar con
+=save_problema=: una función Python no se puede serializar; su cadena, sí.
 
 ** =ProblemaTipo= — un generador de variantes
 
-=ProblemaTipo= toma una lista de elementos y genera todas las combinaciones posibles,
-produciendo una variante por cada combinación. Los elementos de la lista pueden ser:
-
-- Cadenas de texto (texto fijo del enunciado).
-- Un único =Supuesto= o =Cuestion= (aparece igual en todas las variantes).
-- Una *lista* de =Supuesto= o =Cuestion= (en cada variante se elige uno de ellos).
+=ProblemaTipo= toma una lista plana de componentes y genera todas las combinaciones
+posibles, una variante por cada combinación.
 
 #+begin_src python
-ProblemaTipo(lista_de_elementos)
+ProblemaTipo(componentes, setup=None, export=None, seed=None, nombre=None)
 #+end_src
 
-=ProblemaTipo= es un iterador: cada llamada a =next()= o cada iteración en un bucle
-=for= devuelve una tupla =(etiqueta, enunciado, cuestiones)=:
+#+ATTR_LATEX: :environment tabularx :width \textwidth :align lX
+| Parámetro     | Descripción                                                                                                                                   |
+|---------------+-----------------------------------------------------------------------------------------------------------------------------------------------|
+| =componentes= | Lista plana de cadenas (texto fijo), =Supuesto= y =Cuestion=, sueltos o en listas de alternativas (ver abajo).                                 |
+| =setup=       | Código Python como cadena (lo que guarda el JSON) o función sin argumentos que devuelve un dict. Se ejecuta antes de cada variante.            |
+| =export=      | Dict con las preferencias de exportación: =last_choice=, =cols=, =instances=. Lo leen los scripts de un banco.                                |
+| =seed=        | Entero que siembra =numpy.random= y =random= antes de recorrer las variantes (solo tiene sentido con =setup= aleatorio).                       |
+| =nombre=      | Identificador del problema (el campo =nombre= del JSON; debe coincidir con el nombre del fichero).                                            |
 
-| Campo        | Contenido                                                          |
-|--------------+--------------------------------------------------------------------|
-| =etiqueta=   | Número de variante como cadena (="1"=, ="2"=, …).                  |
-| =enunciado=  | Texto completo del enunciado de esa variante.                      |
-| =cuestiones= | Lista de tuplas =(texto, correcto, activa, explicacion)= por ítem. |
+*** La mecánica: listas = sorteo, elementos consecutivos = opciones
 
-Ejemplo mínimo:
+Cada componente es, o bien un valor suelto (siempre se incluye), o bien una lista de
+dos o más valores del mismo tipo, de la que *se sortea uno* en cada variante. El
+número de variantes es el producto de las longitudes de las listas.
+
+- Una lista de =Supuesto= son *mundos alternativos*: se activa uno por variante.
+- Una lista de =Cuestion= *no* son «las opciones que se muestran juntas»: es un
+  *hueco* del que se sortea una. El alumno ve tantas opciones como elementos-=Cuestion=
+  consecutivos haya (sueltos o listas), más la opción por defecto si
+  =export.last_choice= está activo.
+- Cuando tras un bloque de cuestiones vuelve a aparecer texto o un =Supuesto=, se abre
+  una *parte* nueva (una pregunta con varios bloques de opciones). Las hipótesis se
+  acumulan a lo largo de las partes.
+
+El patrón recomendado es tres huecos + ="export": {"last_choice": true}=: cuatro
+opciones, con la garantía de que al menos una es correcta y al menos una incorrecta.
+La Guía desarrolla todo esto; aquí basta un ejemplo completo.
+
+*** Ejemplo
 
 #+begin_src python :results output :exports both
 from qbank import *
 
-p = ProblemaTipo([
-    "Dado que ",
+p = ProblemaTipo(
     [
-        Supuesto("$\\mathcal{A}$ es verdadero, ", v("A")),
-        Supuesto("$\\mathcal{B}$ es verdadero, ", v("B")),
+        "Considere ",
+        [   # dos mundos: se sortea uno
+            Supuesto("$\\mathcal{A}$ ", v("A")),
+            Supuesto("$\\mathcal{B}$ ", v("B")),
+        ],
+        [   # y otros dos, independientes de los anteriores
+            Supuesto("y que $\\mathcal{A}\\Rightarrow\\mathcal{C}$. ", v("A") >> v("C")),
+            Supuesto("y que $\\mathcal{B}\\Leftrightarrow\\mathcal{D}$. ", v("B") ** v("D")),
+        ],
+        "Entonces, con toda seguridad: ",
+        [   # hueco 1
+            Cuestion("se da $\\mathcal{C}$", v("C")),
+            Cuestion("se da $\\mathcal{D}$", v("D")),
+        ],
+        [   # hueco 2
+            Cuestion("se da $\\mathcal{A}$", v("A")),
+            Cuestion("se da $\\mathcal{B}$", v("B")),
+        ],
+        [   # hueco 3
+            Cuestion("se dan $\\mathcal{A}$ y $\\mathcal{C}$", v("A") & v("C")),
+            Cuestion("se dan $\\mathcal{B}$ y $\\mathcal{D}$", v("B") & v("D")),
+            Cuestion("se da $\\mathcal{E}$", False),
+        ],
     ],
-    "indique qué opción es correcta: ",
-    [
-        Cuestion("$\\mathcal{A}$ es verdadero.", v("A")),
-        Cuestion("$\\mathcal{B}$ es verdadero.", v("B")),
-    ],
-])
+    export={"last_choice": True, "cols": 2},
+    nombre="ejercicio",
+)
 
-for etiqueta, enunciado, cuestiones in p:
-    print(f"Variante {etiqueta}:\n {enunciado}")
-    for texto, correcto, activa, exp in cuestiones:
-        marca = "✓" if correcto else "✗"
-        print(f"  {texto} {marca}  ")
-#+end_src
-
-#+RESULTS:
-: Variante 1: Dado que $\mathcal{A}$ es verdadero, indique qué opción es correcta: 
-:   $\mathcal{A}$ es verdadero. ✓  
-: Variante 2: Dado que $\mathcal{A}$ es verdadero, indique qué opción es correcta: 
-:   $\mathcal{B}$ es verdadero. ✗  
-: Variante 3: Dado que $\mathcal{B}$ es verdadero, indique qué opción es correcta: 
-:   $\mathcal{A}$ es verdadero. ✗  
-: Variante 4: Dado que $\mathcal{B}$ es verdadero, indique qué opción es correcta: 
-:   $\mathcal{B}$ es verdadero. ✓
-
-#+latex: \bigskip
-
-Este ejemplo produce 4 variantes (2 supuestos × 2 cuestiones).
-
-** =ProblemaVF= — preguntas de verdadero/falso
-
-=ProblemaVF= sirve para un formato distinto: un banco de afirmaciones del que se
-extraen aleatoriamente un subconjunto en cada variante. No usa cálculo proposicional;
-la corrección de cada ítem se indica directamente con =True= o =False=.
-
-#+begin_src python
-ProblemaVF(enunciado, cuestiones, NumPreguntas)
-#+end_src
-
-| Parámetro      | Descripción                                                 |
-|----------------+-------------------------------------------------------------|
-| =enunciado=    | Texto del enunciado común a todas las variantes.            |
-| =cuestiones=   | Lista de tuplas =(texto, correcto)=.                        |
-| =NumPreguntas= | Cuántas afirmaciones se eligen aleatoriamente por variante. |
-
-#+begin_src python :results output :exports both
-enunciado = "Indique qué afirmaciones son verdaderas:"
-banco = [
-    ("Todo alumno que va a clase aprueba",   False),
-    ("Todo alumno que sabe aprueba",         True),
-    ("Si suspenden todos es frustrante",     True),
-    ("Si aprueban todos eres buen profesor", False),
-]
-import random
-random.seed(42) # para generar siempre el mismo ejemplo
-GenVar = iter(ProblemaVF(enunciado, banco, 3))  # 3 ítems por variante
-
-for _ in range(3):
-      etiqueta, enunc, cuestiones = next(GenVar)
-      print(f"\nVariante {etiqueta}:\n {enunc}  ")
-      for texto, correcto in cuestiones:
-          marca = "✓" if correcto else "✗"
-          print(f"  {texto} {marca}") 
-
+for etiqueta, partes in p.por_partes():
+    for enunciado, cuestiones in partes:
+        print(f"Variante {etiqueta}: {enunciado}")
+        for texto, correcto, activa, exp in cuestiones:
+            print(f"  {'✓' if correcto else '✗'} {texto}")
+    if int(etiqueta) == 3:
+        break
+print("…", len(list(p.por_partes())), "variantes en total")
 #+end_src
 
 #+RESULTS:
 #+begin_example
-
-Variante 1:
- Indique qué afirmaciones son verdaderas:
-
-  Todo alumno que va a clase aprueba ✗
-
-  Si aprueban todos eres buen profesor ✗
-
-  Todo alumno que sabe aprueba ✓
-
-
-Variante 2:
- Indique qué afirmaciones son verdaderas:
-
-  Todo alumno que sabe aprueba ✓
-
-  Todo alumno que va a clase aprueba ✗
-
-  Si suspenden todos es frustrante ✓
-
-
-Variante 3:
- Indique qué afirmaciones son verdaderas:
-
-  Todo alumno que va a clase aprueba ✗
-
-  Si suspenden todos es frustrante ✓
-
-  Si aprueban todos eres buen profesor ✗
+Variante 1: Considere $\mathcal{A}$ y que $\mathcal{A}\Rightarrow\mathcal{C}$. Entonces, con toda seguridad:
+  ✓ se da $\mathcal{C}$
+  ✓ se da $\mathcal{A}$
+  ✓ se dan $\mathcal{A}$ y $\mathcal{C}$
+Variante 2: Considere $\mathcal{A}$ y que $\mathcal{A}\Rightarrow\mathcal{C}$. Entonces, con toda seguridad:
+  ✓ se da $\mathcal{C}$
+  ✓ se da $\mathcal{A}$
+  ✗ se dan $\mathcal{B}$ y $\mathcal{D}$
+Variante 3: Considere $\mathcal{A}$ y que $\mathcal{A}\Rightarrow\mathcal{C}$. Entonces, con toda seguridad:
+  ✓ se da $\mathcal{C}$
+  ✓ se da $\mathcal{A}$
+  ✗ se da $\mathcal{E}$
+… 48 variantes en total
 #+end_example
+
+$2 \times 2 \times 2 \times 2 \times 3 = 48$ variantes, cada una con tres opciones
+más «Ninguna de las anteriores» (que el exportador añade y que en la variante 1 será
+incorrecta). Este es el problema que =ejemplosManual/ejercicio.json= guarda en JSON.
+
+*** Iterar las variantes
+
+- =por_partes(instances=1, base_seed=None, verbose=False)= :: la vía recomendada.
+  Devuelve =(etiqueta, [(enunciado, cuestiones), …])=, un par por parte; =cuestiones=
+  es una lista de tuplas =(texto, correcto, activa, exp)=. Con =setup= aleatorio,
+  =instances=N= recorre las variantes $N$ veces con semillas distintas
+  (=base_seed + i * 997=; =base_seed= es =seed= si no se pasa). Con =verbose=True=
+  imprime los supuestos y cuestiones rechazados por su precondición.
+- =por_partes_profe(verbose=True)= :: la *vista profe*: el mismo formato, pero con
+  /todas/ las cuestiones de cada hueco (no una por variante) y las rechazadas por su
+  precondición marcadas como ='rechazada por …'= en vez de descartar la variante. Es
+  lo que conviene revisar antes de dar una pregunta por buena.
+- =for etiqueta, enunciado, cuestiones in p= :: el protocolo histórico, solo para
+  ejercicios de una parte (con varias lanza =ValueError=).
 
 ** Preguntas paramétricas con =setup=
 
-El parámetro opcional =setup= de =ProblemaTipo= permite definir problemas cuyos valores numéricos o simbólicos cambian en cada variante. Cuando se proporciona, en cada iteración:
+El parámetro =setup= permite que los valores numéricos o simbólicos cambien en cada
+variante. En cada iteración:
 
-1. Se llama a =setup()= y el dict que devuelve se convierte en el *espacio de nombres* de la variante.
-2. Los textos de los slots que contengan marcadores =@{variable}= reciben la sustitución correspondiente.
-3. Las semánticas y precondiciones que sean callables (=lambda ns: ...=) se evalúan con ese diccionario.
+1. Se ejecuta el =setup= y sus variables forman el *espacio de nombres* =ns= de la variante.
+2. Los textos (enunciados, cuestiones y =exp=) que contengan marcadores =@{variable}= reciben la sustitución.
+3. Las semánticas y precondiciones que sean =lambda ns: ...= se evalúan con ese diccionario.
 
-El delimitador =@= se eligió para evitar conflictos con el modo matemático de \LaTeX{}. Para obtener un arroba literal en el texto, escribe =@@=.
+El delimitador =@= se eligió para evitar conflictos con el modo matemático de \LaTeX{}.
+Para una arroba literal, escribe =@@=.
 
-*** Sin =setup=: combinatoria pura
+*** =setup= como cadena, =np.random= y =seed=
 
-El uso habitual de =ProblemaTipo= (sin =setup=) ya se ha visto en la sección anterior. No hace falta ningún código de setup; los textos son fijos y la variación viene solo de la elección entre alternativas.
-
-*** Con =setup= y valores aleatorios
-
-El siguiente ejemplo genera preguntas en las que los valores numéricos cambian en cada iteración porque el =setup= usa =random=:
+Escribe el =setup= como cadena de código (es lo que guarda el JSON, y la única forma
+que =save_problema= puede serializar) y usa =np.random=, no =random=: la semilla
+=seed= y las instancias actúan sobre ambos generadores, pero toda la documentación y
+las herramientas asumen =numpy=.
 
 #+begin_src python :results silent
-import random
-
-def numeros_aleatorios():
-    a = random.randint(1, 9)
-    b = random.randint(1, 9)
-    return {'a': a, 'b': b, 'suma': a + b}
-
-ejercicio_param = ProblemaTipo(
+p = ProblemaTipo(
     [
-        "Sean $a = @{a}$ y $b = @{b}$. ",
+        "Sean $a = @{a}$ y $b = @{b}$. Entonces:",
         [
             Cuestion("$a + b = @{suma}$", True),
-            Cuestion("$a + b > 10$", lambda ns: ns['a'] + ns['b'] > 10),
+            Cuestion("$a + b = @{suma_falsa}$", False, exp="$@{a} + @{b} = @{suma}$."),
         ],
+        [
+            Cuestion("$a + b > 10$", "lambda ns: ns['a'] + ns['b'] > 10"),
+            Cuestion("$a + b < 10$", "lambda ns: ns['a'] + ns['b'] < 10"),
+        ],
+        Cuestion("$a \\cdot b = @{producto}$", True),
     ],
-    setup=numeros_aleatorios,
+    setup="import numpy as np\n"
+          "a, b = (int(x) for x in np.random.randint(1, 10, 2))\n"
+          "suma, suma_falsa, producto = a + b, a + b + 1, a * b",
+    seed=1,
+    export={"last_choice": True, "instances": 15},
 )
 #+end_src
 
-En este ejemplo:
+- =@{a}=, =@{b}=, =@{suma}= se interpolan con los valores de cada variante.
+- Las lambdas, escritas como cadena, se evalúan con los valores de la variante.
+- =seed=1= hace la pregunta reproducible; =instances=15= genera 15 realizaciones
+  numéricas de cada una de las 4 combinaciones (60 variantes, el mínimo que
+  recomienda =lint= con =setup=).
 
-- La cadena ="Sean $a = @{a}$ y $b = @{b}$. "= interpola =@{a}= y =@{b}= con los valores de cada variante.
-- La semántica =True= de la primera =Cuestion= indica que la afirmación «$a + b = @{suma}$» siempre es correcta (el propio texto incluye ya la respuesta correcta).
-- La semántica =lambda ns: ns['a'] + ns['b'] > 10= se evalúa con los valores de la variante.
+El iterador es finito aunque el =setup= sea aleatorio: recorre una vez cada combinación
+de alternativas y llama al =setup= en cada una. Para obtener más realizaciones se usa
+=instances=, no un bucle a mano.
 
-*Nota:* aunque =setup= devuelva valores distintos en cada llamada, el iterador es finito: recorre una vez cada combinación de alternativas (aquí, dos variantes) y llama a =setup= en cada una. Para obtener varias realizaciones numéricas de cada combinación se usa =instances= (ver más abajo), no un bucle a mano.
+*** Precondiciones que dependen de los valores
 
-*** Con =setup= y valores fijos
-
-Si el =setup= devuelve siempre el mismo diccionario, la combinatoria sigue siendo finita pero los textos usan los parámetros fijos para componer el enunciado. Esto es útil para parametrizar el mismo tipo de pregunta con constantes que se definen una sola vez:
-
-#+begin_src python :results silent
-def parametros_fijos():
-    return {'n': 3, 'k': 2}
-
-ejercicio_fijo = ProblemaTipo(
-    [
-        "Considere una matriz de $@{n} \\times @{k}$. ",
-        [
-            Supuesto("con rango máximo. ", v("MaxRk")),
-            Supuesto("con rango deficiente. ", -v("MaxRk")),
-        ],
-        [
-            Cuestion("Tiene $@{k}$ columnas linealmente independientes.", v("MaxRk")),
-        ],
-    ],
-    setup=parametros_fijos,
-)
-#+end_src
-
-*** Con =setup= y precondiciones dependientes de los valores
-
-Cuando un =Supuesto= afirma algo sobre los valores aleatorios del =setup= (por
-ejemplo, un orden entre dos números), conviene evitar que el enunciado muestre una
-afirmación falsa. El motor razona de forma proposicional y *no conoce* los valores
-numéricos: si ofreciéramos los supuestos «$a > b$» y «$a < b$» sin más, podría
-generar una variante con =a = 3=, =b = 7= y el texto «Se sabe que $a > b$», que es
-falso para esos números.
-
-La solución es una *precondición* =lambda ns: ...= que solo deja pasar la variante
-cuando la afirmación es realmente cierta para los valores sorteados:
+El motor razona de forma proposicional y *no conoce* los valores numéricos: si
+ofreciéramos los supuestos «$a > b$» y «$a < b$» sin más, podría generar una variante con
+=a = 3=, =b = 7= y el texto «Se sabe que $a > b$». La solución es una *precondición*
+=lambda ns: ...= que solo deja pasar la variante cuando la afirmación es cierta para los
+valores sorteados:
 
 #+begin_src python :results silent
-import random
-
-def dos_numeros():
-    a = random.randint(2, 9)
-    b = random.randint(2, 9)
-    return {'a': a, 'b': b}
-
 ordenar = ProblemaTipo(
     [
         "Sean $a = @{a}$ y $b = @{b}$ dos números naturales. Se sabe que ",
         [
-            Supuesto("$a > b$. ", True, precond=lambda ns: ns['a'] > ns['b']),
-            Supuesto("$a < b$. ", True, precond=lambda ns: ns['a'] < ns['b']),
-            Supuesto("$a = b$. ", True, precond=lambda ns: ns['a'] == ns['b']),
+            Supuesto("$a > b$. ", True, precond="lambda ns: ns['a'] > ns['b']"),
+            Supuesto("$a < b$. ", True, precond="lambda ns: ns['a'] < ns['b']"),
+            Supuesto("$a = b$. ", True, precond="lambda ns: ns['a'] == ns['b']"),
         ],
         "Indique qué afirmación es correcta: ",
         [
-            Cuestion("$a - b > 0$", lambda ns: ns['a'] - ns['b'] > 0),
-            Cuestion("$b - a > 0$", lambda ns: ns['b'] - ns['a'] > 0),
+            Cuestion("$a - b > 0$", "lambda ns: ns['a'] - ns['b'] > 0"),
+            Cuestion("$b - a > 0$", "lambda ns: ns['b'] - ns['a'] > 0"),
         ],
+        [
+            Cuestion("$a^2 > b^2$", "lambda ns: ns['a'] ** 2 > ns['b'] ** 2"),
+            Cuestion("$a^2 < b^2$", "lambda ns: ns['a'] ** 2 < ns['b'] ** 2"),
+        ],
+        Cuestion("$a \\cdot b > 0$", True),
     ],
-    setup=dos_numeros,
+    setup="import numpy as np\na, b = (int(x) for x in np.random.randint(2, 10, 2))",
+    seed=2,
+    export={"last_choice": True, "instances": 18},
 )
 #+end_src
 
-Para cada combinación (supuesto × cuestión) el =setup= genera una tirada nueva; si
-su precondición no se cumple, esa variante se descarta (verás un aviso «=Supuesto …
-rechazado por …=»). De este modo:
+Para cada combinación el =setup= genera una tirada nueva; si su precondición no se
+cumple, esa variante se descarta (con =verbose=True= verás «=Supuesto … rechazado por
+…=»). Por eso el número de variantes por instancia no es fijo (aquí, unas tres de las
+cuatro combinaciones sobreviven, y hacen falta 18 instancias para llegar a 60); =lint=
+calcula el valor. El problema =ejemplosManual/numeros.json=, que carga el editor visual
+en =Demo.ipynb=, es una versión ampliada de esta idea.
 
-- el supuesto mostrado siempre coincide con el orden real de =@{a}= y =@{b}=;
-- la corrección de cada cuestión se calcula con los valores reales (=lambda ns: ...=),
-  no con una variable proposicional abstracta.
+*** =seed=: reproducibilidad independiente del orden
 
-El problema =numeros.json= que carga el editor visual en el notebook de
-demostración =Demo.ipynb= (en =ejemplosManual/=, sección «8.2 Editor cargando
-un ejemplo con setup») es una versión ampliada de esta misma idea: añade el supuesto «$a \ne b$» —para que rara vez se
-descarten todos los supuestos a la vez— y reparte las cuestiones en dos grupos de opciones
-que se combinan (una de cada grupo por variante), además de calcular =@{suma}= y =@{producto}=
-en el =setup=. Puedes lanzarlo en el navegador, sin instalar nada, con Binder:
-[[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/ejemplosManual/Demo.ipynb][abrir =Demo.ipynb= en mybinder]].
-Como el =setup= es aleatorio, el caso «$a = b$» aparece rara vez; si solo quieres ver unas
-pocas variantes, acota la generación con =itertools.islice= igual que en el resto de
-ejemplos con =setup= aleatorio.
+Cuando varios problemas con =setup= aleatorio se generan en secuencia (en un bucle o
+un =Makefile=), la realización numérica de cada problema dependería del estado del
+generador en ese momento. El campo =seed= (entero) resuelve esto: antes de iterar las
+variantes, =qbank= siembra =numpy.random= y =random= con él. Así cada problema tiene su
+propia secuencia reproducible. También es la semilla base de =por_partes(instances=N)=
+cuando no se pasa =base_seed=.
 
-** Guardar y cargar problemas en formato JSON
+*** =setup= como función (solo uso interactivo)
 
-=qbank= puede convertir cualquier =ProblemaTipo= a JSON y reconstruirlo después. Esto permite guardar el banco de preguntas en un fichero, compartirlo o cargarlo desde el editor visual sin tener que reescribir el código Python.
+=setup= admite también una función sin argumentos que devuelve el diccionario de
+variables. Es cómodo en un cuaderno, pero un problema así *no puede guardarse* con
+=save_problema= (el código de una función no es recuperable); lo mismo ocurre con las
+lambdas escritas como funciones Python en =semantica= o =precond=. Escríbelos como
+cadenas si la pregunta va a vivir en un fichero.
 
-*Restricción de nombres de fichero:* el nombre del fichero =.json= no debe contener =:=. GNU Make interpreta =:= como separador de regla, por lo que un fichero llamado =L-10-Gujarati:Table6-3.json= rompe cualquier =Makefile= que use =*.json= como dependencia. Los exportadores convierten automáticamente =:= y =_= en =-= dentro del LaTeX generado, pero el nombre del fichero en disco es responsabilidad del usuario. El editor visual muestra un aviso si el nombre introducido contiene =:=.
+* El formato JSON
 
-*** De lista de listas a JSON
+=qbank= convierte cualquier =ProblemaTipo= a JSON y lo reconstruye después. Es el
+formato en que se guardan las preguntas de un banco (lo que leen =lint= y los scripts
+de =qbank-init=).
 
-Dado un =ProblemaTipo= creado directamente en Python, basta llamar a =problema_to_dict= para obtener el dict JSON, o a =save_problema= para guardarlo en un fichero:
+** Campos
 
-#+begin_src python :results output :exports both
-from qbank import *
-
-ejercicio = [
-    "Considere ",
-    [
-        Supuesto("$\\mathcal{A}$, ", v("A")),
-        Supuesto("$\\mathcal{B}$, ", v("B")),
-    ],
-    [
-        Supuesto("y que $\\mathcal{A}\\Rightarrow\\mathcal{C}$. ", v("A") >> v("C")),
-        Supuesto("y que $\\mathcal{B}\\Leftrightarrow\\mathcal{D}$. ", v("B") ** v("D")),
-    ],
-    "Conteste: ",
-    [
-        Cuestion("¿Se da $\\mathcal{C}$?", v("C"),
-                 exp="Solo si $\\mathcal{A}$ y $\\mathcal{A}\\Rightarrow\\mathcal{C}$"),
-        Cuestion("¿Se da $\\mathcal{D}$?", v("D")),
-    ],
-]
-
-p = ProblemaTipo(ejercicio)
-
-import json
-d = problema_to_dict(p)
-print(json.dumps(d, ensure_ascii=False, indent=2))
-#+end_src
-
-#+RESULTS:
-#+begin_example
+#+begin_src json
 {
   "version": "1",
   "tipo": "ProblemaTipo",
-  "nombre": "",
-  "setup": null,
+  "nombre": "L-01-Monotonia",
+  "seed": 1,
+  "setup": "import numpy as np\na = int(np.random.randint(1, 10))",
+  "export": {"last_choice": true, "cols": 2, "instances": 6},
   "componentes": [
-    "Considere ",
+    "Texto fijo ",
+    {"tipo": "Supuesto", "enunciado": "", "semantica": "unoDe(v('A'), v('B'))", "precond": "True"},
     [
-      {
-        "tipo": "Supuesto",
-        "enunciado": "$\\mathcal{A}$, ",
-        "semantica": "v('A')",
-        "precond": "True"
-      },
-      {
-        "tipo": "Supuesto",
-        "enunciado": "$\\mathcal{B}$, ",
-        "semantica": "v('B')",
-        "precond": "True"
-      }
+      {"tipo": "Supuesto", "enunciado": "alternativa 1 ", "semantica": "v('A')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "alternativa 2 ", "semantica": "v('B')", "precond": "True"}
     ],
+    " Entonces:",
     [
-      {
-        "tipo": "Supuesto",
-        "enunciado": "y que $\\mathcal{A}\\Rightarrow\\mathcal{C}$. ",
-        "semantica": "v('A') >> v('C')",
-        "precond": "True"
-      },
-      {
-        "tipo": "Supuesto",
-        "enunciado": "y que $\\mathcal{B}\\Leftrightarrow\\mathcal{D}$. ",
-        "semantica": "v('B') ** v('D')",
-        "precond": "True"
-      }
+      {"tipo": "Cuestion", "enunciado": "¿A?", "semantica": "v('A')", "precond": "True", "exp": ""},
+      {"tipo": "Cuestion", "enunciado": "¿B?", "semantica": "v('B')", "precond": "True", "exp": ""}
     ],
-    "Conteste: ",
-    [
-      {
-        "tipo": "Cuestion",
-        "enunciado": "¿Se da $\\mathcal{C}$?",
-        "semantica": "v('C')",
-        "precond": "True",
-        "exp": "Solo si $\\mathcal{A}$ y $\\mathcal{A}\\Rightarrow\\mathcal{C}$"
-      },
-      {
-        "tipo": "Cuestion",
-        "enunciado": "¿Se da $\\mathcal{D}$?",
-        "semantica": "v('D')",
-        "precond": "True",
-        "exp": ""
-      }
-    ]
+    {"tipo": "Cuestion", "enunciado": "$a = @{a}$", "semantica": "True", "precond": "True", "exp": ""}
   ]
 }
-#+end_example
+#+end_src
 
-Para guardar en un fichero:
+#+ATTR_LATEX: :environment tabularx :width \textwidth :align lX
+| Clave          | Descripción                                                                                                                                  |
+|----------------+----------------------------------------------------------------------------------------------------------------------------------------------|
+| =version=      | ="1"=.                                                                                                                                       |
+| =tipo=         | ="ProblemaTipo"= (o ="ProblemaVF"=, ver el apéndice).                                                                                        |
+| =nombre=       | Identificador; debe coincidir con el nombre del fichero sin =.json= y no contener =:= (rompe =make=).                                       |
+| =seed=         | Entero o ausente/=null=. Solo con =setup= aleatorio.                                                                                         |
+| =setup=        | Código Python como cadena (saltos de línea como =\n=) o =null=.                                                                              |
+| =export=       | Opcional. =last_choice= (bool): opción por defecto. =cols= (int): columnas en AMC. =instances= (int): realizaciones con =setup= aleatorio.   |
+| =componentes=  | La lista plana: cadenas, objetos =Supuesto=/=Cuestion= y listas de ellos.                                                                    |
+
+Cada =Supuesto= es un objeto con =tipo=, =enunciado=, =semantica= y =precond=; cada
+=Cuestion= añade =exp=. Las fórmulas y lambdas van como cadenas, exactamente como se
+escribirían en Python. Las barras de LaTeX se doblan (=\\mathcal=).
+
+Puedes añadir claves propias de nivel superior (="_nivel": "M"=, ="_tema": …): =qbank=
+las ignora al cargar y =save_problema= las conserva.
+
+*Regla para =instances=*: con =setup= aleatorio, =instances = max(1, ceil(60 / variantes
+por instancia))=, para que la vista alumno tenga al menos 60 variantes; =lint= imprime el
+valor necesario.
+
+** De lista de listas a JSON y vuelta
+
+=problema_to_dict= devuelve el dict y =save_problema= lo escribe en un fichero;
+=load_problema= acepta una ruta o un dict y devuelve un =ProblemaTipo= listo para iterar.
 
 #+begin_src python :results silent
 save_problema(p, "ejemplosManual/ejercicio.json")
+p2 = load_problema("ejemplosManual/ejercicio.json")      # o load_problema(dict)
+assert problema_to_dict(p2) == problema_to_dict(p)
 #+end_src
 
-*** De JSON a lista de listas
+Para bancos de varios problemas en un solo fichero, =save_banco(lista, ruta)= y
+=load_banco(ruta)=; los proyectos de =qbank-init= usan en cambio un fichero por pregunta.
 
-Para recuperar el problema, =load_problema= devuelve un =ProblemaTipo= listo para iterar:
+** Un ejemplo con =setup= en JSON
 
-#+begin_src python :results output :exports both
-p2 = load_problema("ejemplosManual/ejercicio.json")
+El fichero =ejemplosManual/matriz_rango.json=:
 
-for etiqueta, enunciado, cuestiones in p2:
-    print(f"Variante {etiqueta}: {enunciado}")
-    for texto, correcto, activa, exp in cuestiones:
-        marca = "✓" if correcto else "✗"
-        print(f"  {marca} {texto}")
-#+end_src
-
-#+RESULTS:
-#+begin_example
-Variante 1: Considere $\mathcal{A}$, y que $\mathcal{A}\Rightarrow\mathcal{C}$. Conteste:
-  ✓ ¿Se da $\mathcal{C}$?
-Variante 2: Considere $\mathcal{A}$, y que $\mathcal{A}\Rightarrow\mathcal{C}$. Conteste:
-  ✗ ¿Se da $\mathcal{D}$?
-Variante 3: Considere $\mathcal{A}$, y que $\mathcal{B}\Leftrightarrow\mathcal{D}$. Conteste:
-  ✗ ¿Se da $\mathcal{C}$?
-Variante 4: Considere $\mathcal{A}$, y que $\mathcal{B}\Leftrightarrow\mathcal{D}$. Conteste:
-  ✗ ¿Se da $\mathcal{D}$?
-Variante 5: Considere $\mathcal{B}$, y que $\mathcal{A}\Rightarrow\mathcal{C}$. Conteste:
-  ✗ ¿Se da $\mathcal{C}$?
-Variante 6: Considere $\mathcal{B}$, y que $\mathcal{A}\Rightarrow\mathcal{C}$. Conteste:
-  ✗ ¿Se da $\mathcal{D}$?
-Variante 7: Considere $\mathcal{B}$, y que $\mathcal{B}\Leftrightarrow\mathcal{D}$. Conteste:
-  ✗ ¿Se da $\mathcal{C}$?
-Variante 8: Considere $\mathcal{B}$, y que $\mathcal{B}\Leftrightarrow\mathcal{D}$. Conteste:
-  ✓ ¿Se da $\mathcal{D}$?
-#+end_example
-
-El problema cargado se comporta exactamente igual que el original. También es posible cargar directamente desde un dict sin pasar por fichero, usando =problema_from_dict(d)=.
-
-*** Con =setup= paramétrico
-
-Cuando el problema usa =setup=, el código Python del setup debe escribirse como una *cadena de texto* dentro del dict JSON (no como una función Python). De este modo el fichero JSON es autosuficiente: al cargarlo, =load_problema= reconstruye el callable a partir de esa cadena y lo ejecuta al comienzo de cada iteración.
-
-El siguiente ejemplo genera una pregunta sobre rango de matrices en la que las dimensiones $n$ (filas) y $k$ (columnas) cambian en cada variante:
-
-#+begin_src python :results silent
-from qbank import problema_from_dict, save_problema, load_problema
-
-d = {
-    "version": "1",
-    "tipo": "ProblemaTipo",
-    "nombre": "matriz_rango",
-    "setup": (
-        "import random\n"
-        "n = random.randint(3, 5)\n"
-        "k = random.randint(2, n - 1)"
-    ),
-    "componentes": [
-        "Considere una matriz $A$ de $@{n}$ filas y $@{k}$ columnas. ",
-        [
-            {
-                "tipo": "Supuesto",
-                "enunciado": "Suponga que $A$ tiene rango máximo ($\\mathrm{rg}(A)=@{k}$). ",
-                "semantica": "v('MaxRk')",
-                "precond": "True"
-            },
-            {
-                "tipo": "Supuesto",
-                "enunciado": "Suponga que $A$ tiene rango deficiente ($\\mathrm{rg}(A)<@{k}$). ",
-                "semantica": "-v('MaxRk')",
-                "precond": "True"
-            }
-        ],
-        "Indique qué afirmación es correcta: ",
-        [
-            {
-                "tipo": "Cuestion",
-                "enunciado": "Las $@{k}$ columnas de $A$ son linealmente independientes.",
-                "semantica": "v('MaxRk')",
-                "precond": "True",
-                "exp": ""
-            },
-            {
-                "tipo": "Cuestion",
-                "enunciado": "$A^\\top A$ es invertible.",
-                "semantica": "v('MaxRk')",
-                "precond": "True",
-                "exp": ""
-            }
-        ]
-    ]
+#+begin_src json
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "matriz_rango",
+  "seed": 7,
+  "setup": "import numpy as np\nn = int(np.random.randint(3, 6))\nk = int(np.random.randint(2, n))",
+  "export": {"last_choice": true, "cols": 2, "instances": 4},
+  "componentes": [
+    "Considere una matriz $A$ de $@{n}$ filas y $@{k}$ columnas. ",
+    [
+      {"tipo": "Supuesto", "enunciado": "Suponga que $A$ tiene rango máximo ($\\mathrm{rg}(A)=@{k}$). ",
+       "semantica": "v('MaxRk')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "Suponga que $A$ tiene rango deficiente ($\\mathrm{rg}(A)<@{k}$). ",
+       "semantica": "-v('MaxRk')", "precond": "True"}
+    ],
+    "Indique qué afirmaciones son correctas: ",
+    [
+      {"tipo": "Cuestion", "enunciado": "Las $@{k}$ columnas de $A$ son linealmente independientes.",
+       "semantica": "v('MaxRk')", "precond": "True", "exp": "…"},
+      {"tipo": "Cuestion", "enunciado": "Alguna columna de $A$ es combinación lineal de las demás.",
+       "semantica": "-v('MaxRk')", "precond": "True", "exp": "…"}
+    ],
+    "… (otros dos huecos: $A^\\top A$ invertible / singular; $Ax = 0$ con solución única / infinitas)"
+  ]
 }
-
-p = problema_from_dict(d)
-save_problema(p, "ejemplosManual/matriz_rango.json")
 #+end_src
 
-La estructura combina 2 supuestos × 2 cuestiones = 4 variantes. En cada una, el =setup= llama a =random.randint= de nuevo, por lo que $n$ y $k$ toman valores distintos. Los marcadores =@{n}= y =@{k}= en los textos reciben esos valores; la semántica de las cuestiones (=v('MaxRk')=) la evalúa el motor proposicional en función del supuesto activo:
-
 #+begin_src python :results output :exports both
-import random
-random.seed(7)
-
-p2 = load_problema("ejemplosManual/matriz_rango.json")
-for etiqueta, enunciado, cuestiones in p2:
-    print(f"Variante {etiqueta}: {enunciado}")
-    for texto, correcto, activa, exp in cuestiones:
-        marca = "✓" if correcto else "✗"
-        print(f"  {marca} {texto}")
+p = load_problema("ejemplosManual/matriz_rango.json")
+for etiqueta, partes in p.por_partes():
+    for enunciado, cuestiones in partes:
+        print(f"Variante {etiqueta}: {enunciado}")
+        for texto, correcto, activa, exp in cuestiones:
+            print(f"  {'✓' if correcto else '✗'} {texto}")
+    if int(etiqueta) == 2:
+        break
+print(len(list(p.por_partes())), "variantes por instancia;",
+      len(list(p.por_partes(instances=4))), "con instances=4")
 #+end_src
 
 #+RESULTS:
 #+begin_example
-Variante 1: Considere una matriz $A$ de $4$ filas y $2$ columnas. Suponga que $A$ tiene rango máximo ($\mathrm{rg}(A)=2$). Indique qué afirmación es correcta:
+Variante 1: Considere una matriz $A$ de $3$ filas y $2$ columnas. Suponga que $A$ tiene rango máximo ($\mathrm{rg}(A)=2$). Indique qué afirmaciones son correctas:
   ✓ Las $2$ columnas de $A$ son linealmente independientes.
-Variante 2: Considere una matriz $A$ de $4$ filas y $2$ columnas. Suponga que $A$ tiene rango máximo ($\mathrm{rg}(A)=2$). Indique qué afirmación es correcta:
   ✓ $A^\top A$ es invertible.
-Variante 3: Considere una matriz $A$ de $3$ filas y $2$ columnas. Suponga que $A$ tiene rango deficiente ($\mathrm{rg}(A)<2$). Indique qué afirmación es correcta:
-  ✗ Las $2$ columnas de $A$ son linealmente independientes.
-Variante 4: Considere una matriz $A$ de $4$ filas y $2$ columnas. Suponga que $A$ tiene rango deficiente ($\mathrm{rg}(A)<2$). Indique qué afirmación es correcta:
-  ✗ $A^\top A$ es invertible.
+  ✓ El sistema $Ax = 0$ tiene solo la solución trivial.
+Variante 2: Considere una matriz $A$ de $4$ filas y $2$ columnas. Suponga que $A$ tiene rango máximo ($\mathrm{rg}(A)=2$). Indique qué afirmaciones son correctas:
+  ✓ Las $2$ columnas de $A$ son linealmente independientes.
+  ✓ $A^\top A$ es invertible.
+  ✗ El sistema $Ax = 0$ tiene infinitas soluciones.
+16 variantes por instancia; 64 con instances=4
 #+end_example
 
-Nótese que la lógica proposicional y los valores numéricos actúan de forma independiente: =v('MaxRk')= no «sabe» cuánto valen $n$ y $k$; su valor de verdad lo determina exclusivamente el supuesto elegido en cada variante. El =setup= solo aporta los números que aparecen en el texto mediante la interpolación =@{variable}=. Una vez guardado el fichero, =load_problema= reconstituye el =setup= desde la cadena de código y el problema se comporta exactamente igual que el original.
-
-*** Campo =seed=: reproducibilidad independiente del orden
-
-Cuando varios problemas con =setup= aleatorio se generan en secuencia (en un bucle o
-un =Makefile=), la realización numérica de cada problema depende del estado del
-generador en ese momento. Si se añade o reordena un problema, cambian las
-realizaciones de todos los que le siguen.
-
-El campo opcional =seed= (entero) resuelve esto: antes de iterar las variantes del
-problema, =qbank= inicializa =numpy.random.seed(seed)=. Así cada problema tiene
-su propia secuencia reproducible, independiente del orden en que se generen los demás.
-
-#+begin_src python
-p = ProblemaTipo([...], setup=mi_setup, seed=42)
-
-# Equivalente desde JSON:
-# { "seed": 42, "setup": "...", "componentes": [...] }
-#+end_src
-
-El campo =seed= también actúa como semilla base en =por_partes(instances=N)= cuando
-no se pasa =base_seed= explícitamente.
-
-Si el problema no usa =numpy= en el =setup=, =seed= se ignora sin error.
-
-*** Limitaciones
-
-- Los =setup= definidos como funciones Python (=def= o =lambda=) no se pueden guardar en JSON porque su código fuente no es recuperable. Si necesitas un =setup= paramétrico y también quieres persistirlo, pasa el código del setup como cadena de texto: ~ProblemaTipo(..., setup="import numpy as np\nx = ...")~ (es lo que hacen =problema_from_dict= y el editor visual). Lo mismo vale para las lambdas de =semantica= y =precond=: escritas como cadena (~precond="lambda ns: ns['x'] > 0"~) se evalúan igual y se guardan.
-- =ProblemaVF= se puede guardar y cargar sin restricciones (sus datos son valores directos).
+La lógica proposicional y los valores numéricos actúan de forma independiente:
+=v('MaxRk')= no «sabe» cuánto valen $n$ y $k$; su valor de verdad lo determina el
+supuesto elegido. El =setup= solo aporta los números que aparecen en el texto. El
+segundo supuesto afirma =-v('MaxRk')= directamente, y por eso las cuestiones con esa
+semántica se deducen sin necesidad de un axioma =unoDe=.
 
 ** Exportar la lista de listas a un fichero =.py= editable
 
-Además de guardar en JSON, es posible exportar cualquier =ProblemaTipo= como código Python puro: exactamente la lista de listas con =Supuesto= y =Cuestion= que se escribiría a mano. El fichero resultante puede abrirse con cualquier editor de texto y ejecutarse directamente con Python.
+=problema_to_python= devuelve el código Python que recrea el problema como listas
+editables, y =save_problema_py= lo escribe en un fichero. El resultado se ejecuta tal
+cual y puede volver a guardarse con =save_problema=: si el problema tiene =setup=, su
+código aparece en la cadena =_SETUP=, y las lambdas van entre comillas.
 
-#+begin_src jupyter-python :results output
-from qbank import *
-
-p = ProblemaTipo([
-    "Dado que ",
-    [
-        Supuesto("$A$ es verdadero, ", v('A')),
-        Supuesto("$B$ es verdadero, ", v('B')),
-    ],
-    "indique qué opción es correcta: ",
-    [
-        Cuestion("$A$ es verdadero.", v('A')),
-        Cuestion("$B$ es verdadero.", v('B')),
-    ],
-])
-
-from qbank import problema_to_python
-print(problema_to_python(p))
+#+begin_src python :results output :exports both
+print(problema_to_python(load_problema("ejemplosManual/ejercicio.json"))[:760])
 #+end_src
 
 #+RESULTS:
@@ -813,149 +660,52 @@ from qbank import Supuesto, Cuestion, ProblemaTipo
 from calcprop import *
 
 ejercicio = [
-    'Dado que ',
+    r'Considere ',
     [
-        Supuesto('$A$ es verdadero, ', v('A')),
-        Supuesto('$B$ es verdadero, ', v('B')),
+        Supuesto(
+            enunciado = r'$\mathcal{A}$ ',
+            semantica = v('A'),
+            precond = True
+        ),
+        Supuesto(
+            enunciado = r'$\mathcal{B}$ ',
+            semantica = v('B'),
+            precond = True
+        ),
     ],
-    'indique qué opción es correcta: ',
     [
-        Cuestion('$A$ es verdadero.', v('A')),
-        Cuestion('$B$ es verdadero.', v('B')),
+        Supuesto(
+            enunciado = r'y que $\mathcal{A}\Rightarrow\mathcal{C}$. ',
+            semantica = v('A') >> v('C'),
+            precond = True
+        ),
+        Supuesto(
+            enunciado = r'y que $\mathcal{B}\Leftrightarrow\mathcal{D}$. ',
+            semantica = v('B') ** v('D'),
+            precond = True
+        ),
     ],
-]
-
-p = ProblemaTipo(ejercicio)
 #+end_example
 
-Para guardar directamente en un fichero:
+** Los ejemplos de =ejemplosManual/=
 
-#+begin_src jupyter-python :results silent
-from qbank import save_problema_py
-save_problema_py(p, "./tmp/mi_problema.py")
-#+end_src
-
-El fichero =mi_problema.py= es código Python válido que puede editarse, ejecutarse y volver a guardarse con =save_problema=. Si el problema tiene =setup=, su código aparece en la cadena =_SETUP= exactamente como fue guardado en el JSON, y las lambdas de =semantica= y =precond= van entre comillas.
-
-* Ejemplos progresivos
-
-Los cinco ejemplos de =ejemplosManual/= ilustran las mecánicas fundamentales de forma acumulativa. Cada ejemplo añade exactamente una idea nueva sobre el anterior.
-
-#+begin_src python :results silent
-from qbank import load_problema
-#+end_src
-
-** Ejemplo A — T/F literales, tres sublistas (=ej_a_literales.json=)
-
-La forma más simple de =ProblemaTipo=: sin =setup=, sin variables proposicionales. Los valores de verdad son literales =True= / =False=. Las tres sublistas de cuestiones generan variantes por combinación (5 × 5 × 5 = 125).
-
-#+begin_src python :results output
-p = load_problema("ejemplosManual/ej_a_literales.json")
-variantes = list(p.por_partes())
-print(f"{len(variantes)} variantes")
-etiqueta, partes = variantes[0]
-enunciado, cuestiones = partes[0]
-print(enunciado)
-for texto, vf, *_ in cuestiones:
-    print(f"  [{'✓' if vf else '✗'}] {texto}")
-#+end_src
-
-*Mecánica clave:* el Marcador itera todas las combinaciones de una cuestión por sublista. Con tres sublistas de 5 elementos cada una se obtienen 5 × 5 × 5 = 125 variantes válidas. El valor de verdad de cada cuestión es un literal y no depende de ningún contexto.
-
-** Ejemplo B — Supuesto en lista, dos mundos proposicionales (=ej_b_mundos.json=)
-
-Una lista de =Supuesto= crea mundos proposicionales alternativos: el Marcador elige uno y añade su semántica al mundo. Las cuestiones cuya semántica depende de la variable proposicional resultante (=v('crec')= o =v('decr')=) tienen valores de verdad distintos en cada mundo.
-
-#+begin_src python :results output
-p = load_problema("ejemplosManual/ej_b_mundos.json")
-variantes = list(p.por_partes())
-print(f"{len(variantes)} variantes")
-for etiqueta, partes in variantes[:2]:
-    enunciado, cuestiones = partes[0]
-    print(f"\nV{etiqueta}: {enunciado.strip()}")
-    for texto, vf, *_ in cuestiones:
-        print(f"  [{'✓' if vf else '✗'}] {texto}")
-#+end_src
-
-*Mecánica clave:* la lista de =Supuesto= genera un mundo por opción. La semántica de cada =Cuestion= es una fórmula proposicional evaluada en ese mundo, no un literal fijo. La misma cuestión puede ser verdadera en un mundo y falsa en otro.
-
-** Ejemplo C — Axioma vacío y =precond= por mundo (=ej_c_precond.json=)
-
-Un =Supuesto= suelto con =enunciado: ""= actúa como axioma: añade su fórmula al mundo sin contribuir texto visible. Aquí establece que la matriz es invertible o singular (=v('inv') | v('sing')=). Las cuestiones usan =precond= proposicional para aparecer solo en el mundo donde son relevantes.
-
-#+begin_src python :results output
-p = load_problema("ejemplosManual/ej_c_precond.json")
-variantes = list(p.por_partes())
-print(f"{len(variantes)} variantes")
-for etiqueta, partes in variantes[:2]:
-    enunciado, cuestiones = partes[0]
-    print(f"\nV{etiqueta}: {enunciado.strip()}")
-    for texto, vf, *_ in cuestiones:
-        print(f"  [{'✓' if vf else '✗'}] {texto}")
-#+end_src
-
-*Mecánica clave:* =precond: "v('inv')"= hace que una cuestión solo sea elegible en el mundo donde =A= es invertible. El Marcador descarta las combinaciones donde la precondición no se satisface, reduciendo el número de variantes válidas respecto al total de combinaciones.
-
-** Ejemplo D — =setup= paramétrico con interpolación =@{var}= (=ej_d_setup_vars.json=)
-
-El campo =setup= genera valores aleatorios antes de cada variante. Esos valores se interpolan en los textos con =@{nombre}=. El valor de verdad de las cuestiones sigue siendo proposicional (depende del mundo elegido por el Marcador, no de los números concretos), pero el enunciado muestra los valores reales. El campo =exp= de dos de las cuestiones usa la misma interpolación, para que la explicación también muestre los valores reales de cada variante.
-
-#+begin_src python :results output
-p = load_problema("ejemplosManual/ej_d_setup_vars.json")
-variantes = list(p.por_partes(instances=3))
-print(f"{len(variantes)} variantes con instances=3")
-for etiqueta, partes in variantes[:4]:
-    enunciado, cuestiones = partes[0]
-    print(f"\nV{etiqueta}: {enunciado[50:].strip()}")
-    for texto, vf, activa, *resto in cuestiones:
-        print(f"  [{'✓' if vf else '✗'}] {texto}")
-        if resto and resto[0]:
-            print(f"      → {resto[0]}")
-#+end_src
-
-*Mecánica clave:* =instances=N= ejecuta el =setup= N veces con semillas distintas, multiplicando las variantes estructurales. El =@{var}= hace que cada instancia muestre valores concretos distintos en el enunciado (y, si se usa, en =exp=), aunque la lógica T/F sea la misma.
-
-** Ejemplo E — Semántica lambda e inyección numérica (=ej_e_lambda.json=)
-
-Cuando el valor de verdad depende de un valor numérico calculado en =setup= (no de variables proposicionales), se usa una *semántica lambda*. El =setup= calcula fórmulas proposicionales (=v('gt_u1')= o =-v('gt_u1')=) según el valor de =x=, y el =Supuesto= con lambda las inyecta en el mundo. Los axiomas iniciales establecen la jerarquía =x>u_2 \Rightarrow x>u_1=, que el sistema proposicional usa para inferir respuestas consistentes.
-
-#+begin_src python :results output
-p = load_problema("ejemplosManual/ej_e_lambda.json")
-variantes = list(p.por_partes(instances=5))
-print(f"{len(variantes)} variantes con instances=5")
-for etiqueta, partes in variantes:
-    enunciado, cuestiones = partes[0]
-    x_val = enunciado.split("x = ")[1].split(".")[0].strip()
-    vfs = ['✓' if vf else '✗' for _, vf, *_ in cuestiones]
-    print(f"  V{etiqueta}: x={x_val}  {vfs}")
-#+end_src
-
-*Mecánica clave:* la lambda =lambda ns: ns['sup_u1'] & ns['sup_u2']= evalúa las fórmulas proposicionales precomputadas en =ns= y las inyecta en el mundo. Las cuestiones usan semánticas proposicionales puras (=v('gt_u1')=, =v('gt_u1') & -v('gt_u2')=) que el sistema evalúa contra ese mundo. Los axiomas garantizan coherencia: si el sistema sabe que =x > u_2=, infiere automáticamente que =x > u_1=.
+Cinco ficheros ilustran, de forma acumulativa, las mecánicas de este capítulo, y
+=Tutorial.ipynb= los recorre ejecutándolos: =ej_a_literales= (valores de verdad
+literales, tres huecos), =ej_b_mundos= (una lista de =Supuesto=), =ej_c_precond=
+(axioma =unoDe= y =precond= por mundo), =ej_d_setup_vars= (=setup=, =@{var}=, =seed=,
+=instances= y =exp= dinámico) y =ej_e_lambda= (semántica =lambda= que inyecta fórmulas).
+Los otros cuatro —=ejercicio=, =matriz_rango=, =numeros= y =superheroes=— son los que
+usan este manual y =Demo.ipynb=. Todos pasan =lint= sin avisos.
 
 * Exportar a AMC (LaTeX)
 
-Las funciones AMC generan el código LaTeX compatible con Auto Multiple Choice.
-Cada función devuelve una cadena de texto con el bloque =\element{...}= correspondiente.
+Las funciones AMC generan el código LaTeX para
+[[https://www.auto-multiple-choice.net/][Auto Multiple Choice]]: cada una devuelve una
+cadena con un bloque =\element{...}=, que el usuario escribe al fichero. El flujo
+completo (un =.tex= por pregunta, un documento que lo compila y los PDF de revisión) lo
+hacen los scripts de un proyecto =qbank-init= (=make amc= y =make amc-student=).
 
-** Función unificada =AMCblock=
-
-La función principal de exportación es =AMCblock=. Los comportamientos que antes requerían funciones separadas se controlan con parámetros:
-
-| Parámetro    | Tipo     | Descripción                                                               |
-|--------------+----------+---------------------------------------------------------------------------|
-| =nombre=     | =str=    | Nombre del grupo (etiqueta LaTeX). Los =:= se convierten en =-= automát. |
-| =etiqueta=   | =str=    | Identificador único de esta variante.                                     |
-| =enunciado=  | =str=    | Texto del enunciado (=$$...$$= se convierte a =\[...\]=).                 |
-| =cuestiones= | =list=   | Lista de tuplas =(texto, correcto, activa[, exp])=.                       |
-| =last_choice=| =bool=   | Si =True=, añade opción comodín con =\lastchoices=.                       |
-| =cols=       | =int=    | Columnas (>1 activa =\begin{multicols}{N}\AMCBoxedAnswers=).              |
-| =profe=      | =bool=   | Si =True=, añade =\explain{}= con cuestiones rechazadas.                  |
-| =aux_latex=      | =str=    | Instrucciones LaTeX extra dentro del bloque =\element{}=.                 |
-| =last_choice_text= | =str=  | Texto de la opción comodín (solo si =last_choice=True=).                  |
-
-Para preguntas de tipo =ProblemaVF= existe =AMC_VF=, que sigue la misma estructura pero recibe tuplas =(texto, True/False)= sin el flag de descarte por precondición.
-
-** Firma
+** =AMCblock=
 
 #+begin_src python
 AMCblock(nombre, etiqueta, enunciado, cuestiones,
@@ -963,700 +713,268 @@ AMCblock(nombre, etiqueta, enunciado, cuestiones,
          aux_latex="", last_choice_text="Ninguna de las anteriores")
 #+end_src
 
-** Ejemplo AMC básico
+#+ATTR_LATEX: :environment tabularx :width \textwidth :align lX
+| Parámetro          | Descripción                                                                                      |
+|--------------------+--------------------------------------------------------------------------------------------------|
+| =nombre=           | Nombre del grupo AMC (etiqueta LaTeX). Los =:= y =_= se convierten en =-=.                        |
+| =etiqueta=         | Identificador único de esta variante dentro del grupo.                                            |
+| =enunciado=        | Texto del enunciado (=$$...$$= se convierte a =\[...\]=, que =automultiplechoice= prefiere).      |
+| =cuestiones=       | Lista de tuplas =(texto, correcto, activa[, exp])=, la segunda componente de cada parte.         |
+| =last_choice=      | Si =True=, añade la opción por defecto con =\lastchoices=: correcta solo si las demás son falsas. |
+| =cols=             | Columnas (>1 activa =\begin{multicols}{N}\AMCBoxedAnswers=).                                     |
+| =profe=            | Si =True=, vista profe: las cuestiones rechazadas por su precondición van en =\explain{}=.        |
+| =aux_latex=        | Instrucciones LaTeX extra dentro del bloque =\element{}=.                                        |
+| =last_choice_text= | Texto de la opción por defecto.                                                                  |
 
-#+begin_src python
-from qbank import *
-
-p = ProblemaTipo([
-    "Dado que ",
-    [
-        Supuesto("$\\mathcal{A}$ es verdadero. ", v("A")),
-        Supuesto("$\\mathcal{B}$ es verdadero. ", v("B")),
-    ],
-    "indique qué opción es correcta: ",
-    [
-        Cuestion("$\\mathcal{A}$ es verdadero", v("A")),
-        Cuestion("$\\mathcal{B}$ es verdadero", v("B")),
-    ],
-])
-
-nombre = "MiCuestionario"
-with open("preguntas.tex", "w") as f:
-    for etiqueta, enunciado, cuestiones in p:
-        f.write(AMCblock(nombre, etiqueta, enunciado, cuestiones))
+#+begin_src python :results output :exports both
+p = load_problema("ejemplosManual/ejercicio.json")
+etiqueta, partes = next(iter(p.por_partes()))
+enunciado, cuestiones = partes[0]
+print(AMCblock("MiCuestionario", etiqueta, enunciado, cuestiones, last_choice=True, cols=2))
 #+end_src
 
-#+begin_src python :results output :exports results
-with open("preguntas.tex") as f:
-    print(f.read())
-  #+end_src
+#+RESULTS:
+#+begin_example
+\element{MiCuestionario}{
+ \begin{questionmult}{MiCuestionario-1}
+  Considere $\mathcal{A}$ y que $\mathcal{A}\Rightarrow\mathcal{C}$. Entonces, con toda seguridad:
+   \begin{multicols}{2}\AMCBoxedAnswers
+      \begin{choices}
+       \correctchoice{se da $\mathcal{C}$}
+       \correctchoice{se da $\mathcal{A}$}
+       \correctchoice{se dan $\mathcal{A}$ y $\mathcal{C}$}
+       \lastchoices
+       \wrongchoice  {Ninguna de las anteriores}
+      \end{choices}
+   \end{multicols}
+ \end{questionmult} }
+#+end_example
 
-  #+RESULTS:
-  #+begin_example
-  \element{MiCuestionario}{
-   \begin{questionmult}{MiCuestionario-1}
-    Dado que $\mathcal{A}$ es verdadero. indique qué opción es correcta: 
-       \begin{choices}
-	 \correctchoice{$\mathcal{A}$ es verdadero}
-       \end{choices}
-   \end{questionmult} }
-
-  \element{MiCuestionario}{
-   \begin{questionmult}{MiCuestionario-2}
-    Dado que $\mathcal{A}$ es verdadero. indique qué opción es correcta: 
-       \begin{choices}
-	 \wrongchoice  {$\mathcal{B}$ es verdadero}
-       \end{choices}
-   \end{questionmult} }
-
-  \element{MiCuestionario}{
-   \begin{questionmult}{MiCuestionario-3}
-    Dado que $\mathcal{B}$ es verdadero. indique qué opción es correcta: 
-       \begin{choices}
-	 \wrongchoice  {$\mathcal{A}$ es verdadero}
-       \end{choices}
-   \end{questionmult} }
-
-  \element{MiCuestionario}{
-   \begin{questionmult}{MiCuestionario-4}
-    Dado que $\mathcal{B}$ es verdadero. indique qué opción es correcta: 
-       \begin{choices}
-	 \correctchoice{$\mathcal{B}$ es verdadero}
-       \end{choices}
-   \end{questionmult} }
-  #+end_example
-
-** Ejemplo AMC multicolumna con «Ninguna de las anteriores»
-
-Usando el mismo =p= del ejemplo anterior, con =last_choice=True= y =cols=2=:
+Para escribir todas las variantes de la vista alumno:
 
 #+begin_src python
 with open("preguntas.tex", "w") as f:
-    for etiqueta, enunciado, cuestiones in p:
-        f.write(AMCblock("MiCuestionario", etiqueta, enunciado, cuestiones,
-                         last_choice=True, cols=2))
+    for etiqueta, partes in p.por_partes():
+        enunciado, cuestiones = partes[0]
+        f.write(AMCblock("MiCuestionario", etiqueta, enunciado, cuestiones, last_choice=True, cols=2))
 #+end_src
 
-Los ítems se distribuyen en dos columnas y se añade automáticamente
-«Ninguna de las anteriores» como última opción.
+** =AMC_multipart= — preguntas con varias partes
 
-** Vista aplanada del profesor: =QuizAMCProfe=
+Un =AMCblock= por parte produciría dos preguntas con el mismo identificador y la
+segunda sin las hipótesis. =AMC_multipart= genera un único =questionmult= con un bloque
+de casillas por parte, cada uno con su propia opción por defecto si =last_choice=:
 
-=QuizAMCProfe= es el exportador de alto nivel para la vista profe. A diferencia
-de la vista alumno (que muestra una cuestión por sublista), la vista aplanada
-muestra *todas* las cuestiones de cada sublista junto al enunciado, con marcas
-de correcto/incorrecto. Las cuestiones rechazadas por precondición aparecen en
-un bloque =\explain{}= al final de la pregunta.
+#+begin_src python
+AMC_multipart(nombre, etiqueta, enunciado, partes,
+              last_choice=False, cols=1, profe=False, *,
+              aux_latex="", last_choice_text="Ninguna de las anteriores")
+#+end_src
+
+=partes= es la lista =[(enunciado, cuestiones), …]= que devuelven =por_partes()= y
+=por_partes_profe()=; =enunciado= es un texto común previo, normalmente =""= porque el
+de la primera parte ya contiene las hipótesis. Los demás parámetros son los de
+=AMCblock=.
+
+#+begin_src python
+with open("preguntas_multi.tex", "w") as f:
+    for etiqueta, partes in p.por_partes():
+        if len(partes) > 1:
+            f.write(AMC_multipart("Superheroes", etiqueta, "", partes, last_choice=True))
+        else:
+            f.write(AMCblock("Superheroes", etiqueta, partes[0][0], partes[0][1], last_choice=True))
+#+end_src
+
+** =QuizAMCProfe= — la vista profe en un fichero
 
 #+begin_src python
 QuizAMCProfe(nombre, directorio, problema, cols=1, *, last_choice=False,
              aux_latex="", last_choice_text="Ninguna de las anteriores")
-# Devuelve int: número de variantes escritas (una pregunta AMC por variante)
+# Devuelve int: número de variantes escritas
 #+end_src
 
-| Parámetro          | Descripción                                                        |
-|--------------------+--------------------------------------------------------------------|
-| =nombre=           | Identificador del grupo AMC.                                       |
-| =directorio=       | Ruta donde se guardará el =.tex= (con o sin =/= al final).           |
-| =problema=         | Un =ProblemaTipo=, o un diccionario ={nombre: ProblemaTipo}=.      |
-| =cols=             | Columnas (>1 activa =\begin{multicols}{N}\AMCBoxedAnswers=).       |
-| =aux_latex=        | Instrucciones LaTeX extra dentro del bloque =\element{}=.          |
-| =last_choice_text= | Texto de la opción comodín.                                        |
-
-Genera =nombre_profe.tex= (con sufijo =_profe=). Se incluye en el documento AMC con:
-
-#+begin_example
-\input{nombre_profe.tex}
-#+end_example
-
-Ejemplo con el mismo =p= de la sección anterior:
-
-#+begin_src python
-QuizAMCProfe("MiCuestionario", "exportaciones/", p)
-#+end_src
-
-*Diferencia clave con =QuizMoodleProfe=*: =QuizAMCProfe= usa =por_partes_profe()=
-y muestra la vista aplanada (todas las cuestiones). =QuizMoodleProfe= exporta a
-Moodle las mismas variantes que el alumno pero con fracciones de puntuación visibles.
-Las dos vistas son complementarias y tienen propósitos distintos.
+Recorre =por_partes_profe()= y escribe en =directorio/nombre_profe.tex= una pregunta AMC
+por variante (con =AMC_multipart= si tiene varias partes), con todas las cuestiones de
+cada hueco marcadas y las rechazadas en =\explain{}=. =problema= puede ser un
+=ProblemaTipo= o un diccionario ={nombre: ProblemaTipo}=. =directorio= admite =/= final
+o no.
 
 ** Integración en el documento AMC
 
-El código generado debe incluirse en el preámbulo del documento principal de AMC:
-
-#+begin_example
-\input{preguntas.tex}
-#+end_example
-
-Consulta la documentación de AMC para el formato completo del documento.
+Los ficheros generados se incluyen en el preámbulo del documento AMC con
+=\input{preguntas.tex}=; dentro de =\onecopy=, =\insertgroup[1]{MiCuestionario}= inserta
+una variante por copia (sin el =[1]= se insertarían todas) y =\shufflegroup= las
+baraja. El README de la plantilla da el procedimiento completo; consulta la
+documentación de AMC para el formato del documento.
 
 * Exportar a Moodle (vía LaTeX)
 
-Las funciones =Quiz*= generan un fichero =.tex= que, al compilarlo con LaTeX
-(usando el paquete =moodle=), produce un fichero =.xml= importable en Moodle.
-
-** Flujo de trabajo
-
-#+begin_example
-Python (qbank)  →  .tex  →  pdflatex/xelatex  →  .xml  →  Moodle
-#+end_example
-
-El paquete LaTeX =moodle= genera el =.xml= durante la compilación. Para instalarlo:
+Las funciones =Quiz*= escriben un fichero =.tex= autónomo que usa el paquete LaTeX
+=moodle=; al compilarlo con =pdflatex= se obtienen un PDF de revisión y el fichero
+=nombre-moodle.xml= importable en Moodle (/Banco de preguntas → Importar → Formato
+Moodle XML/).
 
 #+begin_example
-tlmgr install moodle
+Python (qbank)  →  nombre.tex  →  pdflatex  →  nombre.pdf + nombre-moodle.xml  →  Moodle
 #+end_example
 
-O en distribuciones Debian/Ubuntu:
+El paquete =moodle= se instala con =tlmgr install moodle= (TeX Live) o
+=sudo apt install texlive-latex-extra= (Debian/Ubuntu). Dos avisos: el paquete declara el
+XML en =iso-8859-1= pero escribe algunos caracteres en UTF-8, y escapa mal el «<» dentro
+de los bloques cloze; los scripts de =qbank-init= corrigen ambas cosas
+(=scripts/fix_moodle_xml.py=). Si exportas a mano, revisa el XML.
 
-#+begin_example
-sudo apt install texlive-latex-extra
-#+end_example
+** Funciones
 
-** Funciones disponibles
-
-| Función            | Tipo de problema | =last_choice= | Notas                                            |
-|--------------------+------------------+---------------+--------------------------------------------------|
-| =QuizMoodle=      | =ProblemaTipo= | parámetro | Función principal (vista alumno)                  |
-| =QuizMoodleProfe= | =ProblemaTipo= | No        | Vista alumno con fracciones de puntuación visibles |
-| =QuizVFMoodle=    | =ProblemaVF=   | —         | Verdadero/Falso                                   |
-
-Para la vista aplanada (todas las cuestiones con marcas), usa =QuizAMCProfe= (sección [[*Vista aplanada del profesor: =QuizAMCProfe=][Vista aplanada del profesor]]).
-
-La *opción rescate* («Las demás opciones son falsas» por defecto) se añade automáticamente
-al final de cada bloque =\begin{multi}= y es correcta si y solo si ninguna otra opción
-lo es. Moodle rechaza la importación de preguntas sin ninguna opción correcta, por lo que
-=last_choice=True= es la elección segura (y, en papel, también garantiza que no todas las
-opciones sean correctas) salvo que el problema garantice siempre al menos
-una opción verdadera.
-
-** Firma
-
-=ProblemaTipo= (una o varias partes):
+#+ATTR_LATEX: :environment tabularx :width \textwidth :align llX
+| Función            | Tipo de problema | Qué escribe                                                                        |
+|--------------------+------------------+------------------------------------------------------------------------------------|
+| =QuizMoodle=       | =ProblemaTipo=   | Vista alumno: una pregunta /cloze/ por variante, con un bloque por parte.          |
+| =QuizMoodleProfe=  | =ProblemaTipo=   | Las mismas variantes con las fracciones de puntuación visibles.                     |
+| =QuizVFMoodle=     | =ProblemaVF=     | Verdadero/falso (apéndice).                                                        |
 
 #+begin_src python
 QuizMoodle     (nombre, directorio, problema, last_choice=False, instances=1, *,
                 aux_latex="", last_choice_text="Las demás opciones son falsas")
 # Devuelve int: número de variantes escritas
-QuizMoodleProfe(nombre, directorio, problema, aux_latex="")
-# Devuelve int: número de variantes escritas
+QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="")
 #+end_src
 
-=ProblemaVF=:
+#+ATTR_LATEX: :environment tabularx :width \textwidth :align lX
+| Parámetro          | Descripción                                                                                            |
+|--------------------+--------------------------------------------------------------------------------------------------------|
+| =nombre=           | Nombre del cuestionario (en Moodle, la categoría que agrupa las variantes).                             |
+| =directorio=       | Directorio de salida (con o sin =/= final).                                                            |
+| =problema=         | Un =ProblemaTipo= o un diccionario ={nombre: ProblemaTipo}= (todas van al mismo cuestionario).         |
+| =last_choice=      | Si =True=, añade la opción por defecto a cada bloque. Moodle rechaza preguntas sin ninguna correcta.   |
+| =instances=        | Realizaciones con semillas distintas (requiere =setup= aleatorio).                                     |
+| =aux_latex=        | Cabecera LaTeX adicional (p. ej. =\usepackage{mis-macros}=).                                           |
+| =last_choice_text= | Texto de la opción por defecto.                                                                        |
 
-#+begin_src python
-QuizVFMoodle(nombre, directorio, GenVar, num, opc=None)
-#+end_src
+Cada bloque cloze recibe un peso igual a su número de opciones menos uno, y Moodle lo
+puntúa como una opción múltiple con varias respuestas (las correctas marcadas suman,
+las incorrectas marcadas restan, sin bajar de cero).
 
-| Parámetro          | Descripción                                                           |
-|--------------------+-----------------------------------------------------------------------|
-| =nombre=           | Nombre del cuestionario (aparece en Moodle como categoría).           |
-| =directorio=       | Ruta donde se guardará el =.tex= (con o sin =/= al final).              |
-| =problema=         | Un =ProblemaTipo=, o un diccionario ={nombre: ProblemaTipo}=.         |
-| =last_choice=      | Si =True=, añade la opción comodín al final de cada cuestión.         |
-| =aux_latex=        | Cabecera LaTeX adicional (p.ej. =\usepackage{nacal-moodle}=).         |
-| =last_choice_text= | Texto de la opción comodín.                                           |
-| =instances=        | Número de instancias con semillas distintas (requiere =setup=).       |
-| =GenVar=           | Iterador de variantes =ProblemaVF=.                                   |
-| =num=              | Número de variantes a exportar.                                       |
-
-** Ejemplo Moodle completo
-
-Creamos el directorio donde vamos aguardar el ejemplo:
-
-#+begin_src bash :results silent
-mkdir -p ejemplosManual
-#+end_src
-
-El siguiente código genera el fichero de LaTeX:
+** Ejemplo
 
 #+begin_src python :results silent
-from qbank import *
-
-p = ProblemaTipo([
-    "Considere ",
-    [
-        Supuesto("$\\mathcal{A}$ ", v("A")),
-        Supuesto("$\\mathcal{B}$ ", v("B")),
-    ],
-    [
-        Supuesto("y que $\\mathcal{A}\\Rightarrow\\mathcal{C}$. ", v("A") >> v("C")),
-        Supuesto("y que $\\mathcal{B}\\Leftrightarrow\\mathcal{D}$. ", v("B") ** v("D")),
-    ],
-    "Indique qué opción es correcta: ",
-    [
-        Cuestion("Entonces $\\mathcal{C}$ es verdadero", v("C")),
-        Cuestion("Entonces $\\mathcal{D}$ es verdadero", v("D")),
-    ],
-])
-
+p = load_problema("ejemplosManual/ejercicio.json")
 QuizMoodle("EjemploMoodle", "ejemplosManual/", p, last_choice=True)
 #+end_src
-
-Esto crea =ejemplosManual/EjemploMoodle.tex=. Para obtener el =.xml= y una versión =.pdf= del conjunto de preguntas basta ejecutar:
 
 #+begin_src bash :results silent
 cd ejemplosManual
 pdflatex EjemploMoodle.tex
 #+end_src
 
-Se generan [[file:ejemplosManual/EjemploMoodle-moodle.xml][=EjemploMoodle-moodle.xml=]] (para importar en Moodle) y [[file:ejemplosManual/EjemploMoodle.pdf][=EjemploMoodle.pdf=]]
-(vista previa del aspecto de las preguntas).
+Se generan [[file:ejemplosManual/EjemploMoodle-moodle.xml][=EjemploMoodle-moodle.xml=]] (para importar en Moodle) y
+[[file:ejemplosManual/EjemploMoodle.pdf][=EjemploMoodle.pdf=]] (vista previa de las preguntas). Las vocales acentuadas y la
+=ñ= las convierte =codchar= (ver la referencia) de forma automática.
 
-** Ejemplo con =ProblemaVF= para Moodle
+** Preguntas con varias partes
 
-El siguiente código genera el fichero de LaTeX:
+Un =ProblemaTipo= cuya lista plana abre varias partes se exporta como una pregunta
+/cloze/ con un bloque de opciones por parte, sin hacer nada especial. El fichero
+=ejemplosManual/superheroes.json= es un ejercicio de tres partes (cuatro mundos, uno
+por héroe, y seis huecos repartidos en tres bloques):
+
+#+begin_src python :results output :exports both
+p = load_problema("ejemplosManual/superheroes.json")
+etiqueta, partes = next(iter(p.por_partes()))
+for enunciado, cuestiones in partes:
+    print(enunciado.strip() or "(sin texto)")
+    for texto, correcto, _, exp in cuestiones:
+        print(f"    {'✓' if correcto else '✗'} {texto}")
+print(len(list(p.por_partes())), "variantes")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Conteste qué afirmaciones sobre Spider-Man (Peter Parker) son ciertas. Uno de sus superpoderes consiste en
+    ✓ tener sentidos superdesarrollados
+    ✗ volar
+En su vestimenta destaca:
+    ✗ la capa
+    ✓ el color azul
+En cuanto al origen de sus superpoderes:
+    ✓ son fruto de una mutación
+    ✗ realmente son fruto de entrenamiento y tecnología
+256 variantes
+#+end_example
 
 #+begin_src python :results silent
-from qbank import *
-
-enunciado = "Indique qué afirmaciones son verdaderas:"
-banco = [
-    ("Todo alumno que va a clase aprueba",   False),
-    ("Todo alumno que sabe aprueba",         True),
-    ("Si suspenden todos es frustrante",     True),
-    ("Si aprueban todos eres buen profesor", False),
-    ("Las eñes son letras frecuentes en inglés", False),
-]
-
-b = [(codchar(texto), correcto) for texto, correcto in banco]
-GenVar = iter(ProblemaVF(codchar(enunciado), b, 2))  # 2 ítems por variante
-
-QuizVFMoodle("EjemploVF", "ejemplosManual/", GenVar, num=5)  # 5 variantes
-#+end_src
-
-Para obtener el =.xml= y una versión =.pdf= del conjunto de preguntas basta ejecutar:
-
-#+begin_src bash :results silent
-cd ejemplosManual
-pdflatex EjemploVF.tex
-#+end_src
-
-/Nota/: =codchar()= convierte los caracteres con tilde y la ñ a secuencias LaTeX
-(p.ej. =á= → =\'a=). Es necesario para Moodle porque el =.tex= usa codificación OT1.
-
-* Preguntas multi-parte
-
-=ProblemaTipo= admite ejercicios con varias partes. La lista plana de componentes
-determina la estructura: una transición de un bloque de cuestiones a un bloque de
-texto o supuestos abre una parte nueva. El método =por_partes()= devuelve
-=(etiqueta, [(enunciado, cuestiones), ...])= con un par por parte.
-
-** Ejemplo
-
-El fichero =ejemplosManual/superheroes.json= contiene un ejercicio de tres partes
-sobre distintos superhéroes.
-
-#+begin_src jupyter-python :results output
-from qbank import *
-import itertools
-
-p = load_problema("ejemplosManual/superheroes.json")
-
-for etiqueta, partes in itertools.islice(p.por_partes(), 2):
-    print(f"=== Variante {etiqueta} ===")
-    for enunciado, cuestiones in partes:
-        if enunciado:
-            print(f"  {enunciado}")
-        for texto, correcto, _, exp in cuestiones:
-            marca = '✓' if correcto else '✗'
-            print(f"    {marca} {texto}")
-    print()
-#+end_src
-
-** Exportar a AMC
-
-#+begin_src jupyter-python :results output
-with open("preguntas_multi.tex", "w") as f:
+QuizMoodle("Superheroes", "ejemplosManual/", p, last_choice=True)   # Moodle: cloze
+with open("ejemplosManual/superheroes_amc.tex", "w") as f:          # AMC: un questionmult
     for etiqueta, partes in p.por_partes():
-        f.write(AMC_multipart("Superheroes", etiqueta, "", partes))
-
-with open("preguntas_multi.tex") as f:
-    print(f.read())
-#+end_src
-
-** Exportar a Moodle (cloze)
-
-#+begin_src jupyter-python :results silent
-import os
-os.makedirs("ejemplosManual", exist_ok=True)
-QuizMoodle("Superheroes", "ejemplosManual/", p, last_choice=True)
-#+end_src
-
-Esto genera =ejemplosManual/Superheroes.tex=. Compila con =xelatex= para obtener el =.xml=:
-
-#+begin_example
-cd ejemplosManual
-xelatex Superheroes.tex
-#+end_example
-
-El fichero =Superheroes.xml= puede importarse en Moodle (Banco de preguntas → Importar →
-Formato Moodle XML). Cada pregunta cloze contiene tantos bloques =\begin{multi}= como
-partes tenga el =ProblemaTipo=.
-
-** Persistencia JSON
-
-=ProblemaTipo= (también multiparte) se guarda y carga con =save_problema= y =load_problema=:
-
-#+begin_src jupyter-python :results silent
-from qbank import save_problema, load_problema
-
-save_problema(p, "ejemplosManual/superheroes.json")
-p2 = load_problema("ejemplosManual/superheroes.json")
-#+end_src
-
-** Exportar a código Python editable
-
-#+begin_src jupyter-python :results output
-from qbank import problema_to_python
-print(problema_to_python(p, varname="superheroes"))
-#+end_src
-
-** Compatibilidad: =ProblemaMultiParte= y =SubPregunta= (deprecados)
-
-=ProblemaMultiParte= y =SubPregunta= siguen disponibles pero están /deprecados/: al
-construir un =ProblemaMultiParte= se emite un =DeprecationWarning= y el objeto
-devuelto es un =ProblemaTipo= equivalente. Para código nuevo, define directamente
-un =ProblemaTipo= con la lista plana de componentes y recórrelo con =.por_partes()=.
-
-* Editor visual en Jupyter (=ProblemaTipoEditor=)
-
-=ProblemaTipoEditor= es un formulario interactivo para diseñar problemas de tipo =ProblemaTipo= desde un notebook de Jupyter, sin necesidad de escribir la estructura de listas a mano.
-
-** Instalación
-
-El editor requiere =ipywidgets=. Instálalo junto con =calcprop-qbank=:
-
-#+begin_src bash
-pip install "calcprop-qbank[jupyter]"
-#+end_src
-
-En *JupyterLab ≥ 4* es necesario que la extensión =@jupyter-widgets/jupyterlab-manager= esté habilitada. Compruébalo con:
-
-#+begin_src bash
-jupyter labextension list
-#+end_src
-
-Si la extensión no aparece (síntoma: el widget se muestra como texto ~VBox(children=...~), ejecuta una sola vez desde el terminal:
-
-#+begin_src bash
-mkdir -p ~/.local/share/jupyter/labextensions/@jupyter-widgets
-ln -sfn $(python -c "import jupyterlab_widgets, os; \
-  print(os.path.dirname(jupyterlab_widgets.__file__))")/labextension \
-  ~/.local/share/jupyter/labextensions/@jupyter-widgets/jupyterlab-manager
-#+end_src
-
-Reinicia JupyterLab para que el cambio surta efecto. (En Jupyter Notebook clásico no hace falta este paso.)
-
-** Uso básico
-
-Abre un notebook con el kernel del entorno donde instalaste =calcprop-qbank=:
-
-#+begin_src python
-from qbank import ProblemaTipoEditor
-#+end_src
-
-Para empezar un problema nuevo:
-
-#+begin_src python
-editor = ProblemaTipoEditor()
-#+end_src
-
-Para cargar un problema desde un fichero JSON existente:
-
-#+begin_src python
-editor = ProblemaTipoEditor('mi_problema.json')
-#+end_src
-
-** Descripción del formulario
-
-El editor tiene tres zonas:
-
-- *Cabecera*: campo =Nombre= (identificador del problema) y campo =Setup= (código Python del setup paramétrico; déjalo vacío si no necesitas valores variables).
-- *Slots*: cada slot es un «componente» del problema. Pulsa =+ slot= para añadir slots. Cada slot puede ser de tipo:
-  - *texto*: texto fijo que aparece igual en todas las variantes.
-  - *alternativas*: una o más filas, cada una con tipo (=Supuesto= / =Cuestion=), enunciado, semántica, precondición y, para =Cuestion=, un campo de explicación/feedback. Pulsa =+ alt= para añadir filas.
-- *Barra inferior*: controles de acción.
-
-| Botón         | Acción                                                                              |
-|---------------+-------------------------------------------------------------------------------------|
-| =▶ Preview=   | Genera hasta N variantes y las muestra en el área de salida.                        |
-| =💾 Guardar=  | Serializa el estado actual y lo guarda en el fichero indicado (campo de texto JSON). |
-| =📂 Cargar=   | Lee el fichero indicado y rellena el editor con su contenido.                       |
-| =\{ \} JSON=  | Muestra el JSON equivalente al estado actual del editor en el área de salida.       |
-
-** Ejemplo sin =setup=
-
-Construir desde el editor el mismo problema del ejemplo de =ProblemaTipo=:
-
-1. Ejecutar =ProblemaTipoEditor()= en una celda.
-2. Dejar el campo =Setup= vacío.
-3. =+ slot= → tipo *texto* → escribir ="Dado que "=.
-4. =+ slot= → tipo *alternativas* → =+ alt= dos veces:
-   - fila 1: tipo =Supuesto=, enunciado =$\\mathcal{A}$ es verdadero, =, semántica =v('A')=
-   - fila 2: tipo =Supuesto=, enunciado =$\\mathcal{B}$ es verdadero, =, semántica =v('B')=
-5. =+ slot= → tipo *texto* → escribir ="indique qué opción es correcta: "=.
-6. =+ slot= → tipo *alternativas* → =+ alt= dos veces:
-   - fila 1: tipo =Cuestion=, enunciado =$\\mathcal{A}$ es verdadero=, semántica =v('A')=
-   - fila 2: tipo =Cuestion=, enunciado =$\\mathcal{B}$ es verdadero=, semántica =v('B')=
-7. Pulsar =▶ Preview= (4 variantes esperadas).
-8. Escribir =mi_problema.json= en el campo de ruta y pulsar =💾 Guardar=.
-
-Una vez guardado, el fichero puede cargarse desde código Python:
-
-#+begin_src python
-from qbank import load_problema
-p = load_problema('mi_problema.json')
-for etiqueta, enunciado, cuestiones in p:
-    print(etiqueta, enunciado)
-#+end_src
-
-** Ejemplo con =setup= paramétrico
-
-Para un problema con valores variables, escribe en el campo =Setup= el código que genera los valores por variante:
-
-#+begin_example
-import random
-a = random.randint(1, 9)
-b = random.randint(1, 9)
-suma = a + b
-#+end_example
-
-Luego, en los textos de los slots, usa =@{a}=, =@{b}= y =@{suma}= donde corresponda. Por ejemplo, un slot de tipo *texto* con el contenido ="Sean $a = @{a}$ y $b = @{b}$. "= mostrará los valores aleatorios de cada variante.
-
-Las semánticas que dependan de los valores del setup deben escribirse como lambdas:
-
-#+begin_example
-lambda ns: ns['a'] + ns['b'] > 10
-#+end_example
-
-** Obtener el problema desde el editor
-
-Una vez diseñado el problema, puedes obtener el objeto Python directamente desde otra celda:
-
-#+begin_src python
-p = editor.to_problema()   # ProblemaTipo listo para iterar
-d = editor.to_dict()       # dict JSON equivalente
-#+end_src
-
-Con =p= ya puedes llamar a las funciones de exportación (=AMCblock=, =QuizMoodle=, etc.) como si hubieras definido el problema a mano.
-
-** Flujo completo: editor → JSON → AMC y Moodle
-
-Este ejemplo muestra el recorrido completo desde el editor visual hasta los ficheros de exportación, pasando por el JSON como punto de guardado intermedio.
-
-*** Paso 1 — Diseñar y guardar desde el editor
-
-Crea el problema en el editor y guárdalo en disco (botón =💾 Guardar= o desde código):
-
-#+begin_src python
-from qbank import ProblemaTipoEditor
-
-editor = ProblemaTipoEditor()
-editor                          # muestra el formulario
-#+end_src
-
-Una vez rellenado el formulario, guarda el fichero:
-
-#+begin_src python
-editor.save("mi_problema.json")
-#+end_src
-
-O bien, si prefieres guardarlo a mano:
-
-#+begin_src python
-from qbank import save_problema
-save_problema(editor.to_problema(), "mi_problema.json")
-#+end_src
-
-*** Paso 2 — Cargar el JSON
-
-En cualquier sesión posterior (o en el mismo notebook, en otra celda):
-
-#+begin_src python
-from qbank import *
-
-p = load_problema("mi_problema.json")
-#+end_src
-
-=p= es un =ProblemaTipo= completamente funcional, idéntico al que se habría obtenido definiendo el problema a mano en Python.
-
-*** Paso 3a — Exportar a AMC
-
-#+begin_src python
-nombre = "MiCuestionario"
-
-with open("preguntas_amc.tex", "w") as f:
-    for etiqueta, enunciado, cuestiones in p:
-        f.write(AMCblock(nombre, etiqueta, enunciado, cuestiones))
-#+end_src
-
-Variantes habituales de =AMCblock=:
-
-| Parámetros de =AMCblock=               | Cuándo usarla                               |
-|----------------------------------------+---------------------------------------------|
-| (por defecto)                          | Pregunta estándar (solo ítems activos).     |
-| =last_choice=True=                     | Añade «Ninguna de las anteriores» al final. |
-| =cols=N=                               | Ítems en N columnas.                        |
-| =last_choice=True, cols=N=             | Multicolumna con «Ninguna de las anteriores». |
-
-El fichero generado se incluye en el documento principal de AMC con =\input{preguntas_amc.tex}=.
-
-*** Paso 3b — Exportar a Moodle
-
-#+begin_src python
-QuizMoodle("MiCuestionario", "salida/", p, last_choice=True)
-#+end_src
-
-Esto genera =salida/MiCuestionario.tex=. A continuación, compila con LaTeX para obtener el =.xml= importable en Moodle:
-
-#+begin_example
-cd salida
-xelatex MiCuestionario.tex
-#+end_example
-
-El paquete LaTeX =moodle= produce =MiCuestionario.xml= durante la compilación. Ese fichero es el que se importa en Moodle (Banco de preguntas → Importar → Formato Moodle XML).
-
-Variantes habituales de =QuizMoodle=:
-
-| Parámetros / función                   | Cuándo usarla                                              |
-|----------------------------------------+------------------------------------------------------------|
-| (por defecto)                          | Pregunta estándar.                                         |
-| =last_choice=True=                     | Añade «Las demás opciones son falsas».                     |
-| =instances=N=                          | N realizaciones numéricas distintas (problemas con setup). |
-| =QuizMoodleProfe(...)=                 | Mismas variantes que el alumno, con fracciones visibles.   |
-| =QuizAMCProfe(...)=                    | Vista aplanada: todas las cuestiones con marcas (PDF AMC). |
-| =QuizVFMoodle(...)=                    | Para =ProblemaVF= (verdadero/falso).                       |
-
-*** Paso 4 — Generar múltiples instancias numéricas (problemas con =setup=)
-
-Cuando el problema tiene =setup= con valores aleatorios, iterar una sola vez el
-problema genera tantas variantes como combinaciones estructurales existan (por
-ejemplo, 2 supuestos × 2 cuestiones = 4). Cada variante llama a =setup()= de
-forma independiente, por lo que cada una puede tener distintos valores numéricos.
-
-Hay dos patrones de exportación masiva:
-
-*Opción A — variantes totalmente independientes*
-
-Cada una de las 40 variantes tiene sus propios valores numéricos. Útil cuando
-el banco de preguntas debe ser lo más variado posible.
-
-#+begin_src python
-from qbank import *
-
-p = load_problema("mi_problema.json")
-
-with open("preguntas.tex", "w") as f:
-    for instancia in range(10):
-        for etiqueta, enunciado, cuestiones in p:
-            f.write(AMCblock("MiCuestionario", f"{instancia+1}-{etiqueta}",
-                             enunciado, cuestiones))
-#+end_src
-
-Las 4 variantes estructurales de cada vuelta del bucle externo no comparten
-necesariamente los mismos valores numéricos entre sí.
-
-*Opción B — lotes: las variantes estructurales comparten los mismos valores*
-
-Dentro de cada lote, las 4 variantes estructurales usan los mismos valores
-numéricos. El =setup= se reemplaza temporalmente por un callable que devuelve
-un dict fijo calculado al inicio del lote.
-
-#+begin_src python
-from qbank import *
-import random
-
-p = load_problema("mi_problema.json")
-d = problema_to_dict(p)          # dict reutilizable
-
-with open("preguntas.tex", "w") as f:
-    for instancia in range(10):
-        n = random.randint(3, 9)
-        k = random.randint(2, n - 1)
-        ns = {'n': n, 'k': k}
-
-        p_lote = problema_from_dict(d)
-        p_lote.setup = lambda ns=ns: ns   # fija n,k para todo el lote
-
-        for etiqueta, enunciado, cuestiones in p_lote:
-            f.write(AMCblock("MiCuestionario", f"{instancia+1}-{etiqueta}",
-                             enunciado, cuestiones))
-#+end_src
-
-El =lambda ns=ns: ns= captura el valor del dict en el momento de creación
-mediante argumento por defecto, evitando que todas las lambdas apunten al
-mismo último valor de la variable de bucle.
-
-| Opción | Patrón                            | Valores por variante           |
-|--------+-----------------------------------+--------------------------------|
-| A      | =for i in range(10): for v in p:= | Cada variante tiene los suyos  |
-| B      | =p_lote.setup = lambda ns=ns: ns= | Las 4 del lote comparten $(n,k)$ |
-
-Ambos patrones funcionan igual para Moodle: sustituye el bloque =with open(...)=
-por una llamada a =QuizMoodle= y adapta el nombre:
-
-#+begin_src python
-QuizMoodle("MiCuestionario", "salida/", p, last_choice=True)
+        f.write(AMC_multipart("Superheroes", etiqueta, "", partes, last_choice=True))
 #+end_src
 
 * Comprobación automática de preguntas (=lint=)
 
-Antes de exportar una pregunta conviene comprobar que está bien construida.
-=lint= automatiza las comprobaciones que de otro modo habría que hacer a ojo
-recorriendo todas las variantes. Acepta un =ProblemaTipo=, un dict JSON o la
-ruta a un fichero, no modifica nada ni compila LaTeX, y devuelve una lista de
-=Aviso= con nivel =ERROR=, =AVISO= o =INFO= (errores primero):
+Antes de exportar conviene comprobar que la pregunta está bien construida. =lint=
+automatiza lo que de otro modo habría que mirar a ojo recorriendo todas las variantes.
+Acepta un =ProblemaTipo=, un dict o la ruta a un fichero, no modifica nada ni compila
+LaTeX, y devuelve una lista de =Aviso(nivel, codigo, mensaje, donde)= con nivel
+=ERROR=, =AVISO= o =INFO=, errores primero:
 
-#+begin_src jupyter-python :results output
-from qbank import lint
-
+#+begin_src python
 for aviso in lint("ejemplosManual/ej_c_precond.json"):
     print(aviso)
 #+end_src
 
-Cada =Aviso= tiene =nivel=, =codigo= (identifica la regla), =mensaje= y =donde=
-(el componente afectado, con su texto recortado). Las reglas principales:
+Un =ERROR= significa que la pregunta está rota; un =AVISO= hay que leerlo y decidir;
+un =INFO= es información. Las reglas, con el código de cada aviso:
 
-- =mezcla= (ERROR) :: en alguna variante todas las opciones son correctas o
-  todas incorrectas. Se cuenta la opción por defecto si =export.last_choice=
-  está activo, con la misma regla que =AMCblock= y =QuizMoodle=.
-- =negacion= (ERROR) :: una =semantica= o =precond= usa =-v('X')= pero ningún
-  =Supuesto= permite deducirlo: hace falta un =Supuesto= suelto con
-  =unoDe(..., v('X'), ...)= o una alternativa que afirme =-v('X')=. Sin ello
-  =test()= nunca da esa cuestión por verdadera.
+- =mezcla= (ERROR) :: en alguna variante y parte todas las opciones son correctas o
+  todas incorrectas, contando la opción por defecto si =export.last_choice= está
+  activo (misma regla que los exportadores).
+- =pocas-opciones= (AVISO) :: una parte muestra al alumno menos de tres opciones: el
+  error típico de poner las opciones en una única lista de =Cuestion= (que sortea una).
+  =opciones= (AVISO): una parte sin ninguna cuestión, o con un número de opciones que
+  varía entre variantes.
+- =variantes= (AVISO) :: menos de 16 variantes sin =setup=, o menos de 60 con =setup=
+  (contando =export.instances=). Más de 300 (INFO): la vista alumno de AMC en un solo
+  =examcopy= puede agotar la memoria de =pdflatex=.
+- =constante= (AVISO; INFO si la semántica es el literal =True=/=False=) :: una =Cuestion=
+  verdadera (o falsa) en todos los mundos en que puede aparecer, candidata a distractor
+  memorizable. =solape= (AVISO): dos =Cuestion= con el mismo texto en el mismo hueco
+  pueden aparecer en un mismo mundo.
+- =negacion= (ERROR) :: una =semantica= o =precond= usa =-v('X')= pero ningún =Supuesto=
+  permite deducirlo (hace falta un =unoDe= que incluya =v('X')=, o un =Supuesto= que
+  afirme o implique =-v('X')=). AVISO si niega un =Supuesto= siempre presente.
 - =interp= (ERROR) :: queda algún =@{var}= sin sustituir en el texto renderizado.
-- =nombre=, =estructura=, =tipo= (ERROR) :: el JSON no es un =ProblemaTipo=, el
-  =nombre= no coincide con el fichero o contiene =:=, o alguna lista mezcla tipos.
-- =variantes= (AVISO) :: menos de 16 variantes sin =setup=, o menos de 60 con
-  =setup= (contando =export.instances=).
-- =constante= (AVISO) :: una =Cuestion= es verdadera (o falsa) en todos los
-  mundos en los que puede aparecer: candidata a distractor memorizable. Si su
-  =semantica= es el literal =True=/=False= se rebaja a INFO.
-- =huerfana= (AVISO) :: una etiqueta =v('X')= usada en una =Cuestion= no aparece
-  en ningún =Supuesto=.
-- =lista-1=, =seed=, =instances= (AVISO) :: listas de un solo elemento,
-  =seed= incoherente con el uso de aleatorios en =setup=, o =instances > 1= sin =setup=.
-- =texto= (AVISO) :: caracteres =°=, =«=, =»= (rompen el paquete =moodle=),
-  =\(= =\)= en vez de =$=, citas a números de lección, =@{= sin cerrar, dobles
-  espacios o comillas simples.
+- =huerfana= (AVISO) :: una etiqueta =v('X')= usada en una =Cuestion= no aparece en
+  ningún =Supuesto= (INFO si algún =Supuesto= es una lambda, porque entonces no se puede
+  saber). =sin-uso= (INFO): una etiqueta declarada que ninguna =Cuestion= usa.
+- =nombre=, =estructura=, =tipo=, =carga= (ERROR) :: el JSON no es un =ProblemaTipo=, el
+  =nombre= no coincide con el fichero o contiene =:=, alguna lista mezcla tipos, o
+  =export=/=seed= están mal tipados. =lista-1=, =seed=, =instances= (AVISO): listas de
+  un solo elemento, =seed= incoherente con el uso de aleatorios, =instances > 1= sin
+  =setup=.
+- =texto= :: un =%= sin barra es ERROR (en LaTeX empieza un comentario y el PDF sale
+  vacío o roto sin que =pdflatex= pare). Son AVISO: =\%= dentro de =$…$= (Moodle lo
+  pierde), =°=, =«»= y comillas rectas (no existen en la codificación del paquete
+  =moodle= o salen como ”), =\(…\)= en vez de =$…$=, citas a números de lección, =@{=
+  sin cerrar, dobles espacios fuera de las fórmulas, comillas simples, textos que
+  parecen código =lambda ns:= (desde JSON no se evalúan).
+- =setup= (INFO) :: variantes por instancia e =instances= necesarias para llegar a 60.
 
-La tabla de mundos muestra, para cada =Cuestion=, su valor en cada combinación
-de =Supuesto= (=V=, =F=, o =-= si la rechaza su =precond=):
+=tabla_mundos(problema)= devuelve una tabla de texto con el valor de cada =Cuestion=
+(=V=, =F=, o =-= si la rechaza su =precond=) en cada combinación de =Supuesto=, para
+localizar distractores constantes y auditar la lógica. Con =setup= usa un solo sorteo
+(sembrado con =seed=), así que los mundos filtrados por precondiciones numéricas pueden
+no aparecer todos.
 
-#+begin_src jupyter-python :results output
-from qbank import tabla_mundos
-print(tabla_mundos("ejemplosManual/ej_c_precond.json"))
-#+end_src
-
-Desde la línea de órdenes, para revisar un banco entero (código de salida 1 si
-hay algún ERROR; =--quiet= omite los INFO y los ficheros sin avisos):
+Desde la línea de órdenes (código de salida 1 si hay algún ERROR; =--quiet= omite los
+INFO y los ficheros sin avisos):
 
 #+begin_example
 python -m qbank.lint preguntas/*.json --quiet
-qbank-lint preguntas/*.json --tabla        # equivalente, con la tabla de mundos
+qbank-lint preguntas/L-01-Nombre.json --tabla      # equivalente, con la tabla de mundos
 #+end_example
+
+En un proyecto de =qbank-init=: =make lint=, =make tabla PREGUNTA=L-01-Nombre=, y
+=make amc= / =make moodle= pasan =lint= antes de exportar.
 
 * Referencia rápida de la API
 
@@ -1665,65 +983,50 @@ qbank-lint preguntas/*.json --tabla        # equivalente, con la tabla de mundos
 #+begin_example
 Supuesto(enunciado, semantica, precond=True)
 Cuestion(enunciado, semantica, precond=True, exp="")
-ProblemaTipo(lista, setup=None, export=None, seed=None, nombre=None)
-    → setup: función o código Python como cadena; nombre: el del JSON
-    → itera (etiqueta, enunciado, cuestiones)
-    → .por_partes(instances=1, base_seed=None, verbose=False)  — vista alumno; multiparte e instancias numéricas
-    → .por_partes_profe(verbose=True)           — vista aplanada: todas las cuestiones con marcas
-ProblemaTipoProfe(lista, setup=None)            [DEPRECADO → usar ProblemaTipo + .por_partes_profe()]
-    → como ProblemaTipo, sin descartar ítems rechazados
-ProblemaVF(enunciado, lista, n)
-    → itera (etiqueta, enunciado, cuestiones)
-SubPregunta(intro, cuestiones)             [DEPRECADO → devuelve ProblemaTipo]
-ProblemaMultiParte(componentes, subpreguntas, setup=None)  [DEPRECADO → devuelve ProblemaTipo]
-ProblemaTipoEditor(source=None)
-    → editor visual en Jupyter (requiere ipywidgets; solo ProblemaTipo)
+    semantica y precond: fórmula calcprop, True/False, lambda ns: …, o la cadena de cualquiera de ellos
+ProblemaTipo(componentes, setup=None, export=None, seed=None, nombre=None)
+    → .por_partes(instances=1, base_seed=None, verbose=False)   vista alumno, por partes
+    → .por_partes_profe(verbose=True)                           vista profe: todas las cuestiones
+    → itera (etiqueta, enunciado, cuestiones)                    solo ejercicios de una parte
+ProblemaVF(enunciado, lista, n)                                  verdadero/falso (apéndice)
+ProblemaTipoEditor(source=None)                                  editor visual en Jupyter (apéndice)
 #+end_example
-
-Los campos =semantica= y =precond= de =Supuesto= y =Cuestion= admiten, además de fórmulas =calcprop=, callables de la forma =lambda ns: ...= para problemas con =setup= paramétrico (desde JSON, como cadenas). Los textos (enunciados y =exp=) admiten =@{variable}= para sustituir valores del namespace del =setup=; construidos en Python también pueden ser =lambda ns: ...=, pero desde JSON esas cadenas no se evalúan (usa =@{variable}= y calcula el texto en el =setup=).
 
 ** Funciones JSON
 
 #+begin_example
 problema_from_dict(d)              → ProblemaTipo o ProblemaVF
-problema_to_dict(problema)         → dict
-load_problema(filepath_o_dict)     → ProblemaTipo o ProblemaVF  # acepta ruta o dict
-save_problema(problema, filepath)
-load_banco(filepath)               → lista de problemas
-save_banco(problemas, filepath)    # acepta lista o dict
-problema_to_python(problema, varname="ejercicio")  → str  (ProblemaTipo)
-save_problema_py(problema, filepath, varname="ejercicio")
+problema_to_dict(problema)         → dict (conserva las claves propias del JSON)
+load_problema(ruta_o_dict)         → ProblemaTipo o ProblemaVF
+save_problema(problema, ruta)
+load_banco(ruta)                   → lista de problemas
+save_banco(problemas, ruta)        # acepta lista o dict
+problema_to_python(problema, varname="ejercicio")  → str   (ProblemaTipo)
+save_problema_py(problema, ruta, varname="ejercicio")
 #+end_example
 
 ** Funciones AMC
 
 #+begin_example
-AMCblock    (nombre, etiqueta, enunciado, cuestiones,
-             last_choice=False, cols=1, profe=False, *,
-             aux_latex="", last_choice_text="Ninguna de las anteriores")
-    # bajo nivel: devuelve str; el usuario escribe al fichero manualmente
-AMC_VF      (nombre, etiqueta, enunciado, cuestiones, opc=None)
+AMCblock     (nombre, etiqueta, enunciado, cuestiones,
+              last_choice=False, cols=1, profe=False, *,
+              aux_latex="", last_choice_text="Ninguna de las anteriores")      → str
 AMC_multipart(nombre, etiqueta, enunciado, partes,
               last_choice=False, cols=1, profe=False, *,
-              aux_latex="", last_choice_text="Ninguna de las anteriores")
-    # ProblemaTipo multiparte: un solo questionmult con un bloque de casillas
-    # por parte; partes = [(enunciado, cuestiones), ...] de por_partes()
-QuizAMCProfe(nombre, directorio, problema, cols=1, *, last_choice=False,
-             aux_latex="", last_choice_text="Ninguna de las anteriores")
-    # alto nivel: vista aplanada profe → escribe nombre_profe.tex; devuelve int
-    # usa por_partes_profe(); muestra todas las cuestiones con marcas y \explain{}
+              aux_latex="", last_choice_text="Ninguna de las anteriores")      → str
+QuizAMCProfe (nombre, directorio, problema, cols=1, *, last_choice=False,
+              aux_latex="", last_choice_text="Ninguna de las anteriores")      → int (variantes)
+AMC_VF       (nombre, etiqueta, enunciado, cuestiones, opc=None)               → str (ProblemaVF)
 #+end_example
 
 ** Funciones Moodle
 
 #+begin_example
-QuizMoodle      (nombre, directorio, problema, last_choice=False,
-                 aux_latex="", last_choice_text="Las demás opciones son falsas",
-                 instances=1)
-    # vista alumno; instances>1 requiere numpy y setup con aleatorios; devuelve int
-QuizMoodleProfe (nombre, directorio, problema, aux_latex="")
-    # mismas variantes que el alumno, con fracciones de puntuación visibles; devuelve int
-QuizVFMoodle    (nombre, directorio, GenVar, num, opc=None)
+QuizMoodle      (nombre, directorio, problema, last_choice=False, instances=1, *,
+                 aux_latex="", last_choice_text="Las demás opciones son falsas")  → int (variantes)
+QuizMoodleProfe (nombre, directorio, problema, *, aux_latex="")                   → int
+QuizVFMoodle    (nombre, directorio, GenVar, num, opc=None)                       (ProblemaVF)
+codchar(s)      vocales acentuadas y ñ → secuencias LaTeX (lo aplican las funciones Moodle)
 #+end_example
 
 ** Comprobación automática
@@ -1734,6 +1037,14 @@ lint(problema_o_ruta, instances=None, seed=None)  → list[Aviso]
 tabla_mundos(problema_o_ruta)                     → str   # tabla Cuestion × mundo
 python -m qbank.lint FICHEROS.json [--instances N] [--seed S] [--tabla] [--quiet]
     # también `qbank-lint`; código de salida 1 si hay algún ERROR
+#+end_example
+
+** Proyecto de banco
+
+#+begin_example
+qbank-init DIR [--forzar]        copia la plantilla (preguntas/, scripts/, Makefile, config.py,
+                                 nueva_pregunta.py, README.org) en DIR; equivale a
+                                 python -m qbank._plantilla DIR
 #+end_example
 
 ** Operadores de =calcprop= (disponibles tras =from qbank import *=)
@@ -1758,54 +1069,177 @@ test(formula, lista_de_formulas)  → bool
 
 ** ¿Por qué algunas variantes no se generan?
 
-Si un =Supuesto= tiene una precondición que no se satisface en una combinación
-determinada, esa variante completa se descarta. Es el comportamiento esperado: evita
-combinaciones de hipótesis incoherentes.
+Si un =Supuesto= o una =Cuestion= tiene una precondición que no se satisface en una
+combinación determinada, esa variante completa se descarta. Es el comportamiento
+esperado: evita combinaciones de hipótesis incoherentes. En la vista profe, las
+cuestiones rechazadas se ven; un =Supuesto= rechazado hace desaparecer la variante
+también allí.
 
 ** ¿Cómo incluyo texto LaTeX en los enunciados?
 
-Los campos =enunciado= de =Supuesto= y =Cuestion= son cadenas Python ordinarias que
-se insertan tal cual en el =.tex=. Usa cadenas crudas (=r"..."=) para evitar problemas
-con las barras invertidas:
+Los campos =enunciado= y =exp= son cadenas Python que se insertan tal cual en el =.tex=.
+Usa cadenas crudas (=r"..."=) para no doblar las barras invertidas:
 
 #+begin_src python
 Cuestion(r"$\mathbf{X}^\top\mathbf{X}$ es invertible", -v("Mcoli"))
 #+end_src
 
-** ¿Cómo escribo display math en enunciados para AMC?
+En JSON cada barra se dobla: ="$\\mathbf{X}^\\top\\mathbf{X}$"=.
 
-Escribe siempre =$$...$$= (nunca =\[...\]= ni =\(...\)= directamente: el paquete
-=moodle= los necesita con dólares, y =lint= lo avisa). Los exportadores AMC
-(=AMCblock= y =AMC_multipart=) convierten =$$...$$= a =\[...\]= automáticamente
-en el enunciado y en las opciones, porque =automultiplechoice= a veces produce
-errores «Missing $» con =$$= que corrige de forma no fatal.
+** ¿Puedo escribir un porcentaje, grados, comillas…?
 
-Además, dos expresiones inline consecutivas sin espacio (=\$A\$\$B\$=) pueden
-confundirse con display math durante la conversión. Separa siempre expresiones
-inline contiguas con un espacio: =$A$ $B$= en lugar de =$A$$B$=.
+El símbolo =%= es, en LaTeX, el inicio de un comentario: escribe siempre =\%= (y fuera
+de los dólares: =al $5$\,\%=). Nada de =°= (usa =^\circ=) ni de comillas angulares =«»= o
+rectas ="…"= (usa =``así''=): el paquete =moodle= no las admite o las deforma. Acentos,
+=ñ=, =¿= y =¡= sí se pueden teclear. =lint= avisa de todo esto; la Guía lo explica.
+
+** ¿Cómo escribo display math?
+
+Con =$$...$$=, nunca =\[...\]= ni =\(...\)= directamente: el paquete =moodle= necesita
+los dólares, y los exportadores AMC convierten =$$...$$= a =\[...\]= automáticamente
+(=automultiplechoice= a veces produce errores «Missing $» con =$$=). Separa dos
+expresiones en línea contiguas con un espacio (=$A$ $B$=, no =$A$$B$=).
+
+** ¿Puedo incluir una figura en el enunciado?
+
+Sí, con =\includegraphics= en el texto (el enunciado es LaTeX), pero cada destino la
+quiere de una forma. En AMC vale un PDF a tamaño natural; los documentos de la
+plantilla ya cargan =graphicx=:
+
+#+begin_src json
+"Observe la figura. \\begin{center}\\includegraphics{fig.pdf}\\end{center} Entonces:"
+#+end_src
+
+El paquete =moodle= incrusta la imagen en el XML (en base64) y solo
+sabe de mapas de bits: hace falta un PNG del mismo nombre y compilar con
+=pdflatex -shell-escape=, porque llama a =base64=. Un patrón que funciona: generar
+=fig.pdf= y =fig.png= (p. ej. con =pdftoppm -png -r 200=), referenciar el PDF en el JSON
+y, en el script de Moodle, sustituir =.pdf= por =.png= en el =.tex= (con =width= igual a
+la anchura natural del PDF, para que Moodle no lo agrande); el banco
+=qbank-PEconometria= lo hace así en =scripts/gen_moodle.py=. Si la ruta de la figura
+va en el =setup= como variable e interpolada con =@{fig}=, la misma pregunta sirve para
+los dos destinos. Ten en cuenta el tamaño: una figura en cada una de 150 variantes
+multiplica el XML.
 
 ** ¿Para qué sirve =codchar=?
 
-La función =codchar(s)= convierte vocales acentuadas y la ñ a secuencias LaTeX:
+=codchar(s)= convierte vocales acentuadas y la =ñ= a secuencias LaTeX (=á= → =\'{a}=).
+Las funciones Moodle lo aplican automáticamente, porque el =.tex= que generan usa
+codificación OT1; no hace falta llamarlo a mano. Para AMC no suele hacer falta si el
+documento principal usa =inputenc= con UTF-8.
+
+** ¿Cómo exporto varias preguntas a un mismo cuestionario Moodle?
+
+Pasa un diccionario a =QuizMoodle=: todas van al cuestionario =MiExamen=, y cada clave
+da nombre a sus variantes (=Seccion-A-1=, =Seccion-A-2=, …):
 
 #+begin_src python
-codchar("á é í ó ú ñ")  # → "\\'{a} \\'{e} \\'{i} \\'{o} \\'{u} \\~{n}"
+QuizMoodle("MiExamen", "salida/", {"Seccion-A": p_a, "Seccion-B": p_b}, last_choice=True)
 #+end_src
 
-Es necesaria solo para las funciones Moodle, que generan un =.tex= con codificación
-OT1. Para AMC no suele hacer falta si el documento principal usa =inputenc= con UTF-8.
+En un banco de =qbank-init= cada pregunta va a su propio fichero y
+=scripts/merge_moodle_xml.py= los fusiona en =_banco.xml=.
 
-** ¿Cómo genero un diccionario de preguntas de varias secciones?
+* Apéndice: API avanzada y compatibilidad
 
-Pasa un diccionario a las funciones =Quiz*=:
+** =ProblemaVF= — preguntas de verdadero/falso
+
+=ProblemaVF= sirve para un formato distinto: un banco de afirmaciones del que se extrae
+aleatoriamente un subconjunto en cada variante. No usa cálculo proposicional; la
+corrección de cada ítem se indica con =True= o =False=. No lo revisa =lint= ni lo
+exportan los scripts de =qbank-init=: para un banco nuevo, una pregunta de tres huecos
+de =ProblemaTipo= cubre el mismo uso con todas las herramientas.
 
 #+begin_src python
-problema = {
-    "Sección-A": ProblemaTipo(lista_A),
-    "Sección-B": ProblemaTipo(lista_B),
-}
-QuizMoodle("MiExamen", "salida/", problema, last_choice=True)
+ProblemaVF(enunciado, cuestiones, NumPreguntas)
 #+end_src
 
-Todas las preguntas van en un único cuestionario (categoría) =MiExamen=; cada clave del
-diccionario da nombre a sus variantes (=Seccion-A-1=, =Seccion-A-2=, …).
+| Parámetro      | Descripción                                                 |
+|----------------+-------------------------------------------------------------|
+| =enunciado=    | Texto del enunciado común a todas las variantes.            |
+| =cuestiones=   | Lista de tuplas =(texto, correcto)=.                        |
+| =NumPreguntas= | Cuántas afirmaciones se eligen aleatoriamente por variante. |
+
+#+begin_src python :results output :exports both
+enunciado = "Indique qué afirmaciones son verdaderas:"
+banco = [
+    ("Todo alumno que va a clase aprueba",   False),
+    ("Todo alumno que sabe aprueba",         True),
+    ("Si suspenden todos es frustrante",     True),
+    ("Si aprueban todos eres buen profesor", False),
+]
+import random
+random.seed(42)
+GenVar = iter(ProblemaVF(enunciado, banco, 3))  # 3 ítems por variante
+
+for _ in range(2):
+    etiqueta, enunc, cuestiones = next(GenVar)
+    print(f"Variante {etiqueta}: {enunc}")
+    for texto, correcto in cuestiones:
+        print(f"  {'✓' if correcto else '✗'} {texto}")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Variante 1: Indique qué afirmaciones son verdaderas:
+  ✗ Todo alumno que va a clase aprueba
+  ✗ Si aprueban todos eres buen profesor
+  ✓ Todo alumno que sabe aprueba
+Variante 2: Indique qué afirmaciones son verdaderas:
+  ✓ Todo alumno que sabe aprueba
+  ✗ Todo alumno que va a clase aprueba
+  ✓ Si suspenden todos es frustrante
+#+end_example
+
+Se exporta con =AMC_VF(nombre, etiqueta, enunciado, cuestiones)= (un bloque por
+variante) y =QuizVFMoodle(nombre, directorio, GenVar, num)= (=num= variantes). Se guarda
+y carga en JSON sin restricciones.
+
+** Clases deprecadas
+
+- =ProblemaTipoProfe= :: =ProblemaTipoProfe(lista, setup=None)= emite
+  =DeprecationWarning=; usa =ProblemaTipo(...).por_partes_profe()=.
+- =ProblemaMultiParte= y =SubPregunta= :: =ProblemaMultiParte(componentes,
+  subpreguntas, setup=None)= emite =DeprecationWarning= y devuelve un =ProblemaTipo=
+  equivalente (lista plana); =SubPregunta(intro, cuestiones)= es su contenedor. Para
+  código nuevo, define directamente un =ProblemaTipo= y recórrelo con =por_partes()=.
+
+** Editor visual en Jupyter (=ProblemaTipoEditor=)
+
+=ProblemaTipoEditor= es un formulario interactivo para diseñar un =ProblemaTipo= desde
+un cuaderno de Jupyter, sin escribir la lista de listas a mano. Requiere =ipywidgets=:
+
+#+begin_src bash
+pip install "calcprop-qbank[jupyter]"
+#+end_src
+
+En *JupyterLab ≥ 4* es necesario que la extensión =@jupyter-widgets/jupyterlab-manager=
+esté habilitada (=jupyter labextension list=). Si el widget se muestra como texto
+(~VBox(children=...~), ejecuta una sola vez desde el terminal:
+
+#+begin_src bash
+mkdir -p ~/.local/share/jupyter/labextensions/@jupyter-widgets
+ln -sfn $(python -c "import jupyterlab_widgets, os; \
+  print(os.path.dirname(jupyterlab_widgets.__file__))")/labextension \
+  ~/.local/share/jupyter/labextensions/@jupyter-widgets/jupyterlab-manager
+#+end_src
+
+y reinicia JupyterLab (en Jupyter Notebook clásico no hace falta).
+
+#+begin_src python
+from qbank import ProblemaTipoEditor
+editor = ProblemaTipoEditor()                   # editor vacío
+editor = ProblemaTipoEditor('mi_problema.json') # cargar desde fichero
+p = editor.to_problema()                        # ProblemaTipo listo para iterar
+d = editor.to_dict()                            # dict JSON equivalente
+editor.save("mi_problema.json")
+#+end_src
+
+El formulario tiene una cabecera (=Nombre=, =Setup=, =seed= y la casilla =last_choice=),
+los slots (cada uno de tipo /texto/ o /alternativas/, con filas =Supuesto= / =Cuestion=
+con enunciado, semántica, precondición y, en =Cuestion=, explicación) y una barra de
+botones: =▶ Preview= (genera hasta N variantes, con la casilla /vista profe/), ={ } JSON=
+y =</> .py= (muestran el JSON o el guion Python), =💾 Guardar= y =📂 Cargar= (en el
+fichero indicado) y =⬇ .json= / =⬇ .py= (descargas al navegador). Al guardar conserva
+las claves de =export= que el formulario no edita (=instances=…) y las claves propias
+del JSON. =ejemplosManual/Demo.ipynb= (sección 8) lo muestra en uso.

@@ -8,7 +8,7 @@
     [
       {
         "tipo": "Supuesto",
-        "enunciado": "Spider-Man (Peter Parker) ",
+        "enunciado": "Spider-Man (Peter Parker)",
         "semantica": "v('Spider-Man')",
         "precond": "True"
       },
@@ -88,7 +88,7 @@
     [
       {
         "tipo": "Cuestion",
-        "enunciado": "volar ",
+        "enunciado": "volar",
         "semantica": "v('Superman')",
         "precond": "True",
         "exp": "Súper fuerza y vuelo son característicos de Superman"
@@ -112,7 +112,7 @@
       },
       {
         "tipo": "Cuestion",
-        "enunciado": "la máscara ",
+        "enunciado": "la máscara",
         "semantica": "v('máscara')",
         "precond": "True",
         "exp": "Spider-Man, Batman y Daredevil ocultan totalmente su identidad con máscaras (o capuchas) que cubren su rostro para proteger a sus seres queridos. Superman no la necesita."
