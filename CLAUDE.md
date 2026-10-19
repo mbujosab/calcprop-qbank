@@ -271,6 +271,12 @@ sospechoso —comillas rectas, `\(…\)`, `\[…\]`, `\%` en `$…$`…—), `IN
 
 Los tres deben funcionar en MyBinder tras cada release.
 
+**Los tres se generan con `tools/cuadernos/gen_*.py`** (`comun.py` tiene el
+ayudante de impresión `muestra()` común y la clase `Cuaderno`); editar el
+guion, no el `.ipynb`. `sh tools/cuadernos/regenera.sh [--ejecuta]` los
+reescribe (sin salidas, kernel `qbank`) y, con `--ejecuta`, los ejecuta con
+`nbconvert` para comprobar que no fallan.
+
 ## Publicar una nueva versión
 
 1. Incrementar `version` en `pyproject.toml`.
