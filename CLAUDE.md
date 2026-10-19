@@ -52,8 +52,8 @@ src/qbank/
   `index.org` (portada, en la raíz), `README.org`, el README de la plantilla,
   `GuiaDiseno.org` y `Manual.org` a HTML y copia los dos PDF (regenéralos
   antes). Los ajustes de HTML van en `web.el`, no en los `.org`: sin CSS ni
-  JavaScript de Org, sin MathJax (las fórmulas sencillas pasan a Unicode, el
-  resto queda en LaTeX), índice de dos niveles. Un fragmento solo para HTML
+  JavaScript de Org salvo MathJax (un solo `<script>` desde CDN, no entra
+  en `<pre>` ni `<code>`), `<title>` sin marcado, índice de dos niveles. Un fragmento solo para HTML
   en un `.org` va como `@@html:…@@` junto a su `@@latex:…@@`.
 - `GuiaDiseno.org` es la guía de diseño de preguntas para personas
   (mecánica, patrón 3 huecos + `last_choice`, `setup`, redacción, `exp`,

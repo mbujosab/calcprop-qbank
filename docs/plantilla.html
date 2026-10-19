@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<!-- 2026-10-19 lun 23:45 -->
+<!-- 2026-10-19 lun 23:55 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Banco de preguntas (plantilla qbank)</title>
@@ -9,6 +9,7 @@
 <meta name="generator" content="Org Mode" />
 <link rel="stylesheet" href="style.css">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
 <div id="content" class="content">
@@ -18,14 +19,14 @@
 <h2>&Iacute;ndice</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#orgfd187a4">1. Qué hay aquí</a></li>
-<li><a href="#orgdca890f">2. Requisitos</a></li>
-<li><a href="#org97fafda">3. Flujo de trabajo</a></li>
-<li><a href="#orga57d63e">4. Cómo leer el PDF de <code>make amc</code> (vista profe)</a></li>
-<li><a href="#org486b284">5. La mecánica en tres frases (lo que más confunde al empezar)</a></li>
-<li><a href="#org166bca7">6. Caracteres y símbolos en los textos</a></li>
-<li><a href="#org781939e">7. Campos de una pregunta</a></li>
-<li><a href="#org3d2422e">8. Más documentación</a></li>
+<li><a href="#orgf523574">1. Qué hay aquí</a></li>
+<li><a href="#org86550e2">2. Requisitos</a></li>
+<li><a href="#org1b61964">3. Flujo de trabajo</a></li>
+<li><a href="#org420ec3f">4. Cómo leer el PDF de <code>make amc</code> (vista profe)</a></li>
+<li><a href="#orgefa376c">5. La mecánica en tres frases (lo que más confunde al empezar)</a></li>
+<li><a href="#org4f289b7">6. Caracteres y símbolos en los textos</a></li>
+<li><a href="#org62bf166">7. Campos de una pregunta</a></li>
+<li><a href="#org713431d">8. Más documentación</a></li>
 </ul>
 </div>
 </nav>
@@ -35,8 +36,8 @@ preguntas de opción múltiple con <code>qbank</code>, comprobarlas y exportarla
 (exámenes en papel) y a Moodle. Sustituye las preguntas de ejemplo por las
 tuyas y borra este párrafo.
 </p>
-<div id="outline-container-orgfd187a4" class="outline-2">
-<h2 id="orgfd187a4"><span class="section-number-2">1.</span> Qué hay aquí</h2>
+<div id="outline-container-orgf523574" class="outline-2">
+<h2 id="orgf523574"><span class="section-number-2">1.</span> Qué hay aquí</h2>
 <div class="outline-text-2" id="text-1">
 <table>
 
@@ -85,8 +86,8 @@ procesan; solo quedan fuera cuando se filtra con <code>LECCION</code>.
 </p>
 </div>
 </div>
-<div id="outline-container-orgdca890f" class="outline-2">
-<h2 id="orgdca890f"><span class="section-number-2">2.</span> Requisitos</h2>
+<div id="outline-container-org86550e2" class="outline-2">
+<h2 id="org86550e2"><span class="section-number-2">2.</span> Requisitos</h2>
 <div class="outline-text-2" id="text-2">
 <ul class="org-ul">
 <li>Python 3.9 o superior con <code>calcprop-qbank</code> 0.6.0 o posterior (la versión
@@ -128,8 +129,8 @@ Todos los comandos se lanzan <b>desde esta carpeta</b> (la que contiene el
 </p>
 </div>
 </div>
-<div id="outline-container-org97fafda" class="outline-2">
-<h2 id="org97fafda"><span class="section-number-2">3.</span> Flujo de trabajo</h2>
+<div id="outline-container-org1b61964" class="outline-2">
+<h2 id="org1b61964"><span class="section-number-2">3.</span> Flujo de trabajo</h2>
 <div class="outline-text-2" id="text-3">
 <ol class="org-ol">
 <li><b>Escribe la pregunta.</b> Dos caminos equivalentes:
@@ -196,8 +197,8 @@ adaptativo).</li>
 </p>
 </div>
 </div>
-<div id="outline-container-orga57d63e" class="outline-2">
-<h2 id="orga57d63e"><span class="section-number-2">4.</span> Cómo leer el PDF de <code>make amc</code> (vista profe)</h2>
+<div id="outline-container-org420ec3f" class="outline-2">
+<h2 id="org420ec3f"><span class="section-number-2">4.</span> Cómo leer el PDF de <code>make amc</code> (vista profe)</h2>
 <div class="outline-text-2" id="text-4">
 <p>
 La vista profe no lista las variantes del alumno: tiene <b>una entrada por
@@ -228,8 +229,8 @@ falsas: allí sale marcada.
 </p>
 </div>
 </div>
-<div id="outline-container-org486b284" class="outline-2">
-<h2 id="org486b284"><span class="section-number-2">5.</span> La mecánica en tres frases (lo que más confunde al empezar)</h2>
+<div id="outline-container-orgefa376c" class="outline-2">
+<h2 id="orgefa376c"><span class="section-number-2">5.</span> La mecánica en tres frases (lo que más confunde al empezar)</h2>
 <div class="outline-text-2" id="text-5">
 <ul class="org-ul">
 <li>Una <b>lista</b> de <code>Cuestion</code> no son «las opciones que se muestran juntas»: en
@@ -257,8 +258,8 @@ desarrolla todo esto.
 </p>
 </div>
 </div>
-<div id="outline-container-org166bca7" class="outline-2">
-<h2 id="org166bca7"><span class="section-number-2">6.</span> Caracteres y símbolos en los textos</h2>
+<div id="outline-container-org4f289b7" class="outline-2">
+<h2 id="org4f289b7"><span class="section-number-2">6.</span> Caracteres y símbolos en los textos</h2>
 <div class="outline-text-2" id="text-6">
 <p>
 Los textos son LaTeX. En español puedes teclear tal cual <code>á é í ó ú ñ ¿ ¡</code>
@@ -293,8 +294,8 @@ cosa que estos scripts no hacen: la FAQ del Manual explica cómo adaptarlos.
 </p>
 </div>
 </div>
-<div id="outline-container-org781939e" class="outline-2">
-<h2 id="org781939e"><span class="section-number-2">7.</span> Campos de una pregunta</h2>
+<div id="outline-container-org62bf166" class="outline-2">
+<h2 id="org62bf166"><span class="section-number-2">7.</span> Campos de una pregunta</h2>
 <div class="outline-text-2" id="text-7">
 <p>
 Nivel superior del JSON (o argumentos de <code>ProblemaTipo</code> en Python):
@@ -403,8 +404,8 @@ Campo <code>export</code>:
 </table>
 </div>
 </div>
-<div id="outline-container-org3d2422e" class="outline-2">
-<h2 id="org3d2422e"><span class="section-number-2">8.</span> Más documentación</h2>
+<div id="outline-container-org713431d" class="outline-2">
+<h2 id="org713431d"><span class="section-number-2">8.</span> Más documentación</h2>
 <div class="outline-text-2" id="text-8">
 <p>
 En el repositorio de <a href="https://github.com/mbujosab/calcprop-qbank">qbank</a>, en este orden: <code>Tutorial.ipynb</code> (ejemplos

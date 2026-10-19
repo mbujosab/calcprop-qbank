@@ -63,9 +63,6 @@ table {
 th, td { border: 1px solid var(--borde); padding: 0.35rem 0.6rem; vertical-align: top; text-align: left; }
 th { background: var(--codigo); }
 
-/* Fórmulas sencillas (tools/web.el las pasa a Unicode) */
-.math { font-family: "Latin Modern Math", "STIX Two Math", "Cambria Math", serif; font-style: italic; }
-
 dt { font-weight: 600; margin-top: 0.6rem; }
 dd { margin-left: 1.5rem; }
 blockquote { margin: 1rem 0; padding: 0 1rem; color: var(--suave); border-left: 3px solid var(--borde); }

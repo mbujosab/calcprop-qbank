@@ -6,9 +6,10 @@
 ;;   emacs --batch -l tools/web.el
 ;;
 ;; Los ajustes de HTML van aquí y no en los .org, para no tocar su exportación
-;; a PDF: hoja de estilos propia sin CSS ni JavaScript de Org, fórmulas sin
-;; MathJax y un índice de dos niveles en las páginas que no lo
-;; piden en el .org.
+;; a PDF: hoja de estilos propia sin CSS ni JavaScript de Org (la única
+;; excepción es MathJax, un solo <script>, para las fórmulas de la Guía y el
+;; Manual), <title> sin marcado y un índice de dos niveles en las páginas que
+;; no lo piden en el .org.
 
 (require 'ox-html)
 
@@ -20,35 +21,29 @@
       org-html-head-include-scripts nil
       org-html-head "<link rel=\"stylesheet\" href=\"style.css\">
 <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-      org-html-mathjax-template ""        ; sin MathJax: ver qbank-web-formula
+      org-html-with-latex 'mathjax
+      ;; Org pasa $…$ a \(…\) y $$…$$ a \[…\], los delimitadores por defecto
+      ;; de MathJax 3, que además no entra en <pre> ni <code>.
+      org-html-mathjax-template
+      "<script id=\"MathJax-script\" async src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js\"></script>"
       org-html-htmlize-output-type nil    ; código sin colorear (sin htmlize)
       org-html-validation-link nil
       org-html-postamble nil
       make-backup-files nil)
 
-;; Sin MathJax: las fórmulas sencillas fuera del código ($N$, $2 \times 2 = 4$,
-;; $\land$…) se escriben con caracteres Unicode; las que tengan otras macros
-;; se dejan tal cual se escriben en LaTeX.
-(defconst qbank-web-macros
-  '(("\\times" . "×") ("\\cdot" . "·") ("\\pm" . "±") ("\\neq" . "≠")
-    ("\\leq" . "≤") ("\\geq" . "≥") ("\\perp" . "⊥") ("\\land" . "∧")
-    ("\\lor" . "∨") ("\\implies" . "⇒") ("\\iff" . "⇔")
-    ("\\Leftrightarrow" . "⇔") ("\\Rightarrow" . "⇒") ("\\alpha" . "α")
-    ("\\theta" . "θ") ("\\lambda" . "λ") ("^2" . "²")))
+;; El <title> lleva el título en texto plano, pero Org deja en él las marcas
+;; =código= y ~código~ («Manual de uso de =qbank=»): se quitan al final.
+(defun qbank-web-titulo (html _backend _info)
+  (replace-regexp-in-string
+   "<title>\\(.*?\\)</title>"
+   (lambda (m)
+     (concat "<title>"
+             (replace-regexp-in-string "[=~]\\([^=~<]+\\)[=~]" "\\1"
+                                       (match-string 1 m))
+             "</title>"))
+   html t t))
 
-(defun qbank-web-formula (fragmento _contenido _info)
-  "Sustituye a `org-html-latex-fragment': Unicode o el LaTeX tal cual."
-  (let ((texto (org-element-property :value fragmento)))
-    (if (not (string-match "\\`\\$\\(.*\\)\\$\\'" texto))
-        (org-html-encode-plain-text texto)
-      (let ((f (match-string 1 texto)))
-        (dolist (m qbank-web-macros)
-          (setq f (replace-regexp-in-string (regexp-quote (car m)) (cdr m) f t t)))
-        (if (string-match-p "[\\^_{}]" f)
-            (org-html-encode-plain-text texto)       ; como se escribe en LaTeX
-          (format "<span class=\"math\">%s</span>" (org-html-encode-plain-text f)))))))
-
-(advice-add 'org-html-latex-fragment :override #'qbank-web-formula)
+(add-hook 'org-export-filter-final-output-functions #'qbank-web-titulo)
 
 (defun qbank-web-exporta (fuente destino &optional con-indice)
   "Exporta FUENTE a DESTINO (rutas desde la raíz del repositorio).
