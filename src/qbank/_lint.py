@@ -53,7 +53,9 @@ Reglas (código del aviso entre paréntesis):
    deducirse si un ``Supuesto`` suelto declara ``unoDe(..., v('X'), ...)``.
 5. Interpolación fallida (``interp``, ERROR): ``@{...}`` que sobrevive en el
    texto renderizado.
-6. Etiquetas huérfanas (``huerfana``, AVISO; ``sin-uso``, INFO).
+6. Etiquetas huérfanas (``huerfana``, AVISO; ``sin-uso``, INFO). Si algún
+   ``Supuesto`` tiene semántica lambda (inyecta fórmulas calculadas en el
+   setup) las etiquetas no son visibles y la regla se degrada a INFO.
 7. Estructura (``tipo``, ``nombre``, ``estructura``, ERROR; ``lista-1``,
    ``seed``, ``instances``, AVISO).
 8. Texto (``texto``, AVISO): caracteres que rompen el paquete ``moodle``,
@@ -300,6 +302,7 @@ def _regla_etiquetas(p, avisos):
     unoDe          = set()      # etiquetas declaradas en unoDe de un Supuesto suelto
     usadas         = set()      # etiquetas usadas en semantica/precond de Cuestion o precond de Supuesto
     negadas        = []         # (etiqueta, donde) bajo 'not' en algo evaluado con test()
+    sup_lambda     = False      # algún Supuesto tiene semántica lambda (etiquetas no visibles)
 
     for i, slot, _ in _slots(p):
         for j, c in enumerate(slot):
@@ -307,6 +310,8 @@ def _regla_etiquetas(p, avisos):
                 continue
             jj = j if len(slot) > 1 else None
             if isinstance(c, Supuesto):
+                if callable(c.s):
+                    sup_lambda = True
                 en_supuestos |= _atomos(c.s)
                 lits = _asertados(c.s)
                 negadas_sup |= {x for x, pos in lits if not pos}
@@ -335,9 +340,14 @@ def _regla_etiquetas(p, avisos):
                                 f"-v({x!r}) en {campo} niega un Supuesto siempre presente: nunca es cierta",
                                 donde))
 
-    for x in sorted(usadas - en_supuestos):
-        avisos.append(Aviso(AVISO, 'huerfana',
-                            f"v({x!r}) no aparece en ningún Supuesto: nunca puede ser cierta"))
+    if sup_lambda and usadas - en_supuestos:
+        avisos.append(Aviso(INFO, 'huerfana',
+                            "algún Supuesto tiene semántica lambda: no se comprueban las etiquetas "
+                            f"huérfanas ({', '.join(sorted(usadas - en_supuestos))})"))
+    elif not sup_lambda:
+        for x in sorted(usadas - en_supuestos):
+            avisos.append(Aviso(AVISO, 'huerfana',
+                                f"v({x!r}) no aparece en ningún Supuesto: nunca puede ser cierta"))
     for x in sorted(en_supuestos - usadas):
         avisos.append(Aviso(INFO, 'sin-uso',
                             f"v({x!r}) se declara en un Supuesto pero ninguna Cuestion la usa"))

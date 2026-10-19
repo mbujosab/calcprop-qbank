@@ -52,17 +52,29 @@ def AMCblock(nombre, etiqueta, enunciado, cuestiones,
     aux_latex        : instrucciones LaTeX extra dentro del bloque \\element{}
     last_choice_text : texto de la opción comodín
     """
-    InstruccionesAux = aux_latex
-    OpcPorDefecto    = last_choice_text
-    _fix = lambda t: _re.sub(r'\$\$(.+?)\$\$', r'\\[\1\\]', t, flags=_re.DOTALL)
-    nombre_tex    = _sanitize_name(nombre)
-    enunciado_tex = _fix(enunciado)
-
-    ex = ''
-    s  = '\\element{' + nombre_tex + '}{' + InstruccionesAux + '\n'
+    nombre_tex = _sanitize_name(nombre)
+    s  = '\\element{' + nombre_tex + '}{' + aux_latex + '\n'
     s += ' \\begin{questionmult}{' + nombre_tex + '-' + str(etiqueta) + '}\n'
-    s += '  ' + enunciado_tex + '\n'
+    s += '  ' + _fix_display(enunciado) + '\n'
+    choices, ex = _amc_choices(cuestiones, last_choice, cols, profe, last_choice_text)
+    s += choices
+    if profe and ex:
+        s += '   \\explain{' + ex + '            }\n'
+    s += ' \\end{questionmult} '
+    s += '}\n\n'
+    return s
 
+
+def _fix_display(t):
+    """``$$…$$`` → ``\\[…\\]`` (automultiplechoice se lleva mal con ``$$``)."""
+    return _re.sub(r'\$\$(.+?)\$\$', r'\\[\1\\]', t, flags=_re.DOTALL)
+
+
+def _amc_choices(cuestiones, last_choice, cols, profe, last_choice_text):
+    """Bloque ``\\begin{choices}…\\end{choices}`` de una parte (dentro de
+    multicols si cols > 1, con la opción por defecto si last_choice) y, para
+    la vista profe, el texto de las cuestiones rechazadas que irá en ``\\explain``."""
+    s, ex = '', ''
     if cols > 1:
         s += '   \\begin{multicols}{' + str(cols) + '}\\AMCBoxedAnswers\n'
         ch_indent = '      '
@@ -71,7 +83,7 @@ def AMCblock(nombre, etiqueta, enunciado, cuestiones,
 
     s += ch_indent + '\\begin{choices}\n'
     for c in cuestiones:
-        texto = _fix(c[0])
+        texto = _fix_display(c[0])
         if c[2]:
             s += ' ' * 7 + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + texto + '}\n'
         elif profe:
@@ -79,19 +91,13 @@ def AMCblock(nombre, etiqueta, enunciado, cuestiones,
 
     if last_choice:
         s += ' ' * 7 + '\\lastchoices\n'
-        s += ' ' * 7 + ('\\wrongchoice  {' if any(c[1] for c in cuestiones) else '\\correctchoice{') + OpcPorDefecto + '}\n'
+        s += ' ' * 7 + ('\\wrongchoice  {' if any(c[1] for c in cuestiones) else '\\correctchoice{') + last_choice_text + '}\n'
 
     s += ch_indent + '\\end{choices}\n'
 
     if cols > 1:
         s += '   \\end{multicols}\n'
-
-    if profe and ex:
-        s += '   \\explain{' + ex + '            }\n'
-
-    s += ' \\end{questionmult} '
-    s += '}\n\n'
-    return s
+    return s, ex
 
 
 # ── AMC para ProblemaVF y multiparte ─────────────────────────────────────────
@@ -115,28 +121,39 @@ def AMC_VF(nombre, etiqueta, enunciado, cuestiones, opc=None):
     s = s + '}\n\n'
     return s
 
-def AMC_multipart(nombre, etiqueta, enunciado, subpreguntas, opc=None):
-    """Genera el bloque AMC para una pregunta con enunciado común y sub-preguntas.
+def AMC_multipart(nombre, etiqueta, enunciado, partes,
+                  last_choice=False, cols=1, profe=False, *,
+                  aux_latex="", last_choice_text="Ninguna de las anteriores", opc=None):
+    """Bloque AMC de una pregunta multiparte: un único questionmult con un
+    bloque de casillas por parte.
 
-    subpreguntas: list de (intro, [(texto, correcto, activa, exp), ...])
-    Cada sub-pregunta produce un bloque \\begin{choices} independiente precedido
-    por \\emph{intro} y envuelto en \\AMCnoCompleteMulti.
+    partes    : [(enunciado_parte, cuestiones), ...] tal como lo devuelven
+                por_partes() y por_partes_profe()
+    enunciado : texto común que precede a todas las partes; normalmente ""
+                porque el enunciado de la primera parte ya lo contiene
+    last_choice, cols, profe, aux_latex, last_choice_text : como en AMCblock,
+                aplicados a cada parte (con last_choice, cada parte lleva su
+                propia opción por defecto)
+    opc       : forma antigua de pasar aux_latex ([aux_latex]); se mantiene
+                por compatibilidad
     """
-    if opc is None:
-        opc = [""]
-    InstruccionesAux = opc[0] if opc else ""
-    nombre = _sanitize_name(nombre)
-    s  = '\\element{' + nombre + '}{' + InstruccionesAux + '\n'
-    s += ' \\begin{questionmult}{' + nombre + '-' + str(etiqueta) + '}\n'
-    s += '  ' + enunciado + '\n\n'
-    for intro, cuestiones in subpreguntas:
-        s += '  \\emph{' + intro + '}\n'
-        s += '  {\\AMCnoCompleteMulti\n'
-        s += '   \\begin{choices}\n'
-        for c in cuestiones:
-            s += ' ' * 5 + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + c[0] + '}\n'
-        s += '   \\end{choices}\n'
-        s += '  }\n\n'
+    if opc:
+        aux_latex = opc[0]
+    nombre_tex = _sanitize_name(nombre)
+    s  = '\\element{' + nombre_tex + '}{' + aux_latex + '\n'
+    s += ' \\begin{questionmult}{' + nombre_tex + '-' + str(etiqueta) + '}\n'
+    if enunciado:
+        s += '  ' + _fix_display(enunciado) + '\n\n'
+    ex = ''
+    for k, (intro, cuestiones) in enumerate(partes):
+        if intro.strip():
+            intro_tex = _fix_display(intro.strip())
+            s += '  ' + (intro_tex if k == 0 and not enunciado else '\\emph{' + intro_tex + '}') + '\n'
+        choices, ex_parte = _amc_choices(cuestiones, last_choice, cols, profe, last_choice_text)
+        s += '  {\\AMCnoCompleteMulti\n' + choices + '  }\n\n'
+        ex += ex_parte
+    if profe and ex:
+        s += '   \\explain{' + ex + '            }\n'
     s += ' \\end{questionmult} '
     s += '}\n\n'
     return s
@@ -278,13 +295,17 @@ def QuizAMCProfe(nombre, directorio, problema, cols=1, *,
     with open(directorio + nombre + "_profe.tex", "w") as f:
         for nom in problema:
             for etiqueta, partes in problema[nom].por_partes_profe():
-                for i, (enunciado, cuestiones) in enumerate(partes):
-                    etiq = f"{etiqueta}-{i+1}" if len(partes) > 1 else etiqueta
-                    f.write(AMCblock(nom, etiq, enunciado, cuestiones,
+                if len(partes) > 1:
+                    f.write(AMC_multipart(nom, etiqueta, "", partes,
+                                          cols=cols, profe=True,
+                                          aux_latex=aux_latex,
+                                          last_choice_text=last_choice_text))
+                else:
+                    f.write(AMCblock(nom, etiqueta, partes[0][0], partes[0][1],
                                      cols=cols, profe=True,
                                      aux_latex=aux_latex,
                                      last_choice_text=last_choice_text))
-                    count += 1
+                count += 1
     return count
 
 def QuizVFMoodle(nombre, directorio, GenVar, num, opc=None):

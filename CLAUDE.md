@@ -164,8 +164,14 @@ QuizMoodle(nombre, directorio, problema,
            last_choice_text="Las demás opciones son falsas")
 ```
 
-- `$$...$$` se convierte automáticamente a `\[...\]`.
 - Los nombres sanitizan `:` y `_` → `-` para compatibilidad LaTeX.
+- (AMC, no Moodle) `AMCblock` y `AMC_multipart` convierten `$$...$$` a `\[...\]`.
+- **Multiparte en AMC**: `AMC_multipart(nombre, etiqueta, "", partes,
+  last_choice=, cols=, profe=, last_choice_text=)` — un solo `questionmult`
+  con un bloque de casillas por parte. Escribir un `AMCblock` por parte
+  produce identificadores duplicados y la segunda parte sin hipótesis;
+  `QuizAMCProfe` y los scripts de la plantilla ya usan `AMC_multipart`
+  cuando `len(partes) > 1`. Los scripts de los bancos (`gen_amc*.py`) no.
 - `cols` solo actúa si se pasa: `QuizAMCProfe(..., cols=N)` y
   `AMCblock(..., cols=N)`. Un script que genere la vista profe sin pasar
   `export.cols` la mostrará a una columna aunque la vista alumno use dos.

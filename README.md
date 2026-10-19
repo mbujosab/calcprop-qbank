@@ -23,7 +23,9 @@ pip install "calcprop-qbank[jupyter]"
 # Crear un banco de preguntas
 
 La forma recomendada de empezar es la plantilla de proyecto que se
-distribuye con el paquete:
+distribuye con el paquete (desde la versión 0.6.0; con una versión
+anterior, instala desde el repositorio:
+`pip install git+https://github.com/mbujosab/calcprop-qbank`):
 
 ``` bash
 qbank-init mi-banco
@@ -43,24 +45,38 @@ guion para escribir una pregunta en Python y guardarla como JSON. Su
 ``` python
 from qbank import *
 
-p = ProblemaTipo([
-    "Dado que ",
+p = ProblemaTipo(
     [
-        Supuesto("$\\mathcal{A}$ es verdadero, ", v("A")),
-        Supuesto("$\\mathcal{B}$ es verdadero, ", v("B")),
+        "Sea $f$ una función ",
+        [   # mundos alternativos: en cada variante se sortea uno
+            Supuesto("estrictamente creciente", v('crec')),
+            Supuesto("estrictamente decreciente", v('decr')),
+        ],
+        " y sean $a < b$. Entonces:",
+        [   # hueco 1: el alumno ve una de estas dos
+            Cuestion("$f(a) < f(b)$", v('crec')),
+            Cuestion("$f(a) > f(b)$", v('decr')),
+        ],
+        Cuestion("$f(a) = f(b)$", False),              # hueco 2: siempre
+        [   # hueco 3
+            Cuestion("$f(b) - f(a) > 0$", v('crec')),
+            Cuestion("$f(b) - f(a) < 0$", v('decr')),
+        ],
     ],
-    "indique qué opción es correcta: ",
-    [
-        Cuestion("$\\mathcal{A}$ es verdadero.", v("A")),
-        Cuestion("$\\mathcal{B}$ es verdadero.", v("B")),
-    ],
-])
+    export={"last_choice": True},   # + «Ninguna de las anteriores»
+)
 
-for etiqueta, enunciado, cuestiones in p:
-    print(f"Variante {etiqueta}: {enunciado}")
-    for texto, correcto, activa, exp in cuestiones:
-        print(f"  {'✓' if correcto else '✗'} {texto}")
+for etiqueta, partes in p.por_partes():
+    for enunciado, cuestiones in partes:
+        print(f"Variante {etiqueta}: {enunciado}")
+        for texto, correcto, activa, exp in cuestiones:
+            print(f"  {'✓' if correcto else '✗'} {texto}")
 ```
+
+Ocho variantes, cada una con tres opciones más la opción por defecto.
+Una **lista** de `Cuestion` sortea una por variante; el alumno ve tantas
+opciones como elementos-Cuestion consecutivos haya (`GuiaDiseno.org` lo
+explica).
 
 # Características
 
@@ -182,7 +198,9 @@ n = QuizAMCProfe("MiCuestionario", "exportaciones/", p)
 print(f"{n} bloque(s) escritos")
 ```
 
-Para preguntas multi-parte en un único `questionmult`: `AMC_multipart`.
+Para preguntas multi-parte, `AMC_multipart(nombre, etiqueta, "", partes,
+last_choice=…, cols=…)` produce un único `questionmult` con un bloque de
+casillas por parte.
 
 ### Formato Moodle (XML vía LaTeX)
 
@@ -252,13 +270,15 @@ la rechaza su `precond`), para localizar distractores constantes.
 
 # Documentación
 
+En este orden:
+
+-   `Tutorial.ipynb` — ejemplos progresivos ejecutables (también en
+    MyBinder); `ejemplosManual/Demo.ipynb` recorre la API Python.
 -   `GuiaDiseno.org` — cómo diseñar buenas preguntas: la mecánica de
     listas y mundos, el patrón de tres huecos + opción por defecto,
     `setup`, redacción de cuestiones y explicaciones, trampas de
     LaTeX/Moodle y checklist.
--   `Manual.org` — manual de usuario con ejemplos.
--   `Tutorial.ipynb` y `ejemplosManual/Demo.ipynb` — cuadernos
-    ejecutables (también en MyBinder).
+-   `Manual.org` — referencia completa de la API y del formato JSON.
 -   `CalcPropQuiz.org` y `CalcPropExport.org` — código fuente comentado
     (programación literate) de los módulos `_quiz`, `_json`, `_widgets`,
     `_lint` y `_export`. Son la fuente de `src/qbank/`: los `.py` se

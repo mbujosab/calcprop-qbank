@@ -1702,8 +1702,11 @@ AMCblock    (nombre, etiqueta, enunciado, cuestiones,
              aux_latex="", last_choice_text="Ninguna de las anteriores")
     # bajo nivel: devuelve str; el usuario escribe al fichero manualmente
 AMC_VF      (nombre, etiqueta, enunciado, cuestiones, opc=None)
-AMC_multipart(nombre, etiqueta, enunciado, partes, opc=None)
-    # para ProblemaTipo multiparte; partes = [(enunciado, cuestiones), ...]
+AMC_multipart(nombre, etiqueta, enunciado, partes,
+              last_choice=False, cols=1, profe=False, *,
+              aux_latex="", last_choice_text="Ninguna de las anteriores")
+    # ProblemaTipo multiparte: un solo questionmult con un bloque de casillas
+    # por parte; partes = [(enunciado, cuestiones), ...] de por_partes()
 QuizAMCProfe(nombre, directorio, problema, cols=1,
              aux_latex="", last_choice_text="Ninguna de las anteriores")
     # alto nivel: vista aplanada profe → escribe nombre_profe.tex; devuelve int

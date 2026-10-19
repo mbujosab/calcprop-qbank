@@ -4,9 +4,9 @@ import subprocess
 import sys
 
 import pytest
-from qbank import (Cuestion, ProblemaTipo, Supuesto, lint, load_problema,
-                   problema_to_dict, save_problema, v)
-from qbank._lint import AVISO, ERROR
+from qbank import (AMC_multipart, Cuestion, ProblemaTipo, QuizAMCProfe, Supuesto, lint,
+                   load_problema, problema_to_dict, save_problema, v)
+from qbank._lint import AVISO, ERROR, INFO
 from qbank._plantilla import crear, main, ruta_plantilla
 
 
@@ -55,6 +55,56 @@ def test_lambda_python_en_precond_no_se_serializa():
     p = ProblemaTipo(["a", Cuestion("b", True, precond=lambda ns: True)])
     with pytest.raises(ValueError, match="cadena"):
         problema_to_dict(p)
+    p = ProblemaTipo(["a", Cuestion("b", True, exp=lambda ns: "x")])
+    with pytest.raises(ValueError, match="exp"):
+        problema_to_dict(p)
+
+
+def test_precond_cadena_se_muestra_legible_al_rechazar(capsys):
+    p = ProblemaTipo(["Sea $x=@{x}$ ", [Supuesto("pos.", v('p'), precond="lambda ns: ns['x'] > 0"),
+                                        Supuesto("neg.", v('n'), precond="lambda ns: ns['x'] < 0")],
+                      Cuestion("c", v('p'))], setup="x = 1")
+    list(p.por_partes(verbose=True))
+    assert "rechazado por lambda ns: ns['x'] < 0" in capsys.readouterr().out
+
+
+def test_lint_no_marca_huerfanas_con_supuesto_lambda():
+    p = ProblemaTipo(["Sea $x=@{x}$. ",
+                      Supuesto("", "lambda ns: v('gt') if ns['x'] > 3 else -v('gt')"),
+                      Cuestion("$x > 3$", "v('gt')"), Cuestion("$x \\le 3$", "-v('gt')"),
+                      Cuestion("$x < 0$", False)],
+                     setup="import numpy as np\nx = int(np.random.randint(0, 8))", seed=1,
+                     export={"last_choice": True, "instances": 8})
+    av = lint(p)
+    assert not [a for a in av if a.codigo == "huerfana" and a.nivel == AVISO]
+    assert [a for a in av if a.codigo == "huerfana" and a.nivel == INFO]
+
+
+# ---------------------------------------------------------------------------
+# Multiparte en AMC
+# ---------------------------------------------------------------------------
+
+def test_amc_multipart_un_questionmult_con_un_bloque_por_parte():
+    p = ProblemaTipo(["Sea $A$ ", [Supuesto("invertible.", v('inv')), Supuesto("singular.", v('sing'))],
+                      " Determinante:", Cuestion("$\\det A \\neq 0$", v('inv')), Cuestion("$\\det A = 0$", v('sing')),
+                      " Sistema:", Cuestion("solución única", v('inv')), Cuestion("infinitas", v('sing'))],
+                     export={"last_choice": True, "cols": 2}, nombre="M")
+    etiqueta, partes = next(iter(p.por_partes()))
+    assert len(partes) == 2
+    tex = AMC_multipart("M", etiqueta, "", partes, last_choice=True, cols=2)
+    assert tex.count(r"\begin{questionmult}") == 1 and r"{M-1}" in tex
+    assert tex.count(r"\begin{choices}") == 2 and tex.count(r"\lastchoices") == 2
+    assert tex.count(r"\begin{multicols}{2}") == 2
+    assert "Sea $A$ invertible. Determinante:" in tex and r"\emph{Sistema:}" in tex
+    # vista profe: las rechazadas de todas las partes en un solo \explain
+    etiqueta, partes = next(iter(p.por_partes_profe(verbose=False)))
+    assert AMC_multipart("M", etiqueta, "", partes, profe=True).count(r"\end{questionmult}") == 1
+    # QuizAMCProfe usa AMC_multipart: una pregunta por variante
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        n = QuizAMCProfe("M", d + "/", p)
+        tex = open(d + "/M_profe.tex").read()
+    assert n == 2 and tex.count(r"\begin{questionmult}") == 2
 
 
 # ---------------------------------------------------------------------------
@@ -147,11 +197,20 @@ def test_scripts_generan_tex(proyecto):
         assert r"\insertgroup" in (proyecto / "build/amc" / f"{n}-doc.tex").read_text()
         assert r"\end{quiz}" in (proyecto / "build/moodle" / f"{n}.tex").read_text()
         existe = (proyecto / "build/amc-student" / f"{n}-doc.tex").exists()
-        assert existe == n.startswith("L-01-")
+        assert existe == n.startswith("L-01-"), n
     assert (proyecto / "build/amc/_catalogo.tex").read_text().count(r"\input") == 4
     # los setups se exploran por sorteos: la vista profe de una pregunta con setup
     # imprime varios casos etiquetados mundoN-casoK
     assert "mundo1-caso1" in (proyecto / "build/amc/L-02-ComparacionNumerica.tex").read_text()
+    # multiparte: un questionmult por variante con dos bloques de casillas, y las
+    # explicaciones en cursiva en la vista profe
+    profe = (proyecto / "build/amc/L-02-MatrizInvertible.tex").read_text()
+    assert profe.count(r"\begin{questionmult}") == 2 and profe.count(r"\begin{choices}") == 4
+    assert r"\footnotesize\itshape" in profe
+    _run(proyecto, "scripts/gen_amc_student.py", "--leccion", "2")
+    alumno = (proyecto / "build/amc-student/L-02-MatrizInvertible.tex").read_text()
+    assert alumno.count(r"\begin{questionmult}") == alumno.count(r"\begin{choices}") // 2
+    assert "{L-02-MatrizInvertible-1}" in alumno and alumno.count("{L-02-MatrizInvertible-1}") == 1
     # segunda pasada: nada cambia, no se reescribe (y make no recompila)
     assert "sin cambios" in _run(proyecto, "scripts/gen_amc.py")
 

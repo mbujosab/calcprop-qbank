@@ -77,6 +77,9 @@ def _fuente_precond(componente):
     j = getattr(componente, '_json', None)
     if j and j.get('precond') is not None:
         return j['precond']
+    orig = getattr(componente, '_orig', None)
+    if orig and isinstance(orig[1], str):
+        return orig[1]
     return repr(componente.p)
 def CuestionesJuntas(lista):
     def CreaLista(t):

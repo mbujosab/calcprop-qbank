@@ -142,7 +142,7 @@ def _slot_to_json(slot):
             'precond':   _expr_to_str(precond, 'precond'),
         }
         if isinstance(slot, Cuestion):
-            d['exp'] = slot.x
+            d['exp'] = _expr_to_str(slot.x, 'exp')
         return d
     elif isinstance(slot, list):
         return [_slot_to_json(item) for item in slot]

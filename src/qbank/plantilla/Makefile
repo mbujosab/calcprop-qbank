@@ -1,6 +1,7 @@
 # ── Banco de preguntas qbank ─────────────────────────────────────────────
 # Objetivos:
 #   make lint         — comprueba las preguntas con qbank.lint (sin LaTeX)
+#   make tabla PREGUNTA=L-01-Nombre — lint de una pregunta con su tabla de mundos
 #   make amc          — build/amc/<pregunta>.pdf: vista profe (todas las cuestiones con marcas)
 #   make amc-student  — build/amc-student/<pregunta>.pdf: vista alumno (variantes)
 #   make moodle       — build/moodle/<pregunta>-moodle.xml (+ PDF de revisión) y
@@ -20,12 +21,16 @@ LATEX_AMC    ?= pdflatex -interaction=nonstopmode
 LATEX_MOODLE ?= pdflatex -interaction=nonstopmode -halt-on-error
 NOMBRES      := $(shell $(PYTHON) scripts/_comun.py --leccion "$(LECCION)")
 
-.PHONY: all lint amc amc-student moodle clean
+.PHONY: all lint tabla amc amc-student moodle clean
 
 all: amc amc-student moodle
 
 lint:
 	$(PYTHON) -m qbank.lint $(addprefix preguntas/,$(addsuffix .json,$(NOMBRES)))
+
+tabla:
+	@test -n "$(PREGUNTA)" || { echo "uso: make tabla PREGUNTA=L-01-Nombre (sin .json)"; exit 1; }
+	$(PYTHON) -m qbank.lint preguntas/$(PREGUNTA).json --tabla
 
 amc:
 	$(PYTHON) scripts/gen_amc.py --leccion "$(LECCION)"
@@ -44,18 +49,18 @@ moodle:
 # Sin -halt-on-error: automultiplechoice emite algún «Missing $» no fatal que
 # corrige solo y el PDF se produce igualmente, así que se comprueba que exista.
 build/amc/%.pdf: build/amc/%-doc.tex build/amc/%.tex
-	@echo "  $*"
+	@echo "  pdflatex $*"
 	@cd build/amc && rm -f $*.pdf; $(LATEX_AMC) -jobname=$* $*-doc.tex > /dev/null; \
 	 test -f $*.pdf || { echo "  ERROR en $* (ver build/amc/$*.log)"; exit 1; }
 
 build/amc-student/%.pdf: build/amc-student/%-doc.tex build/amc-student/%.tex
-	@echo "  $*"
+	@echo "  pdflatex $*"
 	@cd build/amc-student && rm -f $*.pdf; $(LATEX_AMC) -jobname=$* $*-doc.tex > /dev/null; \
 	 test -f $*.pdf || { echo "  ERROR en $* (ver build/amc-student/$*.log)"; exit 1; }
 
 # Moodle: el paquete moodle escribe <pregunta>-moodle.xml al compilar el .tex.
 build/moodle/%-moodle.xml: build/moodle/%.tex
-	@echo "  $*"
+	@echo "  pdflatex $*"
 	@cd build/moodle && $(LATEX_MOODLE) $*.tex > /dev/null \
 	 || { echo "  ERROR en $* (ver build/moodle/$*.log)"; exit 1; }
 	@$(PYTHON) scripts/fix_moodle_xml.py $@

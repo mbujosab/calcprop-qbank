@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Escribe una pregunta en Python (listas de Supuesto/Cuestion) y guárdala como JSON.
 
-    python nueva_pregunta.py             # muestra la vista profe y los avisos de lint
+Desde la carpeta del proyecto (la que contiene preguntas/ y el Makefile):
+
+    python nueva_pregunta.py             # imprime las primeras variantes (vista profe) y el lint
     python nueva_pregunta.py --guardar   # además escribe preguntas/<NOMBRE>.json
 
-Copia este fichero con otro nombre (o edítalo), cambia NOMBRE, SETUP y PREGUNTA,
-ejecútalo hasta que la vista profe y el lint te convenzan, y guarda. A partir de
-ahí la pregunta vive en preguntas/<NOMBRE>.json, que es lo que leen make lint,
-make amc y make moodle; este .py puedes borrarlo o conservarlo como borrador.
+Copia este fichero con otro nombre en esta misma carpeta (o edítalo), cambia
+NOMBRE, SETUP y PREGUNTA, ejecútalo hasta que lo que imprime y el lint te
+convenzan, y guarda. A partir de ahí la pregunta vive en preguntas/<NOMBRE>.json,
+que es lo que leen make lint, make amc y make moodle; este .py puedes borrarlo o
+conservarlo como borrador. La vista profe completa (todas las variantes, en PDF)
+es la de `make amc`.
 
 Recordatorio de la mecánica (la trampa habitual al empezar):
   * una LISTA de Cuestion sortea UNA de ellas por variante (son alternativas);
@@ -18,7 +22,6 @@ Recordatorio de la mecánica (la trampa habitual al empezar):
 """
 import sys
 
-import numpy as np
 from qbank import Cuestion, ProblemaTipo, Supuesto, lint, save_problema, v
 
 NOMBRE = "L-00-SignoYCuadrado"     # nombre del fichero JSON (sin .json); sin ':'
@@ -62,18 +65,21 @@ PREGUNTA = ProblemaTipo(
 )
 
 
+MAX_VARIANTES = 4      # cuántas variantes se imprimen (la vista completa es make amc)
+
+
 def main(argv):
-    print(f"── {NOMBRE}: vista profe (✓ correcta, ✗ incorrecta, · rechazada por su precond) ──")
-    np.random.seed(0)
+    print(f"── {NOMBRE}: primeras {MAX_VARIANTES} variantes de la vista profe "
+          "(✓ correcta, ✗ incorrecta, · rechazada por su precond) ──")
     for i, (etiqueta, partes) in enumerate(PREGUNTA.por_partes_profe(verbose=False)):
-        if i >= 4:
-            print("\n   …")
+        if i >= MAX_VARIANTES:
+            print("\n   … (el resto, en make amc)")
             break
         for enunciado, cuestiones in partes:
             print(f"\n[{etiqueta}] {enunciado}")
-            for c in cuestiones:
-                marca = '·' if len(c) == 3 else ('✓' if c[1] else '✗')
-                print(f"   {marca} {c[0]}")
+            for texto, correcto, activa, *resto in cuestiones:
+                marca = ('✓' if correcto else '✗') if activa else '·'
+                print(f"   {marca} {texto}")
 
     print("\n── lint ──")
     avisos = lint(PREGUNTA)

@@ -130,7 +130,23 @@ CLOSED: [2026-10-19]
   pregunta de los dos bancos; sí en 6 de los 9 JSON de =ejemplosManual/=
   (que también tienen errores de mezcla: arreglarlos es parte de la Fase 3).
 - [ ] Publicar 0.6.0 en PyPI para que =pip install calcprop-qbank= traiga
-  =qbank-init= (checklist de =CLAUDE.md=).
+  =qbank-init= (checklist de =CLAUDE.md=; la versión ya está subida en
+  =pyproject.toml=).
+
+*** Revisión con ojos nuevos (19 de octubre de 2026)
+Un agente leyó las fases 0–2 como profesor nuevo y encontró 34 cosas.
+Corregidas: multiparte en AMC (un =AMCblock= por parte duplicaba el
+identificador y dejaba la segunda parte sin hipótesis; ahora
+=AMC_multipart= admite =last_choice=/=cols=/=profe= y lo usan =QuizAMCProfe=
+y los scripts), =exp= visible en la vista profe, falso positivo =huerfana=
+con =Supuesto= lambda, mensaje legible al rechazar por =precond= cadena,
+=exp= lambda sin guardar, =make tabla=, vocabulario y ejemplos neutros en la
+Guía, la pregunta de ejemplo con 3 huecos en las dos partes, README de la
+plantilla con requisitos, carpeta de trabajo, campos y cómo leer el PDF
+profe, «Uso rápido» del README con el patrón correcto, orden único de la
+documentación. Pendiente: los scripts =gen_amc*.py= de los dos bancos tienen
+el mismo fallo multiparte (no afecta a sus preguntas actuales, de una
+parte); cómo puntúa Moodle los bloques cloze (no documentado).
 
 ** DONE Fase 2 — =GuiaDiseno.org= (para personas)
 CLOSED: [2026-10-19]
