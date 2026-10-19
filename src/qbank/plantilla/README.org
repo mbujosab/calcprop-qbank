@@ -28,12 +28,23 @@ procesan; solo quedan fuera cuando se filtra con =LECCION=.
   comprueba primero que ese intérprete tenga =qbank= 0.6 o posterior (un
   =python3= del sistema puede cargar uno antiguo); si no, se para con un
   mensaje que dice eso mismo.
-- GNU =make= (en Linux y macOS suele estar; en Windows, con WSL o
-  instalándolo aparte). Todos los objetivos, incluido =make clean=,
-  necesitan Python.
+- GNU =make= (en Linux suele estar; en macOS viene con las herramientas de
+  línea de órdenes, =xcode-select --install=). Todos los objetivos,
+  incluido =make clean=, necesitan Python.
+- *En Windows*, el =Makefile= usa órdenes de un shell POSIX (=sh=, =test=,
+  =grep=, =rm=): lánzalo desde Git Bash o MSYS2 con su =make=, o trabaja
+  dentro de WSL (y entonces Python y LaTeX se instalan también dentro de
+  WSL). Un =make= de Windows que use =cmd.exe= no sirve. Escribe la ruta
+  del intérprete con barras normales: =make lint PYTHON=.venv/Scripts/python.exe=.
+  Si un script falla con =UnicodeEncodeError= al escribir en la terminal,
+  define =PYTHONUTF8=1=. Auto Multiple Choice no existe para Windows (sí
+  para Linux y, vía MacPorts, macOS): fuera de WSL, usa solo =make lint=,
+  =make tabla= y =make moodle=.
 - Para los PDF y el XML: =pdflatex= con los paquetes =automultiplechoice=
-  (AMC) y =moodle= (en TeX Live: =tlmgr install moodle=; AMC se instala con
-  el programa [[https://www.auto-multiple-choice.net/][Auto Multiple Choice]]).
+  (AMC) y =moodle= (en TeX Live: =tlmgr install moodle=, con =sudo= en
+  BasicTeX/MacTeX; MiKTeX instala los paquetes por su cuenta la primera vez
+  que hacen falta; AMC se instala con el programa
+  [[https://www.auto-multiple-choice.net/][Auto Multiple Choice]]). El preámbulo carga además =babel= en español.
   Los =.tex= de Moodle compilan también con =xelatex= (=LATEX_MOODLE=
   en el =Makefile=); con =pdflatex=, =scripts/fix_moodle_xml.py= corrige
   después la declaración de codificación del XML.
@@ -70,7 +81,8 @@ Todos los comandos se lanzan *desde esta carpeta* (la que contiene el
    - =make amc-student= → =build/amc-student/<pregunta>.pdf= con todas las
      variantes de la pregunta tal como las verá el alumno. Es el /modo
      catálogo/ de AMC: las casillas correctas salen rellenas y la cabecera
-     dice «Catálogo provisional»; en el examen real salen vacías. Para usar
+     dice «Catálogo provisional» (también en la vista profe de =make amc=);
+     en el examen real salen vacías. Para usar
      las preguntas en un examen AMC: copia =build/amc-student/<pregunta>.tex=
      (y =_catalogo.tex=, que es un =\input= por cada pregunta de
      =preguntas/=, también las cinco de ejemplo si no las has borrado) junto al =.tex= del
@@ -118,7 +130,14 @@ combinación distinta de enunciado (sin contar los números) y patrón de
 marcas, hasta =config.MAX_CASOS_PROFE= casos, etiquetados =mundoM-casoK=
 (=M= numera los enunciados distintos, =K= los patrones de marcas dentro de
 cada uno), y =make amc= dice cuántos mundos y casos salen. Así ves cada
-rama de la pregunta una vez.
+rama de la pregunta una vez. Con =setup=, por tanto, aquí «mundo» cuenta
+también los textos sorteados distintos (una pregunta sin =Supuesto= que
+sortea cuatro tratados da cuatro «mundos»).
+
+La vista profe *no incluye la opción por defecto*: su valor depende de qué
+cuestión le toque al alumno en cada hueco. Para comprobarla, mira las
+variantes de =make amc-student= en las que todas las opciones reales son
+falsas: allí sale marcada.
 
 * La mecánica en tres frases (lo que más confunde al empezar)
 
@@ -147,15 +166,17 @@ desarrolla todo esto.
 
 Los textos son LaTeX. En español puedes teclear tal cual =á é í ó ú ñ ¿ ¡=
 y las comillas tipográficas =“ ”=. Tres cosas rompen la exportación y
-=lint= las señala:
+=lint= las señala: el =%= sin barra como =ERROR= (=make= se para) y las
+otras dos como =AVISO= (=make= sigue, pero el PDF de Moodle falla o sale
+mal: corrígelas igualmente):
 
 - El símbolo =%= en LaTeX empieza un comentario: escrito tal cual, se
   pierde el resto de la línea y el PDF sale vacío o roto. Escribe siempre
   =\%= («un 25 \% del valor»), y fuera de los dólares si hay fórmula
-  (=al $5$ \%=, no =$5\%$=). En Python, dentro de una cadena cruda
+  (=al $5$\,\%=, no =$5\%$=). En Python, dentro de una cadena cruda
   (=r"un 25 \% del valor"=) o como =\\%=.
 - Las comillas angulares =«»= no existen en la codificación que usa el
-  paquete =moodle=, y las rectas ="…"= salen como =”…”=: escribe
+  paquete =moodle= (=make moodle= da «Command \guillemetleft unavailable»), y las rectas ="…"= salen como =”…”=: escribe
   =``así''= (dos acentos graves para abrir, dos apóstrofos para cerrar).
 - El símbolo de grado =°=: escribe =$180^\circ$=.
 
@@ -195,4 +216,5 @@ Campo =export=:
 
 En el repositorio de [[https://github.com/mbujosab/calcprop-qbank][qbank]], en este orden: =Tutorial.ipynb= (ejemplos
 progresivos), =GuiaDiseno.org= (cómo diseñar buenas preguntas) y =Manual.org=
-(referencia completa de la API y del formato JSON).
+(referencia completa de la API y del formato JSON); la Guía y el Manual
+están también en PDF (=GuiaDiseno.pdf=, =Manual.pdf=).

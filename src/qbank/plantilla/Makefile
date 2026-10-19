@@ -50,7 +50,7 @@ lint: comprueba
 # PREGUNTA admite el nombre con o sin .json (y con preguntas/ delante).
 tabla: comprueba
 	@test -n "$(PREGUNTA)" || { echo "uso: make tabla PREGUNTA=L-01-Nombre"; exit 1; }
-	$(PYTHON) -m qbank.lint preguntas/$(notdir $(PREGUNTA:.json=)).json --tabla
+	@$(PYTHON) -m qbank.lint preguntas/$(notdir $(PREGUNTA:.json=)).json --tabla
 
 # Antes de exportar, lint: un ERROR (p. ej. un «%» sin barra, que LaTeX toma
 # por comentario y no siempre delata) detiene la exportación.
