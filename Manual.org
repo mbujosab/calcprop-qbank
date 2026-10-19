@@ -9,9 +9,16 @@
 # GNU General Public License v3 or later — see <https://www.gnu.org/licenses/>
 
 # ─── Configuración de org-babel ───────────────────────────────────
+# IMPORTANTE: los bloques se evalúan con el «python3» que Emacs encuentre en el
+# PATH, y deben ver qbank >= 0.6 (un qbank antiguo instalado en ~/.local, por
+# ejemplo, daría resultados distintos o fallaría). Antes de ejecutar el Manual:
+#   - activa el entorno virtual en Emacs (M-x pyvenv-activate RET .venv), o
+#   - cambia «python3» en la línea de abajo por la ruta del intérprete del venv,
+#     p. ej. :python .venv/bin/python (ruta relativa a este fichero).
+# El primer bloque Python (no se exporta) comprueba la versión y se detiene con
+# un mensaje claro si el intérprete no es el adecuado. Los bloques se ejecutan en
+# una sola sesión y en orden; ninguno modifica los JSON de ejemplosManual/.
 #+PROPERTY: header-args:python :python python3 :session *qbank* :eval never-export
-# Para ejecutar los bloques con el entorno virtual de este repo, ajusta la ruta:
-# #+PROPERTY: header-args:python :python /ruta/a/qbank/.venv/bin/python3 :session *qbank*
 
 # ─── LaTeX export ────────────────────────────────────────────────
 #+LATEX_CLASS: article
@@ -33,7 +40,9 @@
 #+LATEX_HEADER: \newunicodechar{≥}{$\geq$}
 #+LATEX_HEADER: \newunicodechar{💾}{}
 #+LATEX_HEADER: \newunicodechar{📂}{}
+#+LATEX_HEADER: \newunicodechar{＋}{+}
 #+LATEX_HEADER: \usepackage{fvextra}
+#+LATEX_HEADER: \setlength{\emergencystretch}{3em} % evita que el código en línea invada el margen
 #+LATEX_HEADER: \RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines=true,breakanywhere=true,fontsize=\small}
 
 #+TOC: headlines 2
@@ -68,6 +77,13 @@ y *vista profe* (todas las cuestiones de cada hueco con sus marcas).
 
 #+begin_src bash
 pip install calcprop-qbank
+#+end_src
+
+La versión publicada en PyPI (0.5.0) todavía no trae =qbank-init= ni =lint=, que
+necesitan la 0.6. Mientras no se publique, instala desde el repositorio:
+
+#+begin_src bash
+pip install "calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-qbank"
 #+end_src
 
 Si no estás familiarizado con Python o los entornos virtuales, lee la sección siguiente.
@@ -134,14 +150,21 @@ Con el entorno activo:
 pip install calcprop-qbank
 #+end_src
 
+o, mientras la 0.6 no esté en PyPI (ver la sección anterior):
+
+#+begin_src bash
+pip install "calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-qbank"
+#+end_src
+
 Verifica la instalación:
 
 #+begin_src bash
-python -c "from qbank import *; print('qbank OK')"
+python -c "import qbank; print('qbank', qbank.__version__)"
 qbank-init --help
 #+end_src
 
-Si ves =qbank OK= todo está en orden. Para los PDF y el XML de Moodle hace falta
+Si ves =qbank 0.6.0= (o posterior) y la ayuda de =qbank-init=, todo está en orden.
+Para los PDF y el XML de Moodle hace falta
 además =pdflatex= con los paquetes =automultiplechoice= (lo instala el programa
 [[https://www.auto-multiple-choice.net/][Auto Multiple Choice]]) y =moodle= (=tlmgr install moodle= en TeX Live).
 
@@ -178,6 +201,15 @@ manual describe las piezas que esos scripts usan.
 motor lógico. Las variables proposicionales (en la Guía, /etiquetas/) se crean con
 =v()= y los nombres los eliges tú; solo tienen que ser consistentes dentro de la
 misma pregunta:
+
+#+begin_src python :results silent :exports none
+# Comprobación del intérprete (ver la cabecera de este fichero).
+import qbank
+_version = getattr(qbank, "__version__", "0.0")     # las versiones antiguas no lo tienen
+if tuple(int(x) for x in _version.split(".")[:2]) < (0, 6):
+    raise RuntimeError(f"qbank {_version} en {qbank.__file__}: el Manual "
+                       "necesita qbank >= 0.6; usa el python del entorno virtual")
+#+end_src
 
 #+begin_src python :results silent
 from qbank import *
@@ -231,7 +263,7 @@ declare que ambas son excluyentes (=unoDe(v('crec'), v('decr'))=).
 Un =Supuesto= es una afirmación que se añade al enunciado del problema y cuya semántica
 se incorpora como hipótesis para evaluar las cuestiones que le siguen.
 
-#+begin_src python
+#+begin_src python :eval no
 Supuesto(enunciado, semantica, precond=True)
 #+end_src
 
@@ -258,7 +290,7 @@ se descarta.
 Una =Cuestion= es una posible respuesta. =qbank= determina si es correcta o no según las
 hipótesis activas en cada variante.
 
-#+begin_src python
+#+begin_src python :eval no
 Cuestion(enunciado, semantica, precond=True, exp="")
 #+end_src
 
@@ -288,7 +320,7 @@ JSON. Es la forma de escribir una lambda en Python si la pregunta se va a guarda
 =ProblemaTipo= toma una lista plana de componentes y genera todas las combinaciones
 posibles, una variante por cada combinación.
 
-#+begin_src python
+#+begin_src python :eval no
 ProblemaTipo(componentes, setup=None, export=None, seed=None, nombre=None)
 #+end_src
 
@@ -297,9 +329,13 @@ ProblemaTipo(componentes, setup=None, export=None, seed=None, nombre=None)
 |---------------+-----------------------------------------------------------------------------------------------------------------------------------------------|
 | =componentes= | Lista plana de cadenas (texto fijo), =Supuesto= y =Cuestion=, sueltos o en listas de alternativas (ver abajo).                                 |
 | =setup=       | Código Python como cadena (lo que guarda el JSON) o función sin argumentos que devuelve un dict. Se ejecuta antes de cada variante.            |
-| =export=      | Dict con las preferencias de exportación: =last_choice=, =cols=, =instances=. Lo leen los scripts de un banco.                                |
+| =export=      | Dict con las preferencias de exportación: =last_choice=, =cols=, =instances=. Lo leen los scripts de un banco, no las funciones.              |
 | =seed=        | Entero que siembra =numpy.random= y =random= antes de recorrer las variantes (solo tiene sentido con =setup= aleatorio).                       |
 | =nombre=      | Identificador del problema (el campo =nombre= del JSON; debe coincidir con el nombre del fichero).                                            |
+
+*Las funciones de exportación no leen =export=*: pasa tú =last_choice==, =instances== y
+=cols== a =AMCblock=, =QuizMoodle=, =QuizAMCProfe= y las demás (los ejemplos de este
+manual lo hacen). Los scripts de un banco de =qbank-init= sí lo leen de cada JSON.
 
 *** La mecánica: listas = sorteo, elementos consecutivos = opciones
 
@@ -384,7 +420,8 @@ Variante 3: Considere $\mathcal{A}$ y que $\mathcal{A}\Rightarrow\mathcal{C}$. E
 
 $2 \times 2 \times 2 \times 2 \times 3 = 48$ variantes, cada una con tres opciones
 más «Ninguna de las anteriores» (que el exportador añade y que en la variante 1 será
-incorrecta). Este es el problema que =ejemplosManual/ejercicio.json= guarda en JSON.
+incorrecta). =ejemplosManual/ejercicio.json= guarda este mismo problema en JSON, con
+una explicación (=exp=) en cada cuestión que aquí se omite por brevedad.
 
 *** Iterar las variantes
 
@@ -392,7 +429,9 @@ incorrecta). Este es el problema que =ejemplosManual/ejercicio.json= guarda en J
   Devuelve =(etiqueta, [(enunciado, cuestiones), …])=, un par por parte; =cuestiones=
   es una lista de tuplas =(texto, correcto, activa, exp)=. Con =setup= aleatorio,
   =instances=N= recorre las variantes $N$ veces con semillas distintas
-  (=base_seed + i * 997=; =base_seed= es =seed= si no se pasa). Con =verbose=True=
+  (=base_seed + i * 997=; si no se pasa =base_seed= se usa =seed=, y si tampoco hay
+  =seed=, 42). Con =instances=1= y sin ninguna de las dos no se siembra nada: el
+  resultado depende del estado del generador. Con =verbose=True=
   imprime los supuestos y cuestiones rechazados por su precondición.
 - =por_partes_profe(verbose=True)= :: la *vista profe*: el mismo formato, pero con
   /todas/ las cuestiones de cada hueco (no una por variante) y las rechazadas por su
@@ -416,9 +455,9 @@ Para una arroba literal, escribe =@@=.
 *** =setup= como cadena, =np.random= y =seed=
 
 Escribe el =setup= como cadena de código (es lo que guarda el JSON, y la única forma
-que =save_problema= puede serializar) y usa =np.random=, no =random=: la semilla
-=seed= y las instancias actúan sobre ambos generadores, pero toda la documentación y
-las herramientas asumen =numpy=.
+que =save_problema= puede serializar) y usa =np.random=, no =random=: =seed= siembra
+=numpy.random= y =random=, pero los scripts de la vista profe de un banco solo siembran
+=numpy=.
 
 #+begin_src python :results silent
 p = ProblemaTipo(
@@ -444,12 +483,12 @@ p = ProblemaTipo(
 
 - =@{a}=, =@{b}=, =@{suma}= se interpolan con los valores de cada variante.
 - Las lambdas, escritas como cadena, se evalúan con los valores de la variante.
-- =seed=1= hace la pregunta reproducible; =instances=15= genera 15 realizaciones
-  numéricas de cada una de las 4 combinaciones (60 variantes, el mínimo que
-  recomienda =lint= con =setup=).
+- =seed=1= hace la pregunta reproducible; =instances=15= recorre 15 veces (15
+  instancias) las 4 combinaciones (60 variantes, el mínimo que recomienda =lint= con
+  =setup=).
 
 El iterador es finito aunque el =setup= sea aleatorio: recorre una vez cada combinación
-de alternativas y llama al =setup= en cada una. Para obtener más realizaciones se usa
+de alternativas y llama al =setup= en cada una. Para obtener más instancias se usa
 =instances=, no un bucle a mano.
 
 *** Precondiciones que dependen de los valores
@@ -481,22 +520,30 @@ ordenar = ProblemaTipo(
         Cuestion("$a \\cdot b > 0$", True),
     ],
     setup="import numpy as np\na, b = (int(x) for x in np.random.randint(2, 10, 2))",
-    seed=2,
-    export={"last_choice": True, "instances": 18},
+    seed=7,
+    export={"last_choice": True, "instances": 15},
 )
 #+end_src
 
 Para cada combinación el =setup= genera una tirada nueva; si su precondición no se
-cumple, esa variante se descarta (con =verbose=True= verás «=Supuesto … rechazado por
-…=»). Por eso el número de variantes por instancia no es fijo (aquí, unas tres de las
-cuatro combinaciones sobreviven, y hacen falta 18 instancias para llegar a 60); =lint=
-calcula el valor. El problema =ejemplosManual/numeros.json=, que carga el editor visual
+cumple, esa variante se descarta (con =verbose=True= verás, por ejemplo, el mensaje
+~Supuesto: … rechazado por …~). Por eso el número de variantes por instancia no es fijo:
+de las $3 \times 2 \times 2 = 12$ combinaciones sobreviven unas cuatro por instancia
+(las del supuesto que coincide con la tirada), y =lint= calcula que hacen falta 15
+instancias para llegar a 60 (aquí salen 69). El problema
+=ejemplosManual/numeros.json=, que carga el editor visual
 en =Demo.ipynb=, es una versión ampliada de esta idea.
+
+Con precondiciones numéricas, =por_partes_profe()= hace *un solo sorteo* por mundo, y
+un mundo cuya precondición no se cumple en ese sorteo no aparece: con =seed=7=,
+=ordenar.por_partes_profe()= muestra los tres mundos, pero con otra semilla podría
+mostrar menos (con =seed=2=, ninguno). La vista profe de un banco (=make amc=) hace
+varios sorteos para no perder mundos.
 
 *** =seed=: reproducibilidad independiente del orden
 
 Cuando varios problemas con =setup= aleatorio se generan en secuencia (en un bucle o
-un =Makefile=), la realización numérica de cada problema dependería del estado del
+un =Makefile=), los valores sorteados en cada problema dependerían del estado del
 generador en ese momento. El campo =seed= (entero) resuelve esto: antes de iterar las
 variantes, =qbank= siembra =numpy.random= y =random= con él. Así cada problema tiene su
 propia secuencia reproducible. También es la semilla base de =por_partes(instances=N)=
@@ -549,16 +596,16 @@ de =qbank-init=).
 | =version=      | ="1"=.                                                                                                                                       |
 | =tipo=         | ="ProblemaTipo"= (o ="ProblemaVF"=, ver el apéndice).                                                                                        |
 | =nombre=       | Identificador; debe coincidir con el nombre del fichero sin =.json= y no contener =:= (rompe =make=).                                       |
-| =seed=         | Entero o ausente/=null=. Solo con =setup= aleatorio.                                                                                         |
+| =seed=         | Entero, =null= o ausente. Solo con =setup= aleatorio.                                                                                        |
 | =setup=        | Código Python como cadena (saltos de línea como =\n=) o =null=.                                                                              |
-| =export=       | Opcional. =last_choice= (bool): opción por defecto. =cols= (int): columnas en AMC. =instances= (int): realizaciones con =setup= aleatorio.   |
-| =componentes=  | La lista plana: cadenas, objetos =Supuesto=/=Cuestion= y listas de ellos.                                                                    |
+| =export=       | Opcional. =last_choice= (bool): opción por defecto. =cols= (int): columnas en AMC. =instances= (int): instancias con =setup= aleatorio.      |
+| =componentes=  | La lista plana: cadenas, objetos =Supuesto= y =Cuestion= y listas de ellos.                                                                  |
 
 Cada =Supuesto= es un objeto con =tipo=, =enunciado=, =semantica= y =precond=; cada
 =Cuestion= añade =exp=. Las fórmulas y lambdas van como cadenas, exactamente como se
 escribirían en Python. Las barras de LaTeX se doblan (=\\mathcal=).
 
-Puedes añadir claves propias de nivel superior (="_nivel": "M"=, ="_tema": …): =qbank=
+Puedes añadir claves propias de nivel superior, como ="_nivel": "M"= o ="_tema"=: =qbank=
 las ignora al cargar y =save_problema= las conserva.
 
 *Regla para =instances=*: con =setup= aleatorio, =instances = max(1, ceil(60 / variantes
@@ -571,10 +618,15 @@ valor necesario.
 =load_problema= acepta una ruta o un dict y devuelve un =ProblemaTipo= listo para iterar.
 
 #+begin_src python :results silent
-save_problema(p, "ejemplosManual/ejercicio.json")
-p2 = load_problema("ejemplosManual/ejercicio.json")      # o load_problema(dict)
-assert problema_to_dict(p2) == problema_to_dict(p)
+import os, tempfile
+ruta = os.path.join(tempfile.gettempdir(), "ordenar.json")   # p. ej. preguntas/ordenar.json
+save_problema(ordenar, ruta)
+p2 = load_problema(ruta)                                    # o load_problema(dict)
+assert problema_to_dict(p2) == problema_to_dict(ordenar)
 #+end_src
+
+(El ejemplo guarda en un directorio temporal para no tocar los JSON de
+=ejemplosManual/=, que usan las secciones siguientes.)
 
 Para bancos de varios problemas en un solo fichero, =save_banco(lista, ruta)= y
 =load_banco(ruta)=; los proyectos de =qbank-init= usan en cambio un fichero por pregunta.
@@ -651,7 +703,8 @@ cual y puede volver a guardarse con =save_problema=: si el problema tiene =setup
 código aparece en la cadena =_SETUP=, y las lambdas van entre comillas.
 
 #+begin_src python :results output :exports both
-print(problema_to_python(load_problema("ejemplosManual/ejercicio.json"))[:760])
+codigo = problema_to_python(load_problema("ejemplosManual/ejercicio.json"))
+print("\n".join(codigo.splitlines()[:30]))   # las primeras 30 líneas
 #+end_src
 
 #+RESULTS:
@@ -685,6 +738,7 @@ ejercicio = [
             precond = True
         ),
     ],
+    r'Entonces, con toda seguridad: ',
 #+end_example
 
 ** Los ejemplos de =ejemplosManual/=
@@ -694,7 +748,7 @@ Cinco ficheros ilustran, de forma acumulativa, las mecánicas de este capítulo,
 literales, tres huecos), =ej_b_mundos= (una lista de =Supuesto=), =ej_c_precond=
 (axioma =unoDe= y =precond= por mundo), =ej_d_setup_vars= (=setup=, =@{var}=, =seed=,
 =instances= y =exp= dinámico) y =ej_e_lambda= (semántica =lambda= que inyecta fórmulas).
-Los otros cuatro —=ejercicio=, =matriz_rango=, =numeros= y =superheroes=— son los que
+Los otros cuatro (=ejercicio=, =matriz_rango=, =numeros= y =superheroes=) son los que
 usan este manual y =Demo.ipynb=. Todos pasan =lint= sin avisos.
 
 * Exportar a AMC (LaTeX)
@@ -705,9 +759,12 @@ cadena con un bloque =\element{...}=, que el usuario escribe al fichero. El fluj
 completo (un =.tex= por pregunta, un documento que lo compila y los PDF de revisión) lo
 hacen los scripts de un proyecto =qbank-init= (=make amc= y =make amc-student=).
 
+Las funciones no leen =export= del problema: pasa =last_choice== y =cols== en cada
+llamada (los scripts de un banco sí lo leen y se los pasan).
+
 ** =AMCblock=
 
-#+begin_src python
+#+begin_src python :eval no
 AMCblock(nombre, etiqueta, enunciado, cuestiones,
          last_choice=False, cols=1, profe=False, *,
          aux_latex="", last_choice_text="Ninguna de las anteriores")
@@ -765,13 +822,13 @@ Un =AMCblock= por parte produciría dos preguntas con el mismo identificador y l
 segunda sin las hipótesis. =AMC_multipart= genera un único =questionmult= con un bloque
 de casillas por parte, cada uno con su propia opción por defecto si =last_choice=:
 
-#+begin_src python
+#+begin_src python :eval no
 AMC_multipart(nombre, etiqueta, enunciado, partes,
               last_choice=False, cols=1, profe=False, *,
               aux_latex="", last_choice_text="Ninguna de las anteriores")
 #+end_src
 
-=partes= es la lista =[(enunciado, cuestiones), …]= que devuelven =por_partes()= y
+=partes= es la lista de pares =(enunciado, cuestiones)= que devuelven =por_partes()= y
 =por_partes_profe()=; =enunciado= es un texto común previo, normalmente =""= porque el
 de la primera parte ya contiene las hipótesis. Los demás parámetros son los de
 =AMCblock=.
@@ -787,7 +844,7 @@ with open("preguntas_multi.tex", "w") as f:
 
 ** =QuizAMCProfe= — la vista profe en un fichero
 
-#+begin_src python
+#+begin_src python :eval no
 QuizAMCProfe(nombre, directorio, problema, cols=1, *, last_choice=False,
              aux_latex="", last_choice_text="Ninguna de las anteriores")
 # Devuelve int: número de variantes escritas
@@ -801,7 +858,7 @@ o no.
 
 ** Integración en el documento AMC
 
-Los ficheros generados se incluyen en el preámbulo del documento AMC con
+Los ficheros generados se incluyen en el preámbulo del documento AMC con la orden
 =\input{preguntas.tex}=; dentro de =\onecopy=, =\insertgroup[1]{MiCuestionario}= inserta
 una variante por copia (sin el =[1]= se insertarían todas) y =\shufflegroup= las
 baraja. El README de la plantilla da el procedimiento completo; consulta la
@@ -812,18 +869,21 @@ documentación de AMC para el formato del documento.
 Las funciones =Quiz*= escriben un fichero =.tex= autónomo que usa el paquete LaTeX
 =moodle=; al compilarlo se obtienen un PDF de revisión y el fichero
 =nombre-moodle.xml= importable en Moodle (/Banco de preguntas → Importar → Formato
-Moodle XML/).
+Moodle XML/). Como las de AMC, no leen =export=: pasa =last_choice== e =instances==
+(los scripts de un banco sí lo leen).
 
 #+begin_example
 Python (qbank)  →  nombre.tex  →  xelatex / pdflatex  →  nombre.pdf + nombre-moodle.xml  →  Moodle
 #+end_example
 
 El =.tex= compila con cualquier motor (su cabecera distingue =pdflatex= de
-=xelatex=/=lualatex=). Si lo compilas *a mano*, usa =xelatex=: el XML sale declarado en
+=xelatex= o =lualatex=). Si lo compilas *a mano*, usa =xelatex=: el XML sale declarado en
 UTF-8. Con =pdflatex= el paquete =moodle= lo declara en =iso-8859-1= aunque escribe en
-UTF-8 los caracteres que =codchar= no convierte (=¿=, =¡=…), y Moodle los mostraría
-como =Â¿=; los proyectos de =qbank-init= compilan con =pdflatex= y corrigen la
-declaración después (=scripts/fix_moodle_xml.py=, que =make moodle= ejecuta).
+UTF-8 los caracteres que =codchar= no convierte (los signos ~¿~ y ~¡~, las mayúsculas
+acentuadas como ~Á~ o ~Ñ~ y la ~ü~), y Moodle los mostraría mal (por ejemplo, ~Â¿~ en
+lugar de ~¿~);
+los proyectos de =qbank-init= compilan con =pdflatex= y corrigen la declaración
+después (=scripts/fix_moodle_xml.py=, que =make moodle= ejecuta).
 
 El paquete =moodle= se instala con =tlmgr install moodle= (TeX Live) o
 =sudo apt install texlive-latex-extra= (Debian/Ubuntu). Dos avisos: el paquete declara el
@@ -837,15 +897,23 @@ de los bloques cloze; los scripts de =qbank-init= corrigen ambas cosas
 | Función            | Tipo de problema | Qué escribe                                                                        |
 |--------------------+------------------+------------------------------------------------------------------------------------|
 | =QuizMoodle=       | =ProblemaTipo=   | Vista alumno: una pregunta /cloze/ por variante, con un bloque por parte.          |
-| =QuizMoodleProfe=  | =ProblemaTipo=   | Las mismas variantes con las fracciones de puntuación visibles.                     |
+| =QuizMoodleProfe=  | =ProblemaTipo=   | Como =QuizMoodle= con los mismos parámetros, pero con las puntuaciones visibles.   |
 | =QuizVFMoodle=     | =ProblemaVF=     | Verdadero/falso (apéndice).                                                        |
 
-#+begin_src python
+#+begin_src python :eval no
 QuizMoodle     (nombre, directorio, problema, last_choice=False, instances=1, *,
                 aux_latex="", last_choice_text="Las demás opciones son falsas")
 # Devuelve int: número de variantes escritas
-QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="")
+QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="",
+                last_choice=False, instances=1,
+                last_choice_text="Las demás opciones son falsas")
 #+end_src
+
+=QuizMoodleProfe= solo admite =last_choice=, =instances= y =last_choice_text= por
+palabra clave; con los mismos valores que en =QuizMoodle= escribe las mismas variantes.
+Como el resto de exportadores, ninguna de las dos lee =export= del problema: pásale
+=last_choice=True= si la pregunta usa la opción por defecto (o, con =ejercicio.json=,
+16 de las 48 variantes saldrían sin ninguna opción correcta).
 
 #+ATTR_LATEX: :environment tabularx :width \textwidth :align lX
 | Parámetro          | Descripción                                                                                            |
@@ -854,7 +922,7 @@ QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="")
 | =directorio=       | Directorio de salida (con o sin =/= final).                                                            |
 | =problema=         | Un =ProblemaTipo= o un diccionario ={nombre: ProblemaTipo}= (todas van al mismo cuestionario).         |
 | =last_choice=      | Si =True=, añade la opción por defecto a cada bloque. Moodle rechaza preguntas sin ninguna correcta.   |
-| =instances=        | Realizaciones con semillas distintas (requiere =setup= aleatorio).                                     |
+| =instances=        | Instancias con semillas distintas (requiere =setup= aleatorio).                                        |
 | =aux_latex=        | Cabecera LaTeX adicional (p. ej. =\usepackage{mis-macros}=).                                           |
 | =last_choice_text= | Texto de la opción por defecto.                                                                        |
 
@@ -875,8 +943,8 @@ xelatex EjemploMoodle.tex
 #+end_src
 
 Se generan [[file:ejemplosManual/EjemploMoodle-moodle.xml][=EjemploMoodle-moodle.xml=]] (para importar en Moodle) y
-[[file:ejemplosManual/EjemploMoodle.pdf][=EjemploMoodle.pdf=]] (vista previa de las preguntas). Las vocales acentuadas y la
-=ñ= las convierte =codchar= (ver la referencia) de forma automática.
+[[file:ejemplosManual/EjemploMoodle.pdf][=EjemploMoodle.pdf=]] (vista previa de las preguntas). Las vocales acentuadas
+minúsculas y la =ñ= las convierte =codchar= (ver la referencia) de forma automática.
 
 ** Preguntas con varias partes
 
@@ -910,8 +978,10 @@ En cuanto al origen de sus superpoderes:
 #+end_example
 
 #+begin_src python :results silent
-QuizMoodle("Superheroes", "ejemplosManual/", p, last_choice=True)   # Moodle: cloze
-with open("ejemplosManual/superheroes_amc.tex", "w") as f:          # AMC: un questionmult
+import os
+os.makedirs("ejemplosManual/exportaciones", exist_ok=True)
+QuizMoodle("Superheroes", "ejemplosManual/exportaciones", p, last_choice=True)  # Moodle: cloze
+with open("ejemplosManual/exportaciones/superheroes_amc.tex", "w") as f:       # AMC: un questionmult
     for etiqueta, partes in p.por_partes():
         f.write(AMC_multipart("Superheroes", etiqueta, "", partes, last_choice=True))
 #+end_src
@@ -937,33 +1007,43 @@ un =INFO= es información. Las reglas, con el código de cada aviso:
   activo (misma regla que los exportadores).
 - =pocas-opciones= (AVISO) :: una parte muestra al alumno menos de tres opciones: el
   error típico de poner las opciones en una única lista de =Cuestion= (que sortea una).
-  =opciones= (AVISO): una parte sin ninguna cuestión, o con un número de opciones que
-  varía entre variantes.
-- =variantes= (AVISO) :: menos de 16 variantes sin =setup=, o menos de 60 con =setup=
-  (contando =export.instances=). Más de 300 (INFO): la vista alumno de AMC en un solo
-  =examcopy= puede agotar la memoria de =pdflatex=.
-- =constante= (AVISO; INFO si la semántica es el literal =True=/=False=) :: una =Cuestion=
-  verdadera (o falsa) en todos los mundos en que puede aparecer, candidata a distractor
-  memorizable. =solape= (AVISO): dos =Cuestion= con el mismo texto en el mismo hueco
-  pueden aparecer en un mismo mundo.
-- =negacion= (ERROR) :: una =semantica= o =precond= usa =-v('X')= pero ningún =Supuesto=
-  permite deducirlo (hace falta un =unoDe= que incluya =v('X')=, o un =Supuesto= que
-  afirme o implique =-v('X')=). AVISO si niega un =Supuesto= siempre presente.
-- =interp= (ERROR) :: queda algún =@{var}= sin sustituir en el texto renderizado.
+  =opciones= (AVISO): una parte sin ninguna cuestión (típicamente, un texto suelto tras
+  la última =Cuestion=; esa parte no da además =mezcla=), o con un número de opciones
+  que varía entre variantes.
+- =variantes= :: ERROR si la pregunta no genera ninguna variante válida. AVISO con menos
+  de 16 variantes sin =setup=, o menos de 60 con =setup= (contando =export.instances=).
+  INFO con más de 300: la vista alumno de AMC en un solo =examcopy= puede agotar la
+  memoria de =pdflatex=.
+- =ejecucion= (ERROR) :: el =setup= o el recorrido de las variantes lanzan una excepción.
+- =constante= (AVISO) :: una =Cuestion= verdadera (o falsa) en todos los mundos en que
+  puede aparecer, candidata a distractor memorizable. Es INFO si la semántica es el
+  literal =True= o =False= (distractor deliberado) o una =lambda= con =setup= (la tabla de
+  mundos usa un solo sorteo; compruébalo con la vista profe). =solape= (AVISO): dos
+  =Cuestion= con el mismo texto en el mismo hueco pueden aparecer en un mismo mundo.
+- =negacion= :: una =semantica= o =precond= usa =-v('X')= pero ningún =Supuesto= permite
+  deducirlo (hace falta un =unoDe= que incluya =v('X')=, a cualquier profundidad, o un
+  =Supuesto= que afirme o implique =-v('X')=). ERROR si =v('X')= es una alternativa de
+  una lista; AVISO si niega un =Supuesto= suelto (siempre presente): nunca será cierta.
+- =interp= (ERROR) :: queda algún =@{var}= sin sustituir en el texto renderizado (el
+  escape =@@{x}=, que se imprime como «@{x}», no cuenta).
 - =huerfana= (AVISO) :: una etiqueta =v('X')= usada en una =Cuestion= no aparece en
   ningún =Supuesto= (INFO si algún =Supuesto= es una lambda, porque entonces no se puede
   saber). =sin-uso= (INFO): una etiqueta declarada que ninguna =Cuestion= usa.
-- =nombre=, =estructura=, =tipo=, =carga= (ERROR) :: el JSON no es un =ProblemaTipo=, el
-  =nombre= no coincide con el fichero o contiene =:=, alguna lista mezcla tipos, o
-  =export=/=seed= están mal tipados. =lista-1=, =seed=, =instances= (AVISO): listas de
-  un solo elemento, =seed= incoherente con el uso de aleatorios, =instances > 1= sin
-  =setup=.
+- =carga=, =tipo=, =nombre=, =estructura= (ERROR) :: el JSON no se puede leer o cargar
+  (=carga=); no es un =ProblemaTipo= (=tipo=); el =nombre= no coincide con el fichero o
+  lleva =:= o espacios, que los scripts del banco no admiten (=nombre=); alguna lista
+  está vacía, mezcla tipos o va anidada, o =export= o =seed= están mal tipados
+  (=estructura=; ="seed": true= tampoco vale). =lista-1=, =seed=, =instances= (AVISO):
+  listas de un solo elemento, =seed= incoherente con el uso de aleatorios,
+  =instances > 1= sin =setup=.
 - =texto= :: un =%= sin barra es ERROR (en LaTeX empieza un comentario y el PDF sale
   vacío o roto sin que =pdflatex= pare). Son AVISO: =\%= dentro de =$…$= (Moodle lo
   pierde), =°=, =«»= y comillas rectas (no existen en la codificación del paquete
-  =moodle= o salen como ”), =\(…\)= en vez de =$…$=, citas a números de lección, =@{=
-  sin cerrar, dobles espacios fuera de las fórmulas, comillas simples, textos que
-  parecen código =lambda ns:= (desde JSON no se evalúan).
+  =moodle= o salen como ”), =\(…\)= o =\[…\]= en vez de =$…$= / =$$…$$=, citas a números
+  de lección, =@{= sin cerrar, dobles espacios fuera de las fórmulas, comillas simples,
+  textos que parecen código =lambda ns:= (desde JSON no se evalúan). Las dos reglas del
+  =%= se aplican también al texto interpolado con unos sorteos del =setup= (el mensaje
+  lo indica con «en el texto interpolado»).
 - =setup= (INFO) :: variantes por instancia e =instances= necesarias para llegar a 60.
 
 =tabla_mundos(problema)= devuelve una tabla de texto con el valor de cada =Cuestion=
@@ -1031,9 +1111,11 @@ AMC_VF       (nombre, etiqueta, enunciado, cuestiones, opc=None)               �
 #+begin_example
 QuizMoodle      (nombre, directorio, problema, last_choice=False, instances=1, *,
                  aux_latex="", last_choice_text="Las demás opciones son falsas")  → int (variantes)
-QuizMoodleProfe (nombre, directorio, problema, *, aux_latex="")                   → int
+QuizMoodleProfe (nombre, directorio, problema, *, aux_latex="",
+                 last_choice=False, instances=1,
+                 last_choice_text="Las demás opciones son falsas")                → int
 QuizVFMoodle    (nombre, directorio, GenVar, num, opc=None)                       (ProblemaVF)
-codchar(s)      vocales acentuadas y ñ → secuencias LaTeX (lo aplican las funciones Moodle)
+codchar(s)      vocales acentuadas minúsculas y ñ → secuencias LaTeX (lo aplican las funciones Moodle)
 #+end_example
 
 ** Comprobación automática
@@ -1130,22 +1212,25 @@ multiplica el XML.
 
 ** ¿Para qué sirve =codchar=?
 
-=codchar(s)= convierte vocales acentuadas y la =ñ= a secuencias LaTeX (=á= → =\'{a}=).
-Las funciones Moodle lo aplican automáticamente, porque el =.tex= que generan usa
-codificación OT1; no hace falta llamarlo a mano. Para AMC no suele hacer falta si el
-documento principal usa =inputenc= con UTF-8.
+=codchar(s)= convierte las vocales acentuadas minúsculas y la =ñ= a secuencias LaTeX
+(=á= → =\'{a}=). Las funciones Moodle lo aplican automáticamente, porque el =.tex= que
+generan usa codificación OT1; no hace falta llamarlo a mano. Las mayúsculas
+acentuadas (como ~Á~ o ~Ñ~), la ~ü~ y los signos ~¿~ y ~¡~ pasan tal cual: con =xelatex=
+salen bien; con =pdflatex= el XML queda mal declarado y lo corrige
+=scripts/fix_moodle_xml.py= de la plantilla (ver «Exportar a Moodle»). Para AMC no
+suele hacer falta si el documento principal usa =inputenc= con UTF-8.
 
 ** ¿Cómo exporto varias preguntas a un mismo cuestionario Moodle?
 
 Pasa un diccionario a =QuizMoodle=: todas van al cuestionario =MiExamen=, y cada clave
 da nombre a sus variantes (=Seccion-A-1=, =Seccion-A-2=, …):
 
-#+begin_src python
+#+begin_src python :eval no
 QuizMoodle("MiExamen", "salida/", {"Seccion-A": p_a, "Seccion-B": p_b}, last_choice=True)
 #+end_src
 
-En un banco de =qbank-init= cada pregunta va a su propio fichero y
-=scripts/merge_moodle_xml.py= los fusiona en =_banco.xml=.
+Un banco de =qbank-init= guarda cada pregunta en su propio fichero, y el script
+=scripts/merge_moodle_xml.py= fusiona sus XML en =_banco.xml=.
 
 * Apéndice: API avanzada y compatibilidad
 
@@ -1157,7 +1242,7 @@ corrección de cada ítem se indica con =True= o =False=. No lo revisa =lint= ni
 exportan los scripts de =qbank-init=: para un banco nuevo, una pregunta de tres huecos
 de =ProblemaTipo= cubre el mismo uso con todas las herramientas.
 
-#+begin_src python
+#+begin_src python :eval no
 ProblemaVF(enunciado, cuestiones, NumPreguntas)
 #+end_src
 
@@ -1204,12 +1289,21 @@ y carga en JSON sin restricciones.
 
 ** Clases deprecadas
 
-- =ProblemaTipoProfe= :: =ProblemaTipoProfe(lista, setup=None)= emite
-  =DeprecationWarning=; usa =ProblemaTipo(...).por_partes_profe()=.
-- =ProblemaMultiParte= y =SubPregunta= :: =ProblemaMultiParte(componentes,
-  subpreguntas, setup=None)= emite =DeprecationWarning= y devuelve un =ProblemaTipo=
-  equivalente (lista plana); =SubPregunta(intro, cuestiones)= es su contenedor. Para
-  código nuevo, define directamente un =ProblemaTipo= y recórrelo con =por_partes()=.
+- =ProblemaTipoProfe= :: emite =DeprecationWarning=; usa
+  =ProblemaTipo(...).por_partes_profe()=. Firma:
+
+  #+begin_example
+  ProblemaTipoProfe(lista, setup=None)
+  #+end_example
+- =ProblemaMultiParte= y =SubPregunta= :: =ProblemaMultiParte= emite
+  =DeprecationWarning= y devuelve un =ProblemaTipo= equivalente (lista plana);
+  =SubPregunta= es su contenedor. Para código nuevo, define directamente un
+  =ProblemaTipo= y recórrelo con =por_partes()=. Firmas:
+
+  #+begin_example
+  ProblemaMultiParte(componentes, subpreguntas, setup=None)
+  SubPregunta(intro, cuestiones)
+  #+end_example
 
 ** Editor visual en Jupyter (=ProblemaTipoEditor=)
 
@@ -1220,8 +1314,12 @@ un cuaderno de Jupyter, sin escribir la lista de listas a mano. Requiere =ipywid
 pip install "calcprop-qbank[jupyter]"
 #+end_src
 
+(o, mientras la 0.6 no esté en PyPI, la orden con =git+https://…= de la instalación
+rápida, que ya incluye el extra =[jupyter]=).
+
 En *JupyterLab ≥ 4* es necesario que la extensión =@jupyter-widgets/jupyterlab-manager=
-esté habilitada (=jupyter labextension list=). Si el widget se muestra como texto
+esté habilitada: compruébalo con =jupyter labextension list=. Si el widget se muestra
+como texto
 (~VBox(children=...~), ejecuta una sola vez desde el terminal:
 
 #+begin_src bash
@@ -1233,20 +1331,27 @@ ln -sfn $(python -c "import jupyterlab_widgets, os; \
 
 y reinicia JupyterLab (en Jupyter Notebook clásico no hace falta).
 
-#+begin_src python
+#+begin_src python :eval no
 from qbank import ProblemaTipoEditor
 editor = ProblemaTipoEditor()                   # editor vacío
 editor = ProblemaTipoEditor('mi_problema.json') # cargar desde fichero
 p = editor.to_problema()                        # ProblemaTipo listo para iterar
 d = editor.to_dict()                            # dict JSON equivalente
-editor.save("mi_problema.json")
+save_problema(editor.to_problema(), "mi_problema.json")   # o el botón 💾 Guardar
 #+end_src
 
-El formulario tiene una cabecera (=Nombre=, =Setup=, =seed= y la casilla =last_choice=),
-los slots (cada uno de tipo /texto/ o /alternativas/, con filas =Supuesto= / =Cuestion=
-con enunciado, semántica, precondición y, en =Cuestion=, explicación) y una barra de
-botones: =▶ Preview= (genera hasta N variantes, con la casilla /vista profe/), ={ } JSON=
-y =</> .py= (muestran el JSON o el guion Python), =💾 Guardar= y =📂 Cargar= (en el
-fichero indicado) y =⬇ .json= / =⬇ .py= (descargas al navegador). Al guardar conserva
-las claves de =export= que el formulario no edita (=instances=…) y las claves propias
-del JSON. =ejemplosManual/Demo.ipynb= (sección 8) lo muestra en uso.
+El editor no tiene un método =save=: para guardar, usa el botón =💾 Guardar= o pasa
+=editor.to_problema()= a =save_problema=, como en la última línea del bloque.
+
+El formulario tiene una cabecera (=Nombre:=, =Setup:= con el campo =semilla:=, y
+=Export:= con la casilla =last_choice= y el campo =cols:=), la lista de huecos y una
+barra de botones. Cada hueco (=Hueco 1=, =Hueco 2=, etc.) tiene un tipo, /texto/,
+/supuestos/ o /cuestiones/, y sus alternativas (=+ alt=): filas con enunciado,
+semántica, precondición y, en las cuestiones, explicación. Los botones de cada hueco lo
+suben o bajan (=▲= / =▼=), insertan otro hueco debajo (=＋=) o lo borran (=✕=); el botón
+=+ hueco= añade uno al final. La barra inferior tiene =▶ Preview= (genera hasta N
+variantes, con la casilla /vista profe/), ={ } JSON= y =</> .py= (muestran el JSON o el
+guion Python), =💾 Guardar= y =📂 Cargar= (en el fichero indicado) y =⬇ .json= /
+=⬇ .py= (descargas al navegador). Al guardar conserva las claves de =export= que el
+formulario no edita (como =instances=) y las claves propias del JSON.
+=ejemplosManual/Demo.ipynb= (sección 8) lo muestra en uso.
