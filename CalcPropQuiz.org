@@ -3048,8 +3048,8 @@ Reglas (código del aviso entre paréntesis):
    ``\\%`` dentro de ``$...$`` (Moodle lo pierde), ``°``/``«»`` y comillas
    rectas ``"`` (no existen en la codificación del paquete ``moodle`` o
    salen como ”), delimitadores ``\\( \\)`` y ``\\[ \\]``, citas a
-   números de lección, ``@{`` sin cerrar, dobles espacios, comillas
-   simples, textos que parecen código ``lambda ns:`` (desde JSON no se
+   números de lección, ``@{`` sin cerrar, dobles espacios fuera de las
+   fórmulas, comillas simples, textos que parecen código ``lambda ns:`` (desde JSON no se
    evalúan). Las dos reglas de ``%`` se aplican también al texto
    interpolado con unos sorteos del ``setup``.
 9. Setup (``setup``, INFO): instancias necesarias para llegar a 60 variantes.
@@ -3322,7 +3322,7 @@ _CHECKS_TEXTO = [
      "'@{' sin cerrar"),
     (AVISO, lambda t: (m := _re.search(r'\S  +\S', _sin_matematicas(t))) and m.group(0),
      "doble espacio"),
-    (AVISO, _re.compile(r"(?<![\w\\'$})\]])'[^']+'(?!')"),
+    (AVISO, _re.compile(r"(?<![\w\\'$})\]|])'[^']+'(?!')"),
      "comillas simples '...' en vez de ``...''"),
     (AVISO, _re.compile(r'^\s*lambda\s+ns\s*:'),
      "parece código lambda: desde JSON no se evalúa (usa @{var} y calcula el texto en setup)"),

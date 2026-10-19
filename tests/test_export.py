@@ -252,3 +252,31 @@ class TestQuizMoodleProfeLastChoiceInstances:
         with tempfile.TemporaryDirectory() as d:
             with pytest.raises(TypeError):
                 QuizMoodleProfe("q", d, problema_simple, True)
+
+
+# ---------------------------------------------------------------------------
+# Codificación de los .tex (en Windows open() usa cp1252 por defecto)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("exportar,fichero", [
+    (lambda d, p: QuizMoodle("q", d, p), "q.tex"),
+    (lambda d, p: QuizMoodleProfe("q", d, p), "q.tex"),
+    (lambda d, p: QuizAMCProfe("q", d, p), "q_profe.tex"),
+])
+def test_tex_en_utf8_aunque_el_sistema_no_lo_sea(monkeypatch, exportar, fichero):
+    # codchar no convierte «¿»: llega tal cual al .tex y tiene que ir en UTF-8
+    import builtins
+    open_original = builtins.open
+
+    def open_cp1252(f, mode="r", *args, **kw):
+        if "b" not in mode and "encoding" not in kw and len(args) < 2:
+            kw["encoding"] = "cp1252"
+        return open_original(f, mode, *args, **kw)
+
+    p = ProblemaTipo(["¿Qué ocurre? ", [Supuesto("A. ", v("A")), Supuesto("B. ", v("B"))],
+                      Cuestion("A", v("A")), Cuestion("B", v("B")), Cuestion("C", False)])
+    with tempfile.TemporaryDirectory() as d:
+        monkeypatch.setattr(builtins, "open", open_cp1252)
+        exportar(d, p)
+        monkeypatch.undo()
+        assert "¿Qu" in (Path(d) / fichero).read_text(encoding="utf-8")

@@ -355,6 +355,7 @@ class TestTexto:
         "ángulo de $90^\\circ$",
         "dice ``hola''",
         "derivada $f'(x)$ y $\\hat{y}'$",
+        "valores absolutos $|x|'$ y $|y|'$",
         "salto \\\\[2pt] de línea",
         "vector $\\boldsymbol{x}$ con $@{x}$ valores",
         "texto normal, sin nada raro.",
