@@ -1,0 +1,166 @@
+#+TITLE: Fase 5: recogida y análisis de las pruebas con compañeros
+#+AUTHOR: Marcos Bujosa
+#+LANGUAGE: es
+#+OPTIONS: toc:nil num:t
+#+STARTUP: overview
+
+# Solo para Marcos: no se entrega. La hoja que se entrega es Fase5-prueba.org.
+
+Cómo tabular lo que devuelvan los compañeros con =Fase5-prueba= y qué
+buscar en sus diarios. Las hipótesis salen del diagnóstico y de las dos
+revisiones de la Fase 3 de =PLAN-documentacion.org=; la prueba debe
+confirmarlas o descartarlas una a una.
+
+* Tabla por persona
+
+Una fila por compañero. Las columnas P1–P7 son las de «Antes de empezar» y
+F1–F9 las de «Al terminar».
+
+| Id | SO y versión | Python | LaTeX | AMC/Moodle | Asignatura | Fórmulas | IA | Inicio | Fin | Paso alcanzado | Nota 1–5 | Más útil | No abierto | Primer tropiezo | Términos no entendidos | Le sobró | ¿Volvería? | Permiso cita |
+|----+--------------+--------+-------+------------+------------+----------+----+--------+-----+----------------+----------+----------+------------+-----------------+------------------------+----------+------------+--------------|
+| C1 |              |        |       |            |            |          |    |        |     |                |          |          |            |                 |                        |          |            |              |
+
+Para «paso alcanzado», el código: 0 nada, 1 instalación, 2 =qbank-init=,
+3 primera pregunta escrita, 4 =lint= sin errores, 5 vista profe,
+6 exportación.
+
+* Tropiezos codificados
+
+Una fila por cada fila del diario de cada persona.
+
+| Id | Hora | Paso | Documento | Hipótesis | Resuelto | Minutos | Texto (resumido, con el error textual) |
+|----+------+------+-----------+-----------+----------+---------+----------------------------------------|
+| C1 |      |      |           |           |          |         |                                        |
+
+- *Paso*: el código de arriba, o =E= si el tropiezo fue en el entorno
+  (Python, LaTeX, =make=) antes de tocar =qbank=.
+- *Documento*: el que debía resolverlo, no el que consultó.
+  - =RM=: README / web (portada)
+  - =TU=: Tutorial
+  - =PL=: README de la plantilla
+  - =GU=: Guía
+  - =MA=: Manual
+  - =LI=: mensaje de =lint=
+  - =MK=: mensaje del =Makefile= o de un script
+  - =--=: ninguno (problema del entorno)
+- *Hipótesis*: el código de la sección siguiente, o =N= si es nuevo (y
+  entonces se abre una hipótesis).
+
+Resumen que interesa al final:
+- tropiezos por documento y por paso;
+- minutos perdidos por hipótesis;
+- cuántas personas llegaron a cada paso, separando quién usó IA y quién no.
+
+* Hipótesis abiertas y señales que buscar
+
+** H1 — Windows
+=make= necesita un shell POSIX (Git Bash, MSYS2 o WSL), la ruta de =PYTHON=
+se escribe con barras normales, AMC no existe para Windows y MiKTeX instala
+los paquetes por su cuenta. Está documentado, pero nunca se ha probado en
+una máquina real.
+
+/Señales/:
+- =make: command not found=, o errores de =sh=, =test= o =rm= en =cmd.exe=;
+- =.venvScriptspython.exe= (barras invertidas comidas);
+- «Python was not found» (el atajo de la Microsoft Store);
+- =UnicodeEncodeError=, o ventanas de MiKTeX que piden instalar paquetes;
+- =automultiplechoice.sty not found=;
+- problemas con nombres o rutas con tildes.
+
+¿Encontró la nota de Windows del README de la plantilla, o se rindió
+antes?
+
+** H2 — Instalación y punto de entrada
+/Señales/:
+- =externally-managed-environment=;
+- un =pip= fuera del entorno virtual;
+- =AttributeError: __version__= (una versión vieja);
+- ¿empezó por la web o por el README de GitHub?;
+- ¿tardó en dar con =qbank-init=?;
+- ¿leyó el Manual para instalar, pese a que dice que no es el sitio por
+  donde empezar?
+
+** H3 — «Una lista de =Cuestion= sortea una»
+Es la trampa principal del diagnóstico.
+
+/Señales/:
+- preguntas con una sola lista de tres o cuatro =Cuestion=;
+- AVISO =pocas-opciones= o =variantes= de =lint=;
+- en el diario, «el alumno solo ve una opción» o «siempre salen las mismas».
+
+¿Lo arregló con lo que dice el aviso, o tuvo que ir a la Guía?
+
+** H4 — =export= y la opción por defecto
+/Señales/:
+- ERROR =mezcla= (todas correctas o todas falsas) y no saber qué hacer;
+- =last_choice= escrito en un sitio equivocado, o con otra grafía (=lint=
+  no avisa de claves de =export= desconocidas);
+- buscar la opción por defecto en la vista profe, donde no aparece;
+- dudar si las funciones Python leen =export= (no lo leen).
+
+** H5 — Vocabulario
+/Señales/: los términos marcados en «Al terminar» y las palabras propias
+que use en el diario. Atención especial a:
+- «etiqueta», que tiene dos sentidos (=v('X')= y el rótulo de cada
+  variante);
+- «mundo» en preguntas con =setup= y sin =Supuesto=;
+- «hueco» frente a «opción»;
+- «hipótesis» frente a «Supuesto».
+
+** H6 — La vista profe va por mundo, no por variante
+/Señales/:
+- «¿dónde están mis 60 variantes?» al abrir =make amc=;
+- confusión con =mundoM-casoK=;
+- no saber dónde comprobar la opción por defecto (=make amc-student=).
+
+** H7 — =setup= aleatorio
+/Señales/:
+- =np.random.choice= con una lista de tuplas (=ValueError: a must be
+  1-dimensional=);
+- =random= en lugar de =np.random= (=lint= no avisa);
+- =seed= / =instances= incoherentes (AVISO);
+- mensajes «por_partes() falla» que no entiende;
+- un =exp= escrito como =lambda= en JSON.
+
+** H8 — Caracteres que rompen la exportación
+/Señales/:
+- un =%= sin barra (ERROR: ¿lo entendió?);
+- «» o comillas rectas: son AVISO, =make= sigue y luego Moodle falla con
+  =\guillemetleft=;
+- =<= fuera de =$= (sale «¡» en el PDF de Moodle);
+- =&=, =#=, =_= o un =$= desparejado: =lint= no los detecta y =pdflatex=
+  falla.
+
+** H9 — Falsos negativos de =lint= aplazados
+Si aparece alguno en una pregunta real, sube de prioridad:
+- un =%= en un texto lambda escrito en Python;
+- un =@@{k}= que oculta un =@{k}= sin resolver en otro texto;
+- =@nombre= sin llaves que se interpola («profe@b.com»);
+- claves de =export= mal escritas;
+- =import random=;
+- =unoDe= condicional;
+- =np.random.default_rng()= sin aviso de =seed=;
+- un mundo inalcanzable;
+- una regla de «variantes distintas» (muchas variantes repetidas).
+
+** H10 — D2: ¿Python o JSON?
+/Señales/:
+- ¿usó =nueva_pregunta.py= o escribió el JSON directamente?;
+- errores de barras dobles en JSON (=\\=) frente a errores de sintaxis en
+  Python.
+
+Sirve para confirmar o revisar la decisión D2.
+
+** H11 — El lector sin cuadernos
+/Señales/:
+- ¿abrió el Tutorial (Binder o GitHub), o solo leyó HTML y PDF?;
+- si no lo abrió, ¿le faltó algo que solo está en los cuadernos?
+
+* Qué hacer con el resultado
+
+- Cada hipótesis confirmada por dos o más personas: corrección en el
+  documento que debía resolverlo (columna *Documento*), con su commit.
+- Cada tropiezo nuevo (=N=): verificarlo uno mismo antes de corregir.
+- Una sección «Fase 5» en =PLAN-documentacion.org=, con lo mismo que las
+  revisiones de la Fase 3: (a) corregido, (b) verificado y no corregido,
+  (c) descartado, y un veredicto.

@@ -1,0 +1,176 @@
+#+TITLE: Prueba de =qbank=: crear un banco solo con la documentación
+#+AUTHOR: Marcos Bujosa
+#+LANGUAGE: es
+#+OPTIONS: toc:nil num:t date:nil
+#+STARTUP: overview
+
+# ─── Copyright ──────────────────────────────────────────────────────────────
+# Copyright (C) 2026  Marcos Bujosa
+# GNU General Public License v3 or later — see <https://www.gnu.org/licenses/>
+
+# Hoja que se entrega a cada compañero en la Fase 5 (PLAN-documentacion.org).
+# No explica nada que deba explicar la documentación: si falta algo para
+# empezar, es un hallazgo sobre el README o la web, no un añadido aquí.
+# Se rellena a mano sobre el PDF o en texto sobre este mismo fichero.
+
+#+LATEX_CLASS: article
+#+LATEX_CLASS_OPTIONS: [11pt,a4paper]
+#+LATEX_HEADER: \usepackage[margin=2.2cm]{geometry}
+#+LATEX_HEADER: \usepackage{fontspec}
+#+LATEX_HEADER: \setmainfont{Latin Modern Roman}
+#+LATEX_HEADER: \setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase]
+#+LATEX_HEADER: \usepackage[spanish,es-noshorthands]{babel}
+#+LATEX_HEADER: \usepackage{amssymb}
+#+LATEX_HEADER: \usepackage{newunicodechar}
+#+LATEX_HEADER: \newunicodechar{☐}{$\square$}
+#+LATEX_HEADER: \usepackage{tabularx}
+#+LATEX_HEADER: \usepackage{pdflscape}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LATEX_HEADER: \definecolor{enlace}{RGB}{0,70,130}
+#+LATEX_HEADER: \hypersetup{colorlinks=true,linkcolor=enlace,urlcolor=enlace,citecolor=enlace}
+#+LATEX_HEADER: \emergencystretch=3em
+
+Gracias por prestarte a esto. Lo que se prueba es *la documentación*, no a
+ti: si te atascas, el fallo es del texto que no te lo explicó, y eso es
+exactamente lo que necesito saber. Cada tropiezo anotado vale más que una
+tarea terminada.
+
+* Antes de empezar
+
+#+LATEX: {\renewcommand{\arraystretch}{1.5}
+#+ATTR_LATEX: :environment tabularx :width \textwidth :align |p{8.6cm}|X|
+|-------------------------------------------------------+-------------------------|
+| Sistema operativo y versión                           |                         |
+|-------------------------------------------------------+-------------------------|
+| ¿Tienes Python instalado? (versión, si la sabes)      |                         |
+|-------------------------------------------------------+-------------------------|
+| ¿Tienes LaTeX instalado? (TeX Live, MiKTeX, MacTeX…)  |                         |
+|-------------------------------------------------------+-------------------------|
+| ¿Usas AMC, Moodle o ambos?                            |                         |
+|-------------------------------------------------------+-------------------------|
+| Asignatura; ¿tus preguntas llevan fórmulas?           |                         |
+|-------------------------------------------------------+-------------------------|
+| ¿Vas a usar un asistente de IA? (sí/no; cuál)         |                         |
+|-------------------------------------------------------+-------------------------|
+| Fecha y hora de inicio                                |                         |
+|-------------------------------------------------------+-------------------------|
+#+LATEX: }
+
+* La tarea
+
+1. Instala =calcprop-qbank= y crea un banco con =qbank-init=.
+2. Escribe *dos preguntas de tu asignatura*: una con hipótesis alternativas
+   (dos mundos) y otra que sortee números o textos.
+3. Compruébalas con =make lint= y revisa la vista profe (=make amc=); si no
+   tienes LaTeX, con =make tabla=.
+4. Si usas Moodle, importa el XML de una de ellas en un curso de prueba; si
+   usas AMC, genera el PDF.
+
+Tu único punto de partida:
+
+- el repositorio: [[https://github.com/mbujosab/calcprop-qbank][github.com/mbujosab/calcprop-qbank]]
+- la web de documentación: [[https://mbujosab.github.io/calcprop-qbank/][mbujosab.github.io/calcprop-qbank]]
+
+Reglas del juego:
+
+- No me pidas ayuda durante la prueba: lo que me preguntarías es lo que
+  quiero que anotes.
+- Si llevas más de 20 minutos atascado en el mismo punto, anótalo y pasa al
+  paso siguiente, o déjalo ahí.
+- Límite orientativo: dos horas en total.
+
+#+LATEX: \begin{landscape}
+* Diario de tropiezos
+
+Una fila por cada vez que no sabías qué hacer, algo falló o tuviste que
+buscar. Copia los mensajes de error tal cual. «Dónde buscaste»: README,
+Tutorial, Guía, Manual, README de la plantilla, web, buscador, IA o nadie.
+«¿Resuelto?»: sí, a medias o no.
+
+#+LATEX: {\renewcommand{\arraystretch}{2.15}
+#+ATTR_LATEX: :environment tabularx :width \linewidth :align |p{1.2cm}|X|X|p{3.2cm}|p{2cm}|p{1.6cm}|
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+| Hora | Qué intentaba hacer     | Qué pasó (mensaje de error, textual) | Dónde buscaste    | ¿Resuelto? | Tiempo |
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+| /10:05/ | /Crear el entorno de Python/ | /=python: command not found=/  | /buscador/        | /sí/       | /10 min/ |
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+|      |                         |                                      |                   |            |        |
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+|      |                         |                                      |                   |            |        |
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+|      |                         |                                      |                   |            |        |
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+|      |                         |                                      |                   |            |        |
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+|      |                         |                                      |                   |            |        |
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+|      |                         |                                      |                   |            |        |
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+|      |                         |                                      |                   |            |        |
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+|      |                         |                                      |                   |            |        |
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+|      |                         |                                      |                   |            |        |
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+|      |                         |                                      |                   |            |        |
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+|      |                         |                                      |                   |            |        |
+|------+-------------------------+--------------------------------------+-------------------+------------+--------|
+#+LATEX: }
+#+LATEX: \end{landscape}
+
+* Al terminar
+
+#+LATEX: {\renewcommand{\arraystretch}{1.5}
+#+ATTR_LATEX: :environment tabularx :width \textwidth :align |p{8.6cm}|X|
+|-------------+---|
+| Hora de fin |   |
+|-------------+---|
+#+LATEX: }
+
+*Hasta dónde llegaste* (marca el último paso que completaste):\\
+☐ instalación  ☐ =qbank-init=  ☐ primera pregunta escrita\\
+☐ =lint= sin errores  ☐ vista profe  ☐ exportación (AMC o Moodle)
+#+LATEX: \vspace{0.5em}
+
+*¿Bastó la documentación?* (1 = nada, 5 = no eché nada en falta):\\
+☐ 1  ☐ 2  ☐ 3  ☐ 4  ☐ 5
+#+LATEX: \vspace{0.5em}
+
+*¿Qué documento te fue más útil? ¿Cuál no llegaste a abrir?*
+
+#+LATEX: \vspace{1.6cm}
+
+*¿Qué fue lo primero que te hizo tropezar?*
+
+#+LATEX: \vspace{1.6cm}
+
+*¿Hubo algún término que no entendiste?* (marca los que sean):\\
+☐ hipótesis  ☐ etiqueta  ☐ variante  ☐ mundo  ☐ hueco  ☐ parte\\
+☐ opción por defecto  ☐ vista profe  ☐ instancia  ☐ =setup=  ☐ =lint=\\
+☐ otro: ............................................
+#+LATEX: \vspace{0.5em}
+
+*¿Qué te sobró?* (documentos, secciones, pasos)
+
+#+LATEX: \vspace{1.6cm}
+
+*¿Lo volverías a usar para tu asignatura?*  ☐ sí  ☐ quizá  ☐ no.
+¿Por qué?
+
+#+LATEX: \vspace{1.6cm}
+
+*Tres líneas libres*
+
+#+LATEX: \vspace{2cm}
+
+* Qué devolverme
+
+- Este documento relleno (el PDF escrito a mano y escaneado, o el =.org=
+  editado).
+- La carpeta de tu banco con =preguntas/*.json= (sin =build/=), aunque las
+  preguntas estén a medias.
+- Por correo o por donde hayamos quedado.
+
+☐ Doy permiso para que mis tropiezos se citen *de forma anónima* en la
+documentación de =qbank=.

@@ -29,7 +29,8 @@
       org-html-htmlize-output-type nil    ; código sin colorear (sin htmlize)
       org-html-validation-link nil
       org-html-postamble nil
-      make-backup-files nil)
+      org-export-time-stamp-file nil      ; sin la hora en el HTML: regenerar
+      make-backup-files nil)              ; sin cambios no ensucia el historial
 
 ;; El <title> lleva el título en texto plano, pero Org deja en él las marcas
 ;; =código= y ~código~ («Manual de uso de =qbank=»): se quitan al final.
@@ -49,6 +50,7 @@
   "Exporta FUENTE a DESTINO (rutas desde la raíz del repositorio).
 Con CON-INDICE añade un índice de dos niveles."
   (setq destino (expand-file-name destino))   ; si no, relativa al .org
+  (random "qbank")   ; Org numera ids (orgXXXXXXX) al azar: misma semilla, mismos ids
   (with-current-buffer (find-file-noselect fuente)
     (let ((org-export-before-processing-functions
            (if con-indice
@@ -66,3 +68,4 @@ Con CON-INDICE añade un índice de dos niveles."
 (qbank-web-exporta "src/qbank/plantilla/README.org" "docs/plantilla.html" t)
 (qbank-web-exporta "GuiaDiseno.org"                "docs/guia.html")   ; ya trae #+TOC
 (qbank-web-exporta "Manual.org"                    "docs/manual.html") ; ya trae #+TOC
+(qbank-web-exporta "Fase5-prueba.org"              "docs/fase5.html")  ; hoja de la Fase 5

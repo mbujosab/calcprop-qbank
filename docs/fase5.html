@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prueba de qbank: crear un banco solo con la documentación</title>
+<meta name="author" content="Marcos Bujosa" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div id="content" class="content">
+<header>
+<h1 class="title">Prueba de <code>qbank</code>: crear un banco solo con la documentación</h1>
+</header><p>
+Gracias por prestarte a esto. Lo que se prueba es <b>la documentación</b>, no a
+ti: si te atascas, el fallo es del texto que no te lo explicó, y eso es
+exactamente lo que necesito saber. Cada tropiezo anotado vale más que una
+tarea terminada.
+</p>
+<div id="outline-container-org17b9b4d" class="outline-2">
+<h2 id="org17b9b4d"><span class="section-number-2">1.</span> Antes de empezar</h2>
+<div class="outline-text-2" id="text-1">
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Sistema operativo y versión</th>
+<th scope="col" class="org-left">&#xa0;</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">¿Tienes Python instalado? (versión, si la sabes)</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">¿Tienes LaTeX instalado? (TeX Live, MiKTeX, MacTeX…)</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">¿Usas AMC, Moodle o ambos?</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">Asignatura; ¿tus preguntas llevan fórmulas?</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">¿Vas a usar un asistente de IA? (sí/no; cuál)</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">Fecha y hora de inicio</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-org3d675b1" class="outline-2">
+<h2 id="org3d675b1"><span class="section-number-2">2.</span> La tarea</h2>
+<div class="outline-text-2" id="text-2">
+<ol class="org-ol">
+<li>Instala <code>calcprop-qbank</code> y crea un banco con <code>qbank-init</code>.</li>
+<li>Escribe <b>dos preguntas de tu asignatura</b>: una con hipótesis alternativas
+(dos mundos) y otra que sortee números o textos.</li>
+<li>Compruébalas con <code>make lint</code> y revisa la vista profe (<code>make amc</code>); si no
+tienes LaTeX, con <code>make tabla</code>.</li>
+<li>Si usas Moodle, importa el XML de una de ellas en un curso de prueba; si
+usas AMC, genera el PDF.</li>
+</ol>
+
+<p>
+Tu único punto de partida:
+</p>
+
+<ul class="org-ul">
+<li>el repositorio: <a href="https://github.com/mbujosab/calcprop-qbank">github.com/mbujosab/calcprop-qbank</a></li>
+<li>la web de documentación: <a href="https://mbujosab.github.io/calcprop-qbank/">mbujosab.github.io/calcprop-qbank</a></li>
+</ul>
+
+<p>
+Reglas del juego:
+</p>
+
+<ul class="org-ul">
+<li>No me pidas ayuda durante la prueba: lo que me preguntarías es lo que
+quiero que anotes.</li>
+<li>Si llevas más de 20 minutos atascado en el mismo punto, anótalo y pasa al
+paso siguiente, o déjalo ahí.</li>
+<li>Límite orientativo: dos horas en total.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org5f0dd8f" class="outline-2">
+<h2 id="org5f0dd8f"><span class="section-number-2">3.</span> Diario de tropiezos</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Una fila por cada vez que no sabías qué hacer, algo falló o tuviste que
+buscar. Copia los mensajes de error tal cual. «Dónde buscaste»: README,
+Tutorial, Guía, Manual, README de la plantilla, web, buscador, IA o nadie.
+«¿Resuelto?»: sí, a medias o no.
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Hora</th>
+<th scope="col" class="org-left">Qué intentaba hacer</th>
+<th scope="col" class="org-left">Qué pasó (mensaje de error, textual)</th>
+<th scope="col" class="org-left">Dónde buscaste</th>
+<th scope="col" class="org-left">¿Resuelto?</th>
+<th scope="col" class="org-left">Tiempo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><i>10:05</i></td>
+<td class="org-left"><i>Crear el entorno de Python</i></td>
+<td class="org-left"><i><code>python: command not found</code></i></td>
+<td class="org-left"><i>buscador</i></td>
+<td class="org-left"><i>sí</i></td>
+<td class="org-left"><i>10 min</i></td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+<tbody>
+<tr>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-orgc777690" class="outline-2">
+<h2 id="orgc777690"><span class="section-number-2">4.</span> Al terminar</h2>
+<div class="outline-text-2" id="text-4">
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<tbody>
+<tr>
+<td class="org-left">Hora de fin</td>
+<td class="org-left">&#xa0;</td>
+</tr>
+</tbody>
+</table>
+<p>
+<b>Hasta dónde llegaste</b> (marca el último paso que completaste):<br>
+☐ instalación  ☐ <code>qbank-init</code>  ☐ primera pregunta escrita<br>
+☐ <code>lint</code> sin errores  ☐ vista profe  ☐ exportación (AMC o Moodle)
+</p>
+<p>
+<b>¿Bastó la documentación?</b> (1 = nada, 5 = no eché nada en falta):<br>
+☐ 1  ☐ 2  ☐ 3  ☐ 4  ☐ 5
+</p>
+<p>
+<b>¿Qué documento te fue más útil? ¿Cuál no llegaste a abrir?</b>
+</p>
+
+<p>
+<b>¿Qué fue lo primero que te hizo tropezar?</b>
+</p>
+
+<p>
+<b>¿Hubo algún término que no entendiste?</b> (marca los que sean):<br>
+☐ hipótesis  ☐ etiqueta  ☐ variante  ☐ mundo  ☐ hueco  ☐ parte<br>
+☐ opción por defecto  ☐ vista profe  ☐ instancia  ☐ <code>setup</code>  ☐ <code>lint</code><br>
+☐ otro: &#x2026;&#x2026;&#x2026;&#x2026;&#x2026;&#x2026;&#x2026;&#x2026;&#x2026;&#x2026;&#x2026;&#x2026;&#x2026;&#x2026;..
+</p>
+<p>
+<b>¿Qué te sobró?</b> (documentos, secciones, pasos)
+</p>
+
+<p>
+<b>¿Lo volverías a usar para tu asignatura?</b>  ☐ sí  ☐ quizá  ☐ no.
+¿Por qué?
+</p>
+
+<p>
+<b>Tres líneas libres</b>
+</p>
+</div>
+</div>
+<div id="outline-container-org51b245b" class="outline-2">
+<h2 id="org51b245b"><span class="section-number-2">5.</span> Qué devolverme</h2>
+<div class="outline-text-2" id="text-5">
+<ul class="org-ul">
+<li>Este documento relleno (el PDF escrito a mano y escaneado, o el <code>.org</code>
+editado).</li>
+<li>La carpeta de tu banco con <code>preguntas/*.json</code> (sin <code>build/</code>), aunque las
+preguntas estén a medias.</li>
+<li>Por correo o por donde hayamos quedado.</li>
+</ul>
+
+<p>
+☐ Doy permiso para que mis tropiezos se citen <b>de forma anónima</b> en la
+documentación de <code>qbank</code>.
+</p>
+</div>
+</div>
+</div>
+</body>
+</html>

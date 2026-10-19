@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<!-- 2026-10-19 lun 23:55 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Guía de diseño de preguntas con qbank</title>
@@ -19,55 +18,55 @@
 <h2>&Iacute;ndice</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#orgae15fd5">1. La mecánica en una página</a>
+<li><a href="#org17b9b4d">1. La mecánica en una página</a>
 <ul>
-<li><a href="#org13d00c5">1.1. Las tres piezas</a></li>
-<li><a href="#org8c030dd">1.2. Vocabulario</a></li>
-<li><a href="#orgaf6e18e">1.3. Listas = sorteo; elementos consecutivos = opciones</a></li>
-<li><a href="#org5bfda52">1.4. Mundos, axiomas y la regla de la negación</a></li>
-<li><a href="#org7892f25">1.5. Partes</a></li>
-<li><a href="#org90b9462">1.6. Cómo se pegan los fragmentos del enunciado</a></li>
-<li><a href="#org28289fd">1.7. Un ejemplo completo comentado</a></li>
+<li><a href="#org3d675b1">1.1. Las tres piezas</a></li>
+<li><a href="#org5f0dd8f">1.2. Vocabulario</a></li>
+<li><a href="#orgc777690">1.3. Listas = sorteo; elementos consecutivos = opciones</a></li>
+<li><a href="#org51b245b">1.4. Mundos, axiomas y la regla de la negación</a></li>
+<li><a href="#org135c64a">1.5. Partes</a></li>
+<li><a href="#org5b4e0f3">1.6. Cómo se pegan los fragmentos del enunciado</a></li>
+<li><a href="#orga628d71">1.7. Un ejemplo completo comentado</a></li>
 </ul>
 </li>
-<li><a href="#org3db9628">2. El patrón recomendado: tres huecos y la opción por defecto</a>
+<li><a href="#org2126854">2. El patrón recomendado: tres huecos y la opción por defecto</a>
 <ul>
-<li><a href="#orgdf35450">2.1. Cuatro opciones con mezcla garantizada</a></li>
-<li><a href="#org2e8ab2a">2.2. Un hueco con una alternativa por mundo</a></li>
-<li><a href="#org809390b">2.3. Cuántas variantes</a></li>
+<li><a href="#orgf64f25e">2.1. Cuatro opciones con mezcla garantizada</a></li>
+<li><a href="#org5ecd7e8">2.2. Un hueco con una alternativa por mundo</a></li>
+<li><a href="#orgdeb54a3">2.3. Cuántas variantes</a></li>
 </ul>
 </li>
-<li><a href="#org093cc18">3. Preguntas con números: <code>setup</code>, <code>seed</code> e <code>instances</code></a>
+<li><a href="#org9548600">3. Preguntas con números: <code>setup</code>, <code>seed</code> e <code>instances</code></a>
 <ul>
-<li><a href="#org926def2">3.1. <code>setup</code></a></li>
-<li><a href="#orgf5121f7">3.2. <code>seed</code></a></li>
-<li><a href="#org96323ef">3.3. <code>instances</code></a></li>
-<li><a href="#org949b480">3.4. Sortear textos, no solo números</a></li>
-<li><a href="#org6a7a61c">3.5. No afirmes nada falso sobre los números: <code>precond</code> con lambda</a></li>
-<li><a href="#org04fba50">3.6. Cuando la verdad depende de los números: <code>semantica</code> con lambda</a></li>
-<li><a href="#org108e9c0">3.7. Casos especiales solo a veces</a></li>
-<li><a href="#org875c89b">3.8. Dos trampas de los <code>setup</code> aleatorios</a></li>
+<li><a href="#orge080a81">3.1. <code>setup</code></a></li>
+<li><a href="#org6b11edb">3.2. <code>seed</code></a></li>
+<li><a href="#org5db24dd">3.3. <code>instances</code></a></li>
+<li><a href="#org7ac5133">3.4. Sortear textos, no solo números</a></li>
+<li><a href="#orgb0074d3">3.5. No afirmes nada falso sobre los números: <code>precond</code> con lambda</a></li>
+<li><a href="#org8c1b4ea">3.6. Cuando la verdad depende de los números: <code>semantica</code> con lambda</a></li>
+<li><a href="#org3e21bcb">3.7. Casos especiales solo a veces</a></li>
+<li><a href="#org59ae178">3.8. Dos trampas de los <code>setup</code> aleatorios</a></li>
 </ul>
 </li>
-<li><a href="#org7cba447">4. Qué estilo de pregunta según el contenido</a></li>
-<li><a href="#org138fe39">5. Redactar cuestiones</a>
+<li><a href="#org063e53c">4. Qué estilo de pregunta según el contenido</a></li>
+<li><a href="#org2d7ca16">5. Redactar cuestiones</a>
 <ul>
-<li><a href="#org6ca50d0">5.1. Cada cuestión se sostiene sola</a></li>
-<li><a href="#org750639a">5.2. Símbolos definidos</a></li>
-<li><a href="#orga3f2621">5.3. El enunciado desnudo; la justificación, en <code>exp</code></a></li>
-<li><a href="#orge16eaff">5.4. Gemelas: cada verdadera, con su falsa parecida</a></li>
-<li><a href="#org672096d">5.5. Afirmaciones que no funcionan como opción</a></li>
-<li><a href="#orgc0783fe">5.6. Textos cortos</a></li>
+<li><a href="#org5132ab8">5.1. Cada cuestión se sostiene sola</a></li>
+<li><a href="#org3c496c6">5.2. Símbolos definidos</a></li>
+<li><a href="#org03a47b4">5.3. El enunciado desnudo; la justificación, en <code>exp</code></a></li>
+<li><a href="#org5013fc9">5.4. Gemelas: cada verdadera, con su falsa parecida</a></li>
+<li><a href="#org8d68ec3">5.5. Afirmaciones que no funcionan como opción</a></li>
+<li><a href="#org7e8ca59">5.6. Textos cortos</a></li>
 </ul>
 </li>
-<li><a href="#org26331de">6. Escribir <code>exp</code></a></li>
-<li><a href="#orgae848fb">7. LaTeX y Moodle: trampas conocidas</a></li>
-<li><a href="#org7000824">8. Proceso de trabajo</a>
+<li><a href="#orgc19880f">6. Escribir <code>exp</code></a></li>
+<li><a href="#orgbda0c3d">7. LaTeX y Moodle: trampas conocidas</a></li>
+<li><a href="#orgbe5cc00">8. Proceso de trabajo</a>
 <ul>
-<li><a href="#org72eec70">8.1. Checklist</a></li>
+<li><a href="#org40c37a1">8.1. Checklist</a></li>
 </ul>
 </li>
-<li><a href="#org63d20c5">9. El mismo ejemplo en JSON</a></li>
+<li><a href="#org0c2d36c">9. El mismo ejemplo en JSON</a></li>
 </ul>
 </div>
 </nav>
@@ -86,15 +85,15 @@ Supone que tienes un proyecto creado con <code>qbank-init</code> (el <code>READM
 <code>qbank-init</code> deja en el proyecto explica el flujo de trabajo) y que sabes lanzar <code>make lint</code> y <code>make amc</code>
 desde la carpeta del proyecto. Los ejemplos se escriben como
 listas de Python, que se leen mejor; el JSON equivalente aparece una vez
-completo en la sección <a href="#org63d20c5">9</a> («El mismo ejemplo en JSON»). Todo lo que se dice vale
+completo en la sección <a href="#org0c2d36c">9</a> («El mismo ejemplo en JSON»). Todo lo que se dice vale
 igual para los dos formatos.
 </p>
-<div id="outline-container-orgae15fd5" class="outline-2">
-<h2 id="orgae15fd5"><span class="section-number-2">1.</span> La mecánica en una página</h2>
+<div id="outline-container-org17b9b4d" class="outline-2">
+<h2 id="org17b9b4d"><span class="section-number-2">1.</span> La mecánica en una página</h2>
 <div class="outline-text-2" id="text-1">
 </div>
-<div id="outline-container-org13d00c5" class="outline-3">
-<h3 id="org13d00c5"><span class="section-number-3">1.1.</span> Las tres piezas</h3>
+<div id="outline-container-org3d675b1" class="outline-3">
+<h3 id="org3d675b1"><span class="section-number-3">1.1.</span> Las tres piezas</h3>
 <div class="outline-text-3" id="text-1-1">
 <p>
 Una pregunta (<code>ProblemaTipo</code>) es una lista plana de componentes de tres tipos:
@@ -134,8 +133,8 @@ distinción está detrás de casi todo lo que sigue.
 </p>
 </div>
 </div>
-<div id="outline-container-org8c030dd" class="outline-3">
-<h3 id="org8c030dd"><span class="section-number-3">1.2.</span> Vocabulario</h3>
+<div id="outline-container-org5f0dd8f" class="outline-3">
+<h3 id="org5f0dd8f"><span class="section-number-3">1.2.</span> Vocabulario</h3>
 <div class="outline-text-3" id="text-1-2">
 <dl class="org-dl">
 <dt><b>Hipótesis</b></dt><dd>lo que la variante da por supuesto: las fórmulas de los
@@ -175,8 +174,8 @@ números distintos.</dd>
 </dl>
 </div>
 </div>
-<div id="outline-container-orgaf6e18e" class="outline-3">
-<h3 id="orgaf6e18e"><span class="section-number-3">1.3.</span> Listas = sorteo; elementos consecutivos = opciones</h3>
+<div id="outline-container-orgc777690" class="outline-3">
+<h3 id="orgc777690"><span class="section-number-3">1.3.</span> Listas = sorteo; elementos consecutivos = opciones</h3>
 <div class="outline-text-3" id="text-1-3">
 <p>
 Cada componente de la lista plana es, o bien un valor suelto, o bien una
@@ -211,7 +210,7 @@ En el esquema siguiente, <code>S1</code>, <code>S2</code>, <code>S3</code> son o
 fijo:
 </p>
 
-<pre class="example" id="org9fc2cde">
+<pre class="example" id="orgfd4725b">
 [ "Enunciado ",             ← cadena: texto fijo, aparece siempre
   [ S1, S2, S3 ],           ← lista de Supuesto: 3 mundos, se sortea uno
   " Entonces:",             ← cadena
@@ -236,8 +235,8 @@ redacción sin lógica asociada), pero se usa poco.
 </p>
 </div>
 </div>
-<div id="outline-container-org5bfda52" class="outline-3">
-<h3 id="org5bfda52"><span class="section-number-3">1.4.</span> Mundos, axiomas y la regla de la negación</h3>
+<div id="outline-container-org51b245b" class="outline-3">
+<h3 id="org51b245b"><span class="section-number-3">1.4.</span> Mundos, axiomas y la regla de la negación</h3>
 <div class="outline-text-3" id="text-1-4">
 <p>
 Una lista de varios <code>Supuesto</code> consecutivos son <b>mundos alternativos</b>: en
@@ -266,8 +265,8 @@ la disyunción de sus etiquetas (<code>semantica=v('A') | v('B')</code>).
 </p>
 </div>
 </div>
-<div id="outline-container-org7892f25" class="outline-3">
-<h3 id="org7892f25"><span class="section-number-3">1.5.</span> Partes</h3>
+<div id="outline-container-org135c64a" class="outline-3">
+<h3 id="org135c64a"><span class="section-number-3">1.5.</span> Partes</h3>
 <div class="outline-text-3" id="text-1-5">
 <p>
 Mientras encadenas elementos-Cuestion sin que aparezca ningún texto ni
@@ -283,8 +282,8 @@ claridad.
 </p>
 </div>
 </div>
-<div id="outline-container-org90b9462" class="outline-3">
-<h3 id="org90b9462"><span class="section-number-3">1.6.</span> Cómo se pegan los fragmentos del enunciado</h3>
+<div id="outline-container-org5b4e0f3" class="outline-3">
+<h3 id="org5b4e0f3"><span class="section-number-3">1.6.</span> Cómo se pegan los fragmentos del enunciado</h3>
 <div class="outline-text-3" id="text-1-6">
 <p>
 Dos fragmentos consecutivos se concatenan tal cual si alguno de los dos ya
@@ -300,8 +299,8 @@ renderizadas.
 </p>
 </div>
 </div>
-<div id="outline-container-org28289fd" class="outline-3">
-<h3 id="org28289fd"><span class="section-number-3">1.7.</span> Un ejemplo completo comentado</h3>
+<div id="outline-container-orga628d71" class="outline-3">
+<h3 id="orga628d71"><span class="section-number-3">1.7.</span> Un ejemplo completo comentado</h3>
 <div class="outline-text-3" id="text-1-7">
 <div class="org-src-container">
 <pre class="src src-python">from qbank import *
@@ -342,7 +341,7 @@ tres opciones más «Ninguna de las anteriores». Dos de ellas, la 1 y la 6
 (el listado no incluye la opción por defecto, que va siempre al final):
 </p>
 
-<pre class="example" id="org1105683">
+<pre class="example" id="org8be0b68">
 1 Sea $f$ una función estrictamente creciente y sean $a &lt; b$ dos puntos de su dominio. Entonces:
     ✓ $f(a) &lt; f(b)$
     ✗ $f(a) = f(b)$
@@ -376,7 +375,7 @@ desde 0), cada columna un mundo, y <code>V</code> / <code>F</code> si en ese mun
 correcta o incorrecta (<code>-</code> si su precondición la excluye):
 </p>
 
-<pre class="example" id="orge86bf60">
+<pre class="example" id="org631e3be">
 Mundos:
   M1: estrictamente creciente
   M2: estrictamente decreciente
@@ -404,7 +403,7 @@ numeración de la tabla; «semantica literal» significa que la fórmula es
 el <code>False</code> literal, un distractor deliberado):
 </p>
 
-<pre class="example" id="orge071f24">
+<pre class="example" id="org53b7f09">
 AVISO [variantes] solo 8 variantes (mínimo recomendado 16)
 INFO  [constante] falsa en los 2 mundos en que aparece (semantica literal)  @ comp 5[0]: $f(a) = f(b)$
 </pre>
@@ -416,12 +415,12 @@ alargar la pregunta.
 </div>
 </div>
 </div>
-<div id="outline-container-org3db9628" class="outline-2">
-<h2 id="org3db9628"><span class="section-number-2">2.</span> El patrón recomendado: tres huecos y la opción por defecto</h2>
+<div id="outline-container-org2126854" class="outline-2">
+<h2 id="org2126854"><span class="section-number-2">2.</span> El patrón recomendado: tres huecos y la opción por defecto</h2>
 <div class="outline-text-2" id="text-2">
 </div>
-<div id="outline-container-orgdf35450" class="outline-3">
-<h3 id="orgdf35450"><span class="section-number-3">2.1.</span> Cuatro opciones con mezcla garantizada</h3>
+<div id="outline-container-orgf64f25e" class="outline-3">
+<h3 id="orgf64f25e"><span class="section-number-3">2.1.</span> Cuatro opciones con mezcla garantizada</h3>
 <div class="outline-text-3" id="text-2-1">
 <p>
 Cada pregunta (cada parte, si hay varias) debe mostrar siempre el mismo
@@ -449,8 +448,8 @@ con la misma regla que usan los exportadores.
 </p>
 </div>
 </div>
-<div id="outline-container-org2e8ab2a" class="outline-3">
-<h3 id="org2e8ab2a"><span class="section-number-3">2.2.</span> Un hueco con una alternativa por mundo</h3>
+<div id="outline-container-org5ecd7e8" class="outline-3">
+<h3 id="org5ecd7e8"><span class="section-number-3">2.2.</span> Un hueco con una alternativa por mundo</h3>
 <div class="outline-text-3" id="text-2-2">
 <p>
 El patrón habitual para cada hueco cuando hay mundos: una lista con una
@@ -477,8 +476,8 @@ alternativas artificiales por rellenar.
 </p>
 </div>
 </div>
-<div id="outline-container-org809390b" class="outline-3">
-<h3 id="org809390b"><span class="section-number-3">2.3.</span> Cuántas variantes</h3>
+<div id="outline-container-orgdeb54a3" class="outline-3">
+<h3 id="orgdeb54a3"><span class="section-number-3">2.3.</span> Cuántas variantes</h3>
 <div class="outline-text-3" id="text-2-3">
 <ul class="org-ul">
 <li>Sin <code>setup</code>: no menos de 16-20 variantes, salvo casos excepcionales.</li>
@@ -506,8 +505,8 @@ una por concepto, son mejores que una megapregunta con mundos anidados.
 </div>
 </div>
 </div>
-<div id="outline-container-org093cc18" class="outline-2">
-<h2 id="org093cc18"><span class="section-number-2">3.</span> Preguntas con números: <code>setup</code>, <code>seed</code> e <code>instances</code></h2>
+<div id="outline-container-org9548600" class="outline-2">
+<h2 id="org9548600"><span class="section-number-2">3.</span> Preguntas con números: <code>setup</code>, <code>seed</code> e <code>instances</code></h2>
 <div class="outline-text-2" id="text-3">
 <p>
 Úsalo cuando el contenido se preste a practicar un cálculo concreto y
@@ -516,8 +515,8 @@ conceptuales (definiciones, propiedades, relaciones lógicas) no hace
 falta <code>setup</code>: bastan los mundos.
 </p>
 </div>
-<div id="outline-container-org926def2" class="outline-3">
-<h3 id="org926def2"><span class="section-number-3">3.1.</span> <code>setup</code></h3>
+<div id="outline-container-orge080a81" class="outline-3">
+<h3 id="orge080a81"><span class="section-number-3">3.1.</span> <code>setup</code></h3>
 <div class="outline-text-3" id="text-3-1">
 <p>
 Es código Python, como cadena, que se ejecuta una vez por variante. Todas
@@ -562,8 +561,8 @@ llaves, escríbela doble: <code>@@{x}</code> se imprime <code>@{x}</code> y no e
 </p>
 </div>
 </div>
-<div id="outline-container-orgf5121f7" class="outline-3">
-<h3 id="orgf5121f7"><span class="section-number-3">3.2.</span> <code>seed</code></h3>
+<div id="outline-container-org6b11edb" class="outline-3">
+<h3 id="org6b11edb"><span class="section-number-3">3.2.</span> <code>seed</code></h3>
 <div class="outline-text-3" id="text-3-2">
 <p>
 Un entero fijo por pregunta, presente solo si el <code>setup</code> usa aleatorios.
@@ -573,8 +572,8 @@ número de la lección.
 </p>
 </div>
 </div>
-<div id="outline-container-org96323ef" class="outline-3">
-<h3 id="org96323ef"><span class="section-number-3">3.3.</span> <code>instances</code></h3>
+<div id="outline-container-org5db24dd" class="outline-3">
+<h3 id="org5db24dd"><span class="section-number-3">3.3.</span> <code>instances</code></h3>
 <div class="outline-text-3" id="text-3-3">
 <p>
 Cada recorrido de las variantes llama al <code>setup</code> una vez por variante; con
@@ -582,7 +581,7 @@ Cada recorrido de las variantes llama al <code>setup</code> una vez por variante
 regla:
 </p>
 
-<pre class="example" id="orgb098e42">
+<pre class="example" id="orgf575406">
 instances = max(1, ceil(60 / variantes_por_instancia))
 </pre>
 
@@ -595,8 +594,8 @@ total real puede diferir un poco). Sin <code>setup</code> aleatorio, no pongas
 </p>
 </div>
 </div>
-<div id="outline-container-org949b480" class="outline-3">
-<h3 id="org949b480"><span class="section-number-3">3.4.</span> Sortear textos, no solo números</h3>
+<div id="outline-container-org7ac5133" class="outline-3">
+<h3 id="org7ac5133"><span class="section-number-3">3.4.</span> Sortear textos, no solo números</h3>
 <div class="outline-text-3" id="text-3-4">
 <p>
 El <code>setup</code> puede sortear cualquier cosa: nombres, países, décadas, frases.
@@ -635,13 +634,13 @@ PREGUNTA = ProblemaTipo(
 La pregunta <code>L-03-PoliticaArancelaria</code> de la plantilla es la versión
 completa de este ejemplo (sin la última cuestión, que solo ilustra la
 lambda). Dos detalles de prosa: el <code>%</code> lleva barra (<code>\%</code>) y la cadena que
-lo contiene es cruda (<code>r"…"</code>), ver la sección <a href="#orgae848fb">7</a>; y con opciones de una
+lo contiene es cruda (<code>r"…"</code>), ver la sección <a href="#orgbda0c3d">7</a>; y con opciones de una
 línea o más conviene <code>cols = 1</code>.
 </p>
 </div>
 </div>
-<div id="outline-container-org6a7a61c" class="outline-3">
-<h3 id="org6a7a61c"><span class="section-number-3">3.5.</span> No afirmes nada falso sobre los números: <code>precond</code> con lambda</h3>
+<div id="outline-container-orgb0074d3" class="outline-3">
+<h3 id="orgb0074d3"><span class="section-number-3">3.5.</span> No afirmes nada falso sobre los números: <code>precond</code> con lambda</h3>
 <div class="outline-text-3" id="text-3-5">
 <p>
 El motor razona de forma proposicional y <b>no conoce</b> los valores. Si
@@ -674,8 +673,8 @@ lambda escrita como función Python no se puede guardar.
 </p>
 </div>
 </div>
-<div id="outline-container-org04fba50" class="outline-3">
-<h3 id="org04fba50"><span class="section-number-3">3.6.</span> Cuando la verdad depende de los números: <code>semantica</code> con lambda</h3>
+<div id="outline-container-org8c1b4ea" class="outline-3">
+<h3 id="org8c1b4ea"><span class="section-number-3">3.6.</span> Cuando la verdad depende de los números: <code>semantica</code> con lambda</h3>
 <div class="outline-text-3" id="text-3-6">
 <p>
 Si lo que decide la corrección es un cálculo (no un mundo), la semántica
@@ -698,8 +697,8 @@ etiquetas huérfanas y lo dice con un INFO.
 </p>
 </div>
 </div>
-<div id="outline-container-org108e9c0" class="outline-3">
-<h3 id="org108e9c0"><span class="section-number-3">3.7.</span> Casos especiales solo a veces</h3>
+<div id="outline-container-org3e21bcb" class="outline-3">
+<h3 id="org3e21bcb"><span class="section-number-3">3.7.</span> Casos especiales solo a veces</h3>
 <div class="outline-text-3" id="text-3-7">
 <p>
 Si quieres que un caso degenerado (un vector nulo, dos números iguales)
@@ -712,8 +711,8 @@ combinatoria. Comprueba el porcentaje real contando sobre
 </p>
 </div>
 </div>
-<div id="outline-container-org875c89b" class="outline-3">
-<h3 id="org875c89b"><span class="section-number-3">3.8.</span> Dos trampas de los <code>setup</code> aleatorios</h3>
+<div id="outline-container-org59ae178" class="outline-3">
+<h3 id="org59ae178"><span class="section-number-3">3.8.</span> Dos trampas de los <code>setup</code> aleatorios</h3>
 <div class="outline-text-3" id="text-3-8">
 <ul class="org-ul">
 <li><b>Condiciones incompletas.</b> Si una semántica depende de una propiedad
@@ -732,8 +731,8 @@ nulo, dos valores iguales, un factor igual a \(\pm 1\), un vector nulo).</li>
 </div>
 </div>
 </div>
-<div id="outline-container-org7cba447" class="outline-2">
-<h2 id="org7cba447"><span class="section-number-2">4.</span> Qué estilo de pregunta según el contenido</h2>
+<div id="outline-container-org063e53c" class="outline-2">
+<h2 id="org063e53c"><span class="section-number-2">4.</span> Qué estilo de pregunta según el contenido</h2>
 <div class="outline-text-2" id="text-4">
 <ul class="org-ul">
 <li><p>
@@ -783,12 +782,12 @@ señal de alarma.</li>
 </ul>
 </div>
 </div>
-<div id="outline-container-org138fe39" class="outline-2">
-<h2 id="org138fe39"><span class="section-number-2">5.</span> Redactar cuestiones</h2>
+<div id="outline-container-org2d7ca16" class="outline-2">
+<h2 id="org2d7ca16"><span class="section-number-2">5.</span> Redactar cuestiones</h2>
 <div class="outline-text-2" id="text-5">
 </div>
-<div id="outline-container-org6ca50d0" class="outline-3">
-<h3 id="org6ca50d0"><span class="section-number-3">5.1.</span> Cada cuestión se sostiene sola</h3>
+<div id="outline-container-org5132ab8" class="outline-3">
+<h3 id="org5132ab8"><span class="section-number-3">5.1.</span> Cada cuestión se sostiene sola</h3>
 <div class="outline-text-3" id="text-5-1">
 <p>
 Para <b>cada</b> <code>Cuestion</code> candidata (no solo las que salen en la primera
@@ -816,8 +815,8 @@ otra de <b>otro</b> hueco puede salir junto a ella y delatarla.
 </p>
 </div>
 </div>
-<div id="outline-container-org750639a" class="outline-3">
-<h3 id="org750639a"><span class="section-number-3">5.2.</span> Símbolos definidos</h3>
+<div id="outline-container-org3c496c6" class="outline-3">
+<h3 id="org3c496c6"><span class="section-number-3">5.2.</span> Símbolos definidos</h3>
 <div class="outline-text-3" id="text-5-2">
 <p>
 Todo símbolo que aparezca en una <code>Cuestion</code> (\(\theta\), \(\alpha\), \(n\), \(U\)…)
@@ -846,8 +845,8 @@ veces con <code>precond</code> distintos.
 </p>
 </div>
 </div>
-<div id="outline-container-orga3f2621" class="outline-3">
-<h3 id="orga3f2621"><span class="section-number-3">5.3.</span> El enunciado desnudo; la justificación, en <code>exp</code></h3>
+<div id="outline-container-org03a47b4" class="outline-3">
+<h3 id="org03a47b4"><span class="section-number-3">5.3.</span> El enunciado desnudo; la justificación, en <code>exp</code></h3>
 <div class="outline-text-3" id="text-5-3">
 <p>
 No escribas «\(X\) se cumple porque \(Y\)» ni «\(X\), por el teorema \(Z\)» dentro
@@ -863,8 +862,8 @@ justificación plausible pero errónea.
 </p>
 </div>
 </div>
-<div id="outline-container-orge16eaff" class="outline-3">
-<h3 id="orge16eaff"><span class="section-number-3">5.4.</span> Gemelas: cada verdadera, con su falsa parecida</h3>
+<div id="outline-container-org5013fc9" class="outline-3">
+<h3 id="org5013fc9"><span class="section-number-3">5.4.</span> Gemelas: cada verdadera, con su falsa parecida</h3>
 <div class="outline-text-3" id="text-5-4">
 <p>
 La estrategia más eficaz para que una pregunta discrimine: <b>cada vez que
@@ -884,8 +883,8 @@ comprobar nada.
 </p>
 </div>
 </div>
-<div id="outline-container-org672096d" class="outline-3">
-<h3 id="org672096d"><span class="section-number-3">5.5.</span> Afirmaciones que no funcionan como opción</h3>
+<div id="outline-container-org8d68ec3" class="outline-3">
+<h3 id="org8d68ec3"><span class="section-number-3">5.5.</span> Afirmaciones que no funcionan como opción</h3>
 <div class="outline-text-3" id="text-5-5">
 <ul class="org-ul">
 <li><b>Igualdades con ambos lados ya calculados</b> («\(20 = 4\)»): se responden
@@ -912,8 +911,8 @@ rómpelo (intercambio aleatorio de papeles).</li>
 </ul>
 </div>
 </div>
-<div id="outline-container-orgc0783fe" class="outline-3">
-<h3 id="orgc0783fe"><span class="section-number-3">5.6.</span> Textos cortos</h3>
+<div id="outline-container-org7e8ca59" class="outline-3">
+<h3 id="org7e8ca59"><span class="section-number-3">5.6.</span> Textos cortos</h3>
 <div class="outline-text-3" id="text-5-6">
 <p>
 Cuanto más corta sea cada pregunta, más caben por página. Antes de dar un
@@ -935,8 +934,8 @@ encabezado).
 </div>
 </div>
 </div>
-<div id="outline-container-org26331de" class="outline-2">
-<h2 id="org26331de"><span class="section-number-2">6.</span> Escribir <code>exp</code></h2>
+<div id="outline-container-orgc19880f" class="outline-2">
+<h2 id="orgc19880f"><span class="section-number-2">6.</span> Escribir <code>exp</code></h2>
 <div class="outline-text-2" id="text-6">
 <p>
 <code>exp</code> es lo que Moodle muestra <b>después</b> de responder; el alumno la lee
@@ -988,8 +987,8 @@ mundo con <code>precond</code>.
 </p>
 </div>
 </div>
-<div id="outline-container-orgae848fb" class="outline-2">
-<h2 id="orgae848fb"><span class="section-number-2">7.</span> LaTeX y Moodle: trampas conocidas</h2>
+<div id="outline-container-orgbda0c3d" class="outline-2">
+<h2 id="orgbda0c3d"><span class="section-number-2">7.</span> LaTeX y Moodle: trampas conocidas</h2>
 <div class="outline-text-2" id="text-7">
 <p>
 Los textos (enunciados, cuestiones y explicaciones) son LaTeX, aunque no
@@ -1033,8 +1032,8 @@ busca la primera línea que empieza por <code>!</code>.</li>
 </ul>
 </div>
 </div>
-<div id="outline-container-org7000824" class="outline-2">
-<h2 id="org7000824"><span class="section-number-2">8.</span> Proceso de trabajo</h2>
+<div id="outline-container-orgbe5cc00" class="outline-2">
+<h2 id="orgbe5cc00"><span class="section-number-2">8.</span> Proceso de trabajo</h2>
 <div class="outline-text-2" id="text-8">
 <ol class="org-ol">
 <li>Lee el material completo e identifica los resultados que merezca la
@@ -1056,8 +1055,8 @@ escribió, contra el material: la segunda mirada encuentra fallos de
 fondo que ni <code>lint</code> ni el autor ven.</li>
 </ol>
 </div>
-<div id="outline-container-org72eec70" class="outline-3">
-<h3 id="org72eec70"><span class="section-number-3">8.1.</span> Checklist</h3>
+<div id="outline-container-org40c37a1" class="outline-3">
+<h3 id="org40c37a1"><span class="section-number-3">8.1.</span> Checklist</h3>
 <div class="outline-text-3" id="text-8-1">
 <ul class="org-ul">
 <li class="off"><code>[&#xa0;]</code> ¿Cada elemento suelto va sin envolver en una lista de un elemento, y
@@ -1099,8 +1098,8 @@ Si alguna casilla falla, la pregunta no está lista.
 </div>
 </div>
 </div>
-<div id="outline-container-org63d20c5" class="outline-2">
-<h2 id="org63d20c5"><span class="section-number-2">9.</span> El mismo ejemplo en JSON</h2>
+<div id="outline-container-org0c2d36c" class="outline-2">
+<h2 id="org0c2d36c"><span class="section-number-2">9.</span> El mismo ejemplo en JSON</h2>
 <div class="outline-text-2" id="text-9">
 <p>
 Es lo que escribe <code>save_problema</code> (o <code>nueva_pregunta.py --guardar</code>) para el

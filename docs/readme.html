@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2026-10-19 lun 23:55 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>qbank — generador de bancos de preguntas de opción múltiple</title>
@@ -18,29 +17,29 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#org23ee030">Instalación</a></li>
-<li><a href="#org45a50a0">Crear un banco de preguntas</a></li>
-<li><a href="#org63b61ed">Uso rápido</a></li>
-<li><a href="#org3ec54ff">Características</a>
+<li><a href="#org3d675b1">Instalación</a></li>
+<li><a href="#org5f0dd8f">Crear un banco de preguntas</a></li>
+<li><a href="#orgc777690">Uso rápido</a></li>
+<li><a href="#org6b11edb">Características</a>
 <ul>
-<li><a href="#orge356820">Generación combinatoria de variantes</a></li>
-<li><a href="#org4952e73">Preguntas multi-parte</a></li>
-<li><a href="#org125612d">Preguntas paramétricas con <code>setup</code></a></li>
-<li><a href="#org2d5310a">Persistencia en formato JSON</a></li>
-<li><a href="#org187415c">Editor visual en Jupyter</a></li>
-<li><a href="#orgd9f3c18">Exportación a AMC y Moodle</a></li>
-<li><a href="#org3fce9f2">Exportación a código Python editable</a></li>
-<li><a href="#orgdc206a8">Comprobación automática de preguntas (<code>lint</code>)</a></li>
+<li><a href="#org51b245b">Generación combinatoria de variantes</a></li>
+<li><a href="#org135c64a">Preguntas multi-parte</a></li>
+<li><a href="#org5b4e0f3">Preguntas paramétricas con <code>setup</code></a></li>
+<li><a href="#orga628d71">Persistencia en formato JSON</a></li>
+<li><a href="#org2126854">Editor visual en Jupyter</a></li>
+<li><a href="#orgdeb54a3">Exportación a AMC y Moodle</a></li>
+<li><a href="#org9548600">Exportación a código Python editable</a></li>
+<li><a href="#orge080a81">Comprobación automática de preguntas (<code>lint</code>)</a></li>
 </ul>
 </li>
-<li><a href="#orgd5996d5">Documentación</a></li>
-<li><a href="#orgac7977b">Tests</a></li>
-<li><a href="#orgdd3ffa3">Autoría y licencia</a></li>
+<li><a href="#org5db24dd">Documentación</a></li>
+<li><a href="#org7ac5133">Tests</a></li>
+<li><a href="#orgb0074d3">Autoría y licencia</a></li>
 </ul>
 </div>
 </nav>
 
-<figure id="org7e7b3fb">
+<figure id="org17b9b4d">
 <a href="https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt="badge_logo.svg" class="org-svg"></a>
 
 </figure>
@@ -56,9 +55,9 @@ veracidad o falsedad de cada cuestión según las hipótesis activas y exporta e
 <p>
 Construido sobre <a href="https://github.com/mbujosab/calcprop"><code>calcprop</code></a>.
 </p>
-<div id="outline-container-org23ee030" class="outline-2">
-<h2 id="org23ee030">Instalación</h2>
-<div class="outline-text-2" id="text-org23ee030">
+<div id="outline-container-org3d675b1" class="outline-2">
+<h2 id="org3d675b1">Instalación</h2>
+<div class="outline-text-2" id="text-org3d675b1">
 <p>
 Conviene instalar dentro de un entorno virtual (en Debian, Ubuntu o con el
 Python de Homebrew, <code>pip</code> fuera de uno da <code>externally-managed-environment</code>):
@@ -108,9 +107,9 @@ instalar nada con la insignia de MyBinder de arriba.
 </p>
 </div>
 </div>
-<div id="outline-container-org45a50a0" class="outline-2">
-<h2 id="org45a50a0">Crear un banco de preguntas</h2>
-<div class="outline-text-2" id="text-org45a50a0">
+<div id="outline-container-org5f0dd8f" class="outline-2">
+<h2 id="org5f0dd8f">Crear un banco de preguntas</h2>
+<div class="outline-text-2" id="text-org5f0dd8f">
 <p>
 La forma recomendada de empezar es la plantilla de proyecto que se distribuye
 con el paquete (<code>qbank-init</code> necesita la versión 0.6 o posterior):
@@ -140,9 +139,9 @@ tiene qbank 0.6 o posterior, <code>make</code> se para y lo dice.
 </p>
 </div>
 </div>
-<div id="outline-container-org63b61ed" class="outline-2">
-<h2 id="org63b61ed">Uso rápido</h2>
-<div class="outline-text-2" id="text-org63b61ed">
+<div id="outline-container-orgc777690" class="outline-2">
+<h2 id="orgc777690">Uso rápido</h2>
+<div class="outline-text-2" id="text-orgc777690">
 <div class="org-src-container">
 <pre class="src src-python">from qbank import *
 
@@ -184,13 +183,13 @@ haya (<code>GuiaDiseno.org</code> lo explica).
 </p>
 </div>
 </div>
-<div id="outline-container-org3ec54ff" class="outline-2">
-<h2 id="org3ec54ff">Características</h2>
-<div class="outline-text-2" id="text-org3ec54ff">
+<div id="outline-container-org6b11edb" class="outline-2">
+<h2 id="org6b11edb">Características</h2>
+<div class="outline-text-2" id="text-org6b11edb">
 </div>
-<div id="outline-container-orge356820" class="outline-3">
-<h3 id="orge356820">Generación combinatoria de variantes</h3>
-<div class="outline-text-3" id="text-orge356820">
+<div id="outline-container-org51b245b" class="outline-3">
+<h3 id="org51b245b">Generación combinatoria de variantes</h3>
+<div class="outline-text-3" id="text-org51b245b">
 <p>
 <code>ProblemaTipo</code> toma una lista de supuestos y cuestiones (cada uno con su semántica
 proposicional) y genera todas las combinaciones posibles. Para cada variante
@@ -207,9 +206,9 @@ facilitando la revisión del banco.
 </p>
 </div>
 </div>
-<div id="outline-container-org4952e73" class="outline-3">
-<h3 id="org4952e73">Preguntas multi-parte</h3>
-<div class="outline-text-3" id="text-org4952e73">
+<div id="outline-container-org135c64a" class="outline-3">
+<h3 id="org135c64a">Preguntas multi-parte</h3>
+<div class="outline-text-3" id="text-org135c64a">
 <p>
 La misma lista plana de componentes admite varias partes: cada vez que tras un
 bloque de cuestiones aparece texto o un <code>Supuesto</code> se abre una parte nueva. Es
@@ -257,9 +256,9 @@ pero están deprecados y devuelven un <code>ProblemaTipo</code> equivalente.)
 </p>
 </div>
 </div>
-<div id="outline-container-org125612d" class="outline-3">
-<h3 id="org125612d">Preguntas paramétricas con <code>setup</code></h3>
-<div class="outline-text-3" id="text-org125612d">
+<div id="outline-container-org5b4e0f3" class="outline-3">
+<h3 id="org5b4e0f3">Preguntas paramétricas con <code>setup</code></h3>
+<div class="outline-text-3" id="text-org5b4e0f3">
 <p>
 El parámetro <code>setup</code> (código Python, como cadena) se ejecuta antes de cada
 variante; sus variables se interpolan en los textos con <code>@{variable}</code> y
@@ -292,9 +291,9 @@ numpy.
 </p>
 </div>
 </div>
-<div id="outline-container-org2d5310a" class="outline-3">
-<h3 id="org2d5310a">Persistencia en formato JSON</h3>
-<div class="outline-text-3" id="text-org2d5310a">
+<div id="outline-container-orga628d71" class="outline-3">
+<h3 id="orga628d71">Persistencia en formato JSON</h3>
+<div class="outline-text-3" id="text-orga628d71">
 <p>
 Guarda y carga problemas (<code>ProblemaTipo</code>, <code>ProblemaVF</code>) sin reescribir el
 código Python:
@@ -313,9 +312,9 @@ Para bancos de múltiples problemas: <code>load_banco</code> / <code>save_banco<
 </p>
 </div>
 </div>
-<div id="outline-container-org187415c" class="outline-3">
-<h3 id="org187415c">Editor visual en Jupyter</h3>
-<div class="outline-text-3" id="text-org187415c">
+<div id="outline-container-org2126854" class="outline-3">
+<h3 id="org2126854">Editor visual en Jupyter</h3>
+<div class="outline-text-3" id="text-org2126854">
 <p>
 <code>ProblemaTipoEditor</code> es un formulario interactivo (requiere <code>ipywidgets</code>) que
 permite construir, previsualizar y guardar problemas sin escribir código:
@@ -336,13 +335,13 @@ Ver <a href="https://github.com/mbujosab/calcprop-qbank/blob/main/Manual.org">Ma
 </p>
 </div>
 </div>
-<div id="outline-container-orgd9f3c18" class="outline-3">
-<h3 id="orgd9f3c18">Exportación a AMC y Moodle</h3>
-<div class="outline-text-3" id="text-orgd9f3c18">
+<div id="outline-container-orgdeb54a3" class="outline-3">
+<h3 id="orgdeb54a3">Exportación a AMC y Moodle</h3>
+<div class="outline-text-3" id="text-orgdeb54a3">
 </div>
-<div id="outline-container-org754d32e" class="outline-4">
-<h4 id="org754d32e">Formato AMC (LaTeX)</h4>
-<div class="outline-text-4" id="text-org754d32e">
+<div id="outline-container-orgf64f25e" class="outline-4">
+<h4 id="orgf64f25e">Formato AMC (LaTeX)</h4>
+<div class="outline-text-4" id="text-orgf64f25e">
 <p>
 Las funciones de exportación <b>no leen</b> el campo <code>export</code> del problema:
 pásales <code>last_choice=</code>, <code>instances=</code> y <code>cols=</code> tú mismo. Los scripts de un banco
@@ -383,9 +382,9 @@ print(f"{n} bloque(s) escritos")
 </div>
 </div>
 </div>
-<div id="outline-container-org5a9f762" class="outline-4">
-<h4 id="org5a9f762">Formato Moodle (XML vía LaTeX)</h4>
-<div class="outline-text-4" id="text-org5a9f762">
+<div id="outline-container-org5ecd7e8" class="outline-4">
+<h4 id="org5ecd7e8">Formato Moodle (XML vía LaTeX)</h4>
+<div class="outline-text-4" id="text-org5ecd7e8">
 <div class="org-src-container">
 <pre class="src src-python">import os
 os.makedirs("exportaciones", exist_ok=True)
@@ -416,9 +415,9 @@ Para preguntas <code>ProblemaVF</code>: <code>QuizVFMoodle</code>.
 </div>
 </div>
 </div>
-<div id="outline-container-org3fce9f2" class="outline-3">
-<h3 id="org3fce9f2">Exportación a código Python editable</h3>
-<div class="outline-text-3" id="text-org3fce9f2">
+<div id="outline-container-org9548600" class="outline-3">
+<h3 id="org9548600">Exportación a código Python editable</h3>
+<div class="outline-text-3" id="text-org9548600">
 <p>
 <code>save_problema_py</code> genera un fichero <code>.py</code> con la definición del problema como
 listas editables:
@@ -437,9 +436,9 @@ ejecutarse directamente con Python.
 </p>
 </div>
 </div>
-<div id="outline-container-orgdc206a8" class="outline-3">
-<h3 id="orgdc206a8">Comprobación automática de preguntas (<code>lint</code>)</h3>
-<div class="outline-text-3" id="text-orgdc206a8">
+<div id="outline-container-orge080a81" class="outline-3">
+<h3 id="orge080a81">Comprobación automática de preguntas (<code>lint</code>)</h3>
+<div class="outline-text-3" id="text-orge080a81">
 <p>
 <code>lint</code> revisa un problema (objeto, dict o ruta a JSON) sin modificar nada ni
 compilar LaTeX y devuelve una lista de <code>Aviso(nivel, codigo, mensaje, donde)</code>
@@ -478,9 +477,9 @@ localizar distractores constantes.
 </div>
 </div>
 </div>
-<div id="outline-container-orgd5996d5" class="outline-2">
-<h2 id="orgd5996d5">Documentación</h2>
-<div class="outline-text-2" id="text-orgd5996d5">
+<div id="outline-container-org5db24dd" class="outline-2">
+<h2 id="org5db24dd">Documentación</h2>
+<div class="outline-text-2" id="text-org5db24dd">
 <p>
 Todo se puede leer sin clonar el repositorio en
 <a href="https://mbujosab.github.io/calcprop-qbank/">mbujosab.github.io/calcprop-qbank</a> (HTML y PDF). En este orden:
@@ -501,18 +500,18 @@ de cuestiones y explicaciones, trampas de LaTeX/Moodle y checklist.</li>
 </ul>
 </div>
 </div>
-<div id="outline-container-orgac7977b" class="outline-2">
-<h2 id="orgac7977b">Tests</h2>
-<div class="outline-text-2" id="text-orgac7977b">
+<div id="outline-container-org7ac5133" class="outline-2">
+<h2 id="org7ac5133">Tests</h2>
+<div class="outline-text-2" id="text-org7ac5133">
 <div class="org-src-container">
 <pre class="src src-bash">pytest
 </pre>
 </div>
 </div>
 </div>
-<div id="outline-container-orgdd3ffa3" class="outline-2">
-<h2 id="orgdd3ffa3">Autoría y licencia</h2>
-<div class="outline-text-2" id="text-orgdd3ffa3">
+<div id="outline-container-orgb0074d3" class="outline-2">
+<h2 id="orgb0074d3">Autoría y licencia</h2>
+<div class="outline-text-2" id="text-orgb0074d3">
 <p>
 Copyright (C) 2020-2026  Andrés Bujosa, Marcos Bujosa (<code>_quiz</code>) <br>
 Copyright (C) 2020-2026  Marcos Bujosa (<code>_export</code>, <code>_json</code>, <code>_widgets</code>)

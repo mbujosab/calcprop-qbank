@@ -6,6 +6,6 @@ set -eu
 cd "$(dirname "$0")/.."
 mkdir -p docs
 emacs --batch -l tools/web.el
-cp GuiaDiseno.pdf Manual.pdf docs/
+cp GuiaDiseno.pdf Manual.pdf Fase5-prueba.pdf docs/
 touch docs/.nojekyll          # Pages sirve los ficheros tal cual, sin Jekyll
 echo "docs/ regenerado: $(ls docs | tr '\n' ' ')"
