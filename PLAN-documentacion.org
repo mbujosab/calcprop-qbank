@@ -218,39 +218,30 @@ contenido, redacción de cuestiones, =exp=, LaTeX/Moodle, proceso y
 checklist, y el mismo ejemplo en JSON (D2). Con PDF (=GuiaDiseno.pdf=).
 Enlazada desde README, CLAUDE.md y el README de la plantilla.
 
-** TODO Fase 3 — Un solo camino de lectura
-Estado (19 de octubre de 2026): hechos 3a (los nueve JSON de
-=ejemplosManual/= pasan =lint= sin avisos), 3b (=Tutorial.ipynb= reescrito)
-y 3c (=Manual.org= reescrito como referencia, con apéndice de API avanzada
-y FAQ de figuras; =ProblemaTipoProfe= avisa de deprecación). Quedan: 3d
-=Demo.ipynb= y =Ejemplos.ipynb= (xelatex/.xml, botones del editor,
-=random=, listas de dos =Cuestion=, cabeceras rotas, =salida/=), 3e limpieza
-de =CalcPropExport.org= (bloques muertos y sección COMMENT con API antigua),
-3f terminología en README/CLAUDE.md, mención de figuras en el README de
-la plantilla, y regenerar los PDF literate.
-- [ ] README: qué es, instalación, ejemplo de 5 minutos *con tres opciones
-  y =last_choice=*, =qbank-init=, enlaces en orden (Tutorial → Guía →
-  Manual).
-- [ ] =Tutorial.ipynb=: añadir =export=, =lint= y la advertencia sobre las
-  listas; ejemplo que muestre el JSON y la lista Python equivalentes.
-- [ ] =Manual.org=: incorporar «El Marcador», axiomas y la tabla de
-  precedencia de =qbank-econometria/tutorial.org= (son genéricos);
-  documentar =export= y =seed= en la sección JSON; ejemplos con
-  =np.random=; relegar =ProblemaVF=, el editor de widgets y las clases
-  deprecadas a un apéndice «API avanzada»; =Ejemplos.ipynb= escribe en
-  =banco_preguntas_econometria/= → usar =salida/=.
-- [ ] =ejemplosManual/*.json=: =numeros=, =superheroes=, =ejercicio= y
-  =matriz_rango= tienen errores de mezcla y avisos =pocas-opciones=;
-  rehacerlos con el patrón 3 cuestiones + =last_choice= (son los que usan
-  Demo.ipynb y el Manual).
-- [ ] Notebooks: dejar claro el papel de cada uno (Tutorial = camino del
-  autor de bancos; Demo = recorrido de la API; Ejemplos = caso de
-  econometría) o fundir Demo en Tutorial.
-- [ ] =CalcPropExport.org=: retirar o actualizar las secciones de ejemplos
-  con API antigua (=ProblemaTipoProfe=, =AMCmcProfe=, =bancoPreguntas/=).
-- [ ] Decidir el futuro de =AMC_multipart= (¿lo cubren =QuizMoodle= y
-  =AMCblock=?).
-- [ ] Regenerar =Manual.pdf=.
+** DONE Fase 3 — Un solo camino de lectura
+Cerrada el 19 de octubre de 2026 (commits 47c2f30 → 0ba96bf).
+- [X] 3a =ejemplosManual/*.json=: los nueve pasan =lint= sin avisos
+  (=numeros=, =superheroes=, =ejercicio= y =matriz_rango= rehechos con el
+  patrón 3 huecos + =last_choice=; =np.random= + =seed= + =instances=).
+- [X] 3b =Tutorial.ipynb= reescrito (vocabulario y advertencia sobre las
+  listas, =export= visible, lista Python equivalente, =lint=, =qbank-init=).
+- [X] 3c =Manual.org= reescrito como referencia: firmas correctas, formato
+  JSON completo (=export=, =seed=, claves propias), =setup= como cadena con
+  =np.random=, lista de reglas de =lint=, FAQ (incl. figuras), apéndice
+  «API avanzada» con =ProblemaVF=, clases deprecadas (=ProblemaTipoProfe=
+  avisa) y el editor con sus botones reales. =Manual.pdf= regenerado.
+- [X] 3d =Demo.ipynb= (recorrido por la API Python) y =Ejemplos.ipynb= (caso
+  de econometría) reescritos y ejecutados; papel de cada cuaderno explicado
+  en su primera celda. Salidas en =mis_problemas/= y =exportaciones/=.
+- [X] 3e =CalcPropExport.org=: fuera =creaDiccionario= y la sección COMMENT
+  con API antigua; =CalcPropQuiz.org=: fuera «COMMENT otros». PDF literate
+  regenerados.
+- [X] 3f terminología (vista profe, opción por defecto, hueco) en README;
+  «cinco preguntas de ejemplo»; figuras en el README de la plantilla.
+- [ ] Pendiente de decidir: el futuro de =AMC_multipart= (ahora lo usan los
+  scripts de la plantilla y de ambos bancos para la vista profe; ver
+  memoria =project_amc_multipart_pending=). Conversión de figuras PDF→PNG
+  en los scripts de Moodle de la plantilla (hoy solo en qbank-PEconometria).
 
 ** TODO Fase 4 — Prompts reutilizables para quien use una IA
 - [ ] =prompts/PROMPT-qbank-generico.org= corto (≈100 líneas): remite a
