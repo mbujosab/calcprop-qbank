@@ -1,0 +1,719 @@
+#+TITLE: Guía de diseño de preguntas con =qbank=
+#+AUTHOR: Marcos Bujosa
+#+LANGUAGE: es
+#+OPTIONS: toc:2 num:t
+#+STARTUP: overview
+
+# ─── Copyright ──────────────────────────────────────────────────────────────
+# Copyright (C) 2020-2026  Marcos Bujosa
+# GNU General Public License v3 or later — see <https://www.gnu.org/licenses/>
+
+#+LATEX_CLASS: article
+#+LATEX_CLASS_OPTIONS: [11pt,a4paper]
+#+LATEX_HEADER: \usepackage[margin=2.5cm]{geometry}
+#+LATEX_HEADER: \usepackage{fontspec}
+#+LATEX_HEADER: \setmainfont{Latin Modern Roman}
+#+LATEX_HEADER: \setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase]
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage{amssymb}
+#+LATEX_HEADER: \usepackage{newunicodechar}
+#+LATEX_HEADER: \newunicodechar{✓}{\checkmark}
+#+LATEX_HEADER: \newunicodechar{✗}{$\times$}
+#+LATEX_HEADER: \newunicodechar{≥}{$\geq$}
+#+LATEX_HEADER: \usepackage{etoolbox}
+#+LATEX_HEADER: \AtBeginEnvironment{verbatim}{\small}
+
+Esta guía explica *cómo diseñar buenas preguntas* con =qbank=: qué hace el
+motor con lo que escribes, qué patrón de pregunta conviene adoptar y qué
+errores de redacción se repiten una y otra vez. No es la referencia de la
+API (eso es =Manual.org=) ni un recorrido por ejemplos (=Tutorial.ipynb=): es
+lo que hay que tener en la cabeza antes de escribir una pregunta y lo que
+hay que comprobar después.
+
+Supone que tienes un proyecto creado con =qbank-init= (ver =README.org=) y
+que sabes lanzar =make lint= y =make amc=. Los ejemplos se escriben como
+listas de Python, que se leen mejor; el JSON equivalente aparece una vez
+completo en la sección [[*El mismo ejemplo en JSON][El mismo ejemplo en JSON]]. Todo lo que se dice vale
+igual para los dos formatos.
+
+* La mecánica en una página
+
+** Las tres piezas
+
+Una pregunta (=ProblemaTipo=) es una lista plana de componentes de tres tipos:
+
+- *Texto* (una cadena): fragmento fijo del enunciado.
+- *Supuesto*: fragmento de enunciado que, además de texto, aporta una
+  *hipótesis lógica* (=semantica=) al resto de la variante.
+- *Cuestion*: una afirmación que se ofrece como opción de respuesta. Se
+  marca *correcta* si su =semantica= es consecuencia lógica de las
+  hipótesis acumuladas en esa variante; si no, incorrecta.
+
+Las dos últimas tienen un campo =precond=: la condición que deben cumplir
+las hipótesis ya aceptadas (o los números del =setup=) para que ese
+componente pueda aparecer. Si no se cumple, *toda la variante se
+descarta*: no se muestra al alumno. =precond= no convierte una opción en
+incorrecta; la quita de en medio.
+
+Las fórmulas se escriben con =calcprop=: =v('A')= es una proposición
+atómica cuyo nombre eliges tú y solo tiene que ser consistente dentro de la
+misma pregunta; =-=, =&=, =|=, =>>= y =**= son negación, conjunción,
+disyunción, implicación y equivalencia; =unoDe(A, B, C)= («exactamente
+una») y =alguno(A, B, C)= («al menos una») evitan anidar operadores. =True=
+y =False= valen como fórmulas para afirmaciones siempre ciertas o siempre
+falsas sea cual sea el mundo.
+
+La pregunta que el motor se hace para cada =Cuestion= es «¿se deduce
+esto de las hipótesis?», no «¿es verdad en el mundo real?». Esa
+distinción está detrás de casi todo lo que sigue.
+
+** Listas = sorteo; elementos consecutivos = opciones
+
+Cada componente de la lista plana es, o bien un valor suelto, o bien una
+*lista de dos o más valores del mismo tipo*. En cada variante:
+
+- un valor suelto siempre se incluye;
+- de una lista de $N$ alternativas se elige *una sola*.
+
+El número total de variantes es el producto de las longitudes de todas las
+listas. Y aquí está la consecuencia que rompe la intuición de casi todo el
+que empieza:
+
+#+begin_quote
+Una lista de varias =Cuestion= *no* significa «estas $N$ afirmaciones se
+muestran juntas como las $N$ opciones de la pregunta». Significa «en cada
+variante se sorteará una de estas $N$». El alumno ve tantas opciones como
+*elementos-Cuestion consecutivos* haya en la lista plana (sueltos o cada
+uno como su propia lista de alternativas), más la opción por defecto si
+=export.last_choice= está activo.
+#+end_quote
+
+#+begin_example
+  [ "Enunciado ",
+    [ S1, S2, S3 ],          ← lista de Supuesto: 3 mundos, se sortea uno
+    " Entonces:",
+    [ C1a, C1b ],            ← hueco 1: se muestra una de las dos
+    C2,                      ← hueco 2: se muestra siempre
+    [ C3a, C3b, C3c ] ]      ← hueco 3: se muestra una de las tres
+
+  Variantes: 3 × 2 × 1 × 3 = 18.   Opciones por variante: 3 (+1 con last_choice).
+#+end_example
+
+Escribir las opciones como *una única lista* de cuatro =Cuestion= produce
+preguntas de una sola opción; escribirlas todas *sueltas* muestra siempre
+las mismas cuatro, sin variedad. =lint= avisa de lo primero
+(=pocas-opciones=) y la vista profe de =make amc= deja ver lo segundo.
+
+Una lista de varias *cadenas de texto* también es válida (alternativas de
+redacción sin lógica asociada), pero se usa poco.
+
+** Mundos, axiomas y la regla de la negación
+
+Una lista de varios =Supuesto= consecutivos son *mundos alternativos*: en
+cada variante se activa uno, su texto entra en el enunciado y su fórmula
+en las hipótesis. Es la forma natural de las preguntas «si se cumple A,
+entonces…; si se cumple B, entonces…»: cada =Cuestion= lleva como
+=semantica= la etiqueta del mundo (o de los mundos) en que es cierta, y
+será correcta solo cuando ese sea el mundo sorteado.
+
+Un =Supuesto= suelto con =enunciado= vacío es un *axioma*: añade su
+fórmula sin añadir texto. Sirve para declarar relaciones entre etiquetas
+que el motor no conoce. La más habitual: que los mundos son excluyentes,
+=unoDe(v('A'), v('B'), v('C'))=.
+
+Sin ese axioma, el motor no puede deducir *negaciones*: de la hipótesis
+=v('crec')= no se sigue =-v('decr')=, porque nada dice que ambas no puedan
+ser ciertas a la vez. Una =Cuestion= con =semantica=-v('decr')= sería falsa
+en todos los mundos (=lint= lo marca como ERROR =negacion=). Dos salidas:
+formular en positivo (=semantica=v('crec')=) o añadir el axioma =unoDe=.
+Con el axioma, además, puedes escribir la semántica de una =Cuestion=
+como disyunción de los mundos en que es cierta (=v('A') | v('B')=).
+
+** Partes
+
+Mientras encadenas elementos-Cuestion sin que aparezca ningún texto ni
+=Supuesto= en medio, todos pertenecen a la *misma parte* (un bloque de
+opciones). En cuanto, después de una =Cuestion=, vuelve a aparecer texto o
+un =Supuesto=, se abre una *parte nueva*: un ejercicio con varios bloques
+de opciones bajo un enunciado común (en Moodle, una pregunta /cloze/). Las
+hipótesis se acumulan a lo largo de todas las partes. Para la mayoría de
+preguntas basta una parte; no fuerces varias si no aportan claridad.
+
+** Cómo se pegan los fragmentos del enunciado
+
+Dos fragmentos consecutivos se concatenan tal cual si alguno de los dos ya
+aporta separación (empieza o termina en espacio, o está vacío); si ninguno
+la aporta, =qbank= inserta un espacio. Para controlar la puntuación: pega
+la coma o el punto al fragmento anterior (="…,"=) y antepón tú el espacio
+al siguiente (=" entonces"=). Ordena las listas de =Supuesto= de modo que
+la puntuación vaya pegada a un fragmento que nunca esté vacío, y revisa
+*todas* las variantes renderizadas: un «, entonces» tras un =Supuesto=
+vacío deja un espacio antes de la coma.
+
+** Un ejemplo completo comentado
+
+#+begin_src python
+from qbank import *
+
+p = ProblemaTipo(
+    [
+        "Sea $f$ una función ",
+        [   # mundos: en cada variante se sortea uno
+            Supuesto("estrictamente creciente", v('crec')),
+            Supuesto("estrictamente decreciente", v('decr')),
+        ],
+        Supuesto("", unoDe(v('crec'), v('decr'))),      # axioma: exactamente uno
+        " y sean $a < b$ dos puntos de su dominio. Entonces:",
+        [   # hueco 1: se muestra una de las dos
+            Cuestion("$f(a) < f(b)$", v('crec'),
+                     exp="Si $f$ crece, $a<b$ implica $f(a)<f(b)$; si decrece, $f(a)>f(b)$."),
+            Cuestion("$f(a) > f(b)$", v('decr'),
+                     exp="Si $f$ crece, $a<b$ implica $f(a)<f(b)$; si decrece, $f(a)>f(b)$."),
+        ],
+        Cuestion("$f(a) = f(b)$", False,                 # hueco 2: se muestra siempre
+                 exp="Una función estrictamente monótona no repite valores."),
+        [   # hueco 3
+            Cuestion("$f(b) - f(a) > 0$", v('crec'),
+                     exp="El signo de $f(b)-f(a)$ con $a<b$ es el de la monotonía."),
+            Cuestion("$f(b) - f(a) < 0$", v('decr'),
+                     exp="El signo de $f(b)-f(a)$ con $a<b$ es el de la monotonía."),
+        ],
+    ],
+    export={"last_choice": True, "cols": 2},
+    nombre="L-01-Monotonia",
+)
+#+end_src
+
+Hay $2 \times 2 \times 1 \times 2 = 8$ variantes; en todas el alumno ve
+tres opciones más «Ninguna de las anteriores». Dos de ellas:
+
+#+begin_example
+1 Sea $f$ una función estrictamente creciente y sean $a < b$ dos puntos de su dominio. Entonces:
+    ✓ $f(a) < f(b)$
+    ✗ $f(a) = f(b)$
+    ✓ $f(b) - f(a) > 0$
+6 Sea $f$ una función estrictamente decreciente y sean $a < b$ dos puntos de su dominio. Entonces:
+    ✗ $f(a) < f(b)$
+    ✗ $f(a) = f(b)$
+    ✓ $f(b) - f(a) < 0$
+#+end_example
+
+Fíjate en que =$f(a) > f(b)$= no está escrita como negación de la otra:
+lleva =v('decr')= y es correcta solo en ese mundo. Y en que la opción fija
+=$f(a) = f(b)$= es siempre falsa: con =last_choice= eso no es un problema
+(hay variantes en las que las tres reales son falsas y la opción por
+defecto pasa a ser la correcta), pero es un distractor que el alumno
+aprende a descartar; =lint= lo señala como INFO =constante=.
+
+La tabla de mundos (=python -m qbank.lint … --tabla=) resume la lógica de
+un vistazo y es la forma más rápida de auditarla:
+
+#+begin_example
+                         M1 M2
+[4.0] $f(a) < f(b)$       V  F
+[4.1] $f(a) > f(b)$       F  V
+[5.0] $f(a) = f(b)$       F  F
+[6.0] $f(b) - f(a) > 0$   V  F
+[6.1] $f(b) - f(a) < 0$   F  V
+#+end_example
+
+Y =lint= dice exactamente lo que falta:
+
+#+begin_example
+AVISO [variantes] solo 8 variantes (mínimo recomendado 16)
+INFO  [constante] falsa en los 2 mundos en que aparece (semantica literal)  @ comp 5[0]: $f(a) = f(b)$
+#+end_example
+
+Ocho variantes son pocas; la sección siguiente dice cómo conseguir más sin
+alargar la pregunta.
+
+* El patrón recomendado: tres huecos y la opción por defecto
+
+** Cuatro opciones con mezcla garantizada
+
+Cada pregunta (cada parte, si hay varias) debe mostrar siempre el mismo
+número de opciones, con la garantía de que *al menos una es correcta y al
+menos una incorrecta* en toda variante (Moodle rechaza una pregunta sin
+ninguna correcta; un examen en papel con «todas verdaderas» regala la
+respuesta). Dos formas de lograrlo:
+
+1. *Tres elementos-Cuestion consecutivos* + ="export": {"last_choice":
+   true}=. La cuarta opción («Ninguna de las anteriores» en AMC, «Las
+   demás opciones son falsas» en Moodle) la calcula el motor: es correcta
+   si y solo si las tres reales son incorrectas. Eso garantiza la mezcla
+   sea cual sea la combinación sorteada, sin pensar. Es el patrón por
+   defecto; las preguntas de ejemplo de =qbank-init= lo siguen.
+2. *Cuatro elementos-Cuestion* sin =last_choice=, solo si puedes demostrar
+   que, para cualquier combinación de mundo y alternativas, nunca salen
+   las cuatro verdaderas ni las cuatro falsas.
+
+=lint= comprueba la garantía sobre *todas* las variantes (ERROR =mezcla=)
+con la misma regla que usan los exportadores.
+
+** Un hueco con una alternativa por mundo
+
+El patrón habitual para cada hueco cuando hay mundos: una lista con una
+=Cuestion= por mundo (con tres mundos A/B/C, tres cuestiones con
+=semantica= =v('A')=, =v('B')=, =v('C')=). En cada variante se sortea una,
+que será correcta solo si coincide con el mundo activo. El número de
+aciertos entre las tres sorteadas varía de forma natural entre variantes
+(0, 1, 2 o 3) sin forzarlo a mano.
+
+Cuando una afirmación es cierta en un mundo y falsa en el otro, prefiere
+*una sola* =Cuestion= con el mismo texto y =semantica=v('mundoA')= a dos
+redacciones (una en positivo para un mundo, otra en negativo para el
+otro): es más corta, y garantiza por construcción que la frase tiene
+sentido sea cual sea el mundo activo. Reserva la lista de alternativas
+para cuando de verdad hay varias formulaciones distintas que sortear.
+
+Cuando *no* hay alternativa natural para un hueco (una afirmación siempre
+verdadera o siempre falsa), déjala como =Cuestion= suelta; no inventes
+alternativas artificiales por rellenar.
+
+** Cuántas variantes
+
+- Sin =setup=: no menos de 16-20 variantes, salvo casos excepcionales.
+- Con =setup= aleatorio: al menos 60 en total, ajustando =export.instances=
+  (=lint= calcula el valor con un INFO =setup=).
+
+La forma más barata de ganar variedad sin alargar ninguna variante
+concreta es envolver en una lista de *dos o tres redacciones cortas
+equivalentes* (mismo significado, misma =semantica=) las =Cuestion= que
+iban sueltas: «está bien definida» / «se puede calcular» / «tiene sentido».
+Una pregunta con $2 \times 2 \times 1 \times 2 = 8$ variantes pasa a
+$2 \times 2 \times 3 \times 2 = 24$ sin que ninguna variante sea más larga.
+
+Añadir mundos solo porque sí no es buena idea: varias preguntas centradas,
+una por concepto, son mejores que una megapregunta con mundos anidados.
+
+* Preguntas con números: =setup=, =seed= e =instances=
+
+Úsalo cuando el contenido se preste a practicar un cálculo concreto y
+quieras que cada alumno vea números distintos. Para preguntas
+conceptuales (definiciones, propiedades, relaciones lógicas) no hace
+falta =setup=: bastan los mundos.
+
+** =setup=
+
+Es código Python, como cadena, que se ejecuta una vez por variante. Todas
+las variables que define (salvo las que empiezan por =_=) quedan
+disponibles para:
+
+- interpolación =@{variable}= en cualquier texto (enunciado, =Supuesto=,
+  =Cuestion= y =exp=);
+- lambdas en =semantica= y =precond=, vía =ns['variable']=.
+
+#+begin_src python
+SETUP = r"""
+import numpy as np
+a = int(np.random.randint(1, 10))
+b = int(np.random.randint(1, 10))
+while b == a:
+    b = int(np.random.randint(1, 10))
+cuad = (a + b) ** 2
+"""
+#+end_src
+
+Usa =np.random= (no =random=): =seed= e =instances= solo actúan sobre el
+generador de =numpy=. Calcula en el =setup= todo lo que vaya a aparecer en
+los textos (la respuesta correcta, los distractores numéricos, cadenas
+enteras si hace falta): los textos solo interpolan, no calculan. Formatea
+ahí también los decimales como quieras que se lean (=f"{x:.2f}"=, coma
+decimal =0{,}5=…), porque la interpolación escribe el valor tal cual.
+
+La interpolación de un nombre desconocido *no falla*: deja =@{nombre}= tal
+cual. =lint= lo detecta (ERROR =interp=), pero revisa igualmente los
+enunciados generados.
+
+** =seed=
+
+Un entero fijo por pregunta, presente solo si el =setup= usa aleatorios.
+Garantiza que la variante «1» sea siempre la misma, independientemente de
+en qué orden se procesen los ficheros del banco. Un convenio cómodo: el
+número de la lección.
+
+** =instances=
+
+Cada recorrido de las variantes llama al =setup= una vez por variante; con
+=export.instances = N= se recorre $N$ veces con semillas distintas. La
+regla:
+
+#+begin_example
+instances = max(1, ceil(60 / variantes_por_instancia))
+#+end_example
+
+=lint= imprime el número de variantes por instancia y el =instances=
+necesario. Sin =setup= aleatorio, no pongas =instances= (o déjalo en 1).
+
+** No afirmes nada falso sobre los números: =precond= con lambda
+
+El motor razona de forma proposicional y *no conoce* los valores. Si
+ofreces los supuestos «$a > b$» y «$a < b$» sin más, generará variantes en
+las que el texto dice $a > b$ con $a = 3$ y $b = 7$. La solución es una
+precondición que solo deje pasar la variante cuando lo que afirma es
+cierto para los números sorteados:
+
+#+begin_src python
+[
+    Supuesto("$a > b$.", True, precond="lambda ns: ns['a'] > ns['b']"),
+    Supuesto("$a < b$.", True, precond="lambda ns: ns['a'] < ns['b']"),
+],
+#+end_src
+
+Las variantes que no superan la precondición se descartan (en la vista
+profe aparecen como «rechazadas»). Lo mismo vale para una =Cuestion=: con
+=precond="lambda ns: ns['k'] != 2"= solo aparece cuando tiene sentido.
+
+Las lambdas se escriben *como cadena* también en Python
+(=precond="lambda ns: …"=): así la pregunta puede guardarse en JSON. Una
+lambda escrita como función Python no se puede guardar.
+
+** Cuando la verdad depende de los números: =semantica= con lambda
+
+Si lo que decide la corrección es un cálculo (no un mundo), la semántica
+es una lambda que devuelve =True= o =False=:
+
+#+begin_src python
+Cuestion("$a^2 > b^2$", "lambda ns: ns['a'] ** 2 > ns['b'] ** 2"),
+#+end_src
+
+Una lambda también puede devolver una *fórmula* y así inyectar en las
+hipótesis el estado de los números (=lambda ns: v('gt') if ns['x'] > 3 else
+-v('gt')= en la semántica de un =Supuesto= axioma); el ejemplo E de
+=Tutorial.ipynb= lo desarrolla.
+
+** Casos especiales solo a veces
+
+Si quieres que un caso degenerado (un vector nulo, dos números iguales)
+aparezca ocasionalmente —ni nunca ni en la mitad de las variantes—, no lo
+controles con una lista de alternativas (eso daría el mismo peso a cada
+una): sortea una probabilidad dentro del =setup=, con ramas excluyentes,
+y condiciona la =semantica= con una lambda. Esto no añade factores a la
+combinatoria. Comprueba el porcentaje real contando sobre
+=p.por_partes(instances=…)= antes de aceptar la pregunta.
+
+** Dos trampas de los =setup= aleatorios
+
+- *Condiciones incompletas.* Si una semántica depende de una propiedad
+  estructural (independencia lineal, coprimalidad…), compruébala entera en
+  el =setup= (rango, máximo común divisor), no solo el caso obvio («¿es
+  nulo?»). Y pruébalo con muchas semillas distintas, no solo con la =seed=
+  del banco: un caso raro puede no aparecer con esa semilla y aun así ser
+  un fallo real cuando cambien =instances= o el rango de valores.
+- *Distractores que coinciden con la respuesta.* Si el =setup= calcula un
+  valor falso para una opción («$(a+b)^2 = @{cuad_falso}$»), asegúrate de
+  que nunca coincide con el correcto; si puede, re-sortea hasta que
+  difieran. En general, excluye en el enunciado o en el =setup= los casos
+  degenerados en que un distractor pasa a ser cierto ($\rho = 0$, $x$
+  constante, $y = 0$, $\lambda = \pm 1$).
+
+* Qué estilo de pregunta según el contenido
+
+- *Definiciones y propiedades*: pregunta puramente lógica, con
+  =Supuesto= / =Cuestion= y sin =setup=.
+- *Resultados condicionales* («si se cumple tal hipótesis, entonces…»):
+  mundos alternativos, uno por hipótesis relevante, y =Cuestion= cuya
+  =semantica= depende del mundo. Úsalos cuando el contenido hace una
+  distinción real; no los fuerces cuando no la hay (una pregunta con
+  varias cuestiones independientes y sin =Supuesto= es perfectamente
+  legítima).
+- *Cálculo numérico*: =setup= con =np.random= e interpolación.
+- *Una pregunta por concepto clave.* No fijes de antemano cuántas preguntas
+  saldrán de un tema: cuenta los resultados genuinamente distintos y deja
+  que ese número decida. Forzar más produce preguntas redundantes.
+- Si un concepto de un tema anterior reaparece generalizado, reutilizar el
+  patrón de aquella pregunta es un refuerzo didáctico legítimo: antes de
+  diseñar una pregunta nueva, mira si ya existe una sobre el concepto que
+  se generaliza.
+- *No evalúes contenido de temas futuros.* Que el material haga un «guiño» a
+  algo que se demuestra más adelante no lo convierte en evaluable con las
+  herramientas de este tema. Si quieres mencionarlo, hazlo en el enunciado
+  o en =exp= como contexto, nunca como algo que juzgar verdadero o falso.
+  Expresiones como «volveremos sobre esto» o «más adelante veremos» son la
+  señal de alarma.
+
+* Redactar cuestiones
+
+** Cada cuestión se sostiene sola
+
+Para *cada* =Cuestion= candidata (no solo las que salen en la primera
+variante), concatena mentalmente el enunciado fijo de esa variante
+(incluido el =Supuesto= activo) con el texto de esa cuestión *sola*. El
+resultado debe ser un texto con sentido pleno, cuya verdad o falsedad
+quede determinada por lo que dice esa concatenación, nunca por lo que
+«podría» haber salido en otro hueco. Como cada hueco se sortea de forma
+independiente, no hay garantía de que ninguna otra cuestión en concreto
+acompañe a la que revisas. Esto descarta:
+
+- «esto ocurre porque…», «esa igualdad se cumple porque…», con un «esto»
+  que presupone una afirmación de otro hueco. Si quieres preguntar por
+  qué se cumple $X$, repite $X$ entero dentro de la cuestión;
+- cualquier =exp= que remita a «el principio anterior» o «la misma idea»
+  señalando a otra cuestión que puede no haberse mostrado.
+
+Dos alternativas del *mismo* hueco nunca se muestran juntas; las de huecos
+distintos, solo a veces. Y una alternativa que es la negación literal de
+otra de *otro* hueco puede salir junto a ella y delatarla.
+
+** Símbolos definidos
+
+Todo símbolo que aparezca en una =Cuestion= ($\theta$, $\alpha$, $n$, $U$…)
+debe estar definido en el enunciado de esa variante o ser notación fija
+del curso que tu proyecto declare como conocida. Si el enunciado fija
+objetos *concretos* («sean $x = (1,2)$ e $y = (3,1)$») y una =Cuestion=
+enuncia una identidad *general*, usa letras distintas en la identidad
+($u$, $v$): con los mismos símbolos, «solo se cumple si $x \perp y$» tiene
+doble lectura cuando esos $x$, $y$ concretos resultan ser ortogonales.
+
+Cuidado también con una =Cuestion= que nombra un símbolo propio de un
+mundo concreto: si su =precond= es =True= (lo normal), puede sortearse bajo
+el mundo contrario, donde ese símbolo nunca se introdujo. Prefiere una
+redacción genérica («el vector que se suma») o restringe la alternativa a
+su mundo con =precond=.
+
+Si varios mundos introducen parámetros análogos, *usa el mismo símbolo en
+todos* los =Supuesto=: cada fórmula con ese símbolo es entonces una única
+=Cuestion= válida en cualquier mundo, con =semantica= igual a la disyunción
+de los mundos donde es cierta, en vez de repetir la misma fórmula varias
+veces con =precond= distintos.
+
+** El enunciado desnudo; la justificación, en =exp=
+
+No escribas «$X$ se cumple porque $Y$» ni «$X$, por el teorema $Z$» dentro
+de una cuestión: pon «$X$» y mueve el porqué a =exp=. Además de acortar la
+pregunta, evita el patrón más fácil de aprender que existe: *la opción
+larga es la verdadera*. Es real y medible: en un banco revisado, las
+opciones verdaderas medían de media entre 1,7 y 2 veces más que las falsas
+porque la verdadera llevaba su «porque…» y la falsa iba desnuda.
+Comprobación mecánica antes de aceptar una pregunta: media de caracteres
+de las opciones verdaderas frente a las falsas; si difieren en más de un
+30 %, quita las justificaciones de las verdaderas o da a las falsas una
+justificación plausible pero errónea.
+
+** Gemelas: cada verdadera, con su falsa parecida
+
+La estrategia más eficaz para que una pregunta discrimine: *cada vez que
+escribas una cuestión verdadera, busca un distractor falso y parecido* en
+el mismo hueco. Es como preguntar lo mismo dos veces, una bien y otra mal:
+distingue a quien sabe por qué algo está bien y sabe identificar el error.
+Y evita los distractores de relleno sin sentido: cada falsa nace de una
+afirmación con sentido. Gemelas típicas: papeles intercambiados
+(numerador/denominador), el signo o la desigualdad al revés, la fórmula
+con el divisor equivocado, el valor numérico con los datos cruzados.
+
+Una afirmación numérica *siempre cierta y sin gemela* («$(a+b)^2 =
+@{cuad}$» sin su «$= @{cuad\_falso}$») se marca sin comprobar nada.
+
+** Afirmaciones que no funcionan como opción
+
+- *Igualdades con ambos lados ya calculados* («$20 = 4$»): se responden
+  por inspección visual. Deja la identidad simbólica o pregunta por el
+  valor de una sola cantidad.
+- *Ejemplos en dimensión muy baja* para ilustrar un cálculo general: con
+  $n = 2$ las dos desviaciones respecto a la media son opuestas, un
+  artefacto que no generaliza. Reserva la dimensión baja para lo que solo
+  tiene sentido ahí (ángulos, ortogonalidad visual).
+- *«Generalmente», «puede cambiar»*: busca la reformulación más fuerte y
+  determinista que capture lo mismo («deja de ser exactamente el mismo»
+  en vez de «generalmente cambia»).
+- *Afirmaciones compuestas* («$R^2 = \rho^2_{y\hat y} \neq \rho^2_{xy}$»,
+  mitad verdadera y mitad falsa): parte en dos o quédate con la mitad que
+  evalúa el concepto.
+- *Cuestiones sobre el modo de exponer* («no hace falta una demostración
+  nueva para esto»): no son una propiedad verificable.
+- *Repetir una cuestión de otro hueco con relleno distinto*: no es una
+  alternativa nueva, y hace que unos alumnos vean menos alternativas
+  realmente distintas que otros.
+- *Patrones fijos que se aprenden* («la regresión A nunca rechaza», «la
+  tercera opción siempre es la buena»): si el =setup= lo produce,
+  rómpelo (intercambio aleatorio de papeles).
+
+** Textos cortos
+
+Cuanto más corta sea cada pregunta, más caben por página. Antes de dar un
+=Supuesto= o una =Cuestion= por buenos, pregúntate si puedes decir lo
+mismo con menos palabras: fuera incisos, ejemplos redundantes con el
+enunciado, explicaciones que ya van en =exp=, la palabra «exactamente»
+cuando no aporta («$\Leftrightarrow$» vale por «ocurre exactamente
+cuando»). El límite es que la pregunta se siga entendiendo sin
+ambigüedad.
+
+Dos columnas (=export.cols = 2=) ocupan menos papel que una en casi todas
+las preguntas, incluidas las de prosa; reserva =cols = 1= para opciones que
+son párrafos largos. Mide con la maquetación real del examen, no con el
+catálogo de revisión (que imprime el nombre de la pregunta en el
+encabezado).
+
+* Escribir =exp=
+
+=exp= es lo que Moodle muestra *después* de responder; el alumno la lee
+junto a la opción, en la variante concreta que le tocó. Reglas:
+
+- *Una razón para cada mundo alcanzable.* Si la =Cuestion= puede aparecer
+  bajo varios mundos (su =precond= no la restringe a uno), =exp= debe dar,
+  para cada uno, una razón concreta anclada en la hipótesis de *ese*
+  mundo, tanto si ahí es verdadera como si es falsa. No basta con explicar
+  el mundo «bueno». Si la razón es genuinamente la misma en varios mundos
+  (un argumento dimensional, por ejemplo), basta una frase que los cubra;
+  el fallo a vigilar es cubrir solo el subconjunto donde la explicación
+  resulta más obvia y olvidar el resto.
+- *Sin jerga del diseño.* Nunca «en el mundo $\lambda > 0$», «en los demás
+  mundos alcanzables», ni las etiquetas de =v('…')=. El alumno solo ve la
+  hipótesis escrita en su enunciado: razona con ella («si $\sigma_x^2 = 0$,
+  …; si $\sigma_x^2 > 0$, …»).
+- *Sin desvelar el diseño global.* Nunca «esta opción es siempre falsa» o
+  «en ninguno de los casos contemplados es cierto», aunque sea verdad: le
+  permite memorizar «esta frase, descártala» en cualquier variante futura,
+  justo lo contrario de lo que se busca al multiplicar variantes.
+- *Autocontenida.* Nada de «es la misma identidad de antes», «el rango
+  anterior al cuadrado», «como en el ejemplo de la educación»: la otra
+  alternativa estaba en el mismo hueco y nunca se muestra a la vez. Repite
+  lo que haga falta (la fórmula, el ejemplo).
+- *Una razón, no un nombre.* «Es la fórmula de cálculo de la varianza» no
+  explica nada; el porqué es justo lo que se quiere fijar. Y «nada obliga
+  a…» donde la afirmación es rotundamente falsa debe sustituirse por la
+  razón concreta.
+- *Compruébala como una demostración.* «Al menos una media no es 0, así que
+  la recta no pasa por el origen» es un razonamiento falso ($y = 3x$
+  exacto). Cada =exp= es una afirmación matemática más que puede estar mal.
+- Con =setup=, interpola los valores concretos (=@{a}=) en vez de quedarte
+  en lo genérico; una sola =exp= con =@{…}= sirve para todas las variantes.
+  Si la explicación depende de una condición numérica, calcula el texto
+  en el =setup= como variable y pon =exp="@{texto_exp}"=; no escribas
+  =exp= como =lambda= en JSON (llegaría literal al alumno).
+- Si una =exp= no aporta nada más allá de lo obvio, déjala vacía.
+
+Revisa también las =Cuestion= con =semantica= =False= a secas: si hay
+mundos, comprueba en la tabla de mundos que esa afirmación no resulte
+accidentalmente cierta en alguno (dos cantidades que en general son
+distintas coinciden en un mundo degenerado). Si ocurre, cambia la
+semántica a la disyunción de los mundos en que es cierta, o excluye ese
+mundo con =precond=.
+
+* LaTeX y Moodle: trampas conocidas
+
+Todo esto lo detecta =lint= cuando es posible (AVISO =texto=); lo que no,
+lo detecta Moodle, y es más caro.
+
+- Fórmulas con =$…$= y =$$…$$=; nunca =\(…\)= ni =\[…\]= directamente
+  (=qbank= convierte =$$…$$= en =\[…\]= al exportar a AMC). Separa dos
+  expresiones en línea contiguas con un espacio (=$A$ $B$=, no =$A$$B$=).
+- *=\%= fuera de las matemáticas*: escribe =al $5$\,\%=, nunca =al
+  $5\,\%$=. El paquete =moodle= deja un =%= desnudo que MathJax toma por
+  comentario y se come el símbolo y lo que sigue. En papel se ve bien; solo
+  se nota en Moodle.
+- *Nada de =°= ni =«»= tecleados a pelo*: grados con =$180^\circ$=, comillas
+  con =``así''=. El paquete =moodle= (codificación OT1) no los admite, y un
+  =°= en modo matemático deja a =pdflatex= colgado sin error.
+- *Tablas con =array= dentro de =$$…$$=*, con =\text{}= en las cabeceras,
+  nunca =tabular=: el paquete =moodle= no lo convierte y el alumno vería el
+  código.
+- En Python, escribe los textos con LaTeX como *cadenas crudas*
+  (=r"$\mathcal{A}$"=) o dobla las barras; en JSON, cada =\= es =\\=.
+- No cites números de lección u otras referencias al material en el texto
+  de la pregunta: las preguntas deben ser autocontenidas.
+- Comprueba cada pregunta nueva en los dos destinos: =make amc= (el PDF) y
+  =make moodle= (el XML, y a ser posible una vista previa en Moodle).
+
+* Proceso de trabajo
+
+1. Lee el material completo e identifica los resultados que merezca la
+   pena evaluar. Cuenta cuántos son; ese es el número de preguntas.
+2. Para cada uno decide el estilo (mundos, =setup= o cuestiones
+   independientes) y diseña sobre papel: qué =Supuesto=, qué huecos, qué
+   =semantica= y =precond=, si hace falta =setup=.
+3. Escribe la pregunta (=nueva_pregunta.py= o el JSON) y pásale =lint=.
+   Un ERROR es una pregunta rota; un AVISO hay que leerlo y decidir.
+4. Genera la vista profe (=make amc=) y repasa *todas* las variantes, no
+   la primera: enunciados bien formados, número de opciones esperado,
+   marcas correctas en cada mundo, varias semillas si hay =setup=.
+5. Pasa el checklist de abajo cuestión por cuestión.
+6. Si algo falla, corrige y vuelve al paso 3; no lo dejes para después.
+7. Antes de publicar, que la lea *otra persona* sin el contexto de quien la
+   escribió, contra el material: la segunda mirada encuentra fallos de
+   fondo que ni =lint= ni el autor ven.
+
+** Checklist
+
+- [ ] ¿Cada elemento suelto va sin envolver en una lista de un elemento, y
+  ninguna lista mezcla tipos?
+- [ ] ¿Cada hueco es un elemento-Cuestion (suelto o lista de alternativas),
+  y hay tres huecos consecutivos + =last_choice= (o cuatro con garantía
+  demostrada)?
+- [ ] ¿=nombre= coincide con el nombre del fichero, sin =:=?
+- [ ] ¿=seed= está solo si el =setup= usa =np.random=, e =instances= da
+  ≥ 60 variantes? ¿Sin =setup=, hay ≥ 16?
+- [ ] ¿Las negaciones tienen su axioma =unoDe=, o están formuladas en
+  positivo?
+- [ ] ¿Cada cuestión, sola con el enunciado de su variante, tiene sentido
+  pleno y verdad inequívoca? ¿Nada remite a otra alternativa?
+- [ ] ¿Todo símbolo está definido, y las identidades generales usan letras
+  distintas de los objetos concretos?
+- [ ] ¿El enunciado afirma solo lo que el =precond= garantiza sobre los
+  números?
+- [ ] ¿Cada verdadera numérica tiene su gemela falsa? ¿Las opciones
+  verdaderas y falsas miden parecido?
+- [ ] ¿Los casos degenerados en que un distractor se vuelve cierto están
+  excluidos?
+- [ ] ¿Cada =exp= justifica cada mundo alcanzable, sin jerga del diseño,
+  sin desvelar el diseño global y sin referencias a otras alternativas?
+- [ ] ¿Fórmulas con =$=, =\%= fuera de matemáticas, sin =°= ni =«»=,
+  tablas con =array=?
+- [ ] ¿Has repasado todas las variantes de la vista profe y, con =setup=,
+  varias semillas?
+
+Si alguna casilla falla, la pregunta no está lista.
+
+* El mismo ejemplo en JSON
+
+Es lo que escribe =save_problema= (o =nueva_pregunta.py --guardar=) para el
+ejemplo de la primera sección, y lo que leen =lint= y los scripts de
+=make=. Las fórmulas y las lambdas van como cadenas; las barras de LaTeX
+se doblan.
+
+#+begin_src json
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "L-01-Monotonia",
+  "setup": null,
+  "export": {"last_choice": true, "cols": 2},
+  "componentes": [
+    "Sea $f$ una función ",
+    [
+      {"tipo": "Supuesto", "enunciado": "estrictamente creciente",
+       "semantica": "v('crec')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "estrictamente decreciente",
+       "semantica": "v('decr')", "precond": "True"}
+    ],
+    {"tipo": "Supuesto", "enunciado": "",
+     "semantica": "unoDe(v('crec'), v('decr'))", "precond": "True"},
+    " y sean $a < b$ dos puntos de su dominio. Entonces:",
+    [
+      {"tipo": "Cuestion", "enunciado": "$f(a) < f(b)$",
+       "semantica": "v('crec')", "precond": "True",
+       "exp": "Si $f$ crece, $a<b$ implica $f(a)<f(b)$; si decrece, $f(a)>f(b)$."},
+      {"tipo": "Cuestion", "enunciado": "$f(a) > f(b)$",
+       "semantica": "v('decr')", "precond": "True",
+       "exp": "Si $f$ crece, $a<b$ implica $f(a)<f(b)$; si decrece, $f(a)>f(b)$."}
+    ],
+    {"tipo": "Cuestion", "enunciado": "$f(a) = f(b)$",
+     "semantica": "False", "precond": "True",
+     "exp": "Una función estrictamente monótona no repite valores."},
+    [
+      {"tipo": "Cuestion", "enunciado": "$f(b) - f(a) > 0$",
+       "semantica": "v('crec')", "precond": "True",
+       "exp": "El signo de $f(b)-f(a)$ con $a<b$ es el de la monotonía."},
+      {"tipo": "Cuestion", "enunciado": "$f(b) - f(a) < 0$",
+       "semantica": "v('decr')", "precond": "True",
+       "exp": "El signo de $f(b)-f(a)$ con $a<b$ es el de la monotonía."}
+    ]
+  ]
+}
+#+end_src
+
+Con =setup=, el campo es una cadena con el código y los saltos de línea
+como =\n=; =seed= va al nivel superior; =export.instances= junto a
+=last_choice= y =cols=. Puedes añadir claves propias de nivel superior
+(="_nivel": "M"=, ="_tema": "…"=): =qbank= las ignora, así que sirven para
+tus metadatos sin romper nada.

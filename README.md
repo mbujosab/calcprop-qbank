@@ -252,6 +252,10 @@ la rechaza su `precond`), para localizar distractores constantes.
 
 # Documentación
 
+-   `GuiaDiseno.org` — cómo diseñar buenas preguntas: la mecánica de
+    listas y mundos, el patrón de tres huecos + opción por defecto,
+    `setup`, redacción de cuestiones y explicaciones, trampas de
+    LaTeX/Moodle y checklist.
 -   `Manual.org` — manual de usuario con ejemplos.
 -   `Tutorial.ipynb` y `ejemplosManual/Demo.ipynb` — cuadernos
     ejecutables (también en MyBinder).

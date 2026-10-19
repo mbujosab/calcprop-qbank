@@ -132,16 +132,18 @@ CLOSED: [2026-10-19]
 - [ ] Publicar 0.6.0 en PyPI para que =pip install calcprop-qbank= traiga
   =qbank-init= (checklist de =CLAUDE.md=).
 
-** TODO Fase 2 — =GuiaDiseno.org= (para personas)
-Destilar de =PROMPT-qbank-generico.org= §2 y §5–§10, sin fechas ni
-referencias a lecciones, organizado por tema: mecánica combinatoria (con
-figura «lista = sorteo; elementos consecutivos = opciones»), patrón 3 +
-=last_choice= y garantía de mezcla, =precond= frente a =semantica=, mundos
-y axiomas, =setup= / =seed= / =instances=, reglas de =exp= (cada mundo
-alcanzable, sin jerga de diseño, sin referencias a otras alternativas),
-gemelas V/F y longitud de opciones, autocontención y símbolos definidos,
-trampas LaTeX/Moodle (=\%= en matemáticas, =°=, =«»=, =tabular=), y el
-checklist final. Ejemplos en listas Python con un JSON completo (D2).
+** DONE Fase 2 — =GuiaDiseno.org= (para personas)
+CLOSED: [2026-10-19]
+Destilada de =PROMPT-qbank-generico.org= §2 y §5–§10 y de las reglas
+generales del prompt específico de PEconometria (gemelas, longitud de
+opciones, =\%=), sin fechas ni referencias a lecciones, organizada por
+tema: mecánica (listas = sorteo; elementos consecutivos = opciones; mundos,
+axiomas y negación; partes; fusión de fragmentos; ejemplo completo con
+variantes, tabla de mundos y salida real de =lint=), patrón 3 huecos +
+=last_choice=, =setup= / =seed= / =instances= y sus trampas, estilo según
+contenido, redacción de cuestiones, =exp=, LaTeX/Moodle, proceso y
+checklist, y el mismo ejemplo en JSON (D2). Con PDF (=GuiaDiseno.pdf=).
+Enlazada desde README, CLAUDE.md y el README de la plantilla.
 
 ** TODO Fase 3 — Un solo camino de lectura
 - [ ] README: qué es, instalación, ejemplo de 5 minutos *con tres opciones

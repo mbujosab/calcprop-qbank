@@ -46,6 +46,11 @@ src/qbank/
 - **`README.md` se genera desde `README.org`:**
   `pandoc -f org -t gfm README.org -o README.md`. Editar siempre el `.org`.
 - `Manual.org` es el manual de usuario (su PDF se exporta desde Emacs).
+- `GuiaDiseno.org` es la guía de diseño de preguntas para personas
+  (mecánica, patrón 3 huecos + `last_choice`, `setup`, redacción, `exp`,
+  trampas LaTeX/Moodle, checklist). Destilada de
+  `qbank-PEconometria/PROMPT-qbank-generico.org`, sin fechas ni referencias
+  a lecciones; los prompts deben remitir a ella, no duplicarla.
 - `PLAN-documentacion.org` es el plan vigente de reorganización de la
   documentación (diagnóstico, decisiones y fases con su estado).
 - `tests/test_lint.py` y `tests/test_export.py` son la suite: `.venv/bin/python -m pytest`.
