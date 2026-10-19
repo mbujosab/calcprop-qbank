@@ -337,7 +337,9 @@ la rechaza su `precond`), para localizar distractores constantes.
 
 # Documentación
 
-En este orden:
+Todo se puede leer sin clonar el repositorio en
+[mbujosab.github.io/calcprop-qbank](https://mbujosab.github.io/calcprop-qbank/)
+(HTML y PDF). En este orden:
 
 -   [`Tutorial.ipynb`](https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb)
     — ejemplos progresivos ejecutables (también en MyBinder);

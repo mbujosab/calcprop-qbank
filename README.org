@@ -330,7 +330,8 @@ localizar distractores constantes.
 
 * Documentación
 
-En este orden:
+Todo se puede leer sin clonar el repositorio en
+[[https://mbujosab.github.io/calcprop-qbank/][mbujosab.github.io/calcprop-qbank]] (HTML y PDF). En este orden:
 
 - [[https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb][=Tutorial.ipynb=]] — ejemplos progresivos ejecutables (también en MyBinder);
   [[https://github.com/mbujosab/calcprop-qbank/blob/main/ejemplosManual/Demo.ipynb][=ejemplosManual/Demo.ipynb=]] recorre la API Python.

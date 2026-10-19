@@ -46,6 +46,15 @@ src/qbank/
 - **`README.md` se genera desde `README.org`:**
   `pandoc -f org -t gfm README.org -o README.md`. Editar siempre el `.org`.
 - `Manual.org` es el manual de usuario (su PDF se exporta desde Emacs).
+- **`docs/` es la web de GitHub Pages** (https://mbujosab.github.io/calcprop-qbank/,
+  servida desde `main:/docs`) y **se genera con `sh tools/web.sh`; no se edita
+  a mano** (salvo `docs/style.css`, la hoja única). `tools/web.el` exporta
+  `index.org` (portada, en la raíz), `README.org`, el README de la plantilla,
+  `GuiaDiseno.org` y `Manual.org` a HTML y copia los dos PDF (regenéralos
+  antes). Los ajustes de HTML van en `web.el`, no en los `.org`: sin CSS ni
+  JavaScript de Org, sin MathJax (las fórmulas sencillas pasan a Unicode, el
+  resto queda en LaTeX), índice de dos niveles. Un fragmento solo para HTML
+  en un `.org` va como `@@html:…@@` junto a su `@@latex:…@@`.
 - `GuiaDiseno.org` es la guía de diseño de preguntas para personas
   (mecánica, patrón 3 huecos + `last_choice`, `setup`, redacción, `exp`,
   trampas LaTeX/Moodle, checklist). Destilada de
@@ -293,6 +302,9 @@ reescribe (sin salidas, kernel `qbank`) y, con `--ejecuta`, los ejecuta con
 4. Añadir `numpy` (y cualquier dependencia nueva) a `binder/requirements.txt`
    para forzar rebuild de la imagen MyBinder.
 5. Verificar que los tres notebooks arrancan en MyBinder.
+5b. Regenerar los PDF si cambiaron los `.org`, después `sh tools/web.sh`,
+    commit y push de `docs/` (Pages publica desde `main`), y crear la release:
+    `gh release create vX.Y.Z --title "qbank X.Y.Z" --notes "…"`.
 6. Actualizar el entorno del banco de econometría:
    `pip install -e /ruta/a/qbank` (o `pip install calcprop-qbank==X.Y.Z`).
 
