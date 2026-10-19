@@ -219,6 +219,15 @@ checklist, y el mismo ejemplo en JSON (D2). Con PDF (=GuiaDiseno.pdf=).
 Enlazada desde README, CLAUDE.md y el README de la plantilla.
 
 ** TODO Fase 3 — Un solo camino de lectura
+Estado (19 de octubre de 2026): hechos 3a (los nueve JSON de
+=ejemplosManual/= pasan =lint= sin avisos), 3b (=Tutorial.ipynb= reescrito)
+y 3c (=Manual.org= reescrito como referencia, con apéndice de API avanzada
+y FAQ de figuras; =ProblemaTipoProfe= avisa de deprecación). Quedan: 3d
+=Demo.ipynb= y =Ejemplos.ipynb= (xelatex/.xml, botones del editor,
+=random=, listas de dos =Cuestion=, cabeceras rotas, =salida/=), 3e limpieza
+de =CalcPropExport.org= (bloques muertos y sección COMMENT con API antigua),
+3f terminología en README/CLAUDE.md, mención de figuras en el README de
+la plantilla, y regenerar los PDF literate.
 - [ ] README: qué es, instalación, ejemplo de 5 minutos *con tres opciones
   y =last_choice=*, =qbank-init=, enlaces en orden (Tutorial → Guía →
   Manual).
