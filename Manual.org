@@ -158,7 +158,8 @@ Con el entorno activo:
 pip install calcprop-qbank
 #+end_src
 
-o, mientras la 0.6 no esté en PyPI (ver «Instalación rápida»; hace falta tener =git=):
+o, mientras la 0.6 no esté en PyPI (ver la sección [[*Instalación rápida (para quien ya conoce Python)]]; hace falta
+tener =git=):
 
 #+begin_src bash
 pip install "calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-qbank"
@@ -929,7 +930,7 @@ QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="",
 =QuizMoodleProfe= solo admite =last_choice=, =instances= y =last_choice_text= por
 palabra clave; con los mismos valores que en =QuizMoodle= escribe las mismas variantes.
 Las dos escriben =directorio/nombre.tex=: para tener ambas vistas, dales nombres
-distintos (p. ej. =MiCuestionario= y =MiCuestionario-profe=).
+distintos (p. ej. =MiCuestionario= y =MiCuestionarioProfe=).
 Como el resto de exportadores, ninguna de las dos lee =export= del problema: pásale
 =last_choice=True= si la pregunta usa la opción por defecto (o, con =ejercicio.json=,
 16 de las 48 variantes saldrían sin ninguna opción correcta).
@@ -1246,7 +1247,7 @@ multiplica el XML.
 generan usa codificación OT1; no hace falta llamarlo a mano. Las mayúsculas
 acentuadas (como ~Á~ o ~Ñ~), la ~ü~ y los signos ~¿~ y ~¡~ pasan tal cual: con =xelatex=
 salen bien; con =pdflatex= el XML queda mal declarado y lo corrige
-=scripts/fix_moodle_xml.py= de la plantilla (ver «Exportar a Moodle»). Para AMC no
+=scripts/fix_moodle_xml.py= de la plantilla (ver la sección [[*Exportar a Moodle (vía LaTeX)]]). Para AMC no
 suele hacer falta si el documento principal usa =inputenc= con UTF-8.
 
 ** ¿Cómo exporto varias preguntas a un mismo cuestionario Moodle?

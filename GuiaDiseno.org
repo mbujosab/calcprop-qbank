@@ -33,15 +33,16 @@
 Esta guía explica *cómo diseñar buenas preguntas* con =qbank=: qué hace el
 motor con lo que escribes, qué patrón de pregunta conviene adoptar y qué
 errores de redacción se repiten una y otra vez. No es la referencia de la
-API (eso es =Manual.org=) ni un recorrido por ejemplos (=Tutorial.ipynb=): es
+API (eso es el /Manual/, =Manual.org= o =Manual.pdf=) ni un recorrido por
+ejemplos (el cuaderno =Tutorial.ipynb=): es
 lo que hay que tener en la cabeza antes de escribir una pregunta y lo que
 hay que comprobar después.
 
-Supone que tienes un proyecto creado con =qbank-init= (su =README.org=
-explica el flujo de trabajo) y que sabes lanzar =make lint= y =make amc=
+Supone que tienes un proyecto creado con =qbank-init= (el =README.org= que
+=qbank-init= deja en el proyecto explica el flujo de trabajo) y que sabes lanzar =make lint= y =make amc=
 desde la carpeta del proyecto. Los ejemplos se escriben como
 listas de Python, que se leen mejor; el JSON equivalente aparece una vez
-completo en la sección [[*El mismo ejemplo en JSON][El mismo ejemplo en JSON]]. Todo lo que se dice vale
+completo en la sección [[*El mismo ejemplo en JSON]] («El mismo ejemplo en JSON»). Todo lo que se dice vale
 igual para los dos formatos.
 
 * La mecánica en una página
@@ -240,7 +241,8 @@ p = ProblemaTipo(
 #+end_src
 
 Hay $2 \times 2 \times 1 \times 2 = 8$ variantes; en todas el alumno ve
-tres opciones más «Ninguna de las anteriores». Dos de ellas:
+tres opciones más «Ninguna de las anteriores». Dos de ellas, la 1 y la 6
+(el listado no incluye la opción por defecto, que va siempre al final):
 
 #+begin_example
 1 Sea $f$ una función estrictamente creciente y sean $a < b$ dos puntos de su dominio. Entonces:
@@ -406,7 +408,8 @@ escribe el valor tal cual.
 
 La interpolación de un nombre desconocido *no falla*: deja =@{nombre}= tal
 cual. =lint= lo detecta (ERROR =interp=), pero revisa igualmente los
-enunciados generados.
+enunciados generados. Si quieres que el alumno vea una arroba seguida de
+llaves, escríbela doble: =@@{x}= se imprime =@{x}= y no es un error.
 
 ** =seed=
 
@@ -434,8 +437,10 @@ total real puede diferir un poco). Sin =setup= aleatorio, no pongas
 ** Sortear textos, no solo números
 
 El =setup= puede sortear cualquier cosa: nombres, países, décadas, frases.
-=np.random.choice= elige de una lista (conviértelo con =str()= o =int()=
-para que sea un valor normal de Python), un diccionario resuelve las
+=np.random.choice= elige de una lista de cadenas o de números (conviértelo
+con =str()= o =int()= para que sea un valor normal de Python; con una lista
+de tuplas o de diccionarios falla, y entonces se sortea la posición:
+=datos[int(np.random.randint(len(datos)))]=), un diccionario resuelve las
 concordancias, y las lambdas comparan cadenas igual que números:
 
 #+begin_src python
@@ -464,7 +469,7 @@ PREGUNTA = ProblemaTipo(
 La pregunta =L-03-PoliticaArancelaria= de la plantilla es la versión
 completa de este ejemplo (sin la última cuestión, que solo ilustra la
 lambda). Dos detalles de prosa: el =%= lleva barra (=\%=) y la cadena que
-lo contiene es cruda (=r"…"=), ver [[*LaTeX y Moodle: trampas conocidas][LaTeX y Moodle]]; y con opciones de una
+lo contiene es cruda (=r"…"=), ver la sección [[*LaTeX y Moodle: trampas conocidas]]; y con opciones de una
 línea o más conviene =cols = 1=.
 
 ** No afirmes nada falso sobre los números: =precond= con lambda
@@ -503,8 +508,9 @@ Cuestion("$a^2 > b^2$", "lambda ns: ns['a'] ** 2 > ns['b'] ** 2"),
 
 Una lambda también puede devolver una *fórmula* y así inyectar en las
 hipótesis el estado de los números (=lambda ns: v('gt') if ns['x'] > 3 else
--v('gt')= en la semántica de un =Supuesto= axioma); el ejemplo E de
-=Tutorial.ipynb= lo desarrolla. Como =lint= no puede mirar dentro de una
+-v('gt')= en la semántica de un =Supuesto= axioma);
+=ejemplosManual/ej_e_lambda.json= (el ejemplo E del cuaderno =Tutorial.ipynb=)
+lo desarrolla. Como =lint= no puede mirar dentro de una
 lambda, cuando un =Supuesto= inyecta fórmulas así no comprueba las
 etiquetas huérfanas y lo dice con un INFO.
 
@@ -527,7 +533,7 @@ combinatoria. Comprueba el porcentaje real contando sobre
   del banco: un caso raro puede no aparecer con esa semilla y aun así ser
   un fallo real cuando cambien =instances= o el rango de valores.
 - *Distractores que coinciden con la respuesta.* Si el =setup= calcula un
-  valor falso para una opción («$(a+b)^2 = @{cuad_falso}$»), asegúrate de
+  valor falso para una opción (=$(a+b)^2 = @{cuad_falso}$=), asegúrate de
   que nunca coincide con el correcto; si puede, re-sortea hasta que
   difieran. En general, excluye en el enunciado o en el =setup= los casos
   degenerados en que un distractor pasa a ser cierto (un coeficiente
@@ -644,8 +650,9 @@ afirmación con sentido. Gemelas típicas: papeles intercambiados
 (numerador/denominador), el signo o la desigualdad al revés, la fórmula
 con el divisor equivocado, el valor numérico con los datos cruzados.
 
-Una afirmación numérica *siempre cierta y sin gemela* («$(a+b)^2 =
-@{cuad}$» sin su «$= @{cuad\_falso}$») se marca sin comprobar nada.
+Una afirmación numérica *siempre cierta y sin gemela*
+(=$(a+b)^2 = @{cuad}$= sin su =$(a+b)^2 = @{cuad_falso}$=) se marca sin
+comprobar nada.
 
 ** Afirmaciones que no funcionan como opción
 
@@ -742,8 +749,7 @@ detecta Moodle, que es más caro.
 
 - *El símbolo =%=*: en LaTeX empieza un comentario. Escrito tal cual («un
   25 % del valor»), se pierde el resto de la línea, el PDF de AMC sale
-  vacío o roto y Moodle no compila. Escribe siempre =\%= («un 25 \% del
-  valor»); en Python, dentro de una cadena cruda (=r"…"=) o como =\\%=.
+  vacío o roto y Moodle no compila. Escribe siempre =\%= (=un 25 \% del valor=); en Python, dentro de una cadena cruda (=r"…"=) o como =\\%=.
   =lint= lo busca también en el texto ya interpolado, así que detecta un
   =%= que venga de una variable del =setup=. Y
   si va junto a una fórmula, *fuera de los dólares*: =al $5$\,\%=, nunca

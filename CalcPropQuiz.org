@@ -2142,7 +2142,7 @@ def save_problema_py(problema, filepath, varname="ejercicio"):
 
 1. Importa =Supuesto=, =Cuestion=, =ProblemaTipo= y todo de =calcprop=.
 2. Define la cadena =_SETUP= si el problema tiene setup (exactamente el código Python almacenado en el campo ="setup"= del JSON, como /raw string/ triple).
-3. Define la variable =(varname)= como lista de componentes y construye =p = ProblemaTipo(varname, setup=_SETUP, seed=…, export=…, nombre=…)=. Las semánticas y precondiciones que son fórmulas =calcprop= o =True=/=False= van tal cual (son Python válido); las lambdas van entre comillas, que es como =ProblemaTipo= las acepta y =save_problema= las guarda, así que el guión puede ejecutarse y volver a guardarse como JSON sin pérdida. Los problemas multiparte se generan también como un =ProblemaTipo= (lista plana), sin tipo aparte.
+3. Define la variable =(varname)= como lista de componentes y construye =p = ProblemaTipo(varname, setup=_SETUP, seed=…, export=…, nombre=…)=. Las semánticas y precondiciones que son fórmulas =calcprop= o =True= o =False= van tal cual (son Python válido); las lambdas van entre comillas, que es como =ProblemaTipo= las acepta y =save_problema= las guarda, así que el guión puede ejecutarse y volver a guardarse como JSON sin pérdida. Los problemas multiparte se generan también como un =ProblemaTipo= (lista plana), sin tipo aparte.
 
 =save_problema_py= simplemente escribe la cadena resultante en un fichero.
 
@@ -3590,7 +3590,7 @@ def _regla_variantes(p, avisos, instances, seed):
 
 ** Regla 3: tabla texto → mundo
 
-=_mundos= reimplementa el recorrido del motor pero solo sobre los huecos de enunciado: cada combinación de =Supuesto= que supera sus precondiciones es un /mundo/, identificado por el texto visible de los =Supuesto= activos. En cada mundo se evalúan /todas/ las cuestiones candidatas (no una por hueco), anotando =True=, =False= o ='rechazada'=. Con esa tabla, =_regla_mundos= avisa de las cuestiones constantes en todos los mundos en que pueden aparecer (candidatas a distractor memorizable; solo INFO si su semántica es el literal =True=/=False=, que es un distractor deliberado, o una =lambda= en un problema con =setup=: la tabla usa un único sorteo, y en otras variantes la lambda puede cambiar de valor) y de los textos idénticos dentro de un mismo hueco cuyas precondiciones se solapan. =tabla_mundos= imprime la misma información en texto plano, una fila por cuestión y una columna por mundo.
+=_mundos= reimplementa el recorrido del motor pero solo sobre los huecos de enunciado: cada combinación de =Supuesto= que supera sus precondiciones es un /mundo/, identificado por el texto visible de los =Supuesto= activos. En cada mundo se evalúan /todas/ las cuestiones candidatas (no una por hueco), anotando =True=, =False= o ='rechazada'=. Con esa tabla, =_regla_mundos= avisa de las cuestiones constantes en todos los mundos en que pueden aparecer (candidatas a distractor memorizable; solo INFO si su semántica es el literal =True= o =False=, que es un distractor deliberado, o una =lambda= en un problema con =setup=: la tabla usa un único sorteo, y en otras variantes la lambda puede cambiar de valor) y de los textos idénticos dentro de un mismo hueco cuyas precondiciones se solapan. =tabla_mundos= imprime la misma información en texto plano, una fila por cuestión y una columna por mundo.
 
 #+NAME: lint: Regla 3: tabla texto → mundo
 #+begin_src python :noweb yes
