@@ -149,6 +149,40 @@ a =AMC_multipart= (qbank-econometria commiteado; qbank-PEconometria queda
 sin commitear junto a otros cambios del autor) y el README de la plantilla
 explica cómo puntúa Moodle los bloques cloze.
 
+*** Tercera revisión (19 de octubre de 2026, tres lentes)
+Un profesor de Historia Económica (prosa, acentos, porcentajes, =setup= de
+textos), un auditor de =lint= / round-trips / widgets / notebooks, y un
+revisor de coherencia de toda la documentación contra el código. Además,
+regresión propia: las 327 salidas AMC/Moodle de las 109 preguntas de los
+bancos son idénticas con el motor anterior a la Fase 1. Corregido:
+- Motor: =%= sin barra es ERROR de =lint= (el PDF salía vacío sin aviso);
+  =\%= en =$…$= y comillas rectas, AVISO; =seed= siembra también =random=
+  (6 preguntas de econometría no eran reproducibles); =base_seed= con
+  =instances=1=; tabla de mundos reproducible y con solo los =Supuesto=
+  anteriores a cada cuestión; claves propias del JSON (=_nivel=) y
+  =export.instances= sobreviven a =save_problema= y al editor; =@@=;
+  =directorio= sin barra; =negacion= sin falsos ERROR; =sin-uso= y
+  =doble espacio= sin falsos positivos; =export=/=seed= mal tipados no
+  revientan.
+- Plantilla: XML de Moodle declarado y escrito en UTF-8 (el paquete moodle
+  declara iso-8859-1 y escribe ¿ ¡ “ ” en UTF-8); =make= pasa =lint= antes
+  de exportar y detecta errores fatales de LaTeX; quinta pregunta de
+  ejemplo en prosa; =nueva_pregunta.py= numera en secuencia.
+- Documentos: qué caracteres españoles se pueden teclear y cuáles no, el
+  =%= y =\,=, sortear textos en =setup=, glosario para no matemáticos,
+  firmas del Manual (=QuizMoodle=, =QuizAMCProfe=, =ProblemaTipo=), FAQ de
+  =$$= frente a =\[=, iterador finito, categorías de Moodle, =codchar=.
+Pendiente (va a la Fase 3, es el Manual/Demo/Ejemplos): ejemplos con
+=random=, lambdas Python y =setup= función; ejemplos de dos =Cuestion= que
+dan preguntas de una opción (Manual, Demo, Tutorial, README multiparte);
+«xelatex» y «.xml» en Demo/Ejemplos; botones del editor; Opción A/B de
+instancias obsoleta; =#+RESULTS= de =problema_to_python=; =export= sin
+documentar en el Manual; terminología (slot/sublista/hueco, comodín/por
+defecto, vista aplanada/profe, Marcador); bloques muertos en
+=CalcPropExport.org= («Inclusión de lastchoice», «Registro del motivo…»,
+«creaDiccionario»); separar huecos en la vista profe; =tabla_mundos= con
+lambdas sin marca.
+
 *** Segunda revisión (19 de octubre de 2026, dos lectores)
 Un profesor nuevo recorrió el flujo completo con una pregunta propia (21
 hallazgos) y un revisor de código examinó el motor, la plantilla y los

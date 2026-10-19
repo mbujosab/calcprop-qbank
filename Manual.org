@@ -1058,7 +1058,7 @@ QuizAMCProfe(nombre, directorio, problema, cols=1, *, last_choice=False,
 | Parámetro          | Descripción                                                        |
 |--------------------+--------------------------------------------------------------------|
 | =nombre=           | Identificador del grupo AMC.                                       |
-| =directorio=       | Ruta donde se guardará el =.tex= (debe terminar en =/=).           |
+| =directorio=       | Ruta donde se guardará el =.tex= (con o sin =/= al final).           |
 | =problema=         | Un =ProblemaTipo=, o un diccionario ={nombre: ProblemaTipo}=.      |
 | =cols=             | Columnas (>1 activa =\begin{multicols}{N}\AMCBoxedAnswers=).       |
 | =aux_latex=        | Instrucciones LaTeX extra dentro del bloque =\element{}=.          |
@@ -1152,7 +1152,7 @@ QuizVFMoodle(nombre, directorio, GenVar, num, opc=None)
 | Parámetro          | Descripción                                                           |
 |--------------------+-----------------------------------------------------------------------|
 | =nombre=           | Nombre del cuestionario (aparece en Moodle como categoría).           |
-| =directorio=       | Ruta donde se guardará el =.tex= (debe terminar en =/=).              |
+| =directorio=       | Ruta donde se guardará el =.tex= (con o sin =/= al final).              |
 | =problema=         | Un =ProblemaTipo=, o un diccionario ={nombre: ProblemaTipo}=.         |
 | =last_choice=      | Si =True=, añade la opción comodín al final de cada cuestión.         |
 | =aux_latex=        | Cabecera LaTeX adicional (p.ej. =\usepackage{nacal-moodle}=).         |

@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import os as _os
 import re as _re
 from qbank._quiz import *
 
@@ -220,7 +221,7 @@ def QuizMoodle(nombre, directorio, problema, last_choice=False,
     cuerpo = (lambda c: _ClozeMultiLastCh(c, last_choice_text)) if last_choice else _ClozeMulti
 
     count = 0
-    with open(directorio + nombre + ".tex", "w") as f:
+    with open(_os.path.join(directorio, nombre + ".tex"), "w") as f:
         f.write(_moodle_header(nombre, auxLaTeX=aux_latex))
         for nom in problema:
             for etiqueta, partes in problema[nom].por_partes(instances=instances):
@@ -254,7 +255,7 @@ def QuizMoodleProfe(nombre, directorio, problema, *, aux_latex=""):
         return x if isinstance(x, dict) else {key: x}
     problema = creaDiccionario(problema, nombre)
     count = 0
-    with open(directorio + nombre + ".tex", "w") as f:
+    with open(_os.path.join(directorio, nombre + ".tex"), "w") as f:
         f.write(_moodle_header(nombre, auxLaTeX=aux_latex))
         for nom in problema:
             for etiqueta, partes in problema[nom].por_partes():
@@ -294,7 +295,7 @@ def QuizAMCProfe(nombre, directorio, problema, cols=1, *,
         return x if isinstance(x, dict) else {key: x}
     problema = creaDiccionario(problema, nombre)
     count = 0
-    with open(directorio + nombre + "_profe.tex", "w") as f:
+    with open(_os.path.join(directorio, nombre + "_profe.tex"), "w") as f:
         for nom in problema:
             for etiqueta, partes in problema[nom].por_partes_profe():
                 if len(partes) > 1:
@@ -314,7 +315,7 @@ def QuizVFMoodle(nombre, directorio, GenVar, num, opc=None):
     if opc is None:
         opc = ["", ""]
     auxLaTeX = opc[0]
-    with open(directorio + nombre + ".tex", "w") as f:
+    with open(_os.path.join(directorio, nombre + ".tex"), "w") as f:
         f.write(_moodle_header(nombre, auxLaTeX=auxLaTeX))
         for i in range(num):
             var = next(GenVar)

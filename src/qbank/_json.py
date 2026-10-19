@@ -148,15 +148,22 @@ def _slot_to_json(slot):
         return [_slot_to_json(item) for item in slot]
     else:
         raise ValueError(f"Tipo no serializable: {type(slot)}")
+_CLAVES_PROBLEMA = {"version", "tipo", "nombre", "setup", "seed", "export", "componentes"}
+
+
 def problema_from_dict(d):
     """Crea un ProblemaTipo o ProblemaVF a partir de un dict JSON."""
     tipo = d.get("tipo")
 
     if tipo == "ProblemaTipo":
         componentes = [_slot_from_json(s) for s in d["componentes"]]
-        return ProblemaTipo(componentes, setup=d.get("setup") or None,
-                            export=d.get("export", {}), seed=d.get("seed"),
-                            nombre=d.get("nombre", ""))
+        p = ProblemaTipo(componentes, setup=d.get("setup") or None,
+                         export=d.get("export", {}), seed=d.get("seed"),
+                         nombre=d.get("nombre", ""))
+        # Claves propias del usuario (p. ej. "_nivel"): se conservan para que
+        # save_problema las devuelva intactas.
+        p._extra = {k: v for k, v in d.items() if k not in _CLAVES_PROBLEMA}
+        return p
 
     elif tipo == "ProblemaMultiParte":
         # Schema heredado: se aplana a un ProblemaTipo multiparte unificado.
@@ -211,6 +218,7 @@ def problema_to_dict(problema):
         exp = getattr(problema, 'export', {})
         if exp:
             d["export"] = exp
+        d.update(getattr(problema, '_extra', {}))       # claves propias del usuario
         return d
     elif isinstance(problema, ProblemaVF):
         return {

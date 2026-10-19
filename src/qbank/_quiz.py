@@ -49,6 +49,19 @@ def _eval_campo(valor, campo, clase, enunciado):
     except ValueError as e:
         raise ValueError(f"{clase} {str(enunciado)[:50]!r}, campo {campo}: {e}") from None
 
+def _siembra(semilla):
+    """Siembra los generadores que puede usar un setup: numpy.random (si está
+    instalado) y el módulo random de Python, con la misma semilla."""
+    if semilla is None:
+        return
+    import random as _random
+    _random.seed(int(semilla))
+    try:
+        import numpy as _np
+        _np.random.seed(int(semilla))
+    except ImportError:
+        pass
+
 def _setup_desde_str(code_str):
     """Callable setup() a partir del código Python (cadena) de un setup.
     Se elimina la indentación común, para admitir cadenas escritas dentro de
@@ -76,7 +89,7 @@ def _ns_interp(s, ns, strict=None):
     """Sustituye @{var} / @var por los valores de ns. Con strict=True (o el
     módulo con STRICT_INTERP=True) lanza ValueError si queda alguna @{var}
     sin resolver; por defecto la deja intacta."""
-    out = _NsTemplate(s).safe_substitute(ns) if ns else s
+    out = _NsTemplate(s).safe_substitute(ns or {})     # también sin setup: @@ → @
     if strict is None:
         strict = STRICT_INTERP
     if strict:
@@ -251,12 +264,8 @@ class ProblemaTipo:
             self._nombre = nombre
 
     def _variantes(self, _skip_seed=False, verbose=True):
-        if not _skip_seed and self.seed is not None and self.setup is not None:
-            try:
-                import numpy as _np
-                _np.random.seed(self.seed)
-            except ImportError:
-                pass
+        if not _skip_seed and self.setup is not None:
+            _siembra(self.seed)
         L    = [_normaliza_slot(x) for x in self.e]
         plan = _plan_partes(L)
         npar = (plan[-1] + 1) if plan else 1
@@ -304,12 +313,8 @@ class ProblemaTipo:
                 c += 1
                 yield (str(c), list(zip(enunciados, cuestiones)))
     def _variantes_profe(self, verbose=True):
-        if self.seed is not None and self.setup is not None:
-            try:
-                import numpy as _np
-                _np.random.seed(self.seed)
-            except ImportError:
-                pass
+        if self.setup is not None:
+            _siembra(self.seed)
         L    = [_normaliza_slot(x) for x in CuestionesJuntas(self.e)]
         plan = _plan_partes(L)
         npar = (plan[-1] + 1) if plan else 1
@@ -364,7 +369,8 @@ class ProblemaTipo:
                     (todas las instancias serían idénticas).
         base_seed : semilla base. Con instances=1, si no se pasa explícitamente
                     se usa self.seed (del JSON). Con instances>1, si no se pasa
-                    se usa self.seed o 42 como fallback.
+                    se usa self.seed o 42 como fallback. Se siembran numpy.random
+                    y el módulo random de Python.
         verbose   : si True, imprime las cuestiones/supuestos rechazados por
                     precondición. Por defecto False (silencioso en batch).
         """
@@ -376,20 +382,18 @@ class ProblemaTipo:
                     "instances > 1 en un ProblemaTipo sin setup: "
                     "se generarán variantes duplicadas.",
                     UserWarning, stacklevel=2)
-            try:
-                import numpy as _np
-            except ImportError:
-                raise ImportError(
-                    "numpy es necesario para usar instances > 1 en por_partes().")
             actual_base = effective_base if effective_base is not None else 42
             offset = 0
             for inst in range(instances):
-                _np.random.seed(actual_base + inst * 997)
+                _siembra(actual_base + inst * 997)
                 count = 0
                 for etiqueta, partes in self._variantes(_skip_seed=True, verbose=verbose):
                     count += 1
                     yield (str(offset + int(etiqueta)), partes)
                 offset += count
+        elif base_seed is not None and self.setup is not None:
+            _siembra(base_seed)
+            yield from self._variantes(_skip_seed=True, verbose=verbose)
         else:
             yield from self._variantes(verbose=verbose)
     

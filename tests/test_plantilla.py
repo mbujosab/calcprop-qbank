@@ -379,3 +379,106 @@ def test_nueva_pregunta_guarda_un_json_valido(proyecto):
     av = [a for a in lint(str(ruta)) if a.nivel == ERROR]
     assert not av, av
     ruta.unlink()
+
+
+# ---------------------------------------------------------------------------
+# Hallazgos de la auditoría de lint y reproducibilidad
+# ---------------------------------------------------------------------------
+
+def test_tabla_de_mundos_solo_usa_los_supuestos_anteriores():
+    from qbank import tabla_mundos
+    p = ProblemaTipo(["Parte 1. ", [Supuesto("A.", v('A')), Supuesto("B.", v('B'))],
+                      Cuestion("¿C?", v('C')), Cuestion("¿A?", v('A')), Cuestion("x", False),
+                      " Parte 2, ahora con C. ", Supuesto("", v('C')),
+                      Cuestion("¿C ahora?", v('C')), Cuestion("y", False), Cuestion("z", False)],
+                     export={"last_choice": True})
+    tabla = tabla_mundos(p)
+    fila_c = [l for l in tabla.splitlines() if "¿C?" in l][0]
+    assert fila_c.rstrip().endswith("F  F")          # como el motor: C aún no es hipótesis
+    av = [a for a in lint(p) if a.codigo == "constante" and "¿C?" in (a.donde or "")]
+    assert av and av[0].mensaje.startswith("falsa")  # y no «verdadera», como decía antes
+
+
+def test_seed_siembra_tambien_el_modulo_random_y_base_seed_con_una_instancia():
+    p = ProblemaTipo(["$@{x}$ ", Cuestion("a", True), Cuestion("b", False), Cuestion("c", False)],
+                     setup="import random\nx = random.randint(1, 10**6)", seed=5,
+                     export={"last_choice": True})
+    def xs(**kw):
+        return [partes[0][0] for _, partes in p.por_partes(**kw)]
+    assert xs() == xs()                                           # seed cubre random
+    assert xs(instances=2) == xs(instances=2)
+    assert xs(base_seed=1) == xs(base_seed=1) and xs(base_seed=1) != xs(base_seed=2)
+
+
+def test_claves_propias_del_json_se_conservan():
+    d = _d(["Sea ", [_S("A.", "v('A')"), _S("B.", "v('B')")],
+            _C("A", "v('A')"), _C("B", "v('B')"), _C("ni", "False")])
+    d["_nivel"] = "M"
+    d["_tema"] = {"bloque": 2}
+    d2 = problema_to_dict(load_problema(d))
+    assert d2["_nivel"] == "M" and d2["_tema"] == {"bloque": 2}
+
+
+def test_lint_no_revienta_con_export_mal_tipado():
+    d = _d(["Sea ", [_S("A.", "v('A')"), _S("B.", "v('B')")],
+            _C("A", "v('A')"), _C("B", "v('B')"), _C("ni", "False")])
+    d["setup"] = "x = 1"
+    d["export"] = {"instances": "diez", "last_choice": "false", "cols": "2"}
+    d["seed"] = "7"
+    msgs = [a.mensaje for a in lint(d) if a.codigo == "estructura" and a.nivel == ERROR]
+    assert any("instances" in m for m in msgs) and any("last_choice" in m for m in msgs)
+    assert any("cols" in m for m in msgs) and any("seed" in m for m in msgs)
+
+
+def test_negacion_deducible_no_es_error():
+    def errores(*comps):
+        return [a for a in lint(_d(list(comps))) if a.codigo == "negacion" and a.nivel == ERROR]
+    mundos = [_S("A.", "v('A')"), _S("B.", "v('B')")]
+    huecos = [_C("no B", "-v('B')"), _C("A", "v('A')"), _C("x", "False")]
+    assert errores("Sea ", mundos, *huecos)                                   # sin axioma: ERROR
+    assert not errores("Sea ", mundos, _S("", "v('C') & unoDe(v('A'), v('B'))"), *huecos)
+    assert not errores("Sea ", mundos, _S("", "v('A') >> -v('B')"), *huecos)
+    assert not errores("Sea ", [_S("A.", "v('A') & unoDe(v('A'), v('B'))"),
+                                _S("B.", "v('B') & unoDe(v('A'), v('B'))")], *huecos)
+
+
+def test_sin_uso_calla_si_hay_cuestiones_lambda():
+    p = ProblemaTipo(["Sea $x=@{x}$. ", [Supuesto("A.", v('A')), Supuesto("B.", v('B'))],
+                      Cuestion("lam", "lambda ns: v('A') if ns['x'] else v('B')"),
+                      Cuestion("a", v('A')), Cuestion("x", False)],
+                     setup="x = 1", export={"last_choice": True})
+    assert not [a for a in lint(p) if a.codigo == "sin-uso"]
+
+
+def test_doble_espacio_dentro_de_formulas_no_avisa():
+    base = ["Sea ", [_S("A.", "v('A')"), _S("B.", "v('B')")]]
+    av = lint(_d(base + [_C("$H_1:\\beta_2   > 0$", "v('A')"), _C("b", "v('B')"), _C("c", "False")]))
+    assert not [a for a in av if "doble espacio" in a.mensaje]
+    av = lint(_d(base + [_C("texto  con  dobles", "v('A')"), _C("b", "v('B')"), _C("c", "False")]))
+    assert [a for a in av if "doble espacio" in a.mensaje]
+
+
+def test_arroba_doble_es_arroba_literal_tambien_sin_setup():
+    p = ProblemaTipo(["Escribe a nombre@@dominio.es ", Cuestion("a", True), Cuestion("b", False),
+                      Cuestion("c", False)])
+    assert next(iter(p.por_partes()))[1][0][0].startswith("Escribe a nombre@dominio.es")
+
+
+def test_tabla_de_mundos_es_reproducible_con_setup():
+    from qbank import tabla_mundos
+    p = ProblemaTipo(["Sea $x = @{x}$. ", [Supuesto("A.", v('A')), Supuesto("B.", v('B'))],
+                      Cuestion("$x$ par", "lambda ns: ns['x'] % 2 == 0"), Cuestion("a", v('A')),
+                      Cuestion("z", False)],
+                     setup="import numpy as np\nx = int(np.random.randint(1, 10**6))", seed=4,
+                     export={"last_choice": True})
+    assert len({tabla_mundos(p) for _ in range(10)}) == 1
+
+
+def test_exportadores_aceptan_directorio_sin_barra(tmp_path):
+    from qbank import QuizMoodle
+    p = ProblemaTipo(["Sea ", [Supuesto("A.", v('A')), Supuesto("B.", v('B'))],
+                      Cuestion("a", v('A')), Cuestion("b", v('B')), Cuestion("c", False)],
+                     export={"last_choice": True})
+    QuizMoodle("q", str(tmp_path), p)
+    QuizAMCProfe("q", str(tmp_path), p)
+    assert (tmp_path / "q.tex").exists() and (tmp_path / "q_profe.tex").exists()

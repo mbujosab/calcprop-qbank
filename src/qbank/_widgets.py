@@ -456,6 +456,11 @@ class ProblemaTipoEditor:
         exp = d.get('export', {})
         self._last_choice.value = bool(exp.get('last_choice', False))
         self._cols.value        = int(exp.get('cols', 1))
+        # El formulario solo edita last_choice y cols; el resto de export
+        # (instances, last_choice_text…) y las claves propias se conservan.
+        self._export_extra = {k: v for k, v in exp.items() if k not in ('last_choice', 'cols')}
+        self._extra = {k: v for k, v in d.items()
+                       if k not in ('version', 'tipo', 'nombre', 'setup', 'seed', 'export', 'componentes')}
         self._slots = []
         for comp in d.get('componentes', []):
             self._add_slot(data=comp)
@@ -470,18 +475,19 @@ class ProblemaTipoEditor:
             seed = int(seed_str) if seed_str else None
         except ValueError:
             seed = None
-        exp = {}
+        exp = dict(getattr(self, '_export_extra', {}))
         if self._last_choice.value:
             exp['last_choice'] = True
         if self._cols.value != 1:
             exp['cols'] = self._cols.value
-        d = {
+        d = dict(getattr(self, '_extra', {}))
+        d.update({
             'version':     '1',
             'tipo':        'ProblemaTipo',
             'nombre':      self._nombre.value,
             'setup':       setup,
             'componentes': [s.to_json() for s in self._slots],
-        }
+        })
         if seed is not None:
             d['seed'] = seed
         if exp:

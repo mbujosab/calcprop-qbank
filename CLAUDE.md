@@ -83,6 +83,21 @@ p = ProblemaTipo([s, [s1, s2], [c1, c2]], setup=None, export=None, seed=None, no
 - `problema_to_python` emite `_SETUP = r"""…"""`, las lambdas entre comillas y
   `nombre=`: el `.py` resultante vuelve a guardarse con `save_problema`.
 - `QuizAMCProfe(..., last_choice=False)` (nuevo parámetro).
+- `seed` / `base_seed` siembran `numpy.random` **y** el módulo `random`
+  (`_siembra`); `por_partes(base_seed=S)` también actúa con `instances=1`.
+  `tabla_mundos` siembra con `seed` (o 42) y, como el motor, cada `Cuestion`
+  solo ve los `Supuesto` que la preceden (antes usaba los de partes
+  posteriores).
+- Las claves no reconocidas del JSON (`_nivel`, …) se conservan en
+  `p._extra` y `save_problema` las devuelve; el editor de widgets conserva
+  también `export.instances` y demás.
+- `_ns_interp` sustituye siempre (también sin `setup`): `@@` → `@`.
+- Los `Quiz*` aceptan `directorio` con o sin `/` final (`os.path.join`).
+- `lint`: `negacion` no es ERROR si la negación es deducible de algún
+  `Supuesto` a cualquier profundidad (`>> -v('X')`, `unoDe` dentro de una
+  conjunción o en Supuestos de lista); `sin-uso` calla si alguna `Cuestion`
+  usa lambdas; `doble espacio` ignora el interior de `$…$`; `export` y
+  `seed` mal tipados son ERROR `estructura` (no revientan).
 - Flujo recomendado para escribir a mano: lista Python → `save_problema` →
   JSON en `preguntas/` (es lo que hace `plantilla/nueva_pregunta.py`).
 

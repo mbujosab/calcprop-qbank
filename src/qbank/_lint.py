@@ -81,7 +81,7 @@ from pathlib import Path as _Path
 
 from calcprop import Proposicion as _Proposicion, test as _test
 from qbank._quiz import (Supuesto, Cuestion, ProblemaTipo, Marcador as _Marcador,
-                         _normaliza_slot, _clasifica_slot, _ns_eval, _ns_interp,
+                         _normaliza_slot, _clasifica_slot, _ns_eval, _ns_interp, _siembra,
                          validar_componentes as _validar_componentes)
 from qbank._json import load_problema as _load_problema
 
@@ -166,6 +166,16 @@ def _args_unoDe(f):
     return set()
 
 
+def _atomos_unoDe(f):
+    """Etiquetas listadas en cualquier unoDe(...) de la fórmula, a cualquier
+    profundidad (p. ej. dentro de una conjunción)."""
+    if not _es_prop(f) or not isinstance(f.data, list):
+        return set()
+    if f.data[0] == 'unoDe':
+        return set().union(*(_atomos(x) for x in f.data[1:]))
+    return set().union(*(_atomos_unoDe(x) for x in f.data[1:]))
+
+
 def _slots(p):
     """[(i, slot_normalizado, es_lista_en_origen)]"""
     return [(i, _normaliza_slot(x), isinstance(x, list)) for i, x in enumerate(p.e)]
@@ -242,17 +252,36 @@ def _regla_estructura(p, avisos, ruta):
         if not usa_random and p.seed is not None:
             avisos.append(Aviso(AVISO, 'seed', "'seed' presente sin setup aleatorio"))
 
+    if p.seed is not None and not isinstance(p.seed, int):
+        avisos.append(Aviso(ERROR, 'estructura', f"'seed' debe ser un entero, no {p.seed!r}"))
+
     export = p.export if isinstance(p.export, dict) else {}
     if not isinstance(p.export, dict):
         avisos.append(Aviso(ERROR, 'estructura', "'export' debe ser un objeto"))
     inst = export.get('instances', 1)
-    if p.setup is None and isinstance(inst, int) and inst > 1:
+    if not isinstance(inst, int) or isinstance(inst, bool) or inst < 1:
+        avisos.append(Aviso(ERROR, 'estructura',
+                            f"export.instances debe ser un entero >= 1, no {inst!r}"))
+    elif p.setup is None and inst > 1:
         avisos.append(Aviso(AVISO, 'instances',
                             f"export.instances = {inst} sin setup: las instancias serían idénticas"))
+    for clave in ('last_choice',):
+        if clave in export and not isinstance(export[clave], bool):
+            avisos.append(Aviso(ERROR, 'estructura',
+                                f"export.{clave} debe ser true o false (sin comillas), no {export[clave]!r}"))
+    cols = export.get('cols', 1)
+    if not isinstance(cols, int) or isinstance(cols, bool) or cols < 1:
+        avisos.append(Aviso(ERROR, 'estructura', f"export.cols debe ser un entero >= 1, no {cols!r}"))
     return True
 
 
 # ── Regla 8: texto ───────────────────────────────────────────────────────────
+
+def _sin_matematicas(texto):
+    """El texto con cada fórmula ($...$ o $$...$$) sustituida por una X: dentro
+    de ellas LaTeX ignora los espacios."""
+    return _re.sub(r'\$\$.*?\$\$|\$[^$]*\$', 'X', texto, flags=_re.DOTALL)
+
 
 def _pct_en_matematicas(texto):
     """'\\%' dentro de $...$ (el paquete moodle lo deja como '%' y MathJax lo
@@ -284,7 +313,7 @@ _CHECKS_TEXTO = [
      "cita un número de lección"),
     (AVISO, _re.compile(r'@\{[^}]*(?:@\{|$)'),
      "'@{' sin cerrar"),
-    (AVISO, _re.compile(r'\S  +\S'),
+    (AVISO, lambda t: (m := _re.search(r'\S  +\S', _sin_matematicas(t))) and m.group(0),
      "doble espacio"),
     (AVISO, _re.compile(r"(?<![\w\\'$})\]])'[^']+'(?!')"),
      "comillas simples '...' en vez de ``...''"),
@@ -333,6 +362,10 @@ def _regla_etiquetas(p, avisos):
     usadas         = set()      # etiquetas usadas en semantica/precond de Cuestion o precond de Supuesto
     negadas        = []         # (etiqueta, donde) bajo 'not' en algo evaluado con test()
     sup_lambda     = False      # algún Supuesto tiene semántica lambda (etiquetas no visibles)
+    cues_lambda    = False      # alguna Cuestion tiene semántica o precond lambda
+    deducibles     = set()      # etiquetas cuya negación puede deducirse de algún Supuesto:
+                                # aparecen negadas (a cualquier profundidad, p. ej. como
+                                # consecuente de >>) o dentro de un unoDe (a cualquier profundidad)
 
     for i, slot, _ in _slots(p):
         for j, c in enumerate(slot):
@@ -343,6 +376,7 @@ def _regla_etiquetas(p, avisos):
                 if callable(c.s):
                     sup_lambda = True
                 en_supuestos |= _atomos(c.s)
+                deducibles |= _atomos_negados(c.s) | _atomos_unoDe(c.s)
                 lits = _asertados(c.s)
                 negadas_sup |= {x for x, pos in lits if not pos}
                 if len(slot) > 1:
@@ -352,6 +386,8 @@ def _regla_etiquetas(p, avisos):
                     unoDe |= _args_unoDe(c.s)
                 testeadas = [('precond', c.p)]
             else:
+                if callable(c.s) or callable(c.p):
+                    cues_lambda = True
                 testeadas = [('semantica', c.s), ('precond', c.p)]
             for campo, f in testeadas:
                 usadas |= _atomos(f)
@@ -359,13 +395,13 @@ def _regla_etiquetas(p, avisos):
                     negadas.append((x, campo, _donde(i, jj, c.e)))
 
     for x, campo, donde in negadas:
-        if x in negadas_sup:
-            continue                      # algún Supuesto afirma -v(x) directamente
-        if x in en_alternativa and x not in unoDe:
+        if x in negadas_sup or x in deducibles:
+            continue                      # algún Supuesto permite deducir -v(x)
+        if x in en_alternativa:
             avisos.append(Aviso(ERROR, 'negacion',
                                 f"-v({x!r}) en {campo} nunca se deduce: falta un Supuesto suelto "
                                 f"con unoDe(...) que incluya v({x!r})", donde))
-        elif x in en_fijo and x not in en_alternativa and x not in unoDe:
+        elif x in en_fijo:
             avisos.append(Aviso(AVISO, 'negacion',
                                 f"-v({x!r}) en {campo} niega un Supuesto siempre presente: nunca es cierta",
                                 donde))
@@ -378,9 +414,10 @@ def _regla_etiquetas(p, avisos):
         for x in sorted(usadas - en_supuestos):
             avisos.append(Aviso(AVISO, 'huerfana',
                                 f"v({x!r}) no aparece en ningún Supuesto: nunca puede ser cierta"))
-    for x in sorted(en_supuestos - usadas):
-        avisos.append(Aviso(INFO, 'sin-uso',
-                            f"v({x!r}) se declara en un Supuesto pero ninguna Cuestion la usa"))
+    if not cues_lambda:                   # una lambda puede usar etiquetas que no vemos
+        for x in sorted(en_supuestos - usadas):
+            avisos.append(Aviso(INFO, 'sin-uso',
+                                f"v({x!r}) se declara en un Supuesto pero ninguna Cuestion la usa"))
 
 
 # ── Reglas 1, 2, 5 y 9: variantes ────────────────────────────────────────────
@@ -392,7 +429,10 @@ def _regla_variantes(p, avisos, instances, seed):
     export = p.export if isinstance(p.export, dict) else {}
     inst_export = export.get('instances', 1)
     inst = instances if instances is not None else inst_export
-    inst = max(1, int(inst)) if p.setup is not None else 1
+    try:
+        inst = max(1, int(inst)) if p.setup is not None else 1
+    except (TypeError, ValueError):             # ya avisado por la regla de estructura
+        inst = 1
     last = bool(export.get('last_choice', False))
 
     try:
@@ -435,8 +475,9 @@ def _regla_variantes(p, avisos, instances, seed):
                             f"variante {etiqueta}, parte {k + 1}: {corr} correctas de {total} opciones",
                             _rec(enunciado)))
     if len(mezcla) > _MAX_REPETIDOS:
+        n_var = len({et for et, *_ in mezcla})
         avisos.append(Aviso(ERROR, 'mezcla',
-                            f"… y {len(mezcla) - _MAX_REPETIDOS} más ({len(mezcla)} de {n} variantes "
+                            f"… y {len(mezcla) - _MAX_REPETIDOS} más ({n_var} de {n} variantes "
                             "violan 1 <= correctas <= opciones-1)"))
     for k, ns_ in sorted(opciones.items()):
         if len(ns_) > 1:
@@ -489,11 +530,13 @@ def _mundos(p):
     enun_idx = [i for i, s in enumerate(L) if _clasifica_slot(s) == 'enunciado']
     cues_idx = [i for i, s in enumerate(L) if _clasifica_slot(s) == 'cuestiones']
     combos   = _Marcador([len(L[i]) for i in enun_idx]) if enun_idx else [[]]
+    if p.setup is not None:                 # tabla reproducible
+        _siembra(p.seed if p.seed is not None else 42)
 
     mundos = []
     filas  = {}
     for combo in combos:
-        ns, hip, textos, ok = (p.setup() if p.setup else {}), [], [], True
+        ns, hip, pos, textos, ok = (p.setup() if p.setup else {}), [], [], [], True
         for i, k in zip(enun_idx, combo):
             c = L[i][k]
             if not isinstance(c, Supuesto):
@@ -505,22 +548,25 @@ def _mundos(p):
             if t:
                 textos.append(t)
             hip.append(_ns_eval(c.s, ns))
+            pos.append(i)                   # para usar solo las hipótesis anteriores
         if not ok:
             continue
         mundo = tuple(textos)
         if mundo not in mundos:
             mundos.append(mundo)
         for i in cues_idx:
+            # Como el motor: una Cuestion solo ve los Supuesto que la preceden
+            hip_i = [h for h, q in zip(hip, pos) if q < i]
             for j, c in enumerate(L[i]):
                 if (i, j) not in filas:
                     texto   = _ns_interp(_ns_eval(c.e, ns), ns)
                     literal = isinstance(c.s, bool)
                     filas[(i, j)] = (i, j, texto, literal, _defaultdict(set))
                 vals = filas[(i, j)][4]
-                if not _test(_ns_eval(c.p, ns), hip):
+                if not _test(_ns_eval(c.p, ns), hip_i):
                     vals[mundo].add('rechazada')
                 else:
-                    vals[mundo].add(bool(_test(_ns_eval(c.s, ns), hip)))
+                    vals[mundo].add(bool(_test(_ns_eval(c.s, ns), hip_i)))
     return mundos, [filas[k] for k in sorted(filas)]
 
 
