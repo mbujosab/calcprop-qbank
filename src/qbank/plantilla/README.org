@@ -146,6 +146,11 @@ y las comillas tipográficas =“ ”=. Tres cosas rompen la exportación y
 Si =make amc= o =make moodle= dan «ERROR en <pregunta>», el motivo está en
 el =.log= que indican (busca la primera línea que empieza por =!=).
 
+*Figuras.* El enunciado admite =\includegraphics{fig.pdf}= (los documentos
+AMC cargan =graphicx=; la ruta es relativa a =build/amc/=). Para Moodle el
+paquete =moodle= necesita un PNG y compilar con =pdflatex -shell-escape=,
+cosa que estos scripts no hacen: la FAQ del Manual explica cómo adaptarlos.
+
 * Campos de una pregunta
 
 Nivel superior del JSON (o argumentos de =ProblemaTipo= en Python):

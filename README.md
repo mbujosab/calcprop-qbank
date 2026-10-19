@@ -34,7 +34,7 @@ make lint          # comprueba las preguntas de ejemplo (sin LaTeX)
 make amc           # PDF de revisión (vista profe) en build/amc/
 ```
 
-El proyecto contiene cuatro preguntas de ejemplo en `preguntas/`, los
+El proyecto contiene cinco preguntas de ejemplo en `preguntas/`, los
 scripts que las exportan a AMC y Moodle, un `Makefile` (`lint`, `tabla`,
 `amc`, `amc-student`, `moodle`, `clean`, filtro `LECCION=N`) y
 `nueva_pregunta.py`, un guion para escribir una pregunta en Python y
@@ -196,7 +196,7 @@ with open("preguntas.tex", "w") as f:
             f.write(AMCblock("MiCuestionario", etiqueta, enunciado, cuestiones))
 ```
 
-Vista aplanada para el profesor (todas las cuestiones con marcas):
+Vista profe (todas las cuestiones de cada hueco, con marcas):
 
 ``` python
 n = QuizAMCProfe("MiCuestionario", "exportaciones/", p)
@@ -217,7 +217,7 @@ print(f"{n} variante(s) escritas")
 # Vista profe (fracciones de puntuación visibles)
 QuizMoodleProfe("MiCuestionario", "exportaciones/", p)
 
-# Con paquete LaTeX adicional y texto comodín personalizados
+# Con paquete LaTeX adicional y texto de la opción por defecto personalizados
 QuizMoodle("MiCuestionario", "exportaciones/", p,
            aux_latex=r"\usepackage{nacal-moodle}",
            last_choice_text="Las demás opciones son falsas")
