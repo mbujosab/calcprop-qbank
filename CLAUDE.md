@@ -45,7 +45,12 @@ src/qbank/
   espacios. `informe` dice qué bloques difieren si alguien editó el `.py`.
 - **`README.md` se genera desde `README.org`:**
   `pandoc -f org -t gfm README.org -o README.md`. Editar siempre el `.org`.
-- `Manual.org` es el manual de usuario (su PDF se exporta desde Emacs).
+- `Manual.org` es el manual de usuario. **Los PDF** (`Manual`, `GuiaDiseno`,
+  `CalcPropQuiz`, `CalcPropExport`, `Fase5-prueba`) se generan con Emacs en
+  batch y lualatex (tres pasadas), y se versionan:
+  `emacs --batch X.org --eval '(progn (require (quote ox-latex)) (setq org-confirm-babel-evaluate nil org-export-use-babel nil org-latex-pdf-process (list "lualatex -interaction nonstopmode -output-directory %o %f" "lualatex -interaction nonstopmode -output-directory %o %f" "lualatex -interaction nonstopmode -output-directory %o %f")) (org-latex-export-to-pdf))'`
+  y después borrar `X.tex X.aux X.log X.out X.toc`. Comprobar en el `.log`
+  que no hay `Missing character` ni `Overfull` grandes fuera de tablas.
 - **`docs/` es la web de GitHub Pages** (https://mbujosab.github.io/calcprop-qbank/,
   servida desde `main:/docs`) y **se genera con `sh tools/web.sh`; no se edita
   a mano** (salvo `docs/style.css`, la hoja única). `tools/web.el` exporta
