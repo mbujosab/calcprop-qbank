@@ -407,7 +407,7 @@ Variante 3:
 El parámetro opcional =setup= de =ProblemaTipo= permite definir problemas cuyos valores numéricos o simbólicos cambian en cada variante. Cuando se proporciona, en cada iteración:
 
 1. Se llama a =setup()= y el dict que devuelve se convierte en el *espacio de nombres* de la variante.
-2. Los textos de los slots que contengan marcadores == reciben la sustitución correspondiente.
+2. Los textos de los slots que contengan marcadores =@{variable}= reciben la sustitución correspondiente.
 3. Las semánticas y precondiciones que sean callables (=lambda ns: ...=) se evalúan con ese diccionario.
 
 El delimitador =@= se eligió para evitar conflictos con el modo matemático de \LaTeX{}. Para obtener un arroba literal en el texto, escribe =@@=.
@@ -430,9 +430,9 @@ def numeros_aleatorios():
 
 ejercicio_param = ProblemaTipo(
     [
-        "Sean $a = $ y $b = $. ",
+        "Sean $a = @{a}$ y $b = @{b}$. ",
         [
-            Cuestion("$a + b = $", True),
+            Cuestion("$a + b = @{suma}$", True),
             Cuestion("$a + b > 10$", lambda ns: ns['a'] + ns['b'] > 10),
         ],
     ],
@@ -442,8 +442,8 @@ ejercicio_param = ProblemaTipo(
 
 En este ejemplo:
 
-- La cadena ="Sean $a = $ y $b = $. "= interpola == y == con los valores de cada variante.
-- La semántica =True= de la primera =Cuestion= indica que la afirmación «$a + b = $» siempre es correcta (el propio texto incluye ya la respuesta correcta).
+- La cadena ="Sean $a = @{a}$ y $b = @{b}$. "= interpola =@{a}= y =@{b}= con los valores de cada variante.
+- La semántica =True= de la primera =Cuestion= indica que la afirmación «$a + b = @{suma}$» siempre es correcta (el propio texto incluye ya la respuesta correcta).
 - La semántica =lambda ns: ns['a'] + ns['b'] > 10= se evalúa con los valores de la variante.
 
 *Importante:* cuando =setup= devuelve valores distintos en cada llamada (como aquí, con =random=), el iterador no tiene fin. Controla externamente cuántas variantes generas con un =break=, =itertools.islice= o un =range= acotado.
@@ -458,13 +458,13 @@ def parametros_fijos():
 
 ejercicio_fijo = ProblemaTipo(
     [
-        "Considere una matriz de $ \\times $. ",
+        "Considere una matriz de $@{n} \\times @{k}$. ",
         [
             Supuesto("con rango máximo. ", v("MaxRk")),
             Supuesto("con rango deficiente. ", -v("MaxRk")),
         ],
         [
-            Cuestion("Tiene $$ columnas linealmente independientes.", v("MaxRk")),
+            Cuestion("Tiene $@{k}$ columnas linealmente independientes.", v("MaxRk")),
         ],
     ],
     setup=parametros_fijos,
@@ -493,7 +493,7 @@ def dos_numeros():
 
 ordenar = ProblemaTipo(
     [
-        "Sean $a = $ y $b = $ dos números naturales. Se sabe que ",
+        "Sean $a = @{a}$ y $b = @{b}$ dos números naturales. Se sabe que ",
         [
             Supuesto("$a > b$. ", True, precond=lambda ns: ns['a'] > ns['b']),
             Supuesto("$a < b$. ", True, precond=lambda ns: ns['a'] < ns['b']),
@@ -513,7 +513,7 @@ Para cada combinación (supuesto × cuestión) el =setup= genera una tirada nuev
 su precondición no se cumple, esa variante se descarta (verás un aviso «=Supuesto …
 rechazado por …=»). De este modo:
 
-- el supuesto mostrado siempre coincide con el orden real de == y ==;
+- el supuesto mostrado siempre coincide con el orden real de =@{a}= y =@{b}=;
 - la corrección de cada cuestión se calcula con los valores reales (=lambda ns: ...=),
   no con una variable proposicional abstracta.
 
@@ -521,7 +521,7 @@ El problema =numeros.json= que carga el editor visual en el notebook de demostra
 =ejemplosManual/Demo.ipynb= (sección «8.2 Editor cargando un ejemplo con setup») es una
 versión ampliada de esta misma idea: añade el supuesto «$a \ne b$» —para que rara vez se
 descarten todos los supuestos a la vez— y reparte las cuestiones en dos grupos de opciones
-que se combinan (una de cada grupo por variante), además de calcular == y ==
+que se combinan (una de cada grupo por variante), además de calcular =@{suma}= y =@{producto}=
 en el =setup=. Puedes lanzarlo en el navegador, sin instalar nada, con Binder:
 [[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/ejemplosManual/Demo.ipynb][abrir =Demo.ipynb= en mybinder]].
 Como el =setup= es aleatorio, el caso «$a = b$» aparece rara vez; si solo quieres ver unas
@@ -685,17 +685,17 @@ d = {
         "k = random.randint(2, n - 1)"
     ),
     "componentes": [
-        "Considere una matriz $A$ de $$ filas y $$ columnas. ",
+        "Considere una matriz $A$ de $@{n}$ filas y $@{k}$ columnas. ",
         [
             {
                 "tipo": "Supuesto",
-                "enunciado": "Suponga que $A$ tiene rango máximo ($\\mathrm{rg}(A)=$). ",
+                "enunciado": "Suponga que $A$ tiene rango máximo ($\\mathrm{rg}(A)=@{k}$). ",
                 "semantica": "v('MaxRk')",
                 "precond": "True"
             },
             {
                 "tipo": "Supuesto",
-                "enunciado": "Suponga que $A$ tiene rango deficiente ($\\mathrm{rg}(A)<$). ",
+                "enunciado": "Suponga que $A$ tiene rango deficiente ($\\mathrm{rg}(A)<@{k}$). ",
                 "semantica": "-v('MaxRk')",
                 "precond": "True"
             }
@@ -704,7 +704,7 @@ d = {
         [
             {
                 "tipo": "Cuestion",
-                "enunciado": "Las $$ columnas de $A$ son linealmente independientes.",
+                "enunciado": "Las $@{k}$ columnas de $A$ son linealmente independientes.",
                 "semantica": "v('MaxRk')",
                 "precond": "True",
                 "exp": ""
@@ -724,7 +724,7 @@ p = problema_from_dict(d)
 save_problema(p, "ejemplosManual/matriz_rango.json")
 #+end_src
 
-La estructura combina 2 supuestos × 2 cuestiones = 4 variantes. En cada una, el =setup= llama a =random.randint= de nuevo, por lo que $n$ y $k$ toman valores distintos. Los marcadores == y == en los textos reciben esos valores; la semántica de las cuestiones (=v('MaxRk')=) la evalúa el motor proposicional en función del supuesto activo:
+La estructura combina 2 supuestos × 2 cuestiones = 4 variantes. En cada una, el =setup= llama a =random.randint= de nuevo, por lo que $n$ y $k$ toman valores distintos. Los marcadores =@{n}= y =@{k}= en los textos reciben esos valores; la semántica de las cuestiones (=v('MaxRk')=) la evalúa el motor proposicional en función del supuesto activo:
 
 #+begin_src python :results output :exports both
 import random
@@ -750,7 +750,7 @@ Variante 4: Considere una matriz $A$ de $4$ filas y $2$ columnas. Suponga que $A
   ✗ $A^\top A$ es invertible.
 #+end_example
 
-Nótese que la lógica proposicional y los valores numéricos actúan de forma independiente: =v('MaxRk')= no «sabe» cuánto valen $n$ y $k$; su valor de verdad lo determina exclusivamente el supuesto elegido en cada variante. El =setup= solo aporta los números que aparecen en el texto mediante la interpolación ==. Una vez guardado el fichero, =load_problema= reconstituye el =setup= desde la cadena de código y el problema se comporta exactamente igual que el original.
+Nótese que la lógica proposicional y los valores numéricos actúan de forma independiente: =v('MaxRk')= no «sabe» cuánto valen $n$ y $k$; su valor de verdad lo determina exclusivamente el supuesto elegido en cada variante. El =setup= solo aporta los números que aparecen en el texto mediante la interpolación =@{variable}=. Una vez guardado el fichero, =load_problema= reconstituye el =setup= desde la cadena de código y el problema se comporta exactamente igual que el original.
 
 *** Campo =seed=: reproducibilidad independiente del orden
 
@@ -1420,7 +1420,7 @@ b = random.randint(1, 9)
 suma = a + b
 #+end_example
 
-Luego, en los textos de los slots, usa ==, == y == donde corresponda. Por ejemplo, un slot de tipo *texto* con el contenido ="Sean $a = $ y $b = $. "= mostrará los valores aleatorios de cada variante.
+Luego, en los textos de los slots, usa =@{a}=, =@{b}= y =@{suma}= donde corresponda. Por ejemplo, un slot de tipo *texto* con el contenido ="Sean $a = @{a}$ y $b = @{b}$. "= mostrará los valores aleatorios de cada variante.
 
 Las semánticas que dependan de los valores del setup deben escribirse como lambdas:
 

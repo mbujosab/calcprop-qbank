@@ -91,8 +91,8 @@ equivalente.)
 ## Preguntas paramétricas con `setup`
 
 El parámetro `setup` permite que los valores numéricos o simbólicos
-cambien en cada variante. El texto de los slots admite marcadores ==
-para interpolación:
+cambien en cada variante. El texto de los slots admite marcadores
+`@{variable}` para interpolación:
 
 ``` python
 import random
@@ -103,8 +103,8 @@ def numeros():
     return {'a': a, 'b': b, 'suma': a + b}
 
 p = ProblemaTipo(
-    ["Sean $a = $ y $b = $. ",
-     [Cuestion("$a + b = $", True),
+    ["Sean $a = @{a}$ y $b = @{b}$. ",
+     [Cuestion("$a + b = @{suma}$", True),
       Cuestion("$a + b > 10$", lambda ns: ns['a'] + ns['b'] > 10)]],
     setup=numeros,
 )
