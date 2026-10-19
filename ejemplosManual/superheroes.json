@@ -75,14 +75,14 @@
         "enunciado": "tener sentidos superdesarrollados",
         "semantica": "v('supersentidos')",
         "precond": "True",
-        "exp": "Spiderman, Superman y Daredevil los tienen"
+        "exp": "Spider-Man (su ``sentido arácnido''), Superman y Daredevil los tienen; Batman, no: no tiene superpoderes."
       },
       {
         "tipo": "Cuestion",
-        "enunciado": "superfuerza",
+        "enunciado": "ver a través de las paredes con visión de rayos X",
         "semantica": "v('Superman')",
         "precond": "True",
-        "exp": "Súper fuerza y vuelo son característicos de Superman"
+        "exp": "De los cuatro, solo Superman tiene visión de rayos X."
       }
     ],
     [
@@ -91,14 +91,14 @@
         "enunciado": "volar",
         "semantica": "v('Superman')",
         "precond": "True",
-        "exp": "Súper fuerza y vuelo son característicos de Superman"
+        "exp": "De los cuatro, solo Superman vuela por sí mismo."
       },
       {
         "tipo": "Cuestion",
-        "enunciado": "en realidad no tiene superpoderes",
+        "enunciado": "no tener ninguno",
         "semantica": "v('Batman')",
         "precond": "True",
-        "exp": "Las capacidades de Batman son adquiridas por entrenamiento y tecnología"
+        "exp": "Batman no tiene superpoderes: sus capacidades proceden de su entrenamiento y de su tecnología. Spider-Man, Superman y Daredevil sí los tienen."
       }
     ],
     "En su vestimenta destaca:",
@@ -155,7 +155,7 @@
         "enunciado": "son de origen extraterrestre",
         "semantica": "v('Superman')",
         "precond": "True",
-        "exp": "Spider-Man y Daredevil adquirieron sus habilidades en la adolescencia debido a un accidente científico/químico, a diferencia de los otros dos."
+        "exp": "Superman nació en Krypton y debe sus poderes al Sol de la Tierra; Spider-Man, Batman y Daredevil son humanos nacidos en la Tierra."
       }
     ],
     [
@@ -168,7 +168,7 @@
       },
       {
         "tipo": "Cuestion",
-        "enunciado": "los adquirió en mercadona",
+        "enunciado": "los adquirió en Mercadona",
         "semantica": "False",
         "precond": "True",
         "exp": "¡Menuda tontería! Todo el mundo sabe que se compran en Ahorramás"

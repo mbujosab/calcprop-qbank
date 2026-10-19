@@ -43,12 +43,12 @@
        "semantica": "v('sing')", "precond": "True",
        "exp": "$\\det(A^2) = \\det(A)^2$, que es cero exactamente cuando $\\det(A) = 0$: si $A$ es invertible, $\\det(A^2) \\neq 0$; si es singular, $\\det(A^2) = 0$."}
     ],
-    " Sobre el sistema homogéneo $A\\boldsymbol{x} = \\boldsymbol{0}$:",
+    " Sobre sus columnas y los sistemas $A\\boldsymbol{x} = \\boldsymbol{b}$:",
     [
-      {"tipo": "Cuestion", "enunciado": "tiene solo la solución trivial $\\boldsymbol{x} = \\boldsymbol{0}$",
+      {"tipo": "Cuestion", "enunciado": "el sistema homogéneo $A\\boldsymbol{x} = \\boldsymbol{0}$ solo tiene la solución trivial",
        "semantica": "v('inv')", "precond": "True",
        "exp": "Si $A$ es invertible, $\\boldsymbol{x} = A^{-1}\\boldsymbol{0} = \\boldsymbol{0}$; si es singular, hay un núcleo no trivial y, por tanto, infinitas soluciones."},
-      {"tipo": "Cuestion", "enunciado": "tiene infinitas soluciones",
+      {"tipo": "Cuestion", "enunciado": "el sistema homogéneo $A\\boldsymbol{x} = \\boldsymbol{0}$ tiene infinitas soluciones",
        "semantica": "v('sing')", "precond": "True",
        "exp": "Si $A$ es invertible, $\\boldsymbol{x} = A^{-1}\\boldsymbol{0} = \\boldsymbol{0}$; si es singular, hay un núcleo no trivial y, por tanto, infinitas soluciones."}
     ],

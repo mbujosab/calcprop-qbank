@@ -28,7 +28,7 @@
        "semantica": "True",  "precond": "True", "exp": ""},
       {"tipo": "Cuestion", "enunciado": "$m \\cdot m$ es par",
        "semantica": "False", "precond": "True", "exp": ""},
-      {"tipo": "Cuestion", "enunciado": "$n \\cdot m$ es divisible entre $4$",
+      {"tipo": "Cuestion", "enunciado": "$n \\cdot m + 1$ es par",
        "semantica": "False", "precond": "True", "exp": ""}
     ],
     [

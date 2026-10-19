@@ -4,7 +4,7 @@
   "nombre": "ej_d_setup_vars",
   "seed": 42,
   "setup": "import numpy as np\na = int(np.random.randint(1, 8))\nb = int(a + np.random.randint(1, 6))\ndiff = b - a\nsuma = a + b",
-  "export": {"last_choice": true, "cols": 1, "instances": 5},
+  "export": {"last_choice": true, "cols": 1, "instances": 2},
   "componentes": [
     "Sea $f:\\mathbb{R}\\to\\mathbb{R}$ una función y sean $a = @{a}$, $b = @{b}$ (con $a < b$). Si $f$ es ",
     [
@@ -18,11 +18,11 @@
       {"tipo": "Cuestion",
        "enunciado": "$f(@{a}) < f(@{b})$",
        "semantica": "v('crec')", "precond": "True",
-       "exp": "Porque @{a} < @{b} y $f$ es creciente."},
+       "exp": "Como $@{a} < @{b}$: si $f$ es estrictamente creciente, $f(@{a}) < f(@{b})$; si es estrictamente decreciente, $f(@{a}) > f(@{b})$."},
       {"tipo": "Cuestion",
        "enunciado": "$f(@{a}) > f(@{b})$",
        "semantica": "v('decr')", "precond": "True",
-       "exp": "Porque @{a} < @{b} y $f$ es decreciente."},
+       "exp": "Como $@{a} < @{b}$: si $f$ es estrictamente creciente, $f(@{a}) < f(@{b})$; si es estrictamente decreciente, $f(@{a}) > f(@{b})$."},
       {"tipo": "Cuestion",
        "enunciado": "$f(@{a}) = f(@{b})$",
        "semantica": "False",     "precond": "True", "exp": ""}
@@ -35,7 +35,7 @@
        "enunciado": "$f(@{b}) - f(@{a}) < 0$",
        "semantica": "v('decr')", "precond": "True", "exp": ""},
       {"tipo": "Cuestion",
-       "enunciado": "$f(@{b}) - f(@{a}) = @{diff}$",
+       "enunciado": "$f(@{b}) - f(@{a}) = @{diff}$, sea cual sea $f$",
        "semantica": "False",     "precond": "True", "exp": ""}
     ],
     [

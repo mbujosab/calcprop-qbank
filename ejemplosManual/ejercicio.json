@@ -56,14 +56,14 @@
         "enunciado": "se da $\\mathcal{A}$",
         "semantica": "v('A')",
         "precond": "True",
-        "exp": "$\\mathcal{A}$ solo está entre las hipótesis en la mitad de las variantes."
+        "exp": "Si se considera $\\mathcal{A}$, se da por hipótesis; si se considera $\\mathcal{B}$, ninguna de las hipótesis implica $\\mathcal{A}$, que puede ser falsa."
       },
       {
         "tipo": "Cuestion",
         "enunciado": "se da $\\mathcal{B}$",
         "semantica": "v('B')",
         "precond": "True",
-        "exp": "$\\mathcal{B}$ solo está entre las hipótesis en la mitad de las variantes."
+        "exp": "Si se considera $\\mathcal{B}$, se da por hipótesis; si se considera $\\mathcal{A}$, ninguna de las hipótesis implica $\\mathcal{B}$, que puede ser falsa."
       }
     ],
     [
