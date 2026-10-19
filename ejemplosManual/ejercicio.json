@@ -1,20 +1,20 @@
 {
   "version": "1",
   "tipo": "ProblemaTipo",
-  "nombre": "",
+  "nombre": "ejercicio",
   "setup": null,
   "componentes": [
     "Considere ",
     [
       {
         "tipo": "Supuesto",
-        "enunciado": "$\\mathcal{A}$, ",
+        "enunciado": "$\\mathcal{A}$ ",
         "semantica": "v('A')",
         "precond": "True"
       },
       {
         "tipo": "Supuesto",
-        "enunciado": "$\\mathcal{B}$, ",
+        "enunciado": "$\\mathcal{B}$ ",
         "semantica": "v('B')",
         "precond": "True"
       }
@@ -33,22 +33,62 @@
         "precond": "True"
       }
     ],
-    "Conteste: ",
+    "Entonces, con toda seguridad: ",
     [
       {
         "tipo": "Cuestion",
-        "enunciado": "¿Se da $\\mathcal{C}$?",
+        "enunciado": "se da $\\mathcal{C}$",
         "semantica": "v('C')",
         "precond": "True",
-        "exp": "Solo si $\\mathcal{A}$ y $\\mathcal{A}\\Rightarrow\\mathcal{C}$"
+        "exp": "Solo se deduce $\\mathcal{C}$ de $\\mathcal{A}$ junto con $\\mathcal{A}\\Rightarrow\\mathcal{C}$."
       },
       {
         "tipo": "Cuestion",
-        "enunciado": "¿Se da $\\mathcal{D}$?",
+        "enunciado": "se da $\\mathcal{D}$",
         "semantica": "v('D')",
         "precond": "True",
-        "exp": ""
+        "exp": "Solo se deduce $\\mathcal{D}$ de $\\mathcal{B}$ junto con $\\mathcal{B}\\Leftrightarrow\\mathcal{D}$."
+      }
+    ],
+    [
+      {
+        "tipo": "Cuestion",
+        "enunciado": "se da $\\mathcal{A}$",
+        "semantica": "v('A')",
+        "precond": "True",
+        "exp": "$\\mathcal{A}$ solo está entre las hipótesis en la mitad de las variantes."
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "se da $\\mathcal{B}$",
+        "semantica": "v('B')",
+        "precond": "True",
+        "exp": "$\\mathcal{B}$ solo está entre las hipótesis en la mitad de las variantes."
+      }
+    ],
+    [
+      {
+        "tipo": "Cuestion",
+        "enunciado": "se dan $\\mathcal{A}$ y $\\mathcal{C}$",
+        "semantica": "v('A') & v('C')",
+        "precond": "True",
+        "exp": "Hace falta $\\mathcal{A}$ como hipótesis y la implicación $\\mathcal{A}\\Rightarrow\\mathcal{C}$."
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "se dan $\\mathcal{B}$ y $\\mathcal{D}$",
+        "semantica": "v('B') & v('D')",
+        "precond": "True",
+        "exp": "Hace falta $\\mathcal{B}$ como hipótesis y la equivalencia $\\mathcal{B}\\Leftrightarrow\\mathcal{D}$."
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "se da $\\mathcal{E}$",
+        "semantica": "False",
+        "precond": "True",
+        "exp": "Nada se afirma sobre $\\mathcal{E}$: no se deduce de las hipótesis."
       }
     ]
-  ]
+  ],
+  "export": {"last_choice": true, "cols": 2}
 }

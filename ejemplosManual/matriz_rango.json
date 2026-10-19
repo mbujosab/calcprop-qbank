@@ -2,7 +2,9 @@
   "version": "1",
   "tipo": "ProblemaTipo",
   "nombre": "matriz_rango",
-  "setup": "import random\nn = random.randint(3, 5)\nk = random.randint(2, n - 1)",
+  "seed": 7,
+  "setup": "import numpy as np\nn = int(np.random.randint(3, 6))\nk = int(np.random.randint(2, n))",
+  "export": {"last_choice": true, "cols": 2, "instances": 4},
   "componentes": [
     "Considere una matriz $A$ de $@{n}$ filas y $@{k}$ columnas. ",
     [
@@ -19,21 +21,53 @@
         "precond": "True"
       }
     ],
-    "Indique qué afirmación es correcta: ",
+    "Indique qué afirmaciones son correctas: ",
     [
       {
         "tipo": "Cuestion",
         "enunciado": "Las $@{k}$ columnas de $A$ son linealmente independientes.",
         "semantica": "v('MaxRk')",
         "precond": "True",
-        "exp": ""
+        "exp": "El rango es el número de columnas linealmente independientes: es $@{k}$ (todas) si es máximo y menor si es deficiente."
       },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "Alguna columna de $A$ es combinación lineal de las demás.",
+        "semantica": "-v('MaxRk')",
+        "precond": "True",
+        "exp": "El rango es el número de columnas linealmente independientes: es $@{k}$ (todas) si es máximo y menor si es deficiente."
+      }
+    ],
+    [
       {
         "tipo": "Cuestion",
         "enunciado": "$A^\\top A$ es invertible.",
         "semantica": "v('MaxRk')",
         "precond": "True",
-        "exp": ""
+        "exp": "$A^\\top A$ (de orden $@{k}$) es invertible si y solo si las columnas de $A$ son linealmente independientes."
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "$A^\\top A$ es singular.",
+        "semantica": "-v('MaxRk')",
+        "precond": "True",
+        "exp": "$A^\\top A$ (de orden $@{k}$) es invertible si y solo si las columnas de $A$ son linealmente independientes."
+      }
+    ],
+    [
+      {
+        "tipo": "Cuestion",
+        "enunciado": "El sistema $Ax = 0$ tiene solo la solución trivial.",
+        "semantica": "v('MaxRk')",
+        "precond": "True",
+        "exp": "$Ax = 0$ tiene soluciones no triviales exactamente cuando las columnas son linealmente dependientes."
+      },
+      {
+        "tipo": "Cuestion",
+        "enunciado": "El sistema $Ax = 0$ tiene infinitas soluciones.",
+        "semantica": "-v('MaxRk')",
+        "precond": "True",
+        "exp": "$Ax = 0$ tiene soluciones no triviales exactamente cuando las columnas son linealmente dependientes."
       }
     ]
   ]

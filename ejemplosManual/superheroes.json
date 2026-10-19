@@ -1,7 +1,7 @@
 {
   "version": "1",
   "tipo": "ProblemaTipo",
-  "nombre": "Super héroes",
+  "nombre": "superheroes",
   "setup": null,
   "componentes": [
     "Conteste qué afirmaciones sobre",
@@ -31,46 +31,42 @@
         "precond": "True"
       }
     ],
-    [
-      {
-        "tipo": "Supuesto",
-        "enunciado": "",
-        "semantica": "( v('Spider-Man') | v('Superman') | v('Daredevil') )>> v('supersentidos')",
-        "precond": "True"
-      }
-    ],
-    [
-      {
-        "tipo": "Supuesto",
-        "enunciado": "",
-        "semantica": "(v('Spider-Man') | v('Batman') | v('Daredevil') ) >> v('máscara')",
-        "precond": "True"
-      }
-    ],
-    [
-      {
-        "tipo": "Supuesto",
-        "enunciado": "",
-        "semantica": "(v('Superman') | v('Batman') ) >> v('capa')",
-        "precond": "True"
-      }
-    ],
-    [
-      {
-        "tipo": "Supuesto",
-        "enunciado": "",
-        "semantica": "( v('Spider-Man') | v('Superman') )>> v('azul')",
-        "precond": "True"
-      }
-    ],
-    [
-      {
-        "tipo": "Supuesto",
-        "enunciado": "",
-        "semantica": "( v('Spider-Man') | v('Daredevil') )>> v('mutación')",
-        "precond": "True"
-      }
-    ],
+    {
+      "tipo": "Supuesto",
+      "enunciado": "",
+      "semantica": "unoDe(v('Spider-Man'), v('Superman'), v('Batman'), v('Daredevil'))",
+      "precond": "True"
+    },
+    {
+      "tipo": "Supuesto",
+      "enunciado": "",
+      "semantica": "( v('Spider-Man') | v('Superman') | v('Daredevil') )>> v('supersentidos')",
+      "precond": "True"
+    },
+    {
+      "tipo": "Supuesto",
+      "enunciado": "",
+      "semantica": "(v('Spider-Man') | v('Batman') | v('Daredevil') ) >> v('máscara')",
+      "precond": "True"
+    },
+    {
+      "tipo": "Supuesto",
+      "enunciado": "",
+      "semantica": "(v('Superman') | v('Batman') ) >> v('capa')",
+      "precond": "True"
+    },
+    {
+      "tipo": "Supuesto",
+      "enunciado": "",
+      "semantica": "( v('Spider-Man') | v('Superman') )>> v('azul')",
+      "precond": "True"
+    },
+    {
+      "tipo": "Supuesto",
+      "enunciado": "",
+      "semantica": "( v('Spider-Man') | v('Daredevil') )>> v('mutación')",
+      "precond": "True"
+    },
     "son ciertas.",
     "Uno de sus superpoderes consiste en ",
     [
@@ -178,5 +174,9 @@
         "exp": "¡Menuda tontería! Todo el mundo sabe que se compran en Ahorramás"
       }
     ]
-  ]
+  ],
+  "export": {
+    "last_choice": true,
+    "cols": 1
+  }
 }
