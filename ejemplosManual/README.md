@@ -12,7 +12,6 @@ Preguntas de ejemplo en JSON que cargan `Manual.org`, `Tutorial.ipynb` y
 | `superheroes.json` | Pregunta de tres partes. |
 | `Demo.ipynb` | Recorrido por la API Python (construcción, editor visual, exportadores). |
 | `EjemploMoodle.pdf`, `EjemploMoodle-moodle.xml` | Lo que produce el ejemplo «Exportar a Moodle» del Manual con `ejercicio.json`. |
-| `EjemploVF.pdf`, `EjemploVF-moodle.xml` | Salida antigua de una pregunta `ProblemaVF` (verdadero/falso; ver el apéndice del Manual). |
 
 Los cuadernos escriben sus salidas en `mis_problemas/` y `exportaciones/`,
 que no se versionan.
