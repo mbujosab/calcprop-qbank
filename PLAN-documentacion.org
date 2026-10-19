@@ -396,6 +396,192 @@ están incorporadas en lo que sigue. Suite: 128 → 160 tests.
 - Hallazgo A2.23 de =Ejemplos.ipynb= matizado: el AVISO venía de «tiene
   solución única», no de todo el hueco 2.
 
+*** Revisión de la Fase 3, segunda ronda (Opus, 2026-10-19)
+Cinco lentes en paralelo:
+1. Regresión de la ronda anterior, hallazgo por hallazgo y commit a commit.
+2. Profesor de letras novato: Linux reproducido, Windows simulado
+   (=open()= en cp1252) y macOS razonado. Hizo dos preguntas propias,
+   tratados con =setup= y derecho con tres huecos, con =make= real.
+3. Lector que solo tiene los PDF, regenerados con lualatex ×3.
+4. Cuadernos regenerados con =--ejecuta= y coherencia de firmas y números
+   con el código.
+5. =lint=: 106 casos mal hechos y los dos bancos con el motor anterior
+   (=bbd1f7f^=).
+
+Verifiqué yo cada hallazgo antes de corregirlo. Lo que sigue en buen estado:
+- Los 18 grupos de la ronda anterior están bien corregidos y sin restos,
+  salvo los que se citan abajo.
+- =orgtangle check= pasa y =README.md= coincide con =pandoc=.
+- Los guiones reproducen byte a byte los tres cuadernos, que se ejecutan
+  sin errores.
+- Todos los =#+RESULTS= del Manual coinciden.
+- Los 14 JSON de ejemplo no dan ni AVISO ni ERROR.
+- En los bancos, la salida de =lint= es idéntica con el motor anterior y
+  con el actual: en econometría los mismos avisos que ya tenía, y en
+  PEconometria ninguno.
+
+Suite: 160 → 164 tests.
+
+**** (a) Corregido
+- Motor, vía los =.org= (1be88b7):
+  - =QuizMoodle=, =QuizMoodleProfe=, =QuizAMCProfe= y =QuizVFMoodle=
+    abrían el =.tex= sin =encoding=. En Windows (cp1252), un «¿», que
+    =codchar= no convierte, rompía =gen_moodle.py= con
+    =UnicodeDecodeError=. Test con un =open()= en cp1252.
+  - =lint=: =$|x|'$= ya no da AVISO de comillas simples (falso positivo).
+  - Docstring de =lint=: «dobles espacios fuera de las fórmulas».
+  - =QuizAMCProfe= escribe y devuelve una entrada por mundo, no por
+    variante (prosa y docstring).
+- Manual (e162086, a3f7673):
+  - El bloque que comprueba la versión salía impreso, porque con
+    =org-export-use-babel nil= no se respeta =:exports none=. Ahora va en un
+    cajón con =d:nil= y ya no revienta con la versión «desconocida».
+  - Dice que =ejemplosManual/= está en el repositorio y no viene con =pip=.
+  - =ordenar=: ≈5 variantes por instancia y 14 instancias, que es lo que
+    dice =lint=.
+  - =QuizAMCProfe= cuenta mundos.
+  - El ejemplo de =AMC_multipart= usaba la pregunta de una parte que había
+    en la sesión.
+  - =ProblemaVF= con sus parámetros reales, y =__version__= en la
+    referencia rápida.
+  - El ejemplo de =lint= enseña su salida y explica cómo leer =comp i[j]=.
+  - «Sin avisos» pasa a «sin ERROR ni AVISO».
+  - En un =exp=, el =<= estaba fuera de los =$=.
+  - =QuizMoodle= y =QuizMoodleProfe= escriben el mismo =nombre.tex=.
+  - Remisiones que se pueden seguir en papel: número de sección, la Guía
+    en PDF, sin enlaces =file:= ni el nombre de un repositorio privado.
+  - Qué hacer si sale =AttributeError: __version__=.
+  - El aviso de PowerShell salta al activar el entorno, no en =py -m venv=.
+- README (c71604a, a237011):
+  - El entorno virtual va primero (fuera de uno, =pip= da
+    =externally-managed-environment=), y se instala solo =calcprop-qbank=,
+    como en el Manual.
+  - La vía git necesita =git=; dónde están los PDF.
+  - Fuera la frase «=make= falla con mensajes engañosos», que ya no era
+    cierta desde 7ae4c04.
+  - Las hipótesis contradictorias *no* se descartan: todo sale verdadero.
+  - El ejemplo de Moodle sobrescribía la vista alumno con la profe, y su
+    tercera llamada no pasaba =last_choice= (daba ERROR =mezcla=).
+  - «cuestiones» en lugar de «ítems».
+- Plantilla (86fae8b):
+  - Qué necesita =make= en Windows: un shell POSIX (Git Bash, MSYS2 o WSL,
+    con Python y LaTeX dentro de WSL), =PYTHON= con barras normales y
+    =PYTHONUTF8=1=.
+  - AMC no existe para Windows.
+  - MiKTeX, BasicTeX con =sudo=, =babel= y el =make= de macOS.
+  - La vista profe no incluye la opción por defecto, aunque la
+    documentación prometía verla allí.
+  - Con =setup=, «mundo» cuenta también los textos sorteados.
+  - «» y comillas rectas son AVISO: =make= no se para, pero el PDF de
+    Moodle falla con =\guillemetleft=.
+  - La receta del =%= es ahora la misma que en la Guía.
+  - El «Catálogo provisional» sale también en la vista profe.
+  - =make tabla= ya no repite la orden (faltaba =@=).
+- Cuadernos (fdad745, a237011):
+  - Ejemplos: «4 mundos (vista profe)».
+  - Tutorial: =make amc= no muestra la opción por defecto, y qué es una
+    hipótesis.
+- CLAUDE.md (f8f39d1):
+  - =aux_latex= en =AMCblock= y =QuizMoodle=.
+  - Los códigos de =lint= =solape=, =huerfana= y los INFO.
+  - Los objetivos =tabla= y =all=.
+  - Ficheros que escriben las vistas profe, y UTF-8.
+- Guía y PDF (a3f7673):
+  - «un 25 \% del valor» perdía el resto de la línea en el PDF.
+  - =$(a+b)^2 = @{cuad_falso}$= salía como «@cuad_falso» en cursiva
+    matemática, que enseña la sintaxis equivocada. Ahora va como código.
+  - =np.random.choice= falla con listas de tuplas: se sortea la posición.
+  - El escape =@@{x}=.
+  - =ej_e_lambda.json= citado por su nombre.
+  - La 1 y la 6 del listado son variantes, y la opción por defecto no
+    aparece en él.
+  - =True= / =False= mal marcados en =CalcPropQuiz.org=.
+  - Los cuatro PDF regenerados (16/24/73/22 p.), sin «Missing character»
+    ni referencias rotas.
+
+**** (b) Verificado y no corregido
+- *=origin/main= va 34 commits por detrás (0.5.0)*: la vía git que da la
+  documentación instala la 0.5.0, que no trae =qbank-init= ni
+  =__version__= (comprobado con =git ls-remote=). Hay que hacer =git push=
+  antes de que nadie siga la documentación. Es decisión de Marcos y lo
+  primero que bloquearía a un compañero.
+- Propuestas de =lint= (falsos negativos):
+  - Un =%= en un texto /lambda/ escrito en Python. Bastaría aplicar
+    =_CHECKS_PCT= a los textos renderizados.
+  - Un =@@{k}= en un texto oculta un =@{k}= sin resolver en otro: el
+    conjunto =escapadas= es global.
+  - =@nombre= sin llaves también se interpola: «profe@b.com» sale como
+    «profe5.com».
+  - Claves de =export= desconocidas (=last_choise=, =instnces=), sin aviso.
+  - =&=, =#=, =_= fuera de las fórmulas y =$= desparejado.
+  - =import random= en lugar de =np.random=.
+  - «» como ERROR, porque rompen Moodle.
+  - =seed= negativa: dos ERROR =ejecucion= en lugar de =estructura=.
+- Mensajes de =lint= (son etiquetas de salida, no se tocan):
+  - «hacen falta 1 instancias», «solo 1 variantes».
+  - «por_partes() falla» cuando lo que falla es el =setup=.
+  - =ejecucion= sale duplicado.
+- Vista profe AMC sin opción por defecto: documentado. Incluirla cambia la
+  exportación.
+- =nueva_pregunta.py= imprime entradas repetidas, una por sorteo
+  (cosmético).
+- Demo, celda de =numeros.json=: con =seed= 1 la vista profe enseña 1 mundo
+  de 4. El texto lo explica; cambiar la =seed= del JSON movería la Demo y
+  el Manual.
+- «Etiqueta» tiene dos sentidos: =v('X')= y el rótulo de cada variante
+  (=for etiqueta, partes in …=, =[L-05-…-1]=). Falta decidir la palabra
+  para el segundo.
+- Lo que solo está en el README de la plantilla, que no se imprime:
+  - el examen AMC real (=_catalogo=, =\insertgroup[1]=);
+  - =config.py=;
+  - =L-NN-= y =LECCION=;
+  - cómo usar =nueva_pregunta.py=.
+  Un lector de solo PDF se queda corto en el último paso. Propuesta: un
+  PDF del README de la plantilla, o un apéndice del Manual.
+- Windows simulado, no probado en una máquina real.
+- Nombres de fichero con tilde y MiKTeX: solo razonado.
+- Sin tests: las etiquetas del editor, =babel= en =config.py= y
+  =__version__= real.
+- =#+RESULTS= de =ProblemaVF= en =CalcPropQuiz.org=: sin semilla, no son
+  reproducibles.
+- Maquetación del PDF:
+  - la entrada 9 del índice de la Guía queda sola en la página 2;
+  - «10.Apéndice» sale sin espacio;
+  - =fvextra= corta líneas con «,→»;
+  - dos =\texttt= sobresalen 18–23 pt en los PDF literate.
+  Es cosmético.
+
+**** (c) Descartado tras verificar
+- Tutorial: «N aviso(s)» cuenta también los INFO. El propio cuaderno define
+  que =lint= devuelve avisos de tres niveles.
+- Manual §4.4: la salida de =problema_to_python= se corta a 30 líneas a
+  propósito (=[:30]=).
+- =regenera.sh= deja los cuadernos ejecutados en un =mktemp=: lo dice al
+  terminar, para poder mirarlos.
+- La Guía no lista =seed: true= ni la parte sin =Cuestion=: no es la
+  referencia de =lint=, que está en el Manual.
+- PDF versionados desactualizados: no; el texto regenerado antes de
+  corregir era idéntico.
+
+**** (d) Veredicto
+Casi. Con =qbank-init=, la Guía y el README de la plantilla, un profesor de
+letras escribió dos preguntas correctas, una con =setup= de textos y otra
+con tres huecos y =unoDe=. Pasaron =lint= sin avisos y las exportó a AMC y
+a Moodle sin más ayuda. La mecánica (listas que sortean, mundos, opción por
+defecto) ya se entiende desde los documentos.
+
+Lo primero que le haría tropezar no está en los textos, sino en el
+repositorio: la orden =pip install … @ git+…= que dan README, Manual y
+plantilla instala hoy la 0.5.0, porque =main= no está subido. Sin
+=qbank-init= no hay por dónde empezar. Resuelto eso con un =git push= (o
+publicando la 0.6.0), los siguientes tropiezos serían propios de Windows,
+ya documentados pero no probados:
+- =make= necesita Git Bash o WSL;
+- AMC no existe para Windows;
+- MiKTeX instala los paquetes por su cuenta.
+La Fase 5 con un compañero real, a ser posible en Windows, es la prueba
+que falta.
+
 ** TODO Fase 4 — Prompts reutilizables para quien use una IA
 - [ ] =prompts/PROMPT-qbank-generico.org= corto (≈100 líneas): remite a
   =GuiaDiseno.org= y al Manual, exige validar con =lint= y
