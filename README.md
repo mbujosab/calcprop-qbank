@@ -73,10 +73,11 @@ for etiqueta, partes in p.por_partes():
             print(f"  {'✓' if correcto else '✗'} {texto}")
 ```
 
-Ocho variantes, cada una con tres opciones más la opción por defecto.
-Una **lista** de `Cuestion` sortea una por variante; el alumno ve tantas
-opciones como elementos-Cuestion consecutivos haya (`GuiaDiseno.org` lo
-explica).
+Ocho variantes (pocas para un banco real: `lint` lo avisa), cada una con
+tres opciones más la opción por defecto («Ninguna de las anteriores»,
+correcta solo si las otras tres son falsas). Una **lista** de `Cuestion`
+sortea una por variante; el alumno ve tantas opciones como
+elementos-Cuestion consecutivos haya (`GuiaDiseno.org` lo explica).
 
 # Características
 
@@ -89,8 +90,8 @@ falsos. Las variantes con hipótesis incoherentes o precondiciones
 insatisfechas se descartan.
 
 El método `por_partes_profe()` muestra todas las cuestiones de cada
-sublista (sin descartar, marcando las rechazadas por su precondición),
-facilitando la revisión del banco.
+hueco (marcando las rechazadas por su precondición en vez de descartar
+la variante), facilitando la revisión del banco.
 
 ## Preguntas multi-parte
 
@@ -140,12 +141,13 @@ p = ProblemaTipo(
     setup="import numpy as np\n"
           "a, b = (int(x) for x in np.random.randint(1, 10, 2))\n"
           "suma, suma_falsa, producto = a + b, a + b + 1, a * b",
-    seed=1, export={"last_choice": True, "instances": 8},
+    seed=1, export={"last_choice": True, "instances": 15},
 )
 ```
 
 Con `seed` la pregunta es reproducible e `instances` fija cuántas
-realizaciones numéricas se generan.
+realizaciones numéricas se generan (aquí 4 variantes × 15 = 60, el
+mínimo que recomienda `lint` con `setup`).
 
 ## Persistencia en formato JSON
 
@@ -284,8 +286,8 @@ En este orden:
 -   `Manual.org` — referencia completa de la API y del formato JSON.
 -   `CalcPropQuiz.org` y `CalcPropExport.org` — código fuente comentado
     (programación literate) de los módulos `_quiz`, `_json`, `_widgets`,
-    `_lint` y `_export`. Son la fuente de `src/qbank/`: los `.py` se
-    generan con `org-babel-tangle` o, sin Emacs, con
+    `_lint`, `_export` y `_plantilla`. Son la fuente de `src/qbank/`:
+    los `.py` se generan con `org-babel-tangle` o, sin Emacs, con
     `python tools/orgtangle.py write`; `tests/test_literate.py`
     comprueba que coinciden.
 

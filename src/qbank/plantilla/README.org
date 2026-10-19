@@ -82,9 +82,10 @@ Todos los comandos se lanzan *desde esta carpeta* (la que contiene el
      huecos más la opción por defecto), y Moodle lo puntúa como una opción
      múltiple con varias respuestas (las correctas marcadas suman, las
      incorrectas marcadas restan, sin bajar de cero). La nota que fijes a la
-     pregunta en el cuestionario reescala la suma de sus bloques. Al compilar
-     verás un mensaje «N «<» escapados dentro de bloques cloze»: es un
-     arreglo automático del XML que Moodle necesita, no un error.
+     pregunta en el cuestionario reescala la suma de sus bloques. Si al
+     compilar aparece «N «<» escapados dentro de bloques cloze», es un
+     arreglo automático del XML que Moodle necesita, no un error. Los XML
+     se entregan en UTF-8.
 
 =make= solo recompila lo que ha cambiado; =make clean= borra =build/=.
 
@@ -117,12 +118,33 @@ ves cada rama de la pregunta una vez.
   ="export": {"last_choice": true}=. Así siempre hay cuatro opciones y al
   menos una correcta y una incorrecta, sea cual sea la combinación.
 
-Las cuatro preguntas de =preguntas/= ilustran, en este orden: mundos y
+Las cinco preguntas de =preguntas/= ilustran, en este orden: mundos y
 axioma (=L-01-ParidadSumaProducto=), =setup= con =seed= e =instances=
-(=L-01-FuncionMonotona=), dos partes con =precond= (=L-02-MatrizInvertible=)
-y semántica =lambda= sobre los datos con pareja verdadera/falsa
-(=L-02-ComparacionNumerica=). =GuiaDiseno.org= (en el repositorio de qbank)
+(=L-01-FuncionMonotona=), dos partes con =precond= (=L-02-MatrizInvertible=),
+semántica =lambda= sobre los datos con pareja verdadera/falsa
+(=L-02-ComparacionNumerica=) y una pregunta *en prosa*, sin fórmulas, con
+mundos de texto y un =setup= que sortea países y décadas
+(=L-03-PoliticaArancelaria=). =GuiaDiseno.org= (en el repositorio de qbank)
 desarrolla todo esto.
+
+* Caracteres y símbolos en los textos
+
+Los textos son LaTeX. En español puedes teclear tal cual =á é í ó ú ñ ¿ ¡=
+y las comillas tipográficas =“ ”=. Tres cosas rompen la exportación y
+=lint= las señala:
+
+- El símbolo =%= en LaTeX empieza un comentario: escrito tal cual, se
+  pierde el resto de la línea y el PDF sale vacío o roto. Escribe siempre
+  =\%= («un 25 \% del valor»), y fuera de los dólares si hay fórmula
+  (=al $5$ \%=, no =$5\%$=). En Python, dentro de una cadena cruda
+  (=r"un 25 \% del valor"=) o como =\\%=.
+- Las comillas angulares =«»= no existen en la codificación que usa el
+  paquete =moodle=, y las rectas ="…"= salen como =”…”=: escribe
+  =``así''= (dos acentos graves para abrir, dos apóstrofos para cerrar).
+- El símbolo de grado =°=: escribe =$180^\circ$=.
+
+Si =make amc= o =make moodle= dan «ERROR en <pregunta>», el motivo está en
+el =.log= que indican (busca la primera línea que empieza por =!=).
 
 * Campos de una pregunta
 
@@ -138,7 +160,7 @@ Nivel superior del JSON (o argumentos de =ProblemaTipo= en Python):
 del mismo nombre):
 
 | =enunciado= | Texto LaTeX; admite =@{variable}= para interpolar valores del =setup=.                                                   |
-| =semantica= | Fórmula =calcprop= como cadena: ="v('A')"=, ="v('A') \vert v('B')"=, ="True"=, ="False"=, o ="lambda ns: ns['x'] > 0"=. |
+| =semantica= | Fórmula =calcprop= como cadena: ="v('A')"=, ="alguno(v('A'), v('B'))"=, ="True"=, ="False"=, o ="lambda ns: ns['x'] > 0"=. |
 | =precond=   | Condición para que el componente pueda aparecer; mismo formato. Por defecto ="True"=.                                   |
 | =exp=       | Solo =Cuestion=: explicación que Moodle muestra tras responder; admite =@{variable}=. Opcional.                         |
 

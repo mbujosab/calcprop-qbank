@@ -76,6 +76,16 @@ distinción está detrás de casi todo lo que sigue.
 
 ** Vocabulario
 
+- *Hipótesis* :: lo que la variante da por supuesto: las fórmulas de los
+  =Supuesto= activos. *Consecuencia lógica* de las hipótesis es lo que se
+  sigue necesariamente de ellas (si las hipótesis son ciertas, eso es
+  cierto). Es lo único que el motor comprueba.
+- *Etiqueta* :: cada =v('nombre')=: un nombre que tú eliges para una
+  afirmación («el país es proteccionista», «la función crece»). Solo tiene
+  que ser consistente dentro de la misma pregunta.
+- *Axioma* :: un =Supuesto= sin texto que añade una hipótesis en todas las
+  variantes; casi siempre, que las etiquetas de los mundos son excluyentes
+  (=unoDe=).
 - *Variante* :: cada una de las versiones concretas de la pregunta que ve
   un alumno: un enunciado y sus opciones, con las marcas de correcta o
   incorrecta ya calculadas.
@@ -93,8 +103,8 @@ distinción está detrás de casi todo lo que sigue.
 - *Vista profe* :: el PDF de =make amc=: cada variante con /todas/ las
   cuestiones de cada hueco (no solo la sorteada), su marca y las
   rechazadas por su precondición. =nueva_pregunta.py= imprime en texto las
-  primeras variantes de esa vista (sin las explicaciones ni las
-  exclusiones).
+  primeras variantes de esa vista (las rechazadas con =·=, sin su condición,
+  y sin las explicaciones).
 - *Instancia* :: con =setup= aleatorio, cada ejecución del =setup=; con
   =export.instances = N= cada variante estructural se genera $N$ veces con
   números distintos.
@@ -250,9 +260,10 @@ aprende a descartar; =lint= lo señala como INFO =constante=.
 La tabla de mundos (=make tabla PREGUNTA=L-01-Monotonia=, que ejecuta
 =python -m qbank.lint preguntas/L-01-Monotonia.json --tabla=) resume la
 lógica de un vistazo y es la forma más rápida de auditarla. Cada fila es
-una =Cuestion=, identificada por su posición en la lista plana (=[4.1]= es
-la segunda alternativa del quinto componente, contando desde cero), y cada
-columna un mundo:
+una =Cuestion=, identificada por su posición en la lista plana (=[4.1]=:
+componente número 4 y, dentro de él, alternativa número 1, numerando ambos
+desde 0), cada columna un mundo, y =V= / =F= si en ese mundo la cuestión es
+correcta o incorrecta (=-= si su precondición la excluye):
 
 #+begin_example
 Mundos:
@@ -400,7 +411,46 @@ instances = max(1, ceil(60 / variantes_por_instancia))
 #+end_example
 
 =lint= imprime el número de variantes por instancia y el =instances=
-necesario. Sin =setup= aleatorio, no pongas =instances= (o déjalo en 1).
+necesario (si los =Supuesto= llevan precondiciones sobre los números, el
+número de variantes cambia de un sorteo a otro: =lint= usa la media, y el
+total real puede diferir un poco). Sin =setup= aleatorio, no pongas
+=instances= (o déjalo en 1).
+
+** Sortear textos, no solo números
+
+El =setup= puede sortear cualquier cosa: nombres, países, décadas, frases.
+=np.random.choice= elige de una lista (conviértelo con =str()= o =int()=
+para que sea un valor normal de Python), un diccionario resuelve las
+concordancias, y las lambdas comparan cadenas igual que números:
+
+#+begin_src python
+SETUP = r"""
+import numpy as np
+pais = str(np.random.choice(["España", "Francia", "Portugal"]))
+gentilicio = {"España": "española", "Francia": "francesa", "Portugal": "portuguesa"}[pais]
+decada = int(np.random.choice([1880, 1890, 1900]))
+"""
+
+PREGUNTA = ProblemaTipo(
+    ["Suponga que en la década de @{decada} el gobierno de @{pais} ",
+     [Supuesto(r"establece un arancel del 20 \% sobre las importaciones.", v('prot')),
+      Supuesto("suprime todos los aranceles sobre las importaciones.", v('libre'))],
+     Supuesto("", unoDe(v('prot'), v('libre'))),
+     " A corto plazo:",
+     [Cuestion("los bienes importados se encarecen", v('prot')),
+      Cuestion("los bienes importados se abaratan", v('libre'))],
+     [Cuestion("la industria @{gentilicio} queda protegida de la competencia exterior", v('prot')),
+      Cuestion("la industria @{gentilicio} queda más expuesta a la competencia exterior", v('libre'))],
+     Cuestion("el país es @{pais}", "lambda ns: ns['pais'] == 'Francia'")],   # ejemplo de lambda sobre texto
+    setup=SETUP, seed=3, export={"last_choice": True, "cols": 1, "instances": 3},
+    nombre="L-03-PoliticaArancelaria")
+#+end_src
+
+La pregunta =L-03-PoliticaArancelaria= de la plantilla es la versión
+completa de este ejemplo (sin la última cuestión, que solo ilustra la
+lambda). Dos detalles de prosa: el =%= lleva barra (=\%=) y la cadena que
+lo contiene es cruda (=r"…"=), ver [[*LaTeX y Moodle: trampas conocidas][LaTeX y Moodle]]; y con opciones de una
+línea o más conviene =cols = 1=.
 
 ** No afirmes nada falso sobre los números: =precond= con lambda
 
@@ -440,8 +490,8 @@ Una lambda también puede devolver una *fórmula* y así inyectar en las
 hipótesis el estado de los números (=lambda ns: v('gt') if ns['x'] > 3 else
 -v('gt')= en la semántica de un =Supuesto= axioma); el ejemplo E de
 =Tutorial.ipynb= lo desarrolla. Como =lint= no puede mirar dentro de una
-lambda, en esas preguntas no comprueba las etiquetas huérfanas y lo dice
-con un INFO.
+lambda, cuando un =Supuesto= inyecta fórmulas así no comprueba las
+etiquetas huérfanas y lo dice con un INFO.
 
 ** Casos especiales solo a veces
 
@@ -617,8 +667,8 @@ cuando»). El límite es que la pregunta se siga entendiendo sin
 ambigüedad.
 
 Dos columnas (=export.cols = 2=) ocupan menos papel que una en casi todas
-las preguntas, incluidas las de prosa; reserva =cols = 1= para opciones que
-son párrafos largos. Mide con la maquetación real del examen, no con el
+las preguntas de opciones cortas; con opciones de una línea o más (lo
+habitual en prosa) usa =cols = 1=, y mira el PDF antes de decidir. Mide con la maquetación real del examen, no con el
 catálogo de revisión (que imprime el nombre de la pregunta en el
 encabezado).
 
@@ -669,19 +719,30 @@ mundo con =precond=.
 
 * LaTeX y Moodle: trampas conocidas
 
-Todo esto lo detecta =lint= cuando es posible (AVISO =texto=); lo que no,
-lo detecta Moodle, y es más caro.
+Los textos (enunciados, cuestiones y explicaciones) son LaTeX, aunque no
+lleven ni una fórmula. En español puedes teclear tal cual =á é í ó ú ñ ¿ ¡=
+y las comillas tipográficas =“ ”=; lo que sigue, no. =lint= lo detecta
+(=texto=; el =%= sin barra es ERROR, el resto AVISO) y lo que no detecta lo
+detecta Moodle, que es más caro.
 
+- *El símbolo =%=*: en LaTeX empieza un comentario. Escrito tal cual («un
+  25 % del valor»), se pierde el resto de la línea, el PDF de AMC sale
+  vacío o roto y Moodle no compila. Escribe siempre =\%= («un 25 \% del
+  valor»); en Python, dentro de una cadena cruda (=r"…"=) o como =\\%=. Y
+  si va junto a una fórmula, *fuera de los dólares*: =al $5$\,\%=, nunca
+  =al $5\,\%$=, porque el paquete =moodle= deja dentro de la fórmula un =%=
+  desnudo que MathJax toma por comentario (en papel se ve bien; solo se
+  nota en Moodle). =\,= es un espacio fino, el que va entre la cifra y el
+  símbolo.
+- *Comillas*: ni las angulares =«»= (no existen en la codificación que usa
+  el paquete =moodle=: la compilación falla) ni las rectas ="…"= (salen
+  como =”…”=, cerradas por los dos lados). Escribe =``así''=: dos acentos
+  graves para abrir y dos apóstrofos para cerrar.
+- *Grados*: =$180^\circ$=, nunca =°= (en modo matemático deja a =pdflatex=
+  colgado sin error).
 - Fórmulas con =$…$= y =$$…$$=; nunca =\(…\)= ni =\[…\]= directamente
   (=qbank= convierte =$$…$$= en =\[…\]= al exportar a AMC). Separa dos
   expresiones en línea contiguas con un espacio (=$A$ $B$=, no =$A$$B$=).
-- *=\%= fuera de las matemáticas*: escribe =al $5$\,\%=, nunca =al
-  $5\,\%$=. El paquete =moodle= deja un =%= desnudo que MathJax toma por
-  comentario y se come el símbolo y lo que sigue. En papel se ve bien; solo
-  se nota en Moodle.
-- *Nada de =°= ni =«»= tecleados a pelo*: grados con =$180^\circ$=, comillas
-  con =``así''=. El paquete =moodle= (codificación OT1) no los admite, y un
-  =°= en modo matemático deja a =pdflatex= colgado sin error.
 - *Tablas con =array= dentro de =$$…$$=*, con =\text{}= en las cabeceras,
   nunca =tabular=: el paquete =moodle= no lo convierte y el alumno vería el
   código.
@@ -690,7 +751,9 @@ lo detecta Moodle, y es más caro.
 - No cites números de lección u otras referencias al material en el texto
   de la pregunta: las preguntas deben ser autocontenidas.
 - Comprueba cada pregunta nueva en los dos destinos: =make amc= (el PDF) y
-  =make moodle= (el XML, y a ser posible una vista previa en Moodle).
+  =make moodle= (el XML, y a ser posible una vista previa en Moodle). Si
+  =make= dice «ERROR en <pregunta>», la causa está en el =.log= que indica:
+  busca la primera línea que empieza por =!=.
 
 * Proceso de trabajo
 
@@ -736,8 +799,12 @@ lo detecta Moodle, y es más caro.
   excluidos?
 - [ ] ¿Cada =exp= justifica cada mundo alcanzable, sin jerga del diseño,
   sin desvelar el diseño global y sin referencias a otras alternativas?
-- [ ] ¿Fórmulas con =$=, =\%= fuera de matemáticas, sin =°= ni =«»=,
-  tablas con =array=?
+- [ ] ¿Todo =%= lleva barra (=\%=) y va fuera de los dólares? ¿Sin =°=,
+  sin =«»=, sin comillas rectas? ¿Fórmulas con =$= y tablas con =array=?
+- [ ] En prosa: ¿cada afirmación es claramente cierta en su mundo y
+  claramente falsa en los otros, sin «depende»? ¿La hipótesis del
+  =Supuesto= basta para decidirla, sin suponer conocimientos que no están
+  en el enunciado?
 - [ ] ¿Has repasado todas las variantes de la vista profe y, con =setup=,
   varias semillas?
 

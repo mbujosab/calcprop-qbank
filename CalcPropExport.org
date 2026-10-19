@@ -676,7 +676,7 @@ def MoodleMulti(nombre, variante, enunciado, cuestiones):
     <<Escritura del entorno multi>>
 #+end_src
 
-El método escribe el entorno aplicando los parámetros opcionales =multiple= y =points= (con valor igual al número de opciones de respuesta de la pregunta; es decir, la longitud de la lista  =cuestiones=):
+El método escribe el entorno aplicando los parámetros opcionales =multiple= y =points= (con valor igual al número de opciones de respuesta de la pregunta menos uno; es decir, la longitud de la lista =cuestiones= menos uno):
 
 #+NAME: Escritura del entorno multi
 #+begin_src python :noweb no-export
@@ -845,7 +845,7 @@ def QuizMoodleProfe(nombre, directorio, problema, *, aux_latex=""):
 
 **** =QuizAMCProfe=: vista aplanada del profesor en AMC
 
-=QuizMoodleProfe= muestra las mismas variantes que verá el alumno, con su puntuación. Para /auditar/ una pregunta hace falta otra cosa: ver a la vez *todas* las cuestiones de cada sublista, con la marca de verdadera o falsa bajo cada mundo, y saber cuáles quedarían descartadas por su precondición. Eso es lo que produce =QuizAMCProfe=: recorre =por_partes_profe()= y escribe un bloque =AMCblock(..., profe=True)= por variante y parte en =nombre_profe.tex=, que se incluye en el documento AMC con =\input=. Las cuestiones rechazadas van al =\explain{}=. Devuelve el número de bloques escritos. Es la contrapartida en papel de la tabla de mundos de =qbank.lint=.
+=QuizMoodleProfe= muestra las mismas variantes que verá el alumno, con su puntuación. Para /auditar/ una pregunta hace falta otra cosa: ver a la vez *todas* las cuestiones de cada sublista, con la marca de verdadera o falsa bajo cada mundo, y saber cuáles quedarían descartadas por su precondición. Eso es lo que produce =QuizAMCProfe=: recorre =por_partes_profe()= y escribe una pregunta AMC por variante en =nombre_profe.tex= (=AMCblock(..., profe=True)= si tiene una parte, =AMC_multipart(..., profe=True)= si tiene varias), que se incluye en el documento AMC con =\input=. Las cuestiones rechazadas van al =\explain{}=. Devuelve el número de variantes escritas. Es la contrapartida en papel de la tabla de mundos de =qbank.lint=.
 
 #+NAME: Quiz AMC versión Profe
 #+begin_src python :noweb no-export

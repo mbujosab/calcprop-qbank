@@ -24,7 +24,7 @@ LATEX_AMC    ?= pdflatex -interaction=nonstopmode
 LATEX_MOODLE ?= pdflatex -interaction=nonstopmode -halt-on-error
 NOMBRES      := $(shell $(PYTHON) scripts/_comun.py --leccion "$(LECCION)")
 
-.PHONY: all comprueba lint tabla amc amc-student moodle clean
+.PHONY: all comprueba lint lint-previo tabla amc amc-student moodle clean
 
 all: amc amc-student moodle
 
@@ -42,33 +42,45 @@ tabla: comprueba
 	@test -n "$(PREGUNTA)" || { echo "uso: make tabla PREGUNTA=L-01-Nombre (sin .json)"; exit 1; }
 	$(PYTHON) -m qbank.lint preguntas/$(PREGUNTA).json --tabla
 
+# Antes de exportar, lint: un ERROR (p. ej. un «%» sin barra, que LaTeX toma
+# por comentario y no siempre delata) detiene la exportación.
+lint-previo: comprueba
+	@test -z "$(NOMBRES)" || $(PYTHON) -m qbank.lint --quiet $(addprefix preguntas/,$(addsuffix .json,$(NOMBRES))) \
+	  || { echo "ERROR: lint ha encontrado errores; corrígelos antes de exportar"; exit 1; }
+
 # Con la lista de preguntas vacía no hay nada que compilar (y un sub-make sin
 # objetivos ejecutaría «all» y entraría en bucle).
-amc: comprueba
+amc: lint-previo
 	$(PYTHON) scripts/gen_amc.py --leccion "$(LECCION)"
 	@test -z "$(NOMBRES)" || $(MAKE) --no-print-directory $(addprefix build/amc/,$(addsuffix .pdf,$(NOMBRES)))
 
-amc-student: comprueba
+amc-student: lint-previo
 	$(PYTHON) scripts/gen_amc_student.py --leccion "$(LECCION)"
 	@test -z "$(NOMBRES)" || $(MAKE) --no-print-directory $(addprefix build/amc-student/,$(addsuffix .pdf,$(NOMBRES)))
 
-moodle: comprueba
+moodle: lint-previo
 	$(PYTHON) scripts/gen_moodle.py --leccion "$(LECCION)"
 	@test -z "$(NOMBRES)" || $(MAKE) --no-print-directory $(addprefix build/moodle/,$(addsuffix -moodle.xml,$(NOMBRES)))
 	$(PYTHON) scripts/merge_moodle_xml.py
 
 # AMC: <pregunta>-doc.tex es un documento autónomo que carga <pregunta>.tex.
 # Sin -halt-on-error: automultiplechoice emite algún «Missing $» no fatal que
-# corrige solo y el PDF se produce igualmente, así que se comprueba que exista.
+# corrige solo y el PDF se produce igualmente. Pero un «%» sin barra o un
+# \element roto también «producen» un PDF (vacío), así que además se buscan en
+# el .log los errores que de verdad lo invalidan.
+ERRORES_LATEX := 'Emergency stop|File ended while|No group mode|Undefined control sequence|Runaway argument'
+
 build/amc/%.pdf: build/amc/%-doc.tex build/amc/%.tex
 	@echo "  pdflatex $*"
 	@cd build/amc && rm -f $*.pdf; $(LATEX_AMC) -jobname=$* $*-doc.tex > /dev/null; \
-	 test -f $*.pdf || { echo "  ERROR en $* (ver build/amc/$*.log)"; exit 1; }
+	 if ! test -f $*.pdf || grep -qE $(ERRORES_LATEX) $*.log; then \
+	   rm -f $*.pdf; echo "  ERROR en $* (ver build/amc/$*.log)"; exit 1; fi
 
 build/amc-student/%.pdf: build/amc-student/%-doc.tex build/amc-student/%.tex
 	@echo "  pdflatex $*"
 	@cd build/amc-student && rm -f $*.pdf; $(LATEX_AMC) -jobname=$* $*-doc.tex > /dev/null; \
-	 test -f $*.pdf || { echo "  ERROR en $* (ver build/amc-student/$*.log)"; exit 1; }
+	 if ! test -f $*.pdf || grep -qE $(ERRORES_LATEX) $*.log; then \
+	   rm -f $*.pdf; echo "  ERROR en $* (ver build/amc-student/$*.log)"; exit 1; fi
 
 # Moodle: el paquete moodle escribe <pregunta>-moodle.xml al compilar el .tex.
 build/moodle/%-moodle.xml: build/moodle/%.tex

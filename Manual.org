@@ -449,7 +449,7 @@ En este ejemplo:
 - La semántica =True= de la primera =Cuestion= indica que la afirmación «$a + b = @{suma}$» siempre es correcta (el propio texto incluye ya la respuesta correcta).
 - La semántica =lambda ns: ns['a'] + ns['b'] > 10= se evalúa con los valores de la variante.
 
-*Importante:* cuando =setup= devuelve valores distintos en cada llamada (como aquí, con =random=), el iterador no tiene fin. Controla externamente cuántas variantes generas con un =break=, =itertools.islice= o un =range= acotado.
+*Nota:* aunque =setup= devuelva valores distintos en cada llamada, el iterador es finito: recorre una vez cada combinación de alternativas (aquí, dos variantes) y llama a =setup= en cada una. Para obtener varias realizaciones numéricas de cada combinación se usa =instances= (ver más abajo), no un bucle a mano.
 
 *** Con =setup= y valores fijos
 
@@ -1050,9 +1050,9 @@ de correcto/incorrecto. Las cuestiones rechazadas por precondición aparecen en
 un bloque =\explain{}= al final de la pregunta.
 
 #+begin_src python
-QuizAMCProfe(nombre, directorio, problema, cols=1,
+QuizAMCProfe(nombre, directorio, problema, cols=1, *, last_choice=False,
              aux_latex="", last_choice_text="Ninguna de las anteriores")
-# Devuelve int: número de bloques AMC escritos
+# Devuelve int: número de variantes escritas (una pregunta AMC por variante)
 #+end_src
 
 | Parámetro          | Descripción                                                        |
@@ -1127,7 +1127,8 @@ Para la vista aplanada (todas las cuestiones con marcas), usa =QuizAMCProfe= (se
 La *opción rescate* («Las demás opciones son falsas» por defecto) se añade automáticamente
 al final de cada bloque =\begin{multi}= y es correcta si y solo si ninguna otra opción
 lo es. Moodle rechaza la importación de preguntas sin ninguna opción correcta, por lo que
-=last_choice=True= es la elección segura salvo que el problema garantice siempre al menos
+=last_choice=True= es la elección segura (y, en papel, también garantiza que no todas las
+opciones sean correctas) salvo que el problema garantice siempre al menos
 una opción verdadera.
 
 ** Firma
@@ -1135,9 +1136,8 @@ una opción verdadera.
 =ProblemaTipo= (una o varias partes):
 
 #+begin_src python
-QuizMoodle     (nombre, directorio, problema, last_choice=False,
-                aux_latex="", last_choice_text="Las demás opciones son falsas",
-                instances=1)
+QuizMoodle     (nombre, directorio, problema, last_choice=False, instances=1, *,
+                aux_latex="", last_choice_text="Las demás opciones son falsas")
 # Devuelve int: número de variantes escritas
 QuizMoodleProfe(nombre, directorio, problema, aux_latex="")
 # Devuelve int: número de variantes escritas
@@ -1665,7 +1665,8 @@ qbank-lint preguntas/*.json --tabla        # equivalente, con la tabla de mundos
 #+begin_example
 Supuesto(enunciado, semantica, precond=True)
 Cuestion(enunciado, semantica, precond=True, exp="")
-ProblemaTipo(lista, setup=None, export=None, seed=None)
+ProblemaTipo(lista, setup=None, export=None, seed=None, nombre=None)
+    → setup: función o código Python como cadena; nombre: el del JSON
     → itera (etiqueta, enunciado, cuestiones)
     → .por_partes(instances=1, base_seed=None, verbose=False)  — vista alumno; multiparte e instancias numéricas
     → .por_partes_profe(verbose=True)           — vista aplanada: todas las cuestiones con marcas
@@ -1707,7 +1708,7 @@ AMC_multipart(nombre, etiqueta, enunciado, partes,
               aux_latex="", last_choice_text="Ninguna de las anteriores")
     # ProblemaTipo multiparte: un solo questionmult con un bloque de casillas
     # por parte; partes = [(enunciado, cuestiones), ...] de por_partes()
-QuizAMCProfe(nombre, directorio, problema, cols=1,
+QuizAMCProfe(nombre, directorio, problema, cols=1, *, last_choice=False,
              aux_latex="", last_choice_text="Ninguna de las anteriores")
     # alto nivel: vista aplanada profe → escribe nombre_profe.tex; devuelve int
     # usa por_partes_profe(); muestra todas las cuestiones con marcas y \explain{}
@@ -1773,10 +1774,11 @@ Cuestion(r"$\mathbf{X}^\top\mathbf{X}$ es invertible", -v("Mcoli"))
 
 ** ¿Cómo escribo display math en enunciados para AMC?
 
-Usa =\[...\]= en lugar de =$$...$$=. El exportador =AMCblock= convierte =$$...$$= a
-=\[...\]= automáticamente en el enunciado y en las opciones, pero el paquete
-=automultiplechoice= a veces produce errores «Missing $» con =$$= y los corrige de forma
-no fatal. Usar =\[...\]= directamente evita el problema por completo.
+Escribe siempre =$$...$$= (nunca =\[...\]= ni =\(...\)= directamente: el paquete
+=moodle= los necesita con dólares, y =lint= lo avisa). Los exportadores AMC
+(=AMCblock= y =AMC_multipart=) convierten =$$...$$= a =\[...\]= automáticamente
+en el enunciado y en las opciones, porque =automultiplechoice= a veces produce
+errores «Missing $» con =$$= que corrige de forma no fatal.
 
 Además, dos expresiones inline consecutivas sin espacio (=\$A\$\$B\$=) pueden
 confundirse con display math durante la conversión. Separa siempre expresiones
@@ -1787,7 +1789,7 @@ inline contiguas con un espacio: =$A$ $B$= en lugar de =$A$$B$=.
 La función =codchar(s)= convierte vocales acentuadas y la ñ a secuencias LaTeX:
 
 #+begin_src python
-codchar("á é í ó ú ñ")  # → "\\'a \\'{e} \\'{i} \\'{o} \\'{u} \\~{n}"
+codchar("á é í ó ú ñ")  # → "\\'{a} \\'{e} \\'{i} \\'{o} \\'{u} \\~{n}"
 #+end_src
 
 Es necesaria solo para las funciones Moodle, que generan un =.tex= con codificación
@@ -1805,4 +1807,5 @@ problema = {
 QuizMoodle("MiExamen", "salida/", problema, last_choice=True)
 #+end_src
 
-Cada clave del diccionario se convierte en una categoría dentro del cuestionario Moodle.
+Todas las preguntas van en un único cuestionario (categoría) =MiExamen=; cada clave del
+diccionario da nombre a sus variantes (=Seccion-A-1=, =Seccion-A-2=, …).

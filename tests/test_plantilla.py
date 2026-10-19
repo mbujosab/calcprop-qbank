@@ -208,7 +208,7 @@ def test_crear_copia_la_plantilla(proyecto):
               "scripts/_comun.py", "scripts/gen_amc.py", "scripts/gen_amc_student.py",
               "scripts/gen_moodle.py", "scripts/merge_moodle_xml.py", "scripts/fix_moodle_xml.py"]:
         assert (proyecto / f).is_file(), f
-    assert len(list((proyecto / "preguntas").glob("L-*.json"))) == 4
+    assert len(list((proyecto / "preguntas").glob("L-*.json"))) == 5
 
 
 def test_no_sobreescribe_sin_forzar(proyecto):
@@ -230,12 +230,12 @@ def test_lecciones_invalidas_y_nombres_raros(proyecto):
     r = subprocess.run([sys.executable, "scripts/_comun.py", "--leccion", "3-"],
                        cwd=proyecto, capture_output=True, text=True)
     assert r.returncode != 0 and "formato no válido" in r.stderr
-    assert len(_run(proyecto, "scripts/_comun.py", "--leccion", " ").split()) == 4
+    assert len(_run(proyecto, "scripts/_comun.py", "--leccion", " ").split()) == 5
     raro = proyecto / "preguntas" / "L-07-Con Espacio.json"
     raro.write_text("{}")
     r = subprocess.run([sys.executable, "scripts/_comun.py"], cwd=proyecto, capture_output=True, text=True)
     raro.unlink()
-    assert "se ignora L-07-Con Espacio.json" in r.stderr and len(r.stdout.split()) == 4
+    assert "se ignora L-07-Con Espacio.json" in r.stderr and len(r.stdout.split()) == 5
 
 
 @pytest.mark.skipif(shutil.which("make") is None, reason="sin make")
@@ -297,6 +297,29 @@ def test_merge_solo_las_preguntas_existentes(proyecto):
         f.unlink()
 
 
+def test_lint_texto_porcentajes_y_comillas():
+    base = ["Sea ", [_S("A.", "v('A')"), _S("B.", "v('B')")]]
+    def codigos(*cs):
+        return {(a.nivel, a.mensaje.split(":")[0].split(" (")[0]) for a in lint(_d(base + list(cs))) if a.codigo == "texto"}
+    assert (ERROR, "'%' sin barra") in codigos(_C("un 25 % del valor", "v('A')"), _C("b", "v('B')"), _C("c", "False"))
+    assert not codigos(_C("un 25 \\% del valor", "v('A')"), _C("b", "v('B')"), _C("c", "False"))
+    assert (AVISO, "'\\%' dentro de $...$") in codigos(_C("al $5\\,\\%$", "v('A')"), _C("b", "v('B')"), _C("c", "False"))
+    assert not codigos(_C("al $5$\\,\\% y $x$", "v('A')"), _C("b", "v('B')"), _C("c", "False"))
+    assert (AVISO, "comillas rectas \"") in codigos(_C('la "gran depresión"', "v('A')"), _C("b", "v('B')"), _C("c", "False"))
+    assert not codigos(_C("la ``gran depresión''", "v('A')"), _C("b", "v('B')"), _C("c", "False"))
+
+
+def test_fix_moodle_xml_codificacion():
+    import importlib.util
+    ruta = ruta_plantilla() / "scripts" / "fix_moodle_xml.py"
+    spec = importlib.util.spec_from_file_location("fix_moodle_xml", ruta)
+    mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+    datos = '<?xml version="1.0" encoding="iso-8859-1"?>\n<quiz><q>¿Qu&eacute; “pasa”?</q></quiz>'.encode("utf-8")
+    texto, cambio = mod.arregla_codificacion(mod.decodifica(datos))
+    assert cambio and texto.startswith('<?xml version="1.0" encoding="utf-8"?>') and "¿Qu&eacute; “pasa”?" in texto
+    assert mod.decodifica("caf\xe9".encode("iso-8859-1")) == "café"
+
+
 def test_fix_moodle_xml_arregla():
     import importlib.util
     ruta = ruta_plantilla() / "scripts" / "fix_moodle_xml.py"
@@ -316,7 +339,7 @@ def test_preguntas_de_ejemplo_pasan_lint_sin_avisos(proyecto):
 def test_listado_por_leccion(proyecto):
     nombres = _run(proyecto, "scripts/_comun.py", "--leccion", "2").split()
     assert nombres and all(n.startswith("L-02-") for n in nombres)
-    assert len(_run(proyecto, "scripts/_comun.py").split()) == 4
+    assert len(_run(proyecto, "scripts/_comun.py").split()) == 5
 
 
 def test_scripts_generan_tex(proyecto):
@@ -330,7 +353,7 @@ def test_scripts_generan_tex(proyecto):
         assert r"\end{quiz}" in (proyecto / "build/moodle" / f"{n}.tex").read_text()
         existe = (proyecto / "build/amc-student" / f"{n}-doc.tex").exists()
         assert existe == n.startswith("L-01-"), n
-    assert (proyecto / "build/amc/_catalogo.tex").read_text().count(r"\input") == 4
+    assert (proyecto / "build/amc/_catalogo.tex").read_text().count(r"\input") == 5
     # los setups se exploran por sorteos: la vista profe de una pregunta con setup
     # imprime varios casos etiquetados mundoN-casoK
     assert "mundo1-caso1" in (proyecto / "build/amc/L-02-ComparacionNumerica.tex").read_text()

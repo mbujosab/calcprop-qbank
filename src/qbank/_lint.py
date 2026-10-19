@@ -60,10 +60,13 @@ Reglas (código del aviso entre paréntesis):
    huérfanas de verdad: revísalas a mano).
 7. Estructura (``tipo``, ``nombre``, ``estructura``, ERROR; ``lista-1``,
    ``seed``, ``instances``, AVISO).
-8. Texto (``texto``, AVISO): caracteres que rompen el paquete ``moodle``,
-   delimitadores ``\\( \\)``, citas a números de lección, ``@{`` sin
-   cerrar, dobles espacios, comillas simples, textos que parecen código
-   ``lambda ns:`` (desde JSON no se evalúan).
+8. Texto (``texto``): un ``%`` sin barra es ERROR (en LaTeX empieza un
+   comentario y el PDF sale vacío o roto sin que pdflatex pare); son AVISO
+   ``\\%`` dentro de ``$...$`` (Moodle lo pierde), ``°``/``«»`` y comillas
+   rectas ``"`` (no existen en la codificación del paquete ``moodle`` o
+   salen como ”), delimitadores ``\\( \\)``, citas a números de lección,
+   ``@{`` sin cerrar, dobles espacios, comillas simples, textos que
+   parecen código ``lambda ns:`` (desde JSON no se evalúan).
 9. Setup (``setup``, INFO): instancias necesarias para llegar a 60 variantes.
 """
 
@@ -251,20 +254,41 @@ def _regla_estructura(p, avisos, ruta):
 
 # ── Regla 8: texto ───────────────────────────────────────────────────────────
 
+def _pct_en_matematicas(texto):
+    """'\\%' dentro de $...$ (el paquete moodle lo deja como '%' y MathJax lo
+    toma por comentario). Devuelve el fragmento o None."""
+    partes = _re.split(r'(?<!\\)\$', texto.replace('$$', '$'))
+    for seg in partes[1::2]:
+        if '\\%' in seg:
+            return '$' + seg + '$'
+    return None
+
+
+# (nivel, comprobación, mensaje): la comprobación es una expresión regular o
+# una función que devuelve el fragmento problemático (o None).
 _CHECKS_TEXTO = [
-    (_re.compile(r'[°«»]'),
-     "caracteres '°', '«' o '»' (rompen el paquete moodle; usa ^\\circ y ``...'')"),
-    (_re.compile(r'(?<!\\)\\[()\[\]]'),
+    (ERROR, _re.compile(r'(?<!\\)%'),
+     "'%' sin barra: en LaTeX empieza un comentario y se pierde el resto de la línea "
+     "(escribe \\%; en Python, dentro de una cadena r\"...\" o como \\\\%)"),
+    (AVISO, _pct_en_matematicas,
+     "'\\%' dentro de $...$: en Moodle se pierde (ponlo fuera de los dólares: al $5$\\,\\%)"),
+    (AVISO, _re.compile(r'[°«»]'),
+     "'°', '«' o '»' no existen en la codificación del paquete moodle: grados con ^\\circ; "
+     "comillas con ``...'' (dos acentos graves para abrir, dos apóstrofos para cerrar)"),
+    (AVISO, _re.compile(r'(?<!\\)"'),
+     "comillas rectas \" (salen como ” en los dos lados): usa ``...'' "
+     "(dos acentos graves para abrir, dos apóstrofos para cerrar)"),
+    (AVISO, _re.compile(r'(?<!\\)\\[()\[\]]'),
      "delimitadores \\( \\) \\[ \\] en vez de $...$ / $$...$$"),
-    (_re.compile(r'lecci[oó]n\s*\d', _re.IGNORECASE),
+    (AVISO, _re.compile(r'lecci[oó]n\s*\d', _re.IGNORECASE),
      "cita un número de lección"),
-    (_re.compile(r'@\{[^}]*(?:@\{|$)'),
+    (AVISO, _re.compile(r'@\{[^}]*(?:@\{|$)'),
      "'@{' sin cerrar"),
-    (_re.compile(r'\S  +\S'),
+    (AVISO, _re.compile(r'\S  +\S'),
      "doble espacio"),
-    (_re.compile(r"(?<![\w\\'$})\]])'[^']+'(?!')"),
+    (AVISO, _re.compile(r"(?<![\w\\'$})\]])'[^']+'(?!')"),
      "comillas simples '...' en vez de ``...''"),
-    (_re.compile(r'^\s*lambda\s+ns\s*:'),
+    (AVISO, _re.compile(r'^\s*lambda\s+ns\s*:'),
      "parece código lambda: desde JSON no se evalúa (usa @{var} y calcula el texto en setup)"),
 ]
 
@@ -287,10 +311,14 @@ def _textos(p):
 
 def _regla_texto(p, avisos):
     for donde, texto in _textos(p):
-        for rx, msg in _CHECKS_TEXTO:
-            m = rx.search(texto)
-            if m:
-                avisos.append(Aviso(AVISO, 'texto', f"{msg}: {_rec(m.group(0), 30)!r}",
+        for nivel, check, msg in _CHECKS_TEXTO:
+            if callable(check):
+                hit = check(texto)
+            else:
+                m = check.search(texto)
+                hit = m.group(0) if m else None
+            if hit:
+                avisos.append(Aviso(nivel, 'texto', f"{msg}: {_rec(hit, 30)!r}",
                                     f"{donde}: {_rec(texto)}"))
 
 

@@ -101,9 +101,9 @@ def main(argv):
     if not variantes:
         print(f"\n   ninguna variante en {MAX_SORTEOS} sorteos: todos los Supuesto quedan "
               "rechazados por su precond (revisa el setup y las precondiciones)")
-    for etiqueta, partes in variantes:
+    for i, (etiqueta, partes) in enumerate(variantes, 1):
         for enunciado, cuestiones in partes:
-            print(f"\n[{etiqueta}] {enunciado}")
+            print(f"\n[{i}] {enunciado}")
             for texto, correcto, activa, *resto in cuestiones:
                 marca = ('✓' if correcto else '✗') if activa else '·'
                 print(f"   {marca} {texto}")

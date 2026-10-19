@@ -182,7 +182,7 @@ except ImportError:
 Las funciones =_ns_eval= y =_ns_interp= permiten que los atributos de =Supuesto= y =Cuestion= (enunciado, semántica, precondición) sean valores directos *o callables* que reciben el namespace generado por el =setup= de =ProblemaTipo=.
 
 - =_ns_eval(val, ns)= :: si =val= es callable, lo invoca con =ns= y devuelve el resultado; si no, devuelve =val= tal cual.
-- =_ns_interp(s, ns, strict=None)= :: interpola en la cadena =s= los marcadores =@variable= o =@{variable}= usando el diccionario =ns=. Usa =string.Template.safe_substitute= con delimitador =@= (en lugar del =\$= estándar, para evitar conflictos con el modo matemático de \LaTeX{}). Los marcadores desconocidos y las llaves ={...}= de \LaTeX{} no se ven afectados. Para obtener una arroba literal en el texto, escribe =@@=. Con =strict=True= (o poniendo la variable de módulo =STRICT_INTERP= a =True=) lanza =ValueError= si tras la sustitución queda algún =@{variable}= sin resolver; =_vars_sin_resolver= es la función auxiliar que los localiza. Por defecto se mantiene el comportamiento silencioso: es =qbank.lint= quien detecta las interpolaciones fallidas.
+- =_ns_interp(s, ns, strict=None)= :: interpola en la cadena =s= los marcadores =@{variable}= (también se admite =@variable=, pero la documentación usa siempre la forma con llaves) usando el diccionario =ns=. Usa =string.Template.safe_substitute= con delimitador =@= (en lugar del =\$= estándar, para evitar conflictos con el modo matemático de \LaTeX{}). Los marcadores desconocidos y las llaves ={...}= de \LaTeX{} no se ven afectados. Para obtener una arroba literal en el texto, escribe =@@=. Con =strict=True= (o poniendo la variable de módulo =STRICT_INTERP= a =True=) lanza =ValueError= si tras la sustitución queda algún =@{variable}= sin resolver; =_vars_sin_resolver= es la función auxiliar que los localiza. Por defecto se mantiene el comportamiento silencioso: es =qbank.lint= quien detecta las interpolaciones fallidas.
 - =_fuente_precond(componente)= :: devuelve una representación *legible* de la precondición de un =Supuesto= o =Cuestion= para los mensajes de rechazo. Si el componente se cargó desde JSON (atributo =_json=) usa la cadena de código original (p. ej. =lambda ns: ns['a'] > ns['b']=); en otro caso recurre a =repr()= (que para una lambda definida en Python da algo como =<function <lambda> at 0x...>=). Así los avisos «=… rechazado por …=» muestran la condición y no la dirección de memoria de la función.
 - =_eval_expr(expr)= :: si =expr= es una cadena (="v('A') & v('B')"=, ="True"=, ="lambda ns: ns['x'] > 0"=) la evalúa en el espacio de nombres de =calcprop= (=_EVAL_NS=); cualquier otro valor se devuelve tal cual. Es la misma evaluación que hace el formato JSON, de modo que =Supuesto= y =Cuestion= aceptan sus semánticas y precondiciones escritas como cadenas también desde Python, y un problema así construido puede guardarse en JSON sin perder las lambdas (cuyo código fuente no es recuperable desde un objeto función).
 - =_setup_desde_str(code_str)= :: convierte el código Python de un =setup= (una cadena) en el callable que ejecuta =ProblemaTipo= al comienzo de cada variante; devuelve el diccionario de variables definidas, sin las que empiezan por guion bajo.
@@ -1699,7 +1699,7 @@ Por ejemplo, si el JSON contiene:
 "setup": "import random\nx = random.randint(1, 9)\ny = random.randint(1, 9)"
 #+end_example
 
-en cada iteración se ejecuta ese código y las variables =x= e =y= quedan disponibles para interpolar en los textos del problema mediante =@x= e =@y=.
+en cada iteración se ejecuta ese código y las variables =x= e =y= quedan disponibles para interpolar en los textos del problema mediante =@{x}= y =@{y}=.
 
 En el ejemplo, =\n= indica un salto de línea en el script de python; es decir. el =setup= anterior se despliega en el script:
 #+begin_example pyhton
@@ -2993,10 +2993,13 @@ Reglas (código del aviso entre paréntesis):
    huérfanas de verdad: revísalas a mano).
 7. Estructura (``tipo``, ``nombre``, ``estructura``, ERROR; ``lista-1``,
    ``seed``, ``instances``, AVISO).
-8. Texto (``texto``, AVISO): caracteres que rompen el paquete ``moodle``,
-   delimitadores ``\\( \\)``, citas a números de lección, ``@{`` sin
-   cerrar, dobles espacios, comillas simples, textos que parecen código
-   ``lambda ns:`` (desde JSON no se evalúan).
+8. Texto (``texto``): un ``%`` sin barra es ERROR (en LaTeX empieza un
+   comentario y el PDF sale vacío o roto sin que pdflatex pare); son AVISO
+   ``\\%`` dentro de ``$...$`` (Moodle lo pierde), ``°``/``«»`` y comillas
+   rectas ``"`` (no existen en la codificación del paquete ``moodle`` o
+   salen como ”), delimitadores ``\\( \\)``, citas a números de lección,
+   ``@{`` sin cerrar, dobles espacios, comillas simples, textos que
+   parecen código ``lambda ns:`` (desde JSON no se evalúan).
 9. Setup (``setup``, INFO): instancias necesarias para llegar a 60 variantes.
 """
 
@@ -3200,20 +3203,41 @@ Cada comprobación de texto es un par (expresión regular, mensaje) aplicado a t
 
 #+NAME: lint: Regla 8: texto
 #+begin_src python :noweb yes
+def _pct_en_matematicas(texto):
+    """'\\%' dentro de $...$ (el paquete moodle lo deja como '%' y MathJax lo
+    toma por comentario). Devuelve el fragmento o None."""
+    partes = _re.split(r'(?<!\\)\$', texto.replace('$$', '$'))
+    for seg in partes[1::2]:
+        if '\\%' in seg:
+            return '$' + seg + '$'
+    return None
+
+
+# (nivel, comprobación, mensaje): la comprobación es una expresión regular o
+# una función que devuelve el fragmento problemático (o None).
 _CHECKS_TEXTO = [
-    (_re.compile(r'[°«»]'),
-     "caracteres '°', '«' o '»' (rompen el paquete moodle; usa ^\\circ y ``...'')"),
-    (_re.compile(r'(?<!\\)\\[()\[\]]'),
+    (ERROR, _re.compile(r'(?<!\\)%'),
+     "'%' sin barra: en LaTeX empieza un comentario y se pierde el resto de la línea "
+     "(escribe \\%; en Python, dentro de una cadena r\"...\" o como \\\\%)"),
+    (AVISO, _pct_en_matematicas,
+     "'\\%' dentro de $...$: en Moodle se pierde (ponlo fuera de los dólares: al $5$\\,\\%)"),
+    (AVISO, _re.compile(r'[°«»]'),
+     "'°', '«' o '»' no existen en la codificación del paquete moodle: grados con ^\\circ; "
+     "comillas con ``...'' (dos acentos graves para abrir, dos apóstrofos para cerrar)"),
+    (AVISO, _re.compile(r'(?<!\\)"'),
+     "comillas rectas \" (salen como ” en los dos lados): usa ``...'' "
+     "(dos acentos graves para abrir, dos apóstrofos para cerrar)"),
+    (AVISO, _re.compile(r'(?<!\\)\\[()\[\]]'),
      "delimitadores \\( \\) \\[ \\] en vez de $...$ / $$...$$"),
-    (_re.compile(r'lecci[oó]n\s*\d', _re.IGNORECASE),
+    (AVISO, _re.compile(r'lecci[oó]n\s*\d', _re.IGNORECASE),
      "cita un número de lección"),
-    (_re.compile(r'@\{[^}]*(?:@\{|$)'),
+    (AVISO, _re.compile(r'@\{[^}]*(?:@\{|$)'),
      "'@{' sin cerrar"),
-    (_re.compile(r'\S  +\S'),
+    (AVISO, _re.compile(r'\S  +\S'),
      "doble espacio"),
-    (_re.compile(r"(?<![\w\\'$})\]])'[^']+'(?!')"),
+    (AVISO, _re.compile(r"(?<![\w\\'$})\]])'[^']+'(?!')"),
      "comillas simples '...' en vez de ``...''"),
-    (_re.compile(r'^\s*lambda\s+ns\s*:'),
+    (AVISO, _re.compile(r'^\s*lambda\s+ns\s*:'),
      "parece código lambda: desde JSON no se evalúa (usa @{var} y calcula el texto en setup)"),
 ]
 
@@ -3236,10 +3260,14 @@ def _textos(p):
 
 def _regla_texto(p, avisos):
     for donde, texto in _textos(p):
-        for rx, msg in _CHECKS_TEXTO:
-            m = rx.search(texto)
-            if m:
-                avisos.append(Aviso(AVISO, 'texto', f"{msg}: {_rec(m.group(0), 30)!r}",
+        for nivel, check, msg in _CHECKS_TEXTO:
+            if callable(check):
+                hit = check(texto)
+            else:
+                m = check.search(texto)
+                hit = m.group(0) if m else None
+            if hit:
+                avisos.append(Aviso(nivel, 'texto', f"{msg}: {_rec(hit, 30)!r}",
                                     f"{donde}: {_rec(texto)}"))
 #+end_src
 

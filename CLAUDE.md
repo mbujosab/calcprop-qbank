@@ -53,7 +53,9 @@ src/qbank/
   a lecciones; los prompts deben remitir a ella, no duplicarla.
 - `PLAN-documentacion.org` es el plan vigente de reorganización de la
   documentación (diagnóstico, decisiones y fases con su estado).
-- `tests/test_lint.py` y `tests/test_export.py` son la suite: `.venv/bin/python -m pytest`.
+- La suite (`.venv/bin/python -m pytest`): `tests/test_lint.py`, `test_export.py`,
+  `test_plantilla.py` (autoría en Python, plantilla y sus scripts) y
+  `test_literate.py` (los `.org` coinciden con `src/`).
 
 ## API pública principal
 
@@ -164,7 +166,8 @@ QuizAMCProfe(nombre, directorio, problema, last_choice=False, cols=1)
 ### Exportación Moodle
 
 ```python
-# Genera .tex, .pdf y -moodle.xml en directorio/
+# Escribe directorio/nombre.tex; al compilarlo con pdflatex (paquete moodle)
+# salen nombre.pdf y nombre-moodle.xml
 QuizMoodle(nombre, directorio, problema,
            last_choice=False, instances=1,
            last_choice_text="Las demás opciones son falsas")
@@ -177,7 +180,7 @@ QuizMoodle(nombre, directorio, problema,
   con un bloque de casillas por parte. Escribir un `AMCblock` por parte
   produce identificadores duplicados y la segunda parte sin hipótesis;
   `QuizAMCProfe` y los scripts de la plantilla ya usan `AMC_multipart`
-  cuando `len(partes) > 1`. Los scripts de los bancos (`gen_amc*.py`) no.
+  cuando `len(partes) > 1`, igual que los `gen_amc*.py` de los dos bancos.
 - `cols` solo actúa si se pasa: `QuizAMCProfe(..., cols=N)` y
   `AMCblock(..., cols=N)`. Un script que genere la vista profe sin pasar
   `export.cols` la mostrará a una columna aunque la vista alumno use dos.

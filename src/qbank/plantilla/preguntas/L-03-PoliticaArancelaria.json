@@ -1,0 +1,50 @@
+{
+  "version": "1",
+  "tipo": "ProblemaTipo",
+  "nombre": "L-03-PoliticaArancelaria",
+  "seed": 3,
+  "setup": "import numpy as np\npais = str(np.random.choice([\"España\", \"Francia\", \"Portugal\"]))\ngentilicio = {\"España\": \"española\", \"Francia\": \"francesa\", \"Portugal\": \"portuguesa\"}[pais]\ndecada = int(np.random.choice([1880, 1890, 1900]))\narancel = int(np.random.choice([15, 20, 30]))",
+  "export": {"last_choice": true, "cols": 1, "instances": 3},
+  "componentes": [
+    "Suponga que en la década de @{decada} el gobierno de @{pais} ",
+    [
+      {"tipo": "Supuesto", "enunciado": "establece un arancel del @{arancel} \\% sobre las importaciones.",
+       "semantica": "v('prot')", "precond": "True"},
+      {"tipo": "Supuesto", "enunciado": "suprime todos los aranceles sobre las importaciones.",
+       "semantica": "v('libre')", "precond": "True"}
+    ],
+    {"tipo": "Supuesto", "enunciado": "",
+     "semantica": "unoDe(v('prot'), v('libre'))", "precond": "True"},
+    " A corto plazo, y sin que cambie nada más:",
+    [
+      {"tipo": "Cuestion", "enunciado": "los bienes importados se encarecen para el consumidor",
+       "semantica": "v('prot')", "precond": "True",
+       "exp": "Un arancel es un impuesto sobre la importación: si se establece, los bienes extranjeros se encarecen; si se suprime, se abaratan."},
+      {"tipo": "Cuestion", "enunciado": "los bienes importados se abaratan para el consumidor",
+       "semantica": "v('libre')", "precond": "True",
+       "exp": "Un arancel es un impuesto sobre la importación: si se establece, los bienes extranjeros se encarecen; si se suprime, se abaratan."},
+      {"tipo": "Cuestion", "enunciado": "el precio de los bienes importados no se ve afectado",
+       "semantica": "False", "precond": "True",
+       "exp": "El arancel forma parte del precio que paga el consumidor: establecerlo lo sube y suprimirlo lo baja."}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "la industria @{gentilicio} queda protegida de la competencia exterior",
+       "semantica": "v('prot')", "precond": "True",
+       "exp": "Con arancel, el producto extranjero compite en desventaja de precio (protección); sin arancel, compite en igualdad (exposición)."},
+      {"tipo": "Cuestion", "enunciado": "la industria @{gentilicio} queda más expuesta a la competencia exterior",
+       "semantica": "v('libre')", "precond": "True",
+       "exp": "Con arancel, el producto extranjero compite en desventaja de precio (protección); sin arancel, compite en igualdad (exposición)."}
+    ],
+    [
+      {"tipo": "Cuestion", "enunciado": "el Estado recauda ingresos aduaneros por cada importación",
+       "semantica": "v('prot')", "precond": "True",
+       "exp": "Los ingresos aduaneros son la recaudación del arancel: existen si hay arancel y desaparecen si se suprime."},
+      {"tipo": "Cuestion", "enunciado": "el Estado deja de recaudar ingresos aduaneros",
+       "semantica": "v('libre')", "precond": "True",
+       "exp": "Los ingresos aduaneros son la recaudación del arancel: existen si hay arancel y desaparecen si se suprime."},
+      {"tipo": "Cuestion", "enunciado": "los ingresos aduaneros del Estado no dependen del arancel",
+       "semantica": "False", "precond": "True",
+       "exp": "Sin arancel no hay nada que recaudar en la aduana; con un arancel del @{arancel} \\%, la recaudación es ese porcentaje del valor importado."}
+    ]
+  ]
+}
