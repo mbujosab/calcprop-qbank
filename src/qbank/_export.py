@@ -87,7 +87,7 @@ def _amc_choices(cuestiones, last_choice, cols, profe, last_choice_text):
         if c[2]:
             s += ' ' * 7 + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + texto + '}\n'
         elif profe:
-            ex += ' cuestion: ' + texto + '; ' + str(c[1]) + '\n'
+            ex += ' cuestión: ' + texto + '; ' + str(c[1]) + '\n'
 
     if last_choice:
         s += ' ' * 7 + '\\lastchoices\n'
@@ -151,7 +151,7 @@ def AMC_multipart(nombre, etiqueta, enunciado, partes,
             s += '  ' + (intro_tex if k == 0 and not enunciado else '\\emph{' + intro_tex + '}') + '\n'
         choices, ex_parte = _amc_choices(cuestiones, last_choice, cols, profe, last_choice_text)
         s += '  {\\AMCnoCompleteMulti\n' + choices + '  }\n\n'
-        ex += ex_parte
+        ex += ex_parte.replace(' cuestión:', f' parte {k + 1}, cuestión:')
     if profe and ex:
         s += '   \\explain{' + ex + '            }\n'
     s += ' \\end{questionmult} '
@@ -265,7 +265,8 @@ def QuizMoodleProfe(nombre, directorio, problema, *, aux_latex=""):
 
 
 def QuizAMCProfe(nombre, directorio, problema, cols=1, *,
-                 aux_latex="", last_choice_text="Ninguna de las anteriores"):
+                 last_choice=False, aux_latex="",
+                 last_choice_text="Ninguna de las anteriores"):
     """Vista profe aplanada para AMC: todas las cuestiones de cada sublista.
 
     Usa por_partes_profe() para mostrar TODAS las cuestiones de cada sublista
@@ -281,12 +282,13 @@ def QuizAMCProfe(nombre, directorio, problema, cols=1, *,
     directorio       : ruta al directorio de salida (con '/' al final)
     problema         : ProblemaTipo o dict {nombre: ProblemaTipo}
     cols             : número de columnas multicols (1 = sin multicols)
+    last_choice      : si True, añade la opción comodín (como en la vista alumno)
     aux_latex        : instrucciones LaTeX extra dentro del bloque \\element{}
-    last_choice_text : texto de la opción comodín
+    last_choice_text : texto de la opción comodín (solo con last_choice)
 
     Retorna
     -------
-    int : número de bloques AMC escritos
+    int : número de variantes escritas (una pregunta AMC por variante)
     """
     def creaDiccionario(x, key='key'):
         return x if isinstance(x, dict) else {key: x}
@@ -297,12 +299,12 @@ def QuizAMCProfe(nombre, directorio, problema, cols=1, *,
             for etiqueta, partes in problema[nom].por_partes_profe():
                 if len(partes) > 1:
                     f.write(AMC_multipart(nom, etiqueta, "", partes,
-                                          cols=cols, profe=True,
+                                          last_choice=last_choice, cols=cols, profe=True,
                                           aux_latex=aux_latex,
                                           last_choice_text=last_choice_text))
                 else:
                     f.write(AMCblock(nom, etiqueta, partes[0][0], partes[0][1],
-                                     cols=cols, profe=True,
+                                     last_choice=last_choice, cols=cols, profe=True,
                                      aux_latex=aux_latex,
                                      last_choice_text=last_choice_text))
                 count += 1

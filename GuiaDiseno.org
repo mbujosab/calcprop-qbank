@@ -92,8 +92,9 @@ distinción está detrás de casi todo lo que sigue.
   =export.last_choice=; es correcta solo si las demás son incorrectas.
 - *Vista profe* :: el PDF de =make amc=: cada variante con /todas/ las
   cuestiones de cada hueco (no solo la sorteada), su marca y las
-  rechazadas por su precondición. =nueva_pregunta.py= imprime en texto un
-  extracto de esa misma vista.
+  rechazadas por su precondición. =nueva_pregunta.py= imprime en texto las
+  primeras variantes de esa vista (sin las explicaciones ni las
+  exclusiones).
 - *Instancia* :: con =setup= aleatorio, cada ejecución del =setup=; con
   =export.instances = N= cada variante estructural se genera $N$ veces con
   números distintos.
@@ -159,7 +160,7 @@ que el motor no conoce. La más habitual: que los mundos son excluyentes,
 
 Sin ese axioma, el motor no puede deducir *negaciones*: de la hipótesis
 =v('crec')= no se sigue =-v('decr')=, porque nada dice que ambas no puedan
-ser ciertas a la vez. Una =Cuestion= con =semantica=-v('decr')= sería falsa
+ser ciertas a la vez. Una =Cuestion= con ~semantica=-v('decr')~ sería falsa
 en todos los mundos (=lint= lo marca como ERROR =negacion=). Dos salidas:
 formular en positivo (=semantica=v('crec')=) o añadir el axioma =unoDe=.
 Para una afirmación cierta en varios mundos no hace falta axioma: basta
@@ -418,12 +419,12 @@ cierto para los números sorteados:
 
 Las variantes cuyo =Supuesto= no supera la precondición se descartan sin
 más (no aparecen ni en la vista profe). Una =Cuestion= con precondición
-también se puede filtrar así (=precond="lambda ns: ns['k'] != 2"=): en la
+también se puede filtrar así (~precond="lambda ns: ns['k'] != 2"~): en la
 vista alumno la variante se descarta igual; en la vista profe la cuestión
-aparece marcada como «rechazada», con su condición.
+aparece al final, en «Exclusiones», con su condición.
 
 Las lambdas se escriben *como cadena* también en Python
-(=precond="lambda ns: …"=): así la pregunta puede guardarse en JSON. Una
+(~precond="lambda ns: …"~): así la pregunta puede guardarse en JSON. Una
 lambda escrita como función Python no se puede guardar.
 
 ** Cuando la verdad depende de los números: =semantica= con lambda
@@ -484,6 +485,9 @@ combinatoria. Comprueba el porcentaje real contando sobre
         Cuestion("$p + 1$ es primo", False)]],
       export={"last_choice": True}, nombre="L-01-Primos")
   #+end_src
+
+  (Solo $2 \times 2 \times 2 = 8$ variantes: para un banco real añade
+  redacciones alternativas o un cuarto hueco; aquí interesa la forma.)
 
 - *Resultados condicionales* («si se cumple tal hipótesis, entonces…»):
   mundos alternativos, uno por hipótesis relevante, y =Cuestion= cuya
@@ -652,7 +656,7 @@ junto a la opción, en la variante concreta que le tocó. Reglas:
 - Con =setup=, interpola los valores concretos (=@{a}=) en vez de quedarte
   en lo genérico; una sola =exp= con =@{…}= sirve para todas las variantes.
   Si la explicación depende de una condición numérica, calcula el texto
-  en el =setup= como variable y pon =exp="@{texto_exp}"=; no escribas
+  en el =setup= como variable y pon ~exp="@{texto_exp}"~; no escribas
   =exp= como =lambda= en JSON (llegaría literal al alumno).
 - Si una =exp= no aporta nada más allá de lo obvio, déjala vacía.
 

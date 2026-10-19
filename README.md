@@ -35,10 +35,10 @@ make amc           # PDF de revisión (vista profe) en build/amc/
 ```
 
 El proyecto contiene cuatro preguntas de ejemplo en `preguntas/`, los
-scripts que las exportan a AMC y Moodle, un `Makefile` (`lint`, `amc`,
-`amc-student`, `moodle`, filtro `LECCION=N`) y `nueva_pregunta.py`, un
-guion para escribir una pregunta en Python y guardarla como JSON. Su
-`README.org` explica el flujo.
+scripts que las exportan a AMC y Moodle, un `Makefile` (`lint`, `tabla`,
+`amc`, `amc-student`, `moodle`, `clean`, filtro `LECCION=N`) y
+`nueva_pregunta.py`, un guion para escribir una pregunta en Python y
+guardarla como JSON. Su `README.org` explica el flujo.
 
 # Uso rápido
 
@@ -124,25 +124,28 @@ equivalente.)
 
 ## Preguntas paramétricas con `setup`
 
-El parámetro `setup` permite que los valores numéricos o simbólicos
-cambien en cada variante. El texto de los slots admite marcadores
-`@{variable}` para interpolación:
+El parámetro `setup` (código Python, como cadena) se ejecuta antes de
+cada variante; sus variables se interpolan en los textos con
+`@{variable}` y están disponibles en `ns` para semánticas y
+precondiciones escritas como `lambda`:
 
 ``` python
-import random
-
-def numeros():
-    a = random.randint(1, 9)
-    b = random.randint(1, 9)
-    return {'a': a, 'b': b, 'suma': a + b}
-
 p = ProblemaTipo(
-    ["Sean $a = @{a}$ y $b = @{b}$. ",
+    ["Sean $a = @{a}$ y $b = @{b}$. Entonces:",
      [Cuestion("$a + b = @{suma}$", True),
-      Cuestion("$a + b > 10$", lambda ns: ns['a'] + ns['b'] > 10)]],
-    setup=numeros,
+      Cuestion("$a + b = @{suma_falsa}$", False)],
+     [Cuestion("$a + b > 10$", "lambda ns: ns['a'] + ns['b'] > 10"),
+      Cuestion("$a + b < 10$", "lambda ns: ns['a'] + ns['b'] < 10")],
+     Cuestion("$a \\cdot b = @{producto}$", True)],
+    setup="import numpy as np\n"
+          "a, b = (int(x) for x in np.random.randint(1, 10, 2))\n"
+          "suma, suma_falsa, producto = a + b, a + b + 1, a * b",
+    seed=1, export={"last_choice": True, "instances": 8},
 )
 ```
+
+Con `seed` la pregunta es reproducible e `instances` fija cuántas
+realizaciones numéricas se generan.
 
 ## Persistencia en formato JSON
 

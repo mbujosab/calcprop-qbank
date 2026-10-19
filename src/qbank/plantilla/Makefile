@@ -12,6 +12,9 @@
 # LECCION limita cualquier objetivo a las preguntas L-NN-* de esas lecciones:
 #   make amc LECCION=2        make lint LECCION=2-3        make moodle LECCION=1,3
 #
+# PYTHON es el intérprete que tiene instalado qbank (por defecto, python3 del
+# PATH: activa el entorno virtual antes, o pasa PYTHON=/ruta/al/venv/bin/python).
+#
 # Solo se recompila lo que ha cambiado: los scripts gen_*.py reescriben un .tex
 # únicamente si su contenido cambia, y cada PDF/XML depende de su .tex.
 # ─────────────────────────────────────────────────────────────────────────
@@ -21,28 +24,37 @@ LATEX_AMC    ?= pdflatex -interaction=nonstopmode
 LATEX_MOODLE ?= pdflatex -interaction=nonstopmode -halt-on-error
 NOMBRES      := $(shell $(PYTHON) scripts/_comun.py --leccion "$(LECCION)")
 
-.PHONY: all lint tabla amc amc-student moodle clean
+.PHONY: all comprueba lint tabla amc amc-student moodle clean
 
 all: amc amc-student moodle
 
-lint:
+# ¿Tiene qbank el intérprete elegido? Si no, el mensaje dice qué hacer.
+comprueba:
+	@$(PYTHON) -c "import qbank" 2>/dev/null || { \
+	  echo "ERROR: qbank no está instalado en '$(PYTHON)'."; \
+	  echo "       Activa el entorno virtual o usa: make ... PYTHON=/ruta/al/venv/bin/python"; \
+	  exit 1; }
+
+lint: comprueba
 	$(PYTHON) -m qbank.lint $(addprefix preguntas/,$(addsuffix .json,$(NOMBRES)))
 
-tabla:
+tabla: comprueba
 	@test -n "$(PREGUNTA)" || { echo "uso: make tabla PREGUNTA=L-01-Nombre (sin .json)"; exit 1; }
 	$(PYTHON) -m qbank.lint preguntas/$(PREGUNTA).json --tabla
 
-amc:
+# Con la lista de preguntas vacía no hay nada que compilar (y un sub-make sin
+# objetivos ejecutaría «all» y entraría en bucle).
+amc: comprueba
 	$(PYTHON) scripts/gen_amc.py --leccion "$(LECCION)"
-	@$(MAKE) --no-print-directory $(addprefix build/amc/,$(addsuffix .pdf,$(NOMBRES)))
+	@test -z "$(NOMBRES)" || $(MAKE) --no-print-directory $(addprefix build/amc/,$(addsuffix .pdf,$(NOMBRES)))
 
-amc-student:
+amc-student: comprueba
 	$(PYTHON) scripts/gen_amc_student.py --leccion "$(LECCION)"
-	@$(MAKE) --no-print-directory $(addprefix build/amc-student/,$(addsuffix .pdf,$(NOMBRES)))
+	@test -z "$(NOMBRES)" || $(MAKE) --no-print-directory $(addprefix build/amc-student/,$(addsuffix .pdf,$(NOMBRES)))
 
-moodle:
+moodle: comprueba
 	$(PYTHON) scripts/gen_moodle.py --leccion "$(LECCION)"
-	@$(MAKE) --no-print-directory $(addprefix build/moodle/,$(addsuffix -moodle.xml,$(NOMBRES)))
+	@test -z "$(NOMBRES)" || $(MAKE) --no-print-directory $(addprefix build/moodle/,$(addsuffix -moodle.xml,$(NOMBRES)))
 	$(PYTHON) scripts/merge_moodle_xml.py
 
 # AMC: <pregunta>-doc.tex es un documento autónomo que carga <pregunta>.tex.

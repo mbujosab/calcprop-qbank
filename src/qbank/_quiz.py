@@ -19,25 +19,44 @@ from calcprop import *
 from string import Template
 
 import calcprop as _calcprop_mod
+import textwrap as _textwrap
 
 _EVAL_NS = vars(_calcprop_mod).copy()   # espacio de nombres para evaluar cadenas
 
 def _eval_expr(expr):
     """Evalúa una semántica o precondición escrita como cadena en el espacio
-    de nombres de calcprop; los valores que no son cadenas se devuelven tal cual."""
+    de nombres de calcprop; los valores que no son cadenas se devuelven tal
+    cual. "True"/"False" (en cualquier caja) son los booleanos; una cadena
+    vacía o inválida produce un ValueError que dice qué expresión falló."""
     if not isinstance(expr, str):
         return expr
-    if expr == "True":
+    texto = expr.strip()
+    if texto.lower() == "true":
         return True
-    if expr == "False":
+    if texto.lower() == "false":
         return False
-    return eval(expr, _EVAL_NS)
+    if not texto:
+        raise ValueError('expresión vacía: escribe "True", "False", una fórmula v(...) o una lambda')
+    try:
+        return eval(texto, _EVAL_NS)
+    except Exception as e:                                  # noqa: BLE001
+        raise ValueError(f"no se puede evaluar {expr!r}: {type(e).__name__}: {e}") from None
+
+def _eval_campo(valor, campo, clase, enunciado):
+    """_eval_expr con el componente y el campo en el mensaje de error."""
+    try:
+        return _eval_expr(valor)
+    except ValueError as e:
+        raise ValueError(f"{clase} {str(enunciado)[:50]!r}, campo {campo}: {e}") from None
 
 def _setup_desde_str(code_str):
-    """Callable setup() a partir del código Python (cadena) de un setup."""
+    """Callable setup() a partir del código Python (cadena) de un setup.
+    Se elimina la indentación común, para admitir cadenas escritas dentro de
+    un bloque indentado."""
+    codigo = _textwrap.dedent(code_str)
     def setup():
         ns = {}
-        exec(code_str, ns)
+        exec(codigo, ns)
         return {k: v for k, v in ns.items() if not k.startswith('_')}
     return setup
 
@@ -120,8 +139,8 @@ class Marcador:
 class Supuesto:
     def __init__(self, enunciado, semantica, precond=True):
         self.e = enunciado
-        self.s = _eval_expr(semantica)
-        self.p = _eval_expr(precond)
+        self.s = _eval_campo(semantica, 'semantica', 'Supuesto', enunciado)
+        self.p = _eval_campo(precond, 'precond', 'Supuesto', enunciado)
         self._orig = (semantica, precond)   # tal como se escribieron, para serializar
 
     def __repr__(self):
@@ -130,8 +149,8 @@ class Supuesto:
 class Cuestion:
     def __init__(self, enunciado, semantica, precond=True, exp=""):
         self.e = enunciado
-        self.s = _eval_expr(semantica)
-        self.p = _eval_expr(precond)
+        self.s = _eval_campo(semantica, 'semantica', 'Cuestion', enunciado)
+        self.p = _eval_campo(precond, 'precond', 'Cuestion', enunciado)
         self.x = exp
         self._orig = (semantica, precond)   # tal como se escribieron, para serializar
 
@@ -220,10 +239,11 @@ class ProblemaTipo:
     def __init__(self, supuestos_y_cuestiones, setup=None, export=None, seed=None, nombre=None):
         self.e = supuestos_y_cuestiones
         if isinstance(setup, str):
-            setup = setup.strip() or None
-            if setup:
-                self._setup_str = setup      # se conserva para guardar el problema en JSON
+            if setup.strip():
+                self._setup_str = setup      # tal cual, para guardar el problema en JSON
                 setup = _setup_desde_str(setup)
+            else:
+                setup = None
         self.setup  = setup
         self.export = export if export is not None else {}
         self.seed   = seed

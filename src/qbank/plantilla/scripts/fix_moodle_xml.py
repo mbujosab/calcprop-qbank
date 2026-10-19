@@ -54,7 +54,8 @@ def main(argv):
         nuevo, n = arregla(f.read_text(encoding="iso-8859-1"))
         if n:
             f.write_text(nuevo, encoding="iso-8859-1")
-            print(f"  {f.name}: {n} «<» escapados dentro de bloques cloze")
+            print(f"  {f.name}: {n} «<» escapados dentro de bloques cloze "
+                  "(arreglo que Moodle necesita; no es un error)")
 
 
 if __name__ == "__main__":

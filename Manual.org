@@ -780,7 +780,7 @@ Si el problema no usa =numpy= en el =setup=, =seed= se ignora sin error.
 
 *** Limitaciones
 
-- Los =setup= definidos como funciones Python (=def= o =lambda=) no se pueden guardar en JSON porque su código fuente no es recuperable. Si necesitas un =setup= paramétrico y también quieres persistirlo, escribe el código del setup como cadena de texto y usa =problema_from_dict= (o el editor visual, que gestiona esto automáticamente).
+- Los =setup= definidos como funciones Python (=def= o =lambda=) no se pueden guardar en JSON porque su código fuente no es recuperable. Si necesitas un =setup= paramétrico y también quieres persistirlo, pasa el código del setup como cadena de texto: ~ProblemaTipo(..., setup="import numpy as np\nx = ...")~ (es lo que hacen =problema_from_dict= y el editor visual). Lo mismo vale para las lambdas de =semantica= y =precond=: escritas como cadena (~precond="lambda ns: ns['x'] > 0"~) se evalúan igual y se guardan.
 - =ProblemaVF= se puede guardar y cargar sin restricciones (sus datos son valores directos).
 
 ** Exportar la lista de listas a un fichero =.py= editable
@@ -835,7 +835,7 @@ from qbank import save_problema_py
 save_problema_py(p, "./tmp/mi_problema.py")
 #+end_src
 
-El fichero =mi_problema.py= es código Python válido que puede editarse y ejecutarse. Si el problema tiene =setup=, la función de generación de valores aleatorios aparece como =def _setup():= en el fichero exportado, con su cuerpo exactamente como fue guardado en el JSON.
+El fichero =mi_problema.py= es código Python válido que puede editarse, ejecutarse y volver a guardarse con =save_problema=. Si el problema tiene =setup=, su código aparece en la cadena =_SETUP= exactamente como fue guardado en el JSON, y las lambdas de =semantica= y =precond= van entre comillas.
 
 * Ejemplos progresivos
 
@@ -1338,7 +1338,7 @@ En *JupyterLab ≥ 4* es necesario que la extensión =@jupyter-widgets/jupyterla
 jupyter labextension list
 #+end_src
 
-Si la extensión no aparece (síntoma: el widget se muestra como texto =VBox(children=...=), ejecuta una sola vez desde el terminal:
+Si la extensión no aparece (síntoma: el widget se muestra como texto ~VBox(children=...~), ejecuta una sola vez desde el terminal:
 
 #+begin_src bash
 mkdir -p ~/.local/share/jupyter/labextensions/@jupyter-widgets

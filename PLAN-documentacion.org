@@ -149,6 +149,28 @@ a =AMC_multipart= (qbank-econometria commiteado; qbank-PEconometria queda
 sin commitear junto a otros cambios del autor) y el README de la plantilla
 explica cómo puntúa Moodle los bloques cloze.
 
+*** Segunda revisión (19 de octubre de 2026, dos lectores)
+Un profesor nuevo recorrió el flujo completo con una pregunta propia (21
+hallazgos) y un revisor de código examinó el motor, la plantilla y los
+tests (16). Corregido: =\insertgroup[1]= y la ruta de =_catalogo.tex= en el
+README de la plantilla (tal como estaba, un examen real recibía todas las
+variantes), recursión infinita de =make= sin preguntas, PDF vacío con
+nombres con =_=, =problema_to_python= que generaba un =.py= imposible de
+volver a guardar, =.tex= vacío sin error, etiquetas =mundoM-casoK= mal
+asignadas con =precond= numérica, =nueva_pregunta.py= sin =unoDe= y
+sin salida cuando un sorteo rechaza todos los mundos, =setup= con
+=strip()= (perdía el =\n= final y rompía cadenas indentadas), errores de
+=_eval_expr= sin contexto, =exp=None=, =QuizAMCProfe= sin =last_choice=,
+=merge_moodle_xml= con preguntas borradas, =--leccion= inválido, nombres
+con espacios, =make= con un intérprete sin qbank, ejemplo del README con
+=random= y lambdas Python, y el resto de textos. 11 tests nuevos (116).
+Pendiente para la Fase 3 (son el Tutorial y =ejemplosManual=): celdas que
+no mencionan =last_choice= ni el campo =export=, «Marcador» y «sublista»
+sin definir, =ej_c_precond= con axioma en lista de un elemento y coma
+separada, =x=5$= en la celda 13, y el =lint= de =ejemplosManual/*.json=
+que falla por los cuatro JSON antiguos. Mejora posible: separar
+visualmente los huecos en la vista profe.
+
 ** DONE Fase 2 — =GuiaDiseno.org= (para personas)
 CLOSED: [2026-10-19]
 Destilada de =PROMPT-qbank-generico.org= §2 y §5–§10 y de las reglas

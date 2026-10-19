@@ -64,7 +64,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         destino = crear(args.destino, args.forzar)
-    except FileExistsError as e:
+    except OSError as e:                     # existe y no está vacío, es un fichero, sin permisos…
         print(f"qbank-init: {e}", file=_sys.stderr)
         return 1
     print(f"Proyecto creado en {destino}/\n"

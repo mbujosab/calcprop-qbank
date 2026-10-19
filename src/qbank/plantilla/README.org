@@ -8,7 +8,7 @@ tuyas y borra este párrafo.
 
 * Qué hay aquí
 
-| =preguntas/=         | Una pregunta por fichero JSON: =L-NN-Descripcion.json= (NN = lección o tema, dos cifras; =00= vale). |
+| =preguntas/=         | Una pregunta por fichero JSON: =L-NN-Descripcion.json= (NN = lección o tema, dos cifras; =00= vale). Sin espacios ni =:= en el nombre. |
 | =nueva_pregunta.py=  | Guion para escribir una pregunta en Python y guardarla como JSON en =preguntas/=.                     |
 | =config.py=          | Preámbulo LaTeX propio, textos de la opción por defecto y cuántos casos imprime la vista profe.       |
 | =scripts/=           | Generadores de AMC y Moodle que usa el =Makefile=; no hace falta tocarlos.                            |
@@ -42,51 +42,65 @@ Todos los comandos se lanzan *desde esta carpeta* (la que contiene el
 1. *Escribe la pregunta.* Dos caminos equivalentes:
    - En Python: copia =nueva_pregunta.py= con otro nombre en esta misma
      carpeta, edita =NOMBRE=, =SETUP= y =PREGUNTA=, ejecútalo
-     (=python mi_pregunta.py=) hasta que lo que imprime y el lint te
-     convenzan, y guarda con =--guardar=: deja el JSON en =preguntas/=.
+     (=python mi_pregunta.py=, con el mismo intérprete que tenga =qbank=:
+     el entorno activado o la ruta completa, igual que =PYTHON=) hasta que
+     lo que imprime y el lint te convenzan, y guarda con =--guardar=: deja
+     el JSON en =preguntas/=.
    - Directamente en JSON, copiando una de las preguntas de ejemplo de
      =preguntas/= (los campos, más abajo).
 2. *Compruébala:* =make lint= (o =make lint LECCION=3= para una sola lección).
    Un =ERROR= significa que la pregunta está rota (p. ej. una variante con
    todas las opciones correctas); un =AVISO= hay que leerlo y decidir; un
    =INFO= es información. =make tabla PREGUNTA=L-01-Nombre= añade la tabla
-   de mundos: el valor de cada cuestión en cada combinación de supuestos.
+   de mundos: el valor de cada cuestión en cada combinación de supuestos
+   (con =setup= aleatorio usa un solo sorteo, así que si los supuestos
+   llevan =precond= sobre los números solo verás los mundos que ese sorteo
+   admite; la vista completa es la de =make amc=).
 3. *Revísala en PDF:* =make amc= genera =build/amc/<pregunta>.pdf=, la vista
    del profesor (cómo leerla, más abajo). Es lo que conviene repasar
    entero antes de dar una pregunta por buena.
 4. *Exporta:*
-   - =make amc-student= → =build/amc-student/<pregunta>.pdf= con las variantes
-     tal como las verá el alumno, y =build/amc-student/_catalogo.tex=, con un
-     =\input= por pregunta. Para usarlo en un examen AMC real: en el
-     preámbulo del examen, =\input{ruta/a/_catalogo.tex}= (o solo los
-     =\input{<pregunta>}= que quieras); dentro de =\onecopy=,
-     =\insertgroup{<pregunta>}= donde deba ir cada una (AMC elegirá una
-     variante por copia).
+   - =make amc-student= → =build/amc-student/<pregunta>.pdf= con todas las
+     variantes de la pregunta tal como las verá el alumno. Es el /modo
+     catálogo/ de AMC: las casillas correctas salen rellenas y la cabecera
+     dice «Catálogo provisional»; en el examen real salen vacías. Para usar
+     las preguntas en un examen AMC: copia =build/amc-student/<pregunta>.tex=
+     (y =_catalogo.tex=, que es un =\input= por pregunta) junto al =.tex= del
+     examen, haz =\input{_catalogo}= (o =\input{<pregunta>}=) en el
+     preámbulo y, dentro de =\onecopy=, pon =\insertgroup[1]{<pregunta>}=
+     donde deba ir cada pregunta: el =[1]= es imprescindible (sin él AMC
+     inserta /todas/ las variantes) y conviene =\shufflegroup{<pregunta>}=
+     antes para que cada copia reciba una variante distinta.
    - =make moodle= → =build/moodle/<pregunta>-moodle.xml= (y un PDF de
      revisión con las mismas variantes y sus explicaciones) por pregunta, y
      =build/moodle/_banco.xml= con todas. En Moodle: /Banco de preguntas →
      Importar → Formato Moodle XML/; cada pregunta llega como una categoría
      con todas sus variantes, lista para una «pregunta aleatoria» del
      cuestionario. Cada variante es una pregunta /cloze/ con un bloque de
-     casillas por parte; el exportador da a cada bloque un peso igual a su
-     número de opciones reales menos uno, y Moodle lo puntúa como una
-     opción múltiple con varias respuestas (las correctas marcadas suman,
-     las incorrectas marcadas restan, sin bajar de cero). La nota que fijes
-     a la pregunta en el cuestionario reescala la suma de sus bloques.
+     casillas por parte; el exportador da a cada bloque un peso igual al
+     número de opciones que ve el alumno menos uno (3 puntos para tres
+     huecos más la opción por defecto), y Moodle lo puntúa como una opción
+     múltiple con varias respuestas (las correctas marcadas suman, las
+     incorrectas marcadas restan, sin bajar de cero). La nota que fijes a la
+     pregunta en el cuestionario reescala la suma de sus bloques. Al compilar
+     verás un mensaje «N «<» escapados dentro de bloques cloze»: es un
+     arreglo automático del XML que Moodle necesita, no un error.
 
 =make= solo recompila lo que ha cambiado; =make clean= borra =build/=.
 
 * Cómo leer el PDF de =make amc= (vista profe)
 
 Cada variante muestra *todas* las cuestiones de cada hueco (no solo la que
-le tocaría al alumno), con la casilla marcada en las correctas, y cada
-explicación (=exp=) en cursiva junto a su cuestión. Las cuestiones
-rechazadas por su precondición se listan al final en «Exclusiones», con la
-condición que no se cumplió. En las preguntas con =setup= aleatorio no se
+le tocaría al alumno), en el orden de los huecos y con la casilla marcada
+en las correctas, y cada explicación (=exp=) en cursiva tras una raya junto
+a su cuestión. Las cuestiones rechazadas por su precondición se listan al
+final en «Exclusiones», con la condición que no se cumplió. Las variantes
+se etiquetan =<pregunta>-N=. En las preguntas con =setup= aleatorio no se
 imprimen todas las realizaciones: el script explora
 =config.N_SORTEOS_PROFE= sorteos y guarda un caso por cada combinación
-distinta de mundo y patrón de marcas (=mundo2-caso3= es el tercer patrón
-encontrado en el segundo mundo), hasta =config.MAX_CASOS_PROFE= casos. Así
+distinta de enunciado (sin contar los números) y patrón de marcas, hasta
+=config.MAX_CASOS_PROFE= casos, etiquetados =mundoM-casoK= (=M= numera los
+enunciados distintos, =K= los patrones de marcas dentro de cada uno). Así
 ves cada rama de la pregunta una vez.
 
 * La mecánica en tres frases (lo que más confunde al empezar)

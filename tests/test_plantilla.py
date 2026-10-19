@@ -1,5 +1,6 @@
 """Tests de la plantilla de proyecto (qbank-init) y de la autoría en Python:
 setup como cadena, semántica/precond como cadena y nombre= en ProblemaTipo."""
+import shutil
 import subprocess
 import sys
 
@@ -43,6 +44,42 @@ def test_setup_y_expresiones_como_cadena_se_serializan(tmp_path):
 def test_setup_cadena_vacia_equivale_a_ninguno():
     p = ProblemaTipo(["a", Cuestion("b", True)], setup="  \n")
     assert p.setup is None and problema_to_dict(p)["setup"] is None
+
+
+def test_setup_conserva_la_cadena_y_admite_indentacion():
+    codigo = "    x = 1\n    y = x + 1\n"
+    p = ProblemaTipo(["$@{y}$", Cuestion("b", True)], setup=codigo)
+    assert problema_to_dict(p)["setup"] == codigo            # tal cual, con su \n final
+    assert next(iter(p.por_partes()))[1][0][0] == "$2$"       # dedent al ejecutar
+
+
+def test_expresiones_raras_dan_error_con_contexto():
+    assert Cuestion("x", "true").s is True and Cuestion("x", " FALSE ").s is False
+    with pytest.raises(ValueError, match="Cuestion 'Sea A', campo semantica: expresión vacía"):
+        Cuestion("Sea A", "")
+    with pytest.raises(ValueError, match=r"campo precond: no se puede evaluar 'v\(A\)'"):
+        Supuesto("s", "True", precond="v(A)")
+
+
+def test_exp_none_se_guarda_como_null():
+    assert problema_to_dict(ProblemaTipo(["a", Cuestion("b", True, exp=None)]))["componentes"][1]["exp"] is None
+
+
+def test_problema_to_python_vuelve_a_guardarse(tmp_path):
+    from qbank import problema_to_python
+    p = ProblemaTipo(["Sea $x = @{x}$. ",
+                      [Supuesto("Positivo.", v('pos'), precond="lambda ns: ns['x'] > 0"),
+                       Supuesto("Negativo.", v('neg'), precond="lambda ns: ns['x'] < 0")],
+                      [Cuestion("$x^3 > 0$", v('pos')), Cuestion("$x^3 < 0$", "lambda ns: ns['x'] < 0",
+                                                                  exp="porque @{x} < 0")]],
+                     setup="import numpy as np\nx = int(np.random.choice([-2, 3]))\n",
+                     seed=3, export={"last_choice": True}, nombre="L-00-P")
+    d = problema_to_dict(p)
+    codigo = problema_to_python(p)
+    assert "_SETUP = r\"\"\"" in codigo and "nombre='L-00-P'" in codigo
+    ns = {}
+    exec(codigo, ns)
+    assert problema_to_dict(ns["p"]) == d
 
 
 def test_setup_callable_sigue_sin_serializarse():
@@ -99,12 +136,23 @@ def test_amc_multipart_un_questionmult_con_un_bloque_por_parte():
     # vista profe: las rechazadas de todas las partes en un solo \explain
     etiqueta, partes = next(iter(p.por_partes_profe(verbose=False)))
     assert AMC_multipart("M", etiqueta, "", partes, profe=True).count(r"\end{questionmult}") == 1
-    # QuizAMCProfe usa AMC_multipart: una pregunta por variante
+    # QuizAMCProfe usa AMC_multipart: una pregunta por variante; con last_choice
+    # cada parte lleva la opción por defecto
     import tempfile
     with tempfile.TemporaryDirectory() as d:
-        n = QuizAMCProfe("M", d + "/", p)
+        n = QuizAMCProfe("M", d + "/", p, last_choice=True, last_choice_text="ZZZ")
         tex = open(d + "/M_profe.tex").read()
-    assert n == 2 and tex.count(r"\begin{questionmult}") == 2
+    assert n == 2 and tex.count(r"\begin{questionmult}") == 2 and tex.count("ZZZ") == 4
+    # compatibilidad: opc=[aux] y enunciado común no vacío (las intros van en \emph)
+    tex = AMC_multipart("M", "1", "Común.", partes, opc=[r"\relax"])
+    assert r"{\relax" in tex and "Común." in tex and r"\emph{Sea $A$" in tex
+
+
+def test_lint_parte_vacia_no_aconseja_sobre_listas():
+    av = lint(_d(["Sea ", [_S("A.", "v('A')"), _S("B.", "v('B')")],
+                  _C("A", "v('A')"), _C("B", "v('B')"), _C("ni", "False"), " Y además:"]))
+    assert [a for a in av if a.codigo == "opciones" and "parte vacía" in a.mensaje]
+    assert not [a for a in av if a.codigo == "pocas-opciones"]
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +221,90 @@ def test_main_cli(tmp_path, capsys):
     assert main([str(tmp_path / "b")]) == 0
     assert "make lint" in capsys.readouterr().out
     assert main([str(tmp_path / "b")]) == 1
+    (tmp_path / "f").write_text("x")
+    assert main([str(tmp_path / "f")]) == 1                  # el destino es un fichero
+    assert "qbank-init:" in capsys.readouterr().err
+
+
+def test_lecciones_invalidas_y_nombres_raros(proyecto):
+    r = subprocess.run([sys.executable, "scripts/_comun.py", "--leccion", "3-"],
+                       cwd=proyecto, capture_output=True, text=True)
+    assert r.returncode != 0 and "formato no válido" in r.stderr
+    assert len(_run(proyecto, "scripts/_comun.py", "--leccion", " ").split()) == 4
+    raro = proyecto / "preguntas" / "L-07-Con Espacio.json"
+    raro.write_text("{}")
+    r = subprocess.run([sys.executable, "scripts/_comun.py"], cwd=proyecto, capture_output=True, text=True)
+    raro.unlink()
+    assert "se ignora L-07-Con Espacio.json" in r.stderr and len(r.stdout.split()) == 4
+
+
+@pytest.mark.skipif(shutil.which("make") is None, reason="sin make")
+def test_make_sin_preguntas_termina(proyecto):
+    r = subprocess.run(["make", "amc", "LECCION=9", f"PYTHON={sys.executable}"],
+                       cwd=proyecto, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    r = subprocess.run(["make", "lint", f"PYTHON={sys.executable}"],
+                       cwd=proyecto, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    r = subprocess.run(["make", "lint", "PYTHON=/bin/false"],
+                       cwd=proyecto, capture_output=True, text=True, timeout=60)
+    assert r.returncode != 0 and "qbank no está instalado" in r.stdout + r.stderr
+
+
+def test_nombre_con_guion_bajo_usa_el_grupo_sanitizado(proyecto):
+    import json
+    origen = proyecto / "preguntas" / "L-01-ParidadSumaProducto.json"
+    d = json.loads(origen.read_text()); d["nombre"] = "L-08-Con_Guion"
+    (proyecto / "preguntas" / "L-08-Con_Guion.json").write_text(json.dumps(d, ensure_ascii=False))
+    try:
+        _run(proyecto, "scripts/gen_amc.py", "--leccion", "8")
+        doc = (proyecto / "build/amc/L-08-Con_Guion-doc.tex").read_text()
+        tex = (proyecto / "build/amc/L-08-Con_Guion.tex").read_text()
+        assert r"\input{L-08-Con_Guion}" in doc and r"\insertgroup{L-08-Con-Guion}" in doc
+        assert r"\element{L-08-Con-Guion}" in tex
+    finally:
+        (proyecto / "preguntas" / "L-08-Con_Guion.json").unlink()
+
+
+def test_gen_amc_falla_si_una_pregunta_no_tiene_variantes(proyecto):
+    import json
+    d = {"version": "1", "tipo": "ProblemaTipo", "nombre": "L-09-Imposible",
+         "setup": "x = 1", "export": {"last_choice": True},
+         "componentes": ["Sea ", {"tipo": "Supuesto", "enunciado": "grande.", "semantica": "True",
+                                  "precond": "lambda ns: ns['x'] > 5"},
+                         _C("a", "True"), _C("b", "False"), _C("c", "False")]}
+    ruta = proyecto / "preguntas" / "L-09-Imposible.json"
+    ruta.write_text(json.dumps(d))
+    try:
+        r = subprocess.run([sys.executable, "scripts/gen_amc.py", "--leccion", "9"],
+                           cwd=proyecto, capture_output=True, text=True)
+        assert r.returncode == 1 and "ninguna variante" in r.stdout
+    finally:
+        ruta.unlink()
+
+
+def test_merge_solo_las_preguntas_existentes(proyecto):
+    moodle = proyecto / "build" / "moodle"
+    moodle.mkdir(parents=True, exist_ok=True)
+    nombres = [p.stem for p in (proyecto / "preguntas").glob("L-*.json")]
+    for n in nombres[:2] + ["L-09-Borrada"]:
+        (moodle / f"{n}-moodle.xml").write_text(f"<quiz><question>{n}</question></quiz>", encoding="iso-8859-1")
+    out = _run(proyecto, "scripts/merge_moodle_xml.py")
+    banco = (moodle / "_banco.xml").read_text(encoding="iso-8859-1")
+    assert "L-09-Borrada" not in banco and all(n in banco for n in nombres[:2])
+    assert "AVISO: sin XML" in out
+    for f in moodle.glob("*-moodle.xml"):
+        f.unlink()
+
+
+def test_fix_moodle_xml_arregla():
+    import importlib.util
+    ruta = ruta_plantilla() / "scripts" / "fix_moodle_xml.py"
+    spec = importlib.util.spec_from_file_location("fix_moodle_xml", ruta)
+    mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+    texto = r"intro &lt; fuera {1:MULTIRESPONSE_S:=\(a &lt; b\)#f \} g~x &lt; y} fin &lt;"
+    nuevo, n = mod.arregla(texto)
+    assert n == 2 and nuevo.count("&amp;lt;") == 2 and nuevo.startswith("intro &lt;") and nuevo.endswith("fin &lt;")
 
 
 def test_preguntas_de_ejemplo_pasan_lint_sin_avisos(proyecto):

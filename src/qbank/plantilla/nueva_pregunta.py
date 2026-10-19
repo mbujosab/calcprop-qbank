@@ -22,7 +22,8 @@ Recordatorio de la mecánica (la trampa habitual al empezar):
 """
 import sys
 
-from qbank import Cuestion, ProblemaTipo, Supuesto, lint, save_problema, v
+import numpy as np
+from qbank import Cuestion, ProblemaTipo, Supuesto, alguno, lint, save_problema, unoDe, v  # noqa: F401
 
 NOMBRE = "L-00-SignoYCuadrado"     # nombre del fichero JSON (sin .json); sin ':'
 
@@ -66,20 +67,48 @@ PREGUNTA = ProblemaTipo(
 
 
 MAX_VARIANTES = 4      # cuántas variantes se imprimen (la vista completa es make amc)
+MAX_SORTEOS = 50       # con setup, cuántos sorteos se prueban para reunirlas
+
+
+def primeras_variantes(p, n):
+    """Las n primeras variantes de la vista profe. Con setup aleatorio recorre
+    varios sorteos: un Supuesto cuya precond rechaza los números de un sorteo
+    hace desaparecer la variante entera, y un solo sorteo puede no dar ninguna."""
+    out = []
+    if p.setup is None:
+        for variante in p.por_partes_profe(verbose=False):
+            out.append(variante)
+            if len(out) >= n:
+                break
+        return out
+    seed, p.seed = p.seed, None          # que mande la semilla de cada sorteo
+    try:
+        for sorteo in range(MAX_SORTEOS):
+            np.random.seed(sorteo)
+            for variante in p.por_partes_profe(verbose=False):
+                out.append(variante)
+                if len(out) >= n:
+                    return out
+    finally:
+        p.seed = seed
+    return out
 
 
 def main(argv):
     print(f"── {NOMBRE}: primeras {MAX_VARIANTES} variantes de la vista profe "
-          "(✓ correcta, ✗ incorrecta, · rechazada por su precond) ──")
-    for i, (etiqueta, partes) in enumerate(PREGUNTA.por_partes_profe(verbose=False)):
-        if i >= MAX_VARIANTES:
-            print("\n   … (el resto, en make amc)")
-            break
+          "(✓ correcta, ✗ incorrecta, · Cuestion rechazada por su precond) ──")
+    variantes = primeras_variantes(PREGUNTA, MAX_VARIANTES)
+    if not variantes:
+        print(f"\n   ninguna variante en {MAX_SORTEOS} sorteos: todos los Supuesto quedan "
+              "rechazados por su precond (revisa el setup y las precondiciones)")
+    for etiqueta, partes in variantes:
         for enunciado, cuestiones in partes:
             print(f"\n[{etiqueta}] {enunciado}")
             for texto, correcto, activa, *resto in cuestiones:
                 marca = ('✓' if correcto else '✗') if activa else '·'
                 print(f"   {marca} {texto}")
+    if len(variantes) >= MAX_VARIANTES:
+        print("\n   … (el resto, con las explicaciones y las exclusiones, en make amc)")
 
     print("\n── lint ──")
     avisos = lint(PREGUNTA)

@@ -55,7 +55,9 @@ Reglas (código del aviso entre paréntesis):
    texto renderizado.
 6. Etiquetas huérfanas (``huerfana``, AVISO; ``sin-uso``, INFO). Si algún
    ``Supuesto`` tiene semántica lambda (inyecta fórmulas calculadas en el
-   setup) las etiquetas no son visibles y la regla se degrada a INFO.
+   setup) las etiquetas no son visibles y la regla se degrada a un único
+   INFO que lista las etiquetas no localizadas (incluidas las que fueran
+   huérfanas de verdad: revísalas a mano).
 7. Estructura (``tipo``, ``nombre``, ``estructura``, ERROR; ``lista-1``,
    ``seed``, ``instances``, AVISO).
 8. Texto (``texto``, AVISO): caracteres que rompen el paquete ``moodle``,
@@ -376,6 +378,7 @@ def _regla_variantes(p, avisos, instances, seed):
         return
 
     opciones = _defaultdict(set)
+    n_reales = _defaultdict(set)
     mezcla   = []
     interp   = {}
     for etiqueta, partes in variantes:
@@ -387,6 +390,7 @@ def _regla_variantes(p, avisos, instances, seed):
             else:
                 total, corr = reales, correctas
             opciones[k].add(total)
+            n_reales[k].add(reales)
             if not (1 <= corr <= total - 1):
                 mezcla.append((etiqueta, k, corr, total, enunciado))
             textos = [('enunciado', enunciado)]
@@ -411,7 +415,11 @@ def _regla_variantes(p, avisos, instances, seed):
             avisos.append(Aviso(AVISO, 'opciones',
                                 f"parte {k + 1}: el número de opciones varía entre variantes: "
                                 f"{sorted(ns_)}"))
-        if min(ns_) < MIN_OPCIONES:
+        if min(n_reales[k]) == 0:
+            avisos.append(Aviso(AVISO, 'opciones',
+                                f"parte {k + 1}: sin ninguna Cuestion en alguna variante (un texto "
+                                "suelto tras la última Cuestion abre una parte vacía)"))
+        elif min(ns_) < MIN_OPCIONES:
             avisos.append(Aviso(AVISO, 'pocas-opciones',
                                 f"parte {k + 1}: el alumno solo ve {min(ns_)} opción(es). Una lista "
                                 "de Cuestion sortea UNA por variante: para mostrar varias a la vez "

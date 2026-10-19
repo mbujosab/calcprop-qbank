@@ -75,6 +75,12 @@ p = ProblemaTipo([s, [s1, s2], [c1, c2]], setup=None, export=None, seed=None, no
   `ProblemaTipo` lo compila y conserva `_setup_str`. Un `setup` función
   tampoco se puede guardar.
 - `nombre=` fija `_nombre` (el campo `nombre` del JSON).
+- `_eval_expr` acepta `"true"`/`"false"` en cualquier caja; una cadena vacía o
+  inválida lanza `ValueError` con el componente y el campo. El código del
+  `setup` se conserva tal cual en `_setup_str` y se ejecuta con `dedent`.
+- `problema_to_python` emite `_SETUP = r"""…"""`, las lambdas entre comillas y
+  `nombre=`: el `.py` resultante vuelve a guardarse con `save_problema`.
+- `QuizAMCProfe(..., last_choice=False)` (nuevo parámetro).
 - Flujo recomendado para escribir a mano: lista Python → `save_problema` →
   JSON en `preguntas/` (es lo que hace `plantilla/nueva_pregunta.py`).
 
@@ -204,7 +210,8 @@ elemento, seed/instances incoherentes, texto sospechoso), `INFO`.
 - `pocas-opciones` (AVISO): una parte muestra al alumno menos de
   `MIN_OPCIONES` (3) opciones, contando `last_choice`. Detecta el error
   típico de poner las opciones en una única lista de `Cuestion` (una lista
-  sortea una). No salta en ninguna pregunta de los dos bancos.
+  sortea una). No salta en ninguna pregunta de los dos bancos. Una parte sin
+  ninguna `Cuestion` (texto suelto tras la última) da AVISO `opciones`.
 - `_ns_interp(s, ns, strict=None)`: con `strict=True` (o
   `qbank._quiz.STRICT_INTERP = True`) lanza `ValueError` ante `@{var}`
   desconocida. Por defecto sigue dejando el texto intacto.

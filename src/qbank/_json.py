@@ -142,7 +142,7 @@ def _slot_to_json(slot):
             'precond':   _expr_to_str(precond, 'precond'),
         }
         if isinstance(slot, Cuestion):
-            d['exp'] = _expr_to_str(slot.x, 'exp')
+            d['exp'] = None if slot.x is None else _expr_to_str(slot.x, 'exp')
         return d
     elif isinstance(slot, list):
         return [_slot_to_json(item) for item in slot]
@@ -274,6 +274,21 @@ def _py_text(s):
     return repr(s)
 
 
+def _py_expr(s):
+    """Semántica o precondición en el guión: las fórmulas calcprop y True/False
+    tal cual (son código Python válido); las lambdas entre comillas, como
+    cadena, que es como ProblemaTipo las acepta y save_problema las guarda."""
+    return repr(s) if s.strip().startswith("lambda") else s
+
+
+def _py_bloque(s):
+    """Literal de varias líneas para el código del setup: raw string triple
+    cuando es seguro, repr() en caso contrario."""
+    if '"""' not in s and not s.endswith("\\"):
+        return 'r"""' + s + '"""'
+    return repr(s)
+
+
 def _slot_to_python(slot, nivel=1):
     pad = "    " * nivel
 
@@ -287,8 +302,8 @@ def _slot_to_python(slot, nivel=1):
         ipad = "    " * (nivel + 1)
         args = [
             f"{ipad}enunciado = {_py_text(slot['enunciado'])},",
-            f"{ipad}semantica = {slot['semantica']},",      # cadena evaluable: "v('A')", "True", …
-            f"{ipad}precond = {slot.get('precond', 'True')}",
+            f"{ipad}semantica = {_py_expr(slot['semantica'])},",   # "v('A')", "True", "lambda ns: …"
+            f"{ipad}precond = {_py_expr(slot.get('precond', 'True'))}",
         ]
         if tipo == "Cuestion":
             args[-1] += ","
@@ -309,8 +324,10 @@ def problema_to_python(problema, varname="ejercicio"):
     El fichero resultante puede abrirse con cualquier editor de texto,
     modificarse y ejecutarse directamente con Python. Los problemas multiparte
     se generan como un ProblemaTipo (lista plana), igual que los de una sola parte.
-    Para problemas con setup, el código del setup queda como función Python
-    editable (_setup). Si el setup es un callable sin _setup_str, falla.
+    El código del setup, si lo hay, queda en la cadena _SETUP (el mismo texto
+    que guarda el JSON) y las lambdas como cadenas, de modo que el guión
+    puede volver a guardarse con save_problema. Si el setup es un callable
+    sin _setup_str, falla.
     """
     d = problema_to_dict(problema)
 
@@ -319,27 +336,22 @@ def problema_to_python(problema, varname="ejercicio"):
 
     setup_str = d.get("setup")
     if setup_str:
-        lines += ["", "def _setup():"]
-        for line in setup_str.splitlines():
-            lines.append(f"    {line}")
-        lines += [
-            "    _locs = locals()",
-            "    return {k: v for k, v in _locs.items() if not k.startswith('_')}",
-            "",
-        ]
+        lines += ["", f"_SETUP = {_py_bloque(setup_str)}", ""]
 
-    setup_arg  = ", setup=_setup" if setup_str else ""
+    setup_arg  = ", setup=_SETUP" if setup_str else ""
     seed       = d.get("seed")
     seed_arg   = f", seed={seed!r}" if seed is not None else ""
     export_dict = d.get("export", {})
     export_arg  = f", export={export_dict!r}" if export_dict else ""
+    nombre      = d.get("nombre") or ""
+    nombre_arg  = f", nombre={nombre!r}" if nombre else ""
 
     lines.append(f"{varname} = [")
     for comp in d["componentes"]:
         lines.append(_slot_to_python(comp, nivel=1))
     lines.append("]")
     lines.append("")
-    lines.append(f"p = ProblemaTipo({varname}{setup_arg}{seed_arg}{export_arg})")
+    lines.append(f"p = ProblemaTipo({varname}{setup_arg}{seed_arg}{export_arg}{nombre_arg})")
 
     lines.append("")
     return "\n".join(lines)
