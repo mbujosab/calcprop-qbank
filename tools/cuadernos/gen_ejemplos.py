@@ -260,7 +260,7 @@ n = QuizMoodle("multicolinealidad", "mis_problemas/", pt,
 print(f"{n} variantes → mis_problemas/multicolinealidad.tex (xelatex → multicolinealidad-moodle.xml)")
 
 n = QuizAMCProfe("multicolinealidad", "mis_problemas/", pt, cols=2, last_choice=True)
-print(f"{n} variantes (vista profe) → mis_problemas/multicolinealidad_profe.tex")
+print(f"{n} mundos (vista profe) → mis_problemas/multicolinealidad_profe.tex")
 ''')
 
 nb.write("Ejemplos.ipynb")

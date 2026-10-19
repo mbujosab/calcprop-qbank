@@ -118,9 +118,10 @@ md(r"""
 
 `por_partes_profe()` muestra, para cada mundo, **todas** las cuestiones de cada hueco —no solo
 la sorteada— con sus marcas. Es lo que conviene repasar antes de dar una pregunta por buena
-(en un banco creado con `qbank-init`, `make amc` la imprime en PDF). La opción por defecto
-se lista al final de cada mundo marcada `[+]`: su valor depende de qué opciones se sorteen
-en cada variante.
+(en un banco creado con `qbank-init`, `make amc` la imprime en PDF). Aquí la opción por
+defecto se lista al final de cada mundo marcada `[+]`, aunque su valor depende de qué opciones
+se sorteen en cada variante; el PDF de `make amc` no la incluye (se comprueba en las variantes
+de `make amc-student`).
 """)
 
 code(r'''
