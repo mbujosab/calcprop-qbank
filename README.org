@@ -4,9 +4,9 @@
 [[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb][https://mybinder.org/badge_logo.svg]]
 
 Genera variantes de preguntas de opción múltiple cuyas respuestas correctas se
-determinan automáticamente mediante cálculo proposicional. Combina supuestos e
-ítems de respuesta por combinatoria, calcula la veracidad o falsedad de cada
-ítem según las hipótesis activas y exporta el resultado a LaTeX (AMC) o Moodle
+determinan automáticamente mediante cálculo proposicional. Combina supuestos
+(hipótesis) y cuestiones (opciones de respuesta) por combinatoria, calcula la
+veracidad o falsedad de cada cuestión según las hipótesis activas y exporta el resultado a LaTeX (AMC) o Moodle
 (XML vía LaTeX).
 
 Construido sobre [[https://github.com/mbujosab/calcprop][=calcprop=]].
@@ -115,7 +115,7 @@ haya (=GuiaDiseno.org= lo explica).
 
 =ProblemaTipo= toma una lista de supuestos y cuestiones (cada uno con su semántica
 proposicional) y genera todas las combinaciones posibles. Para cada variante
-calcula automáticamente qué ítems son verdaderos y cuáles falsos. Las variantes
+calcula automáticamente qué cuestiones son verdaderas y cuáles falsas. Las variantes
 con precondiciones insatisfechas se descartan. Las hipótesis contradictorias, en
 cambio, no se detectan (de ellas se deduce cualquier cosa y todo sale
 verdadero): se evitan con axiomas como =unoDe(v('A'), v('B'))=.

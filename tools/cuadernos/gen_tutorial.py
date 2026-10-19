@@ -29,7 +29,7 @@ de Python (construir preguntas en Python, editor visual, exportadores) está en
 ## Cuatro palabras y una advertencia
 
 - **Variante**: cada versión concreta de la pregunta (enunciado + opciones + marcas) que verá un alumno.
-- **Mundo**: las hipótesis activas en una variante, decididas por los `Supuesto` sorteados.
+- **Mundo**: las hipótesis activas en una variante, es decir, las fórmulas de los `Supuesto` sorteados (más los axiomas, `Supuesto` sin texto que valen siempre); cada `Cuestion` es correcta si se deduce de ellas.
 - **Hueco**: cada posición que se convierte en una opción: una `Cuestion` suelta, o una lista de `Cuestion` de la que se sortea *una*.
 - **Opción por defecto**: la que añade `"export": {"last_choice": true}` («Ninguna de las anteriores»); es correcta solo si las demás son falsas, y garantiza que nunca sean todas correctas ni todas falsas.
 

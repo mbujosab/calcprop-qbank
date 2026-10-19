@@ -2,9 +2,10 @@
 
 Genera variantes de preguntas de opción múltiple cuyas respuestas
 correctas se determinan automáticamente mediante cálculo proposicional.
-Combina supuestos e ítems de respuesta por combinatoria, calcula la
-veracidad o falsedad de cada ítem según las hipótesis activas y exporta
-el resultado a LaTeX (AMC) o Moodle (XML vía LaTeX).
+Combina supuestos (hipótesis) y cuestiones (opciones de respuesta) por
+combinatoria, calcula la veracidad o falsedad de cada cuestión según las
+hipótesis activas y exporta el resultado a LaTeX (AMC) o Moodle (XML vía
+LaTeX).
 
 Construido sobre [`calcprop`](https://github.com/mbujosab/calcprop).
 
@@ -114,11 +115,11 @@ elementos-Cuestion consecutivos haya (`GuiaDiseno.org` lo explica).
 
 `ProblemaTipo` toma una lista de supuestos y cuestiones (cada uno con su
 semántica proposicional) y genera todas las combinaciones posibles. Para
-cada variante calcula automáticamente qué ítems son verdaderos y cuáles
-falsos. Las variantes con precondiciones insatisfechas se descartan. Las
-hipótesis contradictorias, en cambio, no se detectan (de ellas se deduce
-cualquier cosa y todo sale verdadero): se evitan con axiomas como
-`unoDe(v('A'), v('B'))`.
+cada variante calcula automáticamente qué cuestiones son verdaderas y
+cuáles falsas. Las variantes con precondiciones insatisfechas se
+descartan. Las hipótesis contradictorias, en cambio, no se detectan (de
+ellas se deduce cualquier cosa y todo sale verdadero): se evitan con
+axiomas como `unoDe(v('A'), v('B'))`.
 
 El método `por_partes_profe()` muestra todas las cuestiones de cada
 hueco (marcando las rechazadas por su precondición en vez de descartar
