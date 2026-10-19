@@ -67,7 +67,12 @@ Todos los comandos se lanzan *desde esta carpeta* (la que contiene el
      =build/moodle/_banco.xml= con todas. En Moodle: /Banco de preguntas →
      Importar → Formato Moodle XML/; cada pregunta llega como una categoría
      con todas sus variantes, lista para una «pregunta aleatoria» del
-     cuestionario.
+     cuestionario. Cada variante es una pregunta /cloze/ con un bloque de
+     casillas por parte; el exportador da a cada bloque un peso igual a su
+     número de opciones reales menos uno, y Moodle lo puntúa como una
+     opción múltiple con varias respuestas (las correctas marcadas suman,
+     las incorrectas marcadas restan, sin bajar de cero). La nota que fijes
+     a la pregunta en el cuestionario reescala la suma de sus bloques.
 
 =make= solo recompila lo que ha cambiado; =make clean= borra =build/=.
 

@@ -144,9 +144,10 @@ con =Supuesto= lambda, mensaje legible al rechazar por =precond= cadena,
 Guía, la pregunta de ejemplo con 3 huecos en las dos partes, README de la
 plantilla con requisitos, carpeta de trabajo, campos y cómo leer el PDF
 profe, «Uso rápido» del README con el patrón correcto, orden único de la
-documentación. Pendiente: los scripts =gen_amc*.py= de los dos bancos tienen
-el mismo fallo multiparte (no afecta a sus preguntas actuales, de una
-parte); cómo puntúa Moodle los bloques cloze (no documentado).
+documentación. Después, los =gen_amc*.py= de los dos bancos pasaron también
+a =AMC_multipart= (qbank-econometria commiteado; qbank-PEconometria queda
+sin commitear junto a otros cambios del autor) y el README de la plantilla
+explica cómo puntúa Moodle los bloques cloze.
 
 ** DONE Fase 2 — =GuiaDiseno.org= (para personas)
 CLOSED: [2026-10-19]
