@@ -243,6 +243,159 @@ Cerrada el 19 de octubre de 2026 (commits 47c2f30 → 0ba96bf).
   memoria =project_amc_multipart_pending=). Conversión de figuras PDF→PNG
   en los scripts de Moodle de la plantilla (hoy solo en qbank-PEconometria).
 
+*** Revisión de la Fase 3 (Opus, 2026-10-19)
+Cinco lentes en paralelo:
+1. Profesor novato de Física, con =qbank-init= y =make= reales.
+2. Coherencia documento ↔ código.
+3. Cuadernos ejecutados con el kernel =qbank=.
+4. Auditoría de =lint= con unos 90 casos.
+5. PDF regenerados.
+
+Cada hallazgo se verificó antes de corregirlo; el informe con las evidencias
+quedó en el scratchpad de la sesión. No se encontró nada roto en los PDF
+versionados (estaban al día), ni en =orgtangle check=, ni en =README.md=, ni
+en la ejecución de los cuadernos. Las decisiones de Marcos sobre la lista B
+están incorporadas en lo que sigue. Suite: 128 → 160 tests.
+
+**** (a) Corregido
+- JSON de ejemplo (bbd1f7f):
+  - =superheroes=: «superfuerza» no era exclusiva de Superman; «consiste en
+    en realidad…»; =exp= copiada de otra opción; Spider-Man con una grafía.
+  - =ejercicio=: =exp= que desvelaban el diseño.
+  - =ej_d=: =<= fuera de =$= salía «¡» en el PDF; =instances= 5 → 2;
+    distractor ambiguo.
+  - =ej_a=: «n·m divisible entre 4» era cierta con n=4.
+  - Plantilla =L-02-MatrizInvertible=: título de parte incoherente.
+- Motor, vía los =.org= (e43d96b):
+  - =_amc_choices= marcaba mal la opción por defecto de la vista profe
+    cuando había rechazadas.
+  - =QuizMoodleProfe= gana =last_choice== e =instances== (B2).
+  - =lint=:
+    - =@@{x}= ya no es ERROR =interp=.
+    - «lección N» con límite de palabra.
+    - =constante= pasa a INFO con lambda y =setup=.
+    - =%= también en el texto interpolado.
+    - Espacios en =nombre= o en el fichero → ERROR =nombre=.
+    - =seed: true= → ERROR =estructura=.
+    - Una parte sin =Cuestion= da solo AVISO =opciones=.
+  - Editor «slot» → «hueco» (B4).
+  - =qbank.__version__=.
+  - Docstrings de =_lint= y de los =Quiz*=.
+- Prosa literate (e43d96b):
+  - Ejemplo de =AMC_multipart= con =por_partes()=.
+  - «Indecidible se descarta» → se marca falsa.
+  - =ProblemaTipoProfe= marcada deprecada.
+  - Rutas =../ejemplos/= que no existen.
+  - Párrafo de las =Quiz*=.
+  - =_sanitize_name=.
+  - «comodín» → «opción por defecto».
+- Presentación de los PDF literate (e43d96b):
+  - Tabla del editor con =tabularx= (sobresalía 1482 pt).
+  - =…= sin interpretar.
+  - Niveles de «¿Y ahora qué?» y módulos sin numerar.
+  - URL de docs.python.org.
+- Plantilla (7ae4c04):
+  - =comprueba= exige qbank ≥ 0.6 y cita =PYTHON== (con el qbank 0.3.1 de
+    =~/.local= culpaba a las preguntas).
+  - =make lint LECCION=N= sin preguntas sale limpio.
+  - =make tabla= acepta =.json=.
+  - «mundo(s)» y «caso(s)» en =gen_amc= y =nueva_pregunta= (B3).
+  - babel en español en el preámbulo AMC (B6).
+- Binder: =postBuild= que registra el kernel =qbank= (B7) (ac6e0ee).
+- README (25c47b0):
+  - El ejemplo multiparte daba ERROR =negacion= y =mezcla=.
+  - El fragmento AMC usaba un =AMCblock= por parte.
+  - =os.makedirs= y =last_choice= en las vistas profe.
+  - «Las funciones no leen =export=» (B2).
+  - PyPI sin 0.6, con la alternativa git (B1).
+  - Dónde están el Tutorial y la Guía; insignia de Binder al Tutorial.
+  - =PYTHON==; ruta de ejemplo real.
+- CLAUDE.md: firma real de =QuizAMCProfe=, =QuizMoodleProfe= y códigos
+  completos de =lint= (B8) (6b1ce42).
+- Guía y README de la plantilla (44c2a7c):
+  - =seed= siembra numpy y =random=.
+  - Una entrada de la vista profe por mundo, no por variante.
+  - Ejemplo arancelario con =instances= 8.
+  - Frase sobre variantes repetidas (B5).
+  - =make tabla= con un nombre real; «instancias».
+  - Las preguntas de ejemplo acaban en =_catalogo= y =_banco.xml=.
+  - =penalty= de Moodle.
+- Manual (f9d4863):
+  - =editor.save()= no existe.
+  - Ejecutado en una sesión, sobrescribía =ejercicio.json=.
+  - Bloque que comprueba qbank ≥ 0.6.
+  - =ordenar=: 12 combinaciones (no 4), y =seed= 7 para que la vista profe
+    no salga vacía.
+  - =export= no lo leen las funciones.
+  - =QuizMoodleProfe=.
+  - Editor real.
+  - Reglas de =lint= completas.
+  - Alternativa git.
+  - =codchar= solo convierte minúsculas; semilla 42.
+  - =…= y firmas deprecadas en el PDF.
+  - =#+RESULTS= regenerados con el venv.
+- Cuadernos (98e962c):
+  - Un solo ayudante =muestra()= que enseña la opción por defecto (en la
+    Demo, =p_numeros_multi= salía con todo ✓).
+  - =xelatex= a mano.
+  - =instances= repite el recorrido.
+  - =ej_d= con =export.instances=; =cols= de =ej_a=; imports del Ejemplo E.
+  - Pregunta rota con sección propia.
+  - Primer ejemplo de la Demo sin AVISO.
+  - Ejemplos: los 4 mundos explicados y la =precond= que dejaba una
+    cuestión constante.
+  - «hueco» en el editor.
+  - Sin repeticiones entre Tutorial y Demo.
+- PDF regenerados (16/24/73/22 p.), 0 «Missing character», nada fuera de
+  tablas por encima de 25 pt. =EjemploMoodle.pdf= y su XML regenerados desde
+  el =.tex= actual (554a047).
+
+**** (b) Verificado y no corregido
+- Publicar 0.6.0 en PyPI (B1): decisión de Marcos; hasta entonces README,
+  Manual y plantilla dan la alternativa git.
+- Que las funciones de exportación lean =export= (B2): descartado por ahora;
+  documentado.
+- Etiquetas =-mundoN= en la vista profe (B3): no se cambian; solo la prosa.
+- Regla de =lint= «variantes distintas» (B5). Propuesta: contar variantes
+  distintas (texto + marcas) y avisar si son muchas menos que las totales.
+  =ej_e_lambda= con 60 instancias solo genera 11.
+- Kernel =qbank= en MyBinder (B7): =postBuild= añadido, sin probar → Fase 5.
+- Propuestas de =lint= aplazadas (falsos negativos de gravedad baja):
+  - =unoDe= condicional (=v('C') >> unoDe(…)=) aceptado como deducible.
+  - =5\\%= (salto de línea + comentario) no detectado.
+  - =np.random.default_rng()= no reproducible con =seed=, sin aviso.
+  - =setup= escrito como función con =np.random= y sin =seed=, sin aviso.
+  - Mundo inalcanzable (=precond= que nunca se cumple), sin aviso; con un
+    solo mundo, =constante= no se evalúa.
+  - =\$= escapado empareja mal los =$= en la regla de doble espacio, y el
+    fragmento del aviso no deja ver dónde está.
+- Nombres internos =_SlotWidget=, =_normaliza_slot= y la prosa de
+  =segmentar= en =CalcPropQuiz.org= («slot», «sublista»), incluido el
+  =ValueError= «El slot N está vacío». Es vocabulario interno del motor;
+  cambiar el mensaje es barato, pero un componente de texto no es un
+  «hueco»: falta decidir la palabra.
+- Razón de =$$= → =\[= distinta en =CalcPropExport.org= y en el Manual.
+  Falta comprobar cuál es la buena.
+- =make moodle= tarda (≈47 s para 7 preguntas): un =pdflatex= por pregunta;
+  no es un defecto.
+
+**** (c) Descartado tras verificar
+- PDF versionados desactualizados: no; el texto regenerado era idéntico.
+- «Missing character» o referencias «??»: no había.
+- Bloques de código que se salen de la página: no; los desbordes eran
+  =\texttt= en línea.
+- La tabla de operadores del Manual sobresale 26 pt: es una tabla; se deja.
+- Cuadernos con salidas guardadas o kernel equivocado: no.
+- =opc=None= sin documentar en =AMC_multipart=: parámetro heredado.
+- =creaDiccionario= y los bloques «Inclusión de lastchoice» / «Registro del
+  motivo…» en =CalcPropExport.org=: correctos.
+- =Manual.org= «=opciones= si el número de opciones varía»: no puede ocurrir
+  con el motor actual; inofensivo.
+- La URL del encargo (=github.com/mbujosab/qbank=) no era la real: es
+  =github.com/mbujosab/calcprop-qbank=.
+- Hallazgo A2.23 de =Ejemplos.ipynb= matizado: el AVISO venía de «tiene
+  solución única», no de todo el hueco 2.
+
 ** TODO Fase 4 — Prompts reutilizables para quien use una IA
 - [ ] =prompts/PROMPT-qbank-generico.org= corto (≈100 líneas): remite a
   =GuiaDiseno.org= y al Manual, exige validar con =lint= y
