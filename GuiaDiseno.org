@@ -77,6 +77,9 @@ esto de las hipótesis?», no «¿es verdad en el mundo real?». Esa
 distinción está detrás de casi todo lo que sigue.
 
 ** Vocabulario
+:PROPERTIES:
+:CUSTOM_ID: vocabulario
+:END:
 
 - *Hipótesis* :: lo que la variante da por supuesto: las fórmulas de los
   =Supuesto= activos. *Consecuencia lógica* de las hipótesis es lo que se

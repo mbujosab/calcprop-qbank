@@ -19,13 +19,13 @@
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
 <li><a href="#org17b9b4d">1. Qué hay aquí</a></li>
-<li><a href="#org3d675b1">2. Requisitos</a></li>
-<li><a href="#org5f0dd8f">3. Flujo de trabajo</a></li>
-<li><a href="#orgc777690">4. Cómo leer el PDF de <code>make amc</code> (vista profe)</a></li>
-<li><a href="#org51b245b">5. La mecánica en tres frases (lo que más confunde al empezar)</a></li>
-<li><a href="#org135c64a">6. Caracteres y símbolos en los textos</a></li>
-<li><a href="#org5b4e0f3">7. Campos de una pregunta</a></li>
-<li><a href="#orga628d71">8. Más documentación</a></li>
+<li><a href="#requisitos">2. Requisitos</a></li>
+<li><a href="#flujo">3. Flujo de trabajo</a></li>
+<li><a href="#org3d675b1">4. Cómo leer el PDF de <code>make amc</code> (vista profe)</a></li>
+<li><a href="#org5f0dd8f">5. La mecánica en tres frases (lo que más confunde al empezar)</a></li>
+<li><a href="#orgc777690">6. Caracteres y símbolos en los textos</a></li>
+<li><a href="#org51b245b">7. Campos de una pregunta</a></li>
+<li><a href="#org135c64a">8. Más documentación</a></li>
 </ul>
 </div>
 </nav>
@@ -85,9 +85,9 @@ procesan; solo quedan fuera cuando se filtra con <code>LECCION</code>.
 </p>
 </div>
 </div>
-<div id="outline-container-org3d675b1" class="outline-2">
-<h2 id="org3d675b1"><span class="section-number-2">2.</span> Requisitos</h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-requisitos" class="outline-2">
+<h2 id="requisitos"><span class="section-number-2">2.</span> Requisitos</h2>
+<div class="outline-text-2" id="text-requisitos">
 <ul class="org-ul">
 <li>Python 3.9 o superior con <code>calcprop-qbank</code> 0.6.0 o posterior (la versión
 que trae <code>qbank-init</code>): <code>pip install calcprop-qbank</code> (o <code>pip install -U
@@ -128,9 +128,9 @@ Todos los comandos se lanzan <b>desde esta carpeta</b> (la que contiene el
 </p>
 </div>
 </div>
-<div id="outline-container-org5f0dd8f" class="outline-2">
-<h2 id="org5f0dd8f"><span class="section-number-2">3.</span> Flujo de trabajo</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-flujo" class="outline-2">
+<h2 id="flujo"><span class="section-number-2">3.</span> Flujo de trabajo</h2>
+<div class="outline-text-2" id="text-flujo">
 <ol class="org-ol">
 <li><b>Escribe la pregunta.</b> Dos caminos equivalentes:
 <ul class="org-ul">
@@ -196,8 +196,8 @@ adaptativo).</li>
 </p>
 </div>
 </div>
-<div id="outline-container-orgc777690" class="outline-2">
-<h2 id="orgc777690"><span class="section-number-2">4.</span> Cómo leer el PDF de <code>make amc</code> (vista profe)</h2>
+<div id="outline-container-org3d675b1" class="outline-2">
+<h2 id="org3d675b1"><span class="section-number-2">4.</span> Cómo leer el PDF de <code>make amc</code> (vista profe)</h2>
 <div class="outline-text-2" id="text-4">
 <p>
 La vista profe no lista las variantes del alumno: tiene <b>una entrada por
@@ -228,8 +228,8 @@ falsas: allí sale marcada.
 </p>
 </div>
 </div>
-<div id="outline-container-org51b245b" class="outline-2">
-<h2 id="org51b245b"><span class="section-number-2">5.</span> La mecánica en tres frases (lo que más confunde al empezar)</h2>
+<div id="outline-container-org5f0dd8f" class="outline-2">
+<h2 id="org5f0dd8f"><span class="section-number-2">5.</span> La mecánica en tres frases (lo que más confunde al empezar)</h2>
 <div class="outline-text-2" id="text-5">
 <ul class="org-ul">
 <li>Una <b>lista</b> de <code>Cuestion</code> no son «las opciones que se muestran juntas»: en
@@ -257,8 +257,8 @@ desarrolla todo esto.
 </p>
 </div>
 </div>
-<div id="outline-container-org135c64a" class="outline-2">
-<h2 id="org135c64a"><span class="section-number-2">6.</span> Caracteres y símbolos en los textos</h2>
+<div id="outline-container-orgc777690" class="outline-2">
+<h2 id="orgc777690"><span class="section-number-2">6.</span> Caracteres y símbolos en los textos</h2>
 <div class="outline-text-2" id="text-6">
 <p>
 Los textos son LaTeX. En español puedes teclear tal cual <code>á é í ó ú ñ ¿ ¡</code>
@@ -293,8 +293,8 @@ cosa que estos scripts no hacen: la FAQ del Manual explica cómo adaptarlos.
 </p>
 </div>
 </div>
-<div id="outline-container-org5b4e0f3" class="outline-2">
-<h2 id="org5b4e0f3"><span class="section-number-2">7.</span> Campos de una pregunta</h2>
+<div id="outline-container-org51b245b" class="outline-2">
+<h2 id="org51b245b"><span class="section-number-2">7.</span> Campos de una pregunta</h2>
 <div class="outline-text-2" id="text-7">
 <p>
 Nivel superior del JSON (o argumentos de <code>ProblemaTipo</code> en Python):
@@ -403,8 +403,8 @@ Campo <code>export</code>:
 </table>
 </div>
 </div>
-<div id="outline-container-orga628d71" class="outline-2">
-<h2 id="orga628d71"><span class="section-number-2">8.</span> Más documentación</h2>
+<div id="outline-container-org135c64a" class="outline-2">
+<h2 id="org135c64a"><span class="section-number-2">8.</span> Más documentación</h2>
 <div class="outline-text-2" id="text-8">
 <p>
 En el repositorio de <a href="https://github.com/mbujosab/calcprop-qbank">qbank</a>, en este orden: <code>Tutorial.ipynb</code> (ejemplos

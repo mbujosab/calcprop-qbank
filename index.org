@@ -3,8 +3,6 @@
 #+OPTIONS: toc:nil num:nil
 
 # Fuente de docs/index.html (tools/web.sh). Las frases salen del README.
-# Los enlaces #orgXXXXXXX son los ids que web.el genera con semilla fija:
-# cambian si cambia el .org de destino (comprobar tras tools/web.sh).
 
 [[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb][https://mybinder.org/badge_logo.svg]]
 
@@ -26,7 +24,7 @@ Antes de empezar hace falta:
   comprobar preguntas con =make lint= y =make tabla=.
 - El programa Auto Multiple Choice, solo si vas a usar exámenes AMC.
 
-Los detalles, en los [[file:plantilla.html#org3d675b1][requisitos del README del banco]].
+Los detalles, en los [[file:plantilla.html#requisitos][requisitos del README del banco]].
 
 Dentro de un entorno virtual:
 
@@ -46,9 +44,9 @@ make amc           # PDF de revisión (vista profe) en build/amc/
 #+end_src
 
 Instalar Python y crear el entorno virtual paso a paso, también en Windows:
-[[file:manual.html#org5f0dd8f][«Instalación paso a paso» del Manual]]. =make= y LaTeX en Windows y macOS:
-[[file:plantilla.html#org3d675b1][requisitos del README del banco]]. Cómo importar el XML en Moodle (tras
-=make moodle=): paso «Exporta» del [[file:plantilla.html#org5f0dd8f][flujo de trabajo del README del banco]].
+[[file:manual.html#instalacion][«Instalación paso a paso» del Manual]]. =make= y LaTeX en Windows y macOS:
+[[file:plantilla.html#requisitos][requisitos del README del banco]]. Cómo importar el XML en Moodle (tras
+=make moodle=): paso «Exporta» del [[file:plantilla.html#flujo][flujo de trabajo del README del banco]].
 
 * Qué leer, en este orden
 
@@ -67,7 +65,7 @@ Instalar Python y crear el entorno virtual paso a paso, también en Windows:
    defecto, =setup=, redacción de cuestiones y explicaciones, trampas de
    LaTeX/Moodle y checklist. Las palabras que usa toda la documentación
    (hipótesis, mundo, variante, hueco, parte, opción por defecto, vista
-   profe…) están en su [[file:guia.html#org5f0dd8f][Vocabulario]].
+   profe…) están en su [[file:guia.html#vocabulario][Vocabulario]].
 5. *Manual* ([[file:manual.html][HTML]], [[file:Manual.pdf][PDF]]): referencia completa de la API y del formato
    JSON.
 

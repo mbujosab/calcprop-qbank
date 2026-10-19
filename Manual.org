@@ -98,6 +98,9 @@ pip install "calcprop-qbank[jupyter] @ git+https://github.com/mbujosab/calcprop-
 Si no estás familiarizado con Python o los entornos virtuales, lee la sección siguiente.
 
 * Instalación paso a paso
+:PROPERTIES:
+:CUSTOM_ID: instalacion
+:END:
 
 ** Requisitos previos
 

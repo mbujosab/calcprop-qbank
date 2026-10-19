@@ -19,6 +19,9 @@ Los ficheros de =preguntas/= que no sigan la convención =L-NN-= también se
 procesan; solo quedan fuera cuando se filtra con =LECCION=.
 
 * Requisitos
+:PROPERTIES:
+:CUSTOM_ID: requisitos
+:END:
 
 - Python 3.9 o superior con =calcprop-qbank= 0.6.0 o posterior (la versión
   que trae =qbank-init=): =pip install calcprop-qbank= (o =pip install -U
@@ -56,6 +59,9 @@ Todos los comandos se lanzan *desde esta carpeta* (la que contiene el
 =Makefile=).
 
 * Flujo de trabajo
+:PROPERTIES:
+:CUSTOM_ID: flujo
+:END:
 
 1. *Escribe la pregunta.* Dos caminos equivalentes:
    - En Python: copia =nueva_pregunta.py= con otro nombre en esta misma
