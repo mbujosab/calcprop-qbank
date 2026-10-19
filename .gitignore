@@ -33,15 +33,13 @@ build/
 *.html
 # *.pdf
 
-# Salida generada por los ejemplos
-ejemplos/
+# Salida generada por los ejemplos y notebooks
 ejemplosManual/mis_problemas/
 ejemplosManual/exportaciones/
+/banco_preguntas_econometria/
 
 # Trabajo local (no se publica)
 /mis_problemas/
-/banco_pregunas_econometria/
-/banco_preguntas_econometria/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -53,3 +51,6 @@ ejemplosManual/exportaciones/
 /*.json
 !ejemplosManual/*.json
 !ejemplosManual/*.ipynb
+
+# Carpeta local obsoleta (pendiente de borrar a mano)
+/banco_pregunas_econometria/

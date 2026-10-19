@@ -43,7 +43,8 @@ src/qbank/
 - **`README.md` se genera desde `README.org`:**
   `pandoc -f org -t gfm README.org -o README.md`. Editar siempre el `.org`.
 - `Manual.org` es el manual de usuario (su PDF se exporta desde Emacs).
-  `Ejemplos.org` es una versión antigua de `Ejemplos.ipynb`; el notebook manda.
+- `PLAN-documentacion.org` es el plan vigente de reorganización de la
+  documentación (diagnóstico, decisiones y fases con su estado).
 - `tests/test_lint.py` y `tests/test_export.py` son la suite: `.venv/bin/python -m pytest`.
 
 ## API pública principal

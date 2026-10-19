@@ -4,7 +4,7 @@
   "nombre": "sumas_y_productos",
   "setup": "import random\na = random.randint(1, 9)\nb = random.randint(1, 9)\nsuma = a + b\nproducto = a * b",
   "componentes": [
-    "Sean $a = @a$ y $b = @b$ dos números naturales. Se sabe que ",
+    "Sean $a = $ y $b = $ dos números naturales. Se sabe que ",
     [
       {
         "tipo": "Supuesto",
@@ -35,17 +35,17 @@
     [
       {
         "tipo": "Cuestion",
-        "enunciado": "$a + b = @suma$",
+        "enunciado": "$a + b = $",
         "semantica": "True",
         "precond": "True",
-        "exp": "Por definición de @suma"
+        "exp": "Por definición de "
       },
       {
         "tipo": "Cuestion",
-        "enunciado": "$a \\cdot b = @producto$",
+        "enunciado": "$a \\cdot b = $",
         "semantica": "True",
         "precond": "True",
-        "exp": "Por definición de @producto"
+        "exp": "Por definición de "
       },
       {
         "tipo": "Cuestion",

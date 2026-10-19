@@ -405,7 +405,7 @@ def AMC_VF(nombre, etiqueta, enunciado, cuestiones, opc=None):
 El siguiente bloque implementa el volcado físico del código generado por =AMC_VF= a un archivo con extensión =.tex=, creando un examen de 4 variantes compuestas por 3 preguntas de verdadero/falso seleccionadas aleatoriamente de nuestro repositorio básico.
 
 #+NAME: EjemploVFamc.py
-#+BEGIN_SRC python :results none :tangle examples/EjemploVFamc.py :noweb yes
+#+BEGIN_SRC python :results none :tangle no :noweb yes
 from qbank import *
 
 enunciado = "Indique qué afirmaciones son verdaderas:"
@@ -900,7 +900,7 @@ def QuizVFMoodle(nombre, directorio, GenVar, num, opc=None):
 A continuación se ilustra la ejecución de scripts independientes para generar tanto un bloque relacional condicionado (=ProblemaTipo=) como una batería aleatoria estructurada desde una lista estática de enunciados (=ProblemaVF=):
 
 #+NAME: EjemploMoodle.py
-#+begin_src python :tangle examples/EjemploMoodle.py :noweb yes
+#+begin_src python :tangle no :noweb yes
 from qbank import *
 p = ProblemaTipo([
       "Considere ",
@@ -925,7 +925,7 @@ QuizMoodle(nombre, directorio, p, last_choice=True)
 #+end_src
 
 #+NAME: EjemploVFMoodle.py
-#+begin_src python :tangle examples/EjemploVFMoodle.py :noweb yes
+#+begin_src python :tangle no :noweb yes
 from qbank import *
 
 enunciado = "Indique qué afirmaciones son verdaderas:"
@@ -1121,7 +1121,7 @@ p = [ r"En el ajuste MCO:\; $\ajusteMLS$,\; el parámetro $\widehat{\beta_2}$ es
 
 ****** Versión para el profesor                                    :noexport:
 #+NAME: L-02-AjusteMCOdeMLS-pendiente-profe.py
-#+BEGIN_SRC python :noweb no-export :results silent :session Profe   :tangle L-02-AjusteMCOdeMLS-pendiente-profe.py
+#+BEGIN_SRC python :noweb no-export :results silent :session Profe   :tangle no
 from qbank import *
 directorio  = "bancoPreguntas/"
 <<Prb-L-02-AjusteMCOdeMLS-pendiente>>

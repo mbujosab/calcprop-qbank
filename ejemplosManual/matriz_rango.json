@@ -4,17 +4,17 @@
   "nombre": "matriz_rango",
   "setup": "import random\nn = random.randint(3, 5)\nk = random.randint(2, n - 1)",
   "componentes": [
-    "Considere una matriz $A$ de $@n$ filas y $@k$ columnas. ",
+    "Considere una matriz $A$ de $$ filas y $$ columnas. ",
     [
       {
         "tipo": "Supuesto",
-        "enunciado": "Suponga que $A$ tiene rango máximo ($\\mathrm{rg}(A)=@k$). ",
+        "enunciado": "Suponga que $A$ tiene rango máximo ($\\mathrm{rg}(A)=$). ",
         "semantica": "v('MaxRk')",
         "precond": "True"
       },
       {
         "tipo": "Supuesto",
-        "enunciado": "Suponga que $A$ tiene rango deficiente ($\\mathrm{rg}(A)<@k$). ",
+        "enunciado": "Suponga que $A$ tiene rango deficiente ($\\mathrm{rg}(A)<$). ",
         "semantica": "-v('MaxRk')",
         "precond": "True"
       }
@@ -23,7 +23,7 @@
     [
       {
         "tipo": "Cuestion",
-        "enunciado": "Las $@k$ columnas de $A$ son linealmente independientes.",
+        "enunciado": "Las $$ columnas de $A$ son linealmente independientes.",
         "semantica": "v('MaxRk')",
         "precond": "True",
         "exp": ""

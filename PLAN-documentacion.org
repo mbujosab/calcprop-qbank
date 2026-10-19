@@ -1,0 +1,187 @@
+#+TITLE: Plan de reorganización de la documentación de qbank
+#+AUTHOR: Marcos Bujosa
+#+LANGUAGE: es
+#+STARTUP: overview
+
+Plan vigente para que un profesor pueda crear su propio banco de preguntas
+con =qbank= siguiendo solo la documentación, sin asistencia de una IA.
+Redactado el 19 de octubre de 2026 tras revisar =qbank=, =qbank-econometria=
+y =qbank-PEconometria=. Cada fase lleva su estado; al cerrar una, marcarla.
+
+* Diagnóstico
+
+No falta documentación (README, Manual, tres notebooks, dos =.org=
+literate, y en los bancos privados un tutorial, un prompt genérico y uno
+específico: unas 7.000 líneas). El problema es *dónde* está cada cosa y
+*qué modelo mental* enseña:
+
+1. La trampa conceptual principal no está en la documentación pública: una
+   lista de =Cuestion= sortea *una* por variante; para mostrar cuatro
+   opciones hacen falta cuatro elementos-Cuestion consecutivos. Solo lo
+   explica =qbank-PEconometria/PROMPT-qbank-generico.org= (privado, escrito
+   para una IA). El «Ejemplo mínimo» del Manual y el «Uso rápido» del README
+   producen variantes con una sola opción sin comentarlo.
+2. El campo =export= (=last_choice=, =cols=, =instances=), la regla de
+   =instances= y que =seed= solo actúa con =np.random= no aparecen en el
+   Manual ni en el README; los ejemplos del Manual usan =random=.
+3. No hay proyecto de arranque: el flujo real (=preguntas/*.json= +
+   =scripts/gen_*.py= + =Makefile= + =make lint=) vive duplicado en los dos
+   bancos privados y en ningún sitio público.
+4. Dos modelos de autoría (listas Python / JSON) sin decir cuál es el camino
+   recomendado para un banco.
+5. El diseño pedagógico (patrón 3 cuestiones + =last_choice=, garantía de
+   mezcla, gemelas V/F, =exp= por mundo, autocontención, trampas
+   LaTeX/Moodle) solo está en el prompt genérico, mezclado con fechas y
+   referencias a lecciones concretas.
+6. Inconsistencias menores: =@a= frente a =@{a}=, rutas de salida erróneas,
+   encabezados vacíos, ruta absoluta al =.venv=, bloques literate con API
+   antigua (=ProblemaTipoProfe=, =AMCmcProfe=) en =CalcPropExport.org=.
+
+* Decisiones
+
+** D1 — La plantilla de banco vive dentro de qbank, como datos del paquete
+
+Tres opciones valoradas:
+
+- /Carpeta en el repo/ (=plantilla-banco/=): la más simple, pero solo la ve
+  quien clona; quien hace =pip install= no la tiene.
+- /Repo aparte/ (=qbank-plantilla=, botón «Use this template» de GitHub):
+  arranque cómodo, pero se desincroniza del motor (los scripts copiados a
+  los bancos ya se rompieron una vez al retirar =opc=), no tiene tests y es
+  un repositorio más que mantener.
+- /Datos del paquete + orden =qbank-init DIR=/ (*elegida*): la plantilla se
+  distribuye con cada versión del motor (la que llega con 0.6 funciona con
+  0.6), está disponible tanto con =pip install= como con =git clone=, y los
+  tests de qbank ejecutan sus scripts sobre sus preguntas de ejemplo, de
+  modo que un cambio de API no puede romperla sin que se note. Coste: la
+  carpeta =src/qbank/plantilla/= y una orden de unas 30 líneas que la copia.
+
+** D2 — JSON es el formato de almacenamiento; Python es el formato de autoría
+
+- *JSON* sigue siendo lo que se guarda en =preguntas/= y lo que consumen
+  =lint=, los scripts y el =Makefile=: es lo que ya existe (110 preguntas
+  en dos bancos), lo que una IA escribe con fiabilidad, y lo que valida el
+  lint. No se migra nada.
+- *Listas Python* son más legibles para una persona: =v('A')= sin
+  comillas, cadenas crudas =r"$\mathcal{A}$"= sin doblar barras (en JSON
+  cada =\= es =\\=, la fuente de errores más común al escribir LaTeX a
+  mano), comentarios, =setup= como código con resaltado.
+- Por tanto: la documentación *enseña con listas Python* y muestra el JSON
+  equivalente una vez completo (y después solo donde un campo es propio del
+  JSON: =export=, =seed=, =setup= como cadena). El flujo recomendado para
+  quien prefiera Python es «escribe la lista en un =.py=, ejecútalo, y
+  =save_problema= deja el JSON en =preguntas/=»; la plantilla incluye ese
+  =nueva_pregunta.py=. Quien prefiera escribir JSON directamente puede
+  hacerlo.
+- Requisito técnico: =ProblemaTipo(..., setup="código")= debe aceptar el
+  =setup= como cadena (hoy solo lo hace =load_problema=) para que un
+  problema escrito en Python con =setup= pueda guardarse en JSON.
+- Esta decisión se valida en la fase 5 con un usuario nuevo; cambiarla es
+  barato porque =save_problema= y =problema_to_python= convierten en ambos
+  sentidos.
+
+** D3 — Material retirado del repositorio
+
+Quitado el 19 de octubre de 2026 (queda en el historial de git):
+=examples/= (scripts con API inexistente; los bloques equivalentes siguen
+en =CalcPropExport.org= como prosa, ya sin =:tangle=), =legacy/= (módulo
+=prop.py= anterior a =calcprop=, preámbulo y ejemplo con API antigua),
+=css/= (temas solo usados por =legacy=), =Ejemplos.org= (versión vieja de
+=Ejemplos.ipynb=; su única sección extra, el editor visual, está en
+=Demo.ipynb=).
+
+* Fases
+
+** DONE Fase 0 — Limpieza y arreglos inmediatos
+CLOSED: [2026-10-19]
+- [X] =Ejemplos.ipynb= sin outputs (los cambios locales eran solo salidas de pruebas).
+- [X] Reinstalación editable de =calcprop= (0.2.0) y =qbank= (0.5.0): los
+  metadatos de =pip= decían 0.1.4 y 0.4.0, y =importlib.metadata= es la
+  comprobación que manda el =CLAUDE.md= de PEconometria.
+- [X] Retirados =examples/=, =legacy/=, =css/=, =Ejemplos.org= (D3).
+- [X] Manual: ruta absoluta al =.venv= convertida en comentario, encabezado
+  vacío eliminado, ruta de salida del ejemplo Moodle corregida.
+- [X] Marcadores =@var= unificados a =@{var}= en Manual, README, Demo y los
+  JSON de =ejemplosManual/= (ambas formas funcionan; se documenta una).
+- [X] =.gitignore= y =CLAUDE.md= actualizados.
+- [ ] Borrar la basura local no versionada (lo hace el autor a mano):
+  =banco_pregunas_econometria/=, =mis_problemas/=, =tmp/=, =ejemplos/=,
+  =Untitled.ipynb=, =mi_problema.json=, =problema.json=, =preguntas*.tex=,
+  =*.tex= de los PDF literate.
+
+** TODO Fase 1 — Proyecto plantilla y =qbank-init=
+- [ ] =ProblemaTipo= acepta =setup= como cadena y =save_problema= lo
+  serializa (cambio en =CalcPropQuiz.org= + tangle + test).
+- [ ] =src/qbank/plantilla/= con: =preguntas/= (3–4 JSON que cubran mundos,
+  =precond=, =setup= + =seed= + =instances=, multiparte, todos con
+  =export= y el patrón 3 cuestiones + =last_choice=), =scripts/gen_amc.py=,
+  =gen_amc_student.py=, =gen_moodle.py=, =_leccion.py=,
+  =merge_moodle_xml.py= (generalizados desde los bancos: sin rutas
+  absolutas ni macros del curso), =Makefile= (=lint=, =amc=, =amc-student=,
+  =moodle=, =clean=, filtro =LECCION=), =nueva_pregunta.py= (plantilla
+  Python → JSON), =README.org= («copia, escribe, make lint, make amc»),
+  =.gitignore=.
+- [ ] Orden =qbank-init DIR= (copia la plantilla) en =pyproject.toml=.
+- [ ] Test: los scripts de la plantilla generan =.tex= válidos para sus
+  preguntas (sin compilar LaTeX).
+- [ ] Regla nueva de =lint= (AVISO =opciones=): una parte muestra menos de
+  3 opciones al alumno → «¿querías que las N cuestiones de la lista
+  aparecieran juntas? Una lista sortea una; ponlas como elementos
+  consecutivos». Ataca directamente la confusión nº 1.
+
+** TODO Fase 2 — =GuiaDiseno.org= (para personas)
+Destilar de =PROMPT-qbank-generico.org= §2 y §5–§10, sin fechas ni
+referencias a lecciones, organizado por tema: mecánica combinatoria (con
+figura «lista = sorteo; elementos consecutivos = opciones»), patrón 3 +
+=last_choice= y garantía de mezcla, =precond= frente a =semantica=, mundos
+y axiomas, =setup= / =seed= / =instances=, reglas de =exp= (cada mundo
+alcanzable, sin jerga de diseño, sin referencias a otras alternativas),
+gemelas V/F y longitud de opciones, autocontención y símbolos definidos,
+trampas LaTeX/Moodle (=\%= en matemáticas, =°=, =«»=, =tabular=), y el
+checklist final. Ejemplos en listas Python con un JSON completo (D2).
+
+** TODO Fase 3 — Un solo camino de lectura
+- [ ] README: qué es, instalación, ejemplo de 5 minutos *con tres opciones
+  y =last_choice=*, =qbank-init=, enlaces en orden (Tutorial → Guía →
+  Manual).
+- [ ] =Tutorial.ipynb=: añadir =export=, =lint= y la advertencia sobre las
+  listas; ejemplo que muestre el JSON y la lista Python equivalentes.
+- [ ] =Manual.org=: incorporar «El Marcador», axiomas y la tabla de
+  precedencia de =qbank-econometria/tutorial.org= (son genéricos);
+  documentar =export= y =seed= en la sección JSON; ejemplos con
+  =np.random=; relegar =ProblemaVF=, el editor de widgets y las clases
+  deprecadas a un apéndice «API avanzada»; =Ejemplos.ipynb= escribe en
+  =banco_preguntas_econometria/= → usar =salida/=.
+- [ ] Notebooks: dejar claro el papel de cada uno (Tutorial = camino del
+  autor de bancos; Demo = recorrido de la API; Ejemplos = caso de
+  econometría) o fundir Demo en Tutorial.
+- [ ] =CalcPropExport.org=: retirar o actualizar las secciones de ejemplos
+  con API antigua (=ProblemaTipoProfe=, =AMCmcProfe=, =bancoPreguntas/=).
+- [ ] Decidir el futuro de =AMC_multipart= (¿lo cubren =QuizMoodle= y
+  =AMCblock=?).
+- [ ] Regenerar =Manual.pdf=.
+
+** TODO Fase 4 — Prompts reutilizables para quien use una IA
+- [ ] =prompts/PROMPT-qbank-generico.org= corto (≈100 líneas): remite a
+  =GuiaDiseno.org= y al Manual, exige validar con =lint= y
+  =por_partes_profe()=, y describe el proceso de trabajo. No duplica la
+  documentación (se desincronizaría).
+- [ ] =prompts/PROMPT-proyecto-plantilla.org= con huecos: fuentes del
+  contenido, convención de nombres, notación, objetivo pedagógico,
+  checklist propio, registro de decisiones.
+- [ ] Plantilla de =CLAUDE.md= para un banco.
+- [ ] El prompt de PEconometria se reduce a sus decisiones específicas y
+  enlaza a los documentos de qbank.
+
+** TODO Fase 5 — Validar con un usuario nuevo
+Un compañero (o un agente con acceso solo a la documentación pública) monta
+un banco de tres preguntas desde =qbank-init= siguiendo solo los documentos;
+anotar dónde se atasca y corregir. Revisar también D2 (¿prefirió Python o
+JSON?) y comprobar los notebooks en MyBinder.
+
+* Orden de ejecución
+
+Fase 0 → 1 → 2 → 3 → 4 → 5. La plantilla (1) va antes que los textos
+(2, 3) porque README, Tutorial y Guía tienen que apuntar a ella y a
+=qbank-init=; la Guía (2) va antes de retocar el Manual (3) porque parte
+del Manual se trasladará a ella.
