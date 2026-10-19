@@ -10,7 +10,7 @@ tuyas y borra este párrafo.
 
 | =preguntas/=         | Una pregunta por fichero JSON: =L-NN-Descripcion.json= (NN = lección o tema, dos cifras; =00= vale). Sin espacios ni =:= en el nombre. |
 | =nueva_pregunta.py=  | Guion para escribir una pregunta en Python y guardarla como JSON en =preguntas/=.                     |
-| =config.py=          | Preámbulo LaTeX propio, textos de la opción por defecto y cuántos casos imprime la vista profe.       |
+| =config.py=          | Preámbulo LaTeX propio (el de AMC ya carga =babel= en español), textos de la opción por defecto y cuántos casos imprime la vista profe con =setup=. |
 | =scripts/=           | Generadores de AMC y Moodle que usa el =Makefile=; no hace falta tocarlos.                            |
 | =Makefile=           | =make lint=, =make tabla=, =make amc=, =make amc-student=, =make moodle=, =make clean=.               |
 | =build/=             | Todo lo generado (PDF, XML, =.tex=). No se versiona.                                                  |
@@ -21,9 +21,13 @@ procesan; solo quedan fuera cuando se filtra con =LECCION=.
 * Requisitos
 
 - Python 3.9 o superior con =calcprop-qbank= 0.6.0 o posterior (la versión
-  que trae =qbank-init=): =pip install calcprop-qbank=. Si usas un entorno
-  virtual, actívalo antes de =make=, o pasa el intérprete:
-  =make amc PYTHON=/ruta/al/venv/bin/python=.
+  que trae =qbank-init=): =pip install calcprop-qbank= o, mientras la 0.6.0
+  no esté en PyPI, =pip install git+https://github.com/mbujosab/calcprop-qbank=.
+  Si usas un entorno virtual, actívalo antes de =make=, o pasa el
+  intérprete: =make amc PYTHON=/ruta/al/venv/bin/python=. Cada objetivo
+  comprueba primero que ese intérprete tenga =qbank= 0.6 o posterior (un
+  =python3= del sistema puede cargar uno antiguo); si no, se para con un
+  mensaje que dice eso mismo.
 - GNU =make= (en Linux y macOS suele estar; en Windows, con WSL o
   instalándolo aparte). Todos los objetivos, incluido =make clean=,
   necesitan Python.
@@ -54,8 +58,8 @@ Todos los comandos se lanzan *desde esta carpeta* (la que contiene el
 2. *Compruébala:* =make lint= (o =make lint LECCION=3= para una sola lección).
    Un =ERROR= significa que la pregunta está rota (p. ej. una variante con
    todas las opciones correctas); un =AVISO= hay que leerlo y decidir; un
-   =INFO= es información. =make tabla PREGUNTA=L-01-Nombre= añade la tabla
-   de mundos: el valor de cada cuestión en cada combinación de supuestos
+   =INFO= es información. =make tabla PREGUNTA=L-01-Nombre= (con o sin
+   =.json=) añade la tabla de mundos: el valor de cada cuestión en cada combinación de supuestos
    (con =setup= aleatorio usa un solo sorteo, así que si los supuestos
    llevan =precond= sobre los números solo verás los mundos que ese sorteo
    admite; la vista completa es la de =make amc=).
@@ -68,7 +72,8 @@ Todos los comandos se lanzan *desde esta carpeta* (la que contiene el
      catálogo/ de AMC: las casillas correctas salen rellenas y la cabecera
      dice «Catálogo provisional»; en el examen real salen vacías. Para usar
      las preguntas en un examen AMC: copia =build/amc-student/<pregunta>.tex=
-     (y =_catalogo.tex=, que es un =\input= por pregunta) junto al =.tex= del
+     (y =_catalogo.tex=, que es un =\input= por cada pregunta de
+     =preguntas/=, también las cinco de ejemplo si no las has borrado) junto al =.tex= del
      examen, haz =\input{_catalogo}= (o =\input{<pregunta>}=) en el
      preámbulo y, dentro de =\onecopy=, pon =\insertgroup[1]{<pregunta>}=
      donde deba ir cada pregunta: el =[1]= es imprescindible (sin él AMC
@@ -76,7 +81,8 @@ Todos los comandos se lanzan *desde esta carpeta* (la que contiene el
      antes para que cada copia reciba una variante distinta.
    - =make moodle= → =build/moodle/<pregunta>-moodle.xml= (y un PDF de
      revisión con las mismas variantes y sus explicaciones) por pregunta, y
-     =build/moodle/_banco.xml= con todas. En Moodle: /Banco de preguntas →
+     =build/moodle/_banco.xml= con todas (incluidas las cinco de ejemplo,
+     si siguen en =preguntas/=). En Moodle: /Banco de preguntas →
      Importar → Formato Moodle XML/; cada pregunta llega como una categoría
      con todas sus variantes, lista para una «pregunta aleatoria» del
      cuestionario. Cada variante es una pregunta /cloze/ con un bloque de
@@ -88,24 +94,31 @@ Todos los comandos se lanzan *desde esta carpeta* (la que contiene el
      pregunta en el cuestionario reescala la suma de sus bloques. Si al
      compilar aparece «N «<» escapados dentro de bloques cloze», es un
      arreglo automático del XML que Moodle necesita, no un error. Los XML
-     se entregan en UTF-8.
+     se entregan en UTF-8. El =<penalty>0.10</penalty>= de cada pregunta lo
+     pone el paquete =moodle=: es la penalización por reintento, que Moodle
+     solo aplica en los comportamientos con varios intentos (interactivo,
+     adaptativo).
 
 =make= solo recompila lo que ha cambiado; =make clean= borra =build/=.
 
 * Cómo leer el PDF de =make amc= (vista profe)
 
-Cada variante muestra *todas* las cuestiones de cada hueco (no solo la que
-le tocaría al alumno), en el orden de los huecos y con la casilla marcada
-en las correctas, y cada explicación (=exp=) en cursiva tras una raya junto
-a su cuestión. Las cuestiones rechazadas por su precondición se listan al
-final en «Exclusiones», con la condición que no se cumplió. Las variantes
-se etiquetan =<pregunta>-N=. En las preguntas con =setup= aleatorio no se
-imprimen todas las realizaciones: el script explora
-=config.N_SORTEOS_PROFE= sorteos y guarda un caso por cada combinación
-distinta de enunciado (sin contar los números) y patrón de marcas, hasta
-=config.MAX_CASOS_PROFE= casos, etiquetados =mundoM-casoK= (=M= numera los
-enunciados distintos, =K= los patrones de marcas dentro de cada uno). Así
-ves cada rama de la pregunta una vez.
+La vista profe no lista las variantes del alumno: tiene *una entrada por
+mundo* (cada combinación de =Supuesto= sorteados), que muestra *todas* las
+cuestiones de cada hueco (no solo la que le tocaría al alumno), en el orden
+de los huecos y con la casilla marcada en las correctas, y cada explicación
+(=exp=) en cursiva tras una raya junto a su cuestión. Las cuestiones
+rechazadas por su precondición se listan al final en «Exclusiones», con la
+condición que no se cumplió. Sin =setup=, las entradas se etiquetan
+=<pregunta>-N= (=N= numera los mundos; en =make amc-student= el mismo
+sufijo numera variantes, que son otra cosa) y =make amc= dice cuántos
+mundos hay. Con =setup= aleatorio no se imprimen todas las instancias: el
+script explora =config.N_SORTEOS_PROFE= sorteos y guarda un /caso/ por cada
+combinación distinta de enunciado (sin contar los números) y patrón de
+marcas, hasta =config.MAX_CASOS_PROFE= casos, etiquetados =mundoM-casoK=
+(=M= numera los enunciados distintos, =K= los patrones de marcas dentro de
+cada uno), y =make amc= dice cuántos mundos y casos salen. Así ves cada
+rama de la pregunta una vez.
 
 * La mecánica en tres frases (lo que más confunde al empezar)
 
@@ -158,10 +171,10 @@ cosa que estos scripts no hacen: la FAQ del Manual explica cómo adaptarlos.
 
 Nivel superior del JSON (o argumentos de =ProblemaTipo= en Python):
 
-| =nombre=      | Igual que el nombre del fichero sin =.json=; sin =:=.                                                       |
+| =nombre=      | Igual que el nombre del fichero sin =.json=; sin =:= ni espacios.                                           |
 | =componentes= | La lista plana de textos, =Supuesto= y =Cuestion= (sueltos o en listas de alternativas).                     |
-| =setup=       | Código Python (cadena) que se ejecuta antes de cada variante, o =null=. Usa =np.random=, no =random=.       |
-| =seed=        | Entero, solo si =setup= usa =np.random=: hace reproducible la pregunta.                                      |
+| =setup=       | Código Python (cadena) que se ejecuta antes de cada variante, o =null=. Usa =np.random=, no =random=: =seed= siembra los dos, pero la vista profe (=make amc=, =nueva_pregunta.py=) solo siembra =numpy= en cada sorteo. |
+| =seed=        | Entero, solo si =setup= sortea valores: hace reproducible la pregunta.                                       |
 | =export=      | ={"last_choice": true, "cols": 2, "instances": N}=; ver abajo.                                              |
 
 =Supuesto= y =Cuestion= (en JSON, objetos con ="tipo"=; en Python, las clases
@@ -176,7 +189,7 @@ Campo =export=:
 
 | =last_choice= | Añade la opción por defecto («Ninguna de las anteriores» / «Las demás opciones son falsas»), correcta solo si las demás son falsas. |
 | =cols=        | Columnas en que se disponen las opciones en AMC.                                                                                   |
-| =instances=   | Solo con =setup= aleatorio: cuántas realizaciones numéricas distintas se generan. Objetivo: ≥ 60 variantes (=lint= lo calcula).   |
+| =instances=   | Solo con =setup= aleatorio: cuántas instancias (recorridos con números distintos) se generan. Objetivo: ≥ 60 variantes (=lint= lo calcula); con pocos valores posibles se repiten, mira =make amc-student=. |
 
 * Más documentación
 

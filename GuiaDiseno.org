@@ -25,6 +25,7 @@
 #+LATEX_HEADER: \usepackage{xcolor}
 #+LATEX_HEADER: \definecolor{enlace}{RGB}{0,70,130}
 #+LATEX_HEADER: \hypersetup{colorlinks=true,linkcolor=enlace,urlcolor=enlace,citecolor=enlace}
+#+LATEX_HEADER: \emergencystretch=3em
 
 #+TOC: headlines 2
 #+LATEX: \clearpage
@@ -100,11 +101,13 @@ distinción está detrás de casi todo lo que sigue.
   abajo). La mayoría de preguntas tienen una sola.
 - *Opción por defecto* :: la opción «Ninguna de las anteriores» que añade
   =export.last_choice=; es correcta solo si las demás son incorrectas.
-- *Vista profe* :: el PDF de =make amc=: cada variante con /todas/ las
-  cuestiones de cada hueco (no solo la sorteada), su marca y las
-  rechazadas por su precondición. =nueva_pregunta.py= imprime en texto las
-  primeras variantes de esa vista (las rechazadas con =·=, sin su condición,
-  y sin las explicaciones).
+- *Vista profe* :: el PDF de =make amc=: una entrada por mundo (no por
+  variante) con /todas/ las cuestiones de cada hueco (no solo la sorteada),
+  su marca y las rechazadas por su precondición. Con =setup=, una entrada
+  por /caso/: cada combinación distinta de mundo y patrón de marcas que
+  aparece al explorar varios sorteos. =nueva_pregunta.py= imprime en texto
+  las primeras entradas de esa vista (las rechazadas con =·=, sin su
+  condición, y sin las explicaciones).
 - *Instancia* :: con =setup= aleatorio, cada ejecución del =setup=; con
   =export.instances = N= cada variante estructural se genera $N$ veces con
   números distintos.
@@ -257,9 +260,13 @@ lleva =v('decr')= y es correcta solo en ese mundo. Y en que la opción fija
 defecto pasa a ser la correcta), pero es un distractor que el alumno
 aprende a descartar; =lint= lo señala como INFO =constante=.
 
-La tabla de mundos (=make tabla PREGUNTA=L-01-Monotonia=, que ejecuta
-=python -m qbank.lint preguntas/L-01-Monotonia.json --tabla=) resume la
-lógica de un vistazo y es la forma más rápida de auditarla. Cada fila es
+La tabla de mundos resume la lógica de un vistazo y es la forma más
+rápida de auditarla. Se pide con =make tabla PREGUNTA=<nombre>= (con o
+sin =.json=), que ejecuta =python -m qbank.lint preguntas/<nombre>.json
+--tabla=: para esta pregunta, una vez guardada en =preguntas/=,
+=make tabla PREGUNTA=L-01-Monotonia=; la plantilla de =qbank-init= trae
+una versión con =setup= de la misma idea:
+=make tabla PREGUNTA=L-01-FuncionMonotona=. Cada fila es
 una =Cuestion=, identificada por su posición en la lista plana (=[4.1]=:
 componente número 4 y, dentro de él, alternativa número 1, numerando ambos
 desde 0), cada columna un mundo, y =V= / =F= si en ese mundo la cuestión es
@@ -280,8 +287,10 @@ Mundos:
 
 (La tabla se calcula con un solo sorteo del =setup=; si los mundos se
 filtran con precondiciones sobre los números —ver más abajo— solo aparecen
-los que ese sorteo admite. Para esas preguntas, la vista profe de =make
-amc= es la referencia.)
+los que ese sorteo admite. Por la misma razón, una =Cuestion= con
+=semantica= lambda que sale constante en la tabla es solo INFO
+=constante=: en otros sorteos puede cambiar. Para esas preguntas, la
+vista profe de =make amc= es la referencia.)
 
 Y =lint= dice exactamente lo que falta (=comp 5[0]= es la misma
 numeración de la tabla; «semantica literal» significa que la fórmula es
@@ -342,7 +351,11 @@ alternativas artificiales por rellenar.
 
 - Sin =setup=: no menos de 16-20 variantes, salvo casos excepcionales.
 - Con =setup= aleatorio: al menos 60 en total, ajustando =export.instances=
-  (=lint= calcula el valor con un INFO =setup=).
+  (=lint= calcula el valor con un INFO =setup=). =lint= cuenta variantes,
+  no variantes /distintas/: si el =setup= tiene pocos valores posibles, un
+  =instances= alto repite variantes (=ejemplosManual/ej_e_lambda.json=,
+  con 60 instancias, da solo 11 preguntas distintas). Mira la vista
+  alumno (=make amc-student=).
 
 La forma más barata de ganar variedad sin alargar ninguna variante
 concreta es envolver en una lista de *dos o tres redacciones cortas
@@ -382,12 +395,14 @@ cuad = (a + b) ** 2
 """
 #+end_src
 
-Usa =np.random= (no =random=): =seed= e =instances= solo actúan sobre el
-generador de =numpy=. Calcula en el =setup= todo lo que vaya a aparecer en
-los textos (la respuesta correcta, los distractores numéricos, cadenas
-enteras si hace falta): los textos solo interpolan, no calculan. Formatea
-ahí también los decimales como quieras que se lean (=f"{x:.2f}"=, coma
-decimal =0{,}5=…), porque la interpolación escribe el valor tal cual.
+Usa =np.random= (no =random=): =seed= siembra =numpy.random= y =random=,
+pero los scripts de la vista profe (=make amc= y =nueva_pregunta.py=) solo
+siembran =numpy= en cada sorteo. Calcula en el =setup= todo lo que vaya a
+aparecer en los textos (la respuesta correcta, los distractores
+numéricos, cadenas enteras si hace falta): los textos solo interpolan, no
+calculan. Formatea ahí también los decimales como quieras que se lean
+(=f"{x:.2f}"=, o la coma decimal como =0{,}5=), porque la interpolación
+escribe el valor tal cual.
 
 La interpolación de un nombre desconocido *no falla*: deja =@{nombre}= tal
 cual. =lint= lo detecta (ERROR =interp=), pero revisa igualmente los
@@ -442,7 +457,7 @@ PREGUNTA = ProblemaTipo(
      [Cuestion("la industria @{gentilicio} queda protegida de la competencia exterior", v('prot')),
       Cuestion("la industria @{gentilicio} queda más expuesta a la competencia exterior", v('libre'))],
      Cuestion("el país es @{pais}", "lambda ns: ns['pais'] == 'Francia'")],   # ejemplo de lambda sobre texto
-    setup=SETUP, seed=3, export={"last_choice": True, "cols": 1, "instances": 3},
+    setup=SETUP, seed=3, export={"last_choice": True, "cols": 1, "instances": 8},
     nombre="L-03-PoliticaArancelaria")
 #+end_src
 
@@ -728,7 +743,9 @@ detecta Moodle, que es más caro.
 - *El símbolo =%=*: en LaTeX empieza un comentario. Escrito tal cual («un
   25 % del valor»), se pierde el resto de la línea, el PDF de AMC sale
   vacío o roto y Moodle no compila. Escribe siempre =\%= («un 25 \% del
-  valor»); en Python, dentro de una cadena cruda (=r"…"=) o como =\\%=. Y
+  valor»); en Python, dentro de una cadena cruda (=r"…"=) o como =\\%=.
+  =lint= lo busca también en el texto ya interpolado, así que detecta un
+  =%= que venga de una variable del =setup=. Y
   si va junto a una fórmula, *fuera de los dólares*: =al $5$\,\%=, nunca
   =al $5\,\%$=, porque el paquete =moodle= deja dentro de la fórmula un =%=
   desnudo que MathJax toma por comentario (en papel se ve bien; solo se
@@ -764,7 +781,7 @@ detecta Moodle, que es más caro.
    =semantica= y =precond=, si hace falta =setup=.
 3. Escribe la pregunta (=nueva_pregunta.py= o el JSON) y pásale =lint=.
    Un ERROR es una pregunta rota; un AVISO hay que leerlo y decidir.
-4. Genera la vista profe (=make amc=) y repasa *todas* las variantes, no
+4. Genera la vista profe (=make amc=) y repasa *todas* sus entradas, no
    la primera: enunciados bien formados, número de opciones esperado,
    marcas correctas en cada mundo, varias semillas si hay =setup=. La
    vista profe imprime cada =exp= en cursiva junto a su cuestión: es el
@@ -782,9 +799,10 @@ detecta Moodle, que es más caro.
 - [ ] ¿Cada hueco es un elemento-Cuestion (suelto o lista de alternativas),
   y hay tres huecos consecutivos + =last_choice= (o cuatro con garantía
   demostrada)?
-- [ ] ¿=nombre= coincide con el nombre del fichero, sin =:=?
-- [ ] ¿=seed= está solo si el =setup= usa =np.random=, e =instances= da
-  ≥ 60 variantes? ¿Sin =setup=, hay ≥ 16?
+- [ ] ¿Coincide =nombre= con el nombre del fichero, sin =:= ni espacios?
+- [ ] ¿Usa el =setup= =np.random= (no =random=)? ¿Lleva =seed= solo si el
+  =setup= sortea, y da =instances= ≥ 60 variantes, sin demasiadas
+  repetidas en la vista alumno? ¿Sin =setup=, hay ≥ 16?
 - [ ] ¿Las negaciones tienen su axioma =unoDe=, o están formuladas en
   positivo?
 - [ ] ¿Cada cuestión, sola con el enunciado de su variante, tiene sentido
@@ -805,7 +823,7 @@ detecta Moodle, que es más caro.
   claramente falsa en los otros, sin «depende»? ¿La hipótesis del
   =Supuesto= basta para decidirla, sin suponer conocimientos que no están
   en el enunciado?
-- [ ] ¿Has repasado todas las variantes de la vista profe y, con =setup=,
+- [ ] ¿Has repasado todas las entradas de la vista profe y, con =setup=,
   varias semillas?
 
 Si alguna casilla falla, la pregunta no está lista.
