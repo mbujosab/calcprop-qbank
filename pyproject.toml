@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "calcprop-qbank"
-version = "0.6.0"
+version = "0.7.0"
 description = "Generador de bancos de preguntas de opción múltiple (AMC y Moodle) con cálculo proposicional"
 authors = [
     {name = "Marcos Bujosa", email = "mbujosab@ucm.es"},
@@ -42,10 +42,12 @@ qbank-init = "qbank._plantilla:main"
 jupyter = ["ipywidgets>=8"]
 
 [project.urls]
-Homepage = "https://github.com/mbujosab/calcprop-qbank"
-Source   = "https://github.com/mbujosab/calcprop-qbank"
-Documentation = "https://github.com/mbujosab/calcprop-qbank#documentación"
-Issues   = "https://github.com/mbujosab/calcprop-qbank/issues"
+Homepage      = "https://mbujosab.github.io/calcprop-qbank/"
+Source        = "https://github.com/mbujosab/calcprop-qbank"
+Documentation = "https://mbujosab.github.io/calcprop-qbank/"
+Binder        = "https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb"
+Changelog     = "https://github.com/mbujosab/calcprop-qbank/releases"
+Issues        = "https://github.com/mbujosab/calcprop-qbank/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/qbank"]

@@ -45,7 +45,9 @@ versión impresa `GuiaDiseno.pdf`), el manual (`Manual.org`,
 `Manual.pdf`) y los ejemplos de `ejemplosManual/` están en el
 [repositorio](https://github.com/mbujosab/calcprop-qbank): clónalo con
 `git clone https://github.com/mbujosab/calcprop-qbank` o abre el
-tutorial sin instalar nada con la insignia de MyBinder de arriba.
+tutorial sin instalar nada con la insignia de MyBinder de arriba. La
+guía y el manual se leen también en la web,
+[mbujosab.github.io/calcprop-qbank](https://mbujosab.github.io/calcprop-qbank/).
 
 # Crear un banco de preguntas
 
@@ -62,7 +64,7 @@ make amc           # PDF de revisión (vista profe) en build/amc/
 
 El proyecto contiene cinco preguntas de ejemplo en `preguntas/`, los
 scripts que las exportan a AMC y Moodle, un `Makefile` (`lint`, `tabla`,
-`amc`, `amc-student`, `moodle`, `clean`, filtro `LECCION=N`),
+`amc`, `amc-student`, `moodle`, `lectura`, `clean`, filtro `LECCION=N`),
 `nueva_pregunta.py`, un guion para escribir una pregunta en Python y
 guardarla como JSON, y en `prompts/` las instrucciones para escribir
 preguntas con ayuda de una IA. Su `README.org` explica el flujo.
@@ -291,6 +293,21 @@ variantes escritas, útil para logging en scripts de build.
 
 Para preguntas `ProblemaVF`: `QuizVFMoodle`.
 
+### Vista de lectura
+
+`QuizLectura` escribe un documento LaTeX para *leer* y revisar las
+preguntas (no para el examen): la tabla de mundos, un ejemplo por mundo
+con el enunciado en un recuadro, las alternativas agrupadas por hueco
+con su V/F y su `exp`, y las que la precondición excluye con su motivo.
+Con `"lectura": {"cubrir": ["ctx"]}` en el JSON, un ejemplo por cada
+valor de esas variables del `setup`. En un proyecto de `qbank-init`,
+`make lectura LECCION=N` da un PDF por lección.
+
+``` python
+QuizLectura("L-03-lectura", "build/lectura", [p1, p2, p3],
+            aux_latex=r"\usepackage[spanish]{babel}")
+```
+
 ## Exportación a código Python editable
 
 `save_problema_py` genera un fichero `.py` con la definición del
@@ -355,6 +372,12 @@ Todo se puede leer sin clonar el repositorio en
 -   [`Manual.org`](https://github.com/mbujosab/calcprop-qbank/blob/main/Manual.org)
     ([`Manual.pdf`](https://github.com/mbujosab/calcprop-qbank/blob/main/Manual.pdf))
     — referencia completa de la API y del formato JSON.
+-   [Prompt genérico para una
+    IA](https://mbujosab.github.io/calcprop-qbank/prompt.html) — si
+    escribes las preguntas con un asistente: `qbank-init` deja en
+    `prompts/` este prompt (qué leer, proceso y reglas) y otro con
+    huecos para las decisiones de tu banco, más un `CLAUDE.md` de
+    entrada.
 -   [`CalcPropQuiz.org`](https://github.com/mbujosab/calcprop-qbank/blob/main/CalcPropQuiz.org)
     y
     [`CalcPropExport.org`](https://github.com/mbujosab/calcprop-qbank/blob/main/CalcPropExport.org)

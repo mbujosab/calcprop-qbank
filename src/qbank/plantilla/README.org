@@ -25,12 +25,12 @@ procesan; solo quedan fuera cuando se filtra con =LECCION=.
 :CUSTOM_ID: requisitos
 :END:
 
-- Python 3.9 o superior con =calcprop-qbank= 0.6.0 o posterior (la versión
+- Python 3.9 o superior con =calcprop-qbank= 0.7.0 o posterior (la versión
   que trae =qbank-init=): =pip install calcprop-qbank= (o =pip install -U
   calcprop-qbank= para actualizar una anterior).
   Si usas un entorno virtual, actívalo antes de =make=, o pasa el
   intérprete: =make amc PYTHON=/ruta/al/venv/bin/python=. Cada objetivo
-  comprueba primero que ese intérprete tenga =qbank= 0.6 o posterior (un
+  comprueba primero que ese intérprete tenga =qbank= 0.7 o posterior (un
   =python3= del sistema puede cargar uno antiguo); si no, se para con un
   mensaje que dice eso mismo.
 - GNU =make= (en Linux suele estar; en macOS viene con las herramientas de

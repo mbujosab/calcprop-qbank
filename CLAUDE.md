@@ -103,7 +103,7 @@ p = ProblemaTipo([s, [s1, s2], [c1, c2]], setup=None, export=None, seed=None, no
   `export`: hay que pasarles `last_choice=`, `instances=`, `cols=` (los
   scripts de la plantilla sí lo leen).
 - `qbank.__version__` (de los metadatos); el `Makefile` de la plantilla exige
-  ≥ 0.6 en `comprueba`.
+  ≥ 0.7 en `comprueba` (desde 0.7.0, por `make lectura`).
 - `seed` / `base_seed` siembran `numpy.random` **y** el módulo `random`
   (`_siembra`); `por_partes(base_seed=S)` también actúa con `instances=1`.
   `tabla_mundos` siembra con `seed` (o 42) y, como el motor, cada `Cuestion`
@@ -326,9 +326,11 @@ reescribe (sin salidas, kernel `qbank`) y, con `--ejecuta`, los ejecuta con
 
 1. Incrementar `version` en `pyproject.toml`.
 2. Commit + `git tag vX.Y.Z && git push && git push --tags`.
-3. `rm -rf dist && python -m build && twine check dist/* && twine upload dist/*`
+3. `rm -rf dist && .venv/bin/python -m build && .venv/bin/twine check dist/* && .venv/bin/twine upload dist/*`
    (borrar `dist/` antes: si quedan ficheros de versiones anteriores, `twine`
-   intentaría subirlos también).
+   intentaría subirlos también). Usar el `twine` del `.venv`: el del sistema
+   (4.0) no entiende el Metadata-Version 2.4 de hatchling y da un falso
+   «missing required fields: Name, Version».
 4. Añadir `numpy` (y cualquier dependencia nueva) a `binder/requirements.txt`
    para forzar rebuild de la imagen MyBinder.
 5. Verificar que los tres notebooks arrancan en MyBinder.

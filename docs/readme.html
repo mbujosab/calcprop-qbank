@@ -20,21 +20,21 @@
 <li><a href="#org3d675b1">Instalación</a></li>
 <li><a href="#org5f0dd8f">Crear un banco de preguntas</a></li>
 <li><a href="#orgc777690">Uso rápido</a></li>
-<li><a href="#org6b11edb">Características</a>
+<li><a href="#org5db24dd">Características</a>
 <ul>
 <li><a href="#org51b245b">Generación combinatoria de variantes</a></li>
 <li><a href="#org135c64a">Preguntas multi-parte</a></li>
 <li><a href="#org5b4e0f3">Preguntas paramétricas con <code>setup</code></a></li>
 <li><a href="#orga628d71">Persistencia en formato JSON</a></li>
 <li><a href="#org2126854">Editor visual en Jupyter</a></li>
-<li><a href="#orgdeb54a3">Exportación a AMC y Moodle</a></li>
-<li><a href="#org9548600">Exportación a código Python editable</a></li>
-<li><a href="#orge080a81">Comprobación automática de preguntas (<code>lint</code>)</a></li>
+<li><a href="#org9548600">Exportación a AMC y Moodle</a></li>
+<li><a href="#orge080a81">Exportación a código Python editable</a></li>
+<li><a href="#org6b11edb">Comprobación automática de preguntas (<code>lint</code>)</a></li>
 </ul>
 </li>
-<li><a href="#org5db24dd">Documentación</a></li>
-<li><a href="#org7ac5133">Tests</a></li>
-<li><a href="#orgb0074d3">Autoría y licencia</a></li>
+<li><a href="#org7ac5133">Documentación</a></li>
+<li><a href="#orgb0074d3">Tests</a></li>
+<li><a href="#org8c1b4ea">Autoría y licencia</a></li>
 </ul>
 </div>
 </nav>
@@ -103,7 +103,8 @@ impresa <code>GuiaDiseno.pdf</code>), el manual (<code>Manual.org</code>, <code>
 ejemplos de <code>ejemplosManual/</code> están
 en el <a href="https://github.com/mbujosab/calcprop-qbank">repositorio</a>: clónalo con
 <code>git clone https://github.com/mbujosab/calcprop-qbank</code> o abre el tutorial sin
-instalar nada con la insignia de MyBinder de arriba.
+instalar nada con la insignia de MyBinder de arriba. La guía y el manual se
+leen también en la web, <a href="https://mbujosab.github.io/calcprop-qbank/">mbujosab.github.io/calcprop-qbank</a>.
 </p>
 </div>
 </div>
@@ -126,7 +127,7 @@ make amc           # PDF de revisión (vista profe) en build/amc/
 <p>
 El proyecto contiene cinco preguntas de ejemplo en <code>preguntas/</code>, los scripts
 que las exportan a AMC y Moodle, un <code>Makefile</code> (<code>lint</code>, <code>tabla</code>, <code>amc</code>,
-<code>amc-student</code>, <code>moodle</code>, <code>clean</code>, filtro <code>LECCION=N</code>), <code>nueva_pregunta.py</code>, un
+<code>amc-student</code>, <code>moodle</code>, <code>lectura</code>, <code>clean</code>, filtro <code>LECCION=N</code>), <code>nueva_pregunta.py</code>, un
 guion para escribir una pregunta en Python y guardarla como JSON, y en <code>prompts/</code>
 las instrucciones para escribir preguntas con ayuda de una IA. Su <code>README.org</code>
 explica el flujo.
@@ -184,9 +185,9 @@ haya (<code>GuiaDiseno.org</code> lo explica).
 </p>
 </div>
 </div>
-<div id="outline-container-org6b11edb" class="outline-2">
-<h2 id="org6b11edb">Características</h2>
-<div class="outline-text-2" id="text-org6b11edb">
+<div id="outline-container-org5db24dd" class="outline-2">
+<h2 id="org5db24dd">Características</h2>
+<div class="outline-text-2" id="text-org5db24dd">
 </div>
 <div id="outline-container-org51b245b" class="outline-3">
 <h3 id="org51b245b">Generación combinatoria de variantes</h3>
@@ -336,9 +337,9 @@ Ver <a href="https://github.com/mbujosab/calcprop-qbank/blob/main/Manual.org">Ma
 </p>
 </div>
 </div>
-<div id="outline-container-orgdeb54a3" class="outline-3">
-<h3 id="orgdeb54a3">Exportación a AMC y Moodle</h3>
-<div class="outline-text-3" id="text-orgdeb54a3">
+<div id="outline-container-org9548600" class="outline-3">
+<h3 id="org9548600">Exportación a AMC y Moodle</h3>
+<div class="outline-text-3" id="text-org9548600">
 </div>
 <div id="outline-container-orgf64f25e" class="outline-4">
 <h4 id="orgf64f25e">Formato AMC (LaTeX)</h4>
@@ -415,10 +416,30 @@ Para preguntas <code>ProblemaVF</code>: <code>QuizVFMoodle</code>.
 </p>
 </div>
 </div>
+<div id="outline-container-orgdeb54a3" class="outline-4">
+<h4 id="orgdeb54a3">Vista de lectura</h4>
+<div class="outline-text-4" id="text-orgdeb54a3">
+<p>
+<code>QuizLectura</code> escribe un documento LaTeX para <i>leer</i> y revisar las preguntas
+(no para el examen): la tabla de mundos, un ejemplo por mundo con el
+enunciado en un recuadro, las alternativas agrupadas por hueco con su V/F y
+su <code>exp</code>, y las que la precondición excluye con su motivo. Con
+<code>"lectura": {"cubrir": ["ctx"]}</code> en el JSON, un ejemplo por cada valor de
+esas variables del <code>setup</code>. En un proyecto de <code>qbank-init</code>,
+<code>make lectura LECCION=N</code> da un PDF por lección.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">QuizLectura("L-03-lectura", "build/lectura", [p1, p2, p3],
+            aux_latex=r"\usepackage[spanish]{babel}")
+</pre>
 </div>
-<div id="outline-container-org9548600" class="outline-3">
-<h3 id="org9548600">Exportación a código Python editable</h3>
-<div class="outline-text-3" id="text-org9548600">
+</div>
+</div>
+</div>
+<div id="outline-container-orge080a81" class="outline-3">
+<h3 id="orge080a81">Exportación a código Python editable</h3>
+<div class="outline-text-3" id="text-orge080a81">
 <p>
 <code>save_problema_py</code> genera un fichero <code>.py</code> con la definición del problema como
 listas editables:
@@ -437,9 +458,9 @@ ejecutarse directamente con Python.
 </p>
 </div>
 </div>
-<div id="outline-container-orge080a81" class="outline-3">
-<h3 id="orge080a81">Comprobación automática de preguntas (<code>lint</code>)</h3>
-<div class="outline-text-3" id="text-orge080a81">
+<div id="outline-container-org6b11edb" class="outline-3">
+<h3 id="org6b11edb">Comprobación automática de preguntas (<code>lint</code>)</h3>
+<div class="outline-text-3" id="text-org6b11edb">
 <p>
 <code>lint</code> revisa un problema (objeto, dict o ruta a JSON) sin modificar nada ni
 compilar LaTeX y devuelve una lista de <code>Aviso(nivel, codigo, mensaje, donde)</code>
@@ -478,9 +499,9 @@ localizar distractores constantes.
 </div>
 </div>
 </div>
-<div id="outline-container-org5db24dd" class="outline-2">
-<h2 id="org5db24dd">Documentación</h2>
-<div class="outline-text-2" id="text-org5db24dd">
+<div id="outline-container-org7ac5133" class="outline-2">
+<h2 id="org7ac5133">Documentación</h2>
+<div class="outline-text-2" id="text-org7ac5133">
 <p>
 Todo se puede leer sin clonar el repositorio en
 <a href="https://mbujosab.github.io/calcprop-qbank/">mbujosab.github.io/calcprop-qbank</a> (HTML y PDF). En este orden:
@@ -493,6 +514,9 @@ Todo se puede leer sin clonar el repositorio en
 preguntas: la mecánica de listas y mundos, el patrón de tres huecos + opción por defecto, <code>setup</code>, redacción
 de cuestiones y explicaciones, trampas de LaTeX/Moodle y checklist.</li>
 <li><a href="https://github.com/mbujosab/calcprop-qbank/blob/main/Manual.org"><code>Manual.org</code></a> (<a href="https://github.com/mbujosab/calcprop-qbank/blob/main/Manual.pdf"><code>Manual.pdf</code></a>) — referencia completa de la API y del formato JSON.</li>
+<li><a href="https://mbujosab.github.io/calcprop-qbank/prompt.html">Prompt genérico para una IA</a> — si escribes las preguntas con un asistente:
+<code>qbank-init</code> deja en <code>prompts/</code> este prompt (qué leer, proceso y reglas) y otro
+con huecos para las decisiones de tu banco, más un <code>CLAUDE.md</code> de entrada.</li>
 <li><a href="https://github.com/mbujosab/calcprop-qbank/blob/main/CalcPropQuiz.org"><code>CalcPropQuiz.org</code></a> y <a href="https://github.com/mbujosab/calcprop-qbank/blob/main/CalcPropExport.org"><code>CalcPropExport.org</code></a> — código fuente comentado
 (programación literate) de los módulos <code>_quiz</code>, <code>_json</code>, <code>_widgets</code>, <code>_lint</code>,
 <code>_export</code> y <code>_plantilla</code>. Son la fuente de <code>src/qbank/</code>: los <code>.py</code> se generan con
@@ -501,18 +525,18 @@ de cuestiones y explicaciones, trampas de LaTeX/Moodle y checklist.</li>
 </ul>
 </div>
 </div>
-<div id="outline-container-org7ac5133" class="outline-2">
-<h2 id="org7ac5133">Tests</h2>
-<div class="outline-text-2" id="text-org7ac5133">
+<div id="outline-container-orgb0074d3" class="outline-2">
+<h2 id="orgb0074d3">Tests</h2>
+<div class="outline-text-2" id="text-orgb0074d3">
 <div class="org-src-container">
 <pre class="src src-bash">pytest
 </pre>
 </div>
 </div>
 </div>
-<div id="outline-container-orgb0074d3" class="outline-2">
-<h2 id="orgb0074d3">Autoría y licencia</h2>
-<div class="outline-text-2" id="text-orgb0074d3">
+<div id="outline-container-org8c1b4ea" class="outline-2">
+<h2 id="org8c1b4ea">Autoría y licencia</h2>
+<div class="outline-text-2" id="text-org8c1b4ea">
 <p>
 Copyright (C) 2020-2026  Andrés Bujosa, Marcos Bujosa (<code>_quiz</code>) <br>
 Copyright (C) 2020-2026  Marcos Bujosa (<code>_export</code>, <code>_json</code>, <code>_widgets</code>)

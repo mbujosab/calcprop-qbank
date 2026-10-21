@@ -270,7 +270,7 @@ def test_make_lint_y_tabla_comodos(proyecto):
 def test_make_rechaza_un_qbank_antiguo(proyecto, tmp_path):
     # Un intérprete que carga un qbank viejo (como el python3 del sistema con un
     # qbank 0.3 en ~/.local) debe dar el mensaje de PYTHON=, no fallar después.
-    for version, con_lint in (("0.5.0", True), (None, False)):
+    for version, con_lint in (("0.5.0", True), ("0.6.0", True), (None, False)):
         falso = tmp_path / f"falso-{version}"
         (falso / "qbank").mkdir(parents=True)
         (falso / "qbank" / "__init__.py").write_text(
@@ -283,7 +283,7 @@ def test_make_rechaza_un_qbank_antiguo(proyecto, tmp_path):
         r = subprocess.run(["make", "lint", f"PYTHON={py}"], cwd=proyecto,
                            capture_output=True, text=True, timeout=60)
         salida = r.stdout + r.stderr
-        assert r.returncode != 0 and "anterior a la 0.6" in salida and "PYTHON=" in salida, salida
+        assert r.returncode != 0 and "anterior a la 0.7" in salida and "PYTHON=" in salida, salida
 
 
 def test_gen_amc_cuenta_mundos_y_solo_casos_con_setup(proyecto):
