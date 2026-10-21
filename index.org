@@ -68,6 +68,10 @@ Instalar Python y crear el entorno virtual paso a paso, también en Windows:
    profe…) están en su [[file:guia.html#vocabulario][Vocabulario]].
 5. *Manual* ([[file:manual.html][HTML]], [[file:Manual.pdf][PDF]]): referencia completa de la API y del formato
    JSON.
+6. *Prompts para una IA* ([[file:prompt.html][HTML]]): si escribes las preguntas con ayuda de
+   un asistente, =qbank-init= deja en =prompts/= un prompt genérico (qué
+   leer, proceso y reglas; remite a la Guía y al Manual) y otro con huecos
+   para las decisiones de tu banco, más un =CLAUDE.md= de entrada.
 
 * Enlaces
 

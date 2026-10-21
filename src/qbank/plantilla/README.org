@@ -12,8 +12,10 @@ tuyas y borra este párrafo.
 | =nueva_pregunta.py=  | Guion para escribir una pregunta en Python y guardarla como JSON en =preguntas/=.                     |
 | =config.py=          | Preámbulo LaTeX propio (el de AMC ya carga =babel= en español), textos de la opción por defecto y cuántos casos imprime la vista profe con =setup=. |
 | =scripts/=           | Generadores de AMC y Moodle que usa el =Makefile=; no hace falta tocarlos.                            |
-| =Makefile=           | =make lint=, =make tabla=, =make amc=, =make amc-student=, =make moodle=, =make clean=.               |
+| =Makefile=           | =make lint=, =make tabla=, =make amc=, =make lectura=, =make amc-student=, =make moodle=, =make clean=. |
 | =build/=             | Todo lo generado (PDF, XML, =.tex=). No se versiona.                                                  |
+| =prompts/=           | Instrucciones para escribir preguntas con ayuda de una IA: =PROMPT-qbank-generico.org= (proceso y reglas, remite a la Guía y al Manual) y =PROMPT-proyecto.org= (las decisiones de tu banco, con huecos por rellenar). |
+| =CLAUDE.md=          | Punto de entrada para Claude Code (u otro agente): remite a =prompts/= y resume entorno y órdenes. Rellena sus huecos o bórralo si no usas una IA. |
 
 Los ficheros de =preguntas/= que no sigan la convención =L-NN-= también se
 procesan; solo quedan fuera cuando se filtra con =LECCION=.
@@ -82,7 +84,11 @@ Todos los comandos se lanzan *desde esta carpeta* (la que contiene el
    admite; la vista completa es la de =make amc=).
 3. *Revísala en PDF:* =make amc= genera =build/amc/<pregunta>.pdf=, la vista
    del profesor (cómo leerla, más abajo). Es lo que conviene repasar
-   entero antes de dar una pregunta por buena.
+   entero antes de dar una pregunta por buena. =make lectura= genera
+   =build/lectura/L-NN-lectura.pdf=, un documento por lección para /leer/
+   las preguntas: un ejemplo por mundo, las alternativas agrupadas por
+   hueco con su V/F y su =exp= debajo, y las excluidas con su motivo (más
+   abajo). Es el que conviene dar a quien las revise.
 4. *Exporta:*
    - =make amc-student= → =build/amc-student/<pregunta>.pdf= con todas las
      variantes de la pregunta tal como las verá el alumno. Es el /modo
@@ -139,6 +145,19 @@ cada uno), y =make amc= dice cuántos mundos y casos salen. Así ves cada
 rama de la pregunta una vez. Con =setup=, por tanto, aquí «mundo» cuenta
 también los textos sorteados distintos (una pregunta sin =Supuesto= que
 sortea cuatro tratados da cuatro «mundos»).
+
+*La vista de lectura* (=make lectura=) tiene la misma información con otro
+formato, pensado para leer: cada pregunta empieza con su tabla de mundos y
+una nota con cuántas opciones ve el alumno; cada ejemplo lleva el enunciado
+en un recuadro y, debajo, «Hueco 1, 2, …» con todas sus alternativas (el
+alumno recibe una de cada hueco), V en verde o F en rojo, la =exp= en gris
+debajo («la misma retroalimentación que la anterior» si se repite) y las
+excluidas por su precondición en gris claro con el motivo. Con =setup=, una
+pregunta puede pedir ejemplos para todas las combinaciones de valores de
+algunas variables: ="lectura": {"cubrir": ["ctx", "rech"]}= en su JSON (los
+valores deben ser discretos; =lint= lo comprueba). Sin esa clave, un
+ejemplo por mundo más =config.EXTRAS_LECTURA= sorteos con enunciado
+distinto.
 
 La vista profe *no incluye la opción por defecto*: su valor depende de qué
 cuestión le toque al alumno en cada hueco. Para comprobarla, mira las
@@ -203,6 +222,7 @@ Nivel superior del JSON (o argumentos de =ProblemaTipo= en Python):
 | =setup=       | Código Python (cadena) que se ejecuta antes de cada variante, o =null=. Usa =np.random=, no =random=: =seed= siembra los dos, pero la vista profe (=make amc=, =nueva_pregunta.py=) solo siembra =numpy= en cada sorteo. |
 | =seed=        | Entero, solo si =setup= sortea valores: hace reproducible la pregunta.                                       |
 | =export=      | ={"last_choice": true, "cols": 2, "instances": N}=; ver abajo.                                              |
+| =lectura=     | Opcional: ={"cubrir": ["var", …]}=, variables del =setup= cuyas combinaciones de valores debe mostrar =make lectura=. |
 
 =Supuesto= y =Cuestion= (en JSON, objetos con ="tipo"=; en Python, las clases
 del mismo nombre):
@@ -220,7 +240,9 @@ Campo =export=:
 
 * Más documentación
 
-En el repositorio de [[https://github.com/mbujosab/calcprop-qbank][qbank]], en este orden: =Tutorial.ipynb= (ejemplos
-progresivos), =GuiaDiseno.org= (cómo diseñar buenas preguntas) y =Manual.org=
-(referencia completa de la API y del formato JSON); la Guía y el Manual
-están también en PDF (=GuiaDiseno.pdf=, =Manual.pdf=).
+En la web de =qbank= ([[https://mbujosab.github.io/calcprop-qbank/][mbujosab.github.io/calcprop-qbank]]) o en su
+[[https://github.com/mbujosab/calcprop-qbank][repositorio]], en este orden: =Tutorial.ipynb= (ejemplos progresivos),
+la Guía de diseño (=GuiaDiseno.org=, cómo diseñar buenas preguntas) y el
+Manual (=Manual.org=, referencia completa de la API y del formato JSON);
+la Guía y el Manual están también en PDF (=GuiaDiseno.pdf=, =Manual.pdf=).
+Si escribes preguntas con ayuda de una IA, empieza por =prompts/=.

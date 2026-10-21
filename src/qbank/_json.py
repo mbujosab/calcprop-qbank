@@ -148,7 +148,7 @@ def _slot_to_json(slot):
         return [_slot_to_json(item) for item in slot]
     else:
         raise ValueError(f"Tipo no serializable: {type(slot)}")
-_CLAVES_PROBLEMA = {"version", "tipo", "nombre", "setup", "seed", "export", "componentes"}
+_CLAVES_PROBLEMA = {"version", "tipo", "nombre", "setup", "seed", "export", "lectura", "componentes"}
 
 
 def problema_from_dict(d):
@@ -159,7 +159,7 @@ def problema_from_dict(d):
         componentes = [_slot_from_json(s) for s in d["componentes"]]
         p = ProblemaTipo(componentes, setup=d.get("setup") or None,
                          export=d.get("export", {}), seed=d.get("seed"),
-                         nombre=d.get("nombre", ""))
+                         nombre=d.get("nombre", ""), lectura=d.get("lectura"))
         # Claves propias del usuario (p. ej. "_nivel"): se conservan para que
         # save_problema las devuelva intactas.
         p._extra = {k: v for k, v in d.items() if k not in _CLAVES_PROBLEMA}
@@ -218,6 +218,9 @@ def problema_to_dict(problema):
         exp = getattr(problema, 'export', {})
         if exp:
             d["export"] = exp
+        lectura = getattr(problema, 'lectura', None)
+        if lectura:
+            d["lectura"] = lectura
         d.update(getattr(problema, '_extra', {}))       # claves propias del usuario
         return d
     elif isinstance(problema, ProblemaVF):
@@ -353,13 +356,15 @@ def problema_to_python(problema, varname="ejercicio"):
     export_arg  = f", export={export_dict!r}" if export_dict else ""
     nombre      = d.get("nombre") or ""
     nombre_arg  = f", nombre={nombre!r}" if nombre else ""
+    lectura     = d.get("lectura", {})
+    lectura_arg = f", lectura={lectura!r}" if lectura else ""
 
     lines.append(f"{varname} = [")
     for comp in d["componentes"]:
         lines.append(_slot_to_python(comp, nivel=1))
     lines.append("]")
     lines.append("")
-    lines.append(f"p = ProblemaTipo({varname}{setup_arg}{seed_arg}{export_arg}{nombre_arg})")
+    lines.append(f"p = ProblemaTipo({varname}{setup_arg}{seed_arg}{export_arg}{nombre_arg}{lectura_arg})")
 
     lines.append("")
     return "\n".join(lines)

@@ -122,6 +122,7 @@ from string import Template
 
 <<Funciones auxiliares para setup paramétrico>>
 <<Metodo auxiliar para juntar cuestiones en formato para profe>>
+<<Registros de la vista de lectura>>
 <<Definición de la clase Marcador>>
 <<Definición de la clase Supuesto>>
 <<Definición de la clase Cuestion>>
@@ -634,7 +635,8 @@ Si la precondición de alguna de las opciones elegidas no se deduce de las hipó
 #+NAME: Definición de la clase ProblemaTipo
 #+begin_src python :noweb no-export
 class ProblemaTipo:
-    def __init__(self, supuestos_y_cuestiones, setup=None, export=None, seed=None, nombre=None):
+    def __init__(self, supuestos_y_cuestiones, setup=None, export=None, seed=None, nombre=None,
+                 lectura=None):
         self.e = supuestos_y_cuestiones
         if isinstance(setup, str):
             if setup.strip():
@@ -645,24 +647,27 @@ class ProblemaTipo:
         self.setup  = setup
         self.export = export if export is not None else {}
         self.seed   = seed
+        self.lectura = lectura if lectura is not None else {}
         if nombre is not None:
             self._nombre = nombre
 
     <<Generador interno de variantes por partes>>
     <<Generador profe de variantes por partes>>
+    <<Generador de lectura por huecos>>
     <<Iteración pública de ProblemaTipo>>
 #+end_src
 
 El argumento =setup= puede ser una función sin argumentos que devuelve el diccionario de variables de la variante, o directamente el *código Python como cadena* (lo mismo que guarda el campo =setup= del JSON): en ese caso =ProblemaTipo= lo compila con =_setup_desde_str= y conserva la cadena en =_setup_str=, de modo que el problema puede guardarse con =save_problema=. Un =setup= definido como función Python no puede guardarse (su código fuente no es recuperable); es la forma recomendada solo para uso interactivo.
 
-Los argumentos =export=, =seed= y =nombre= no intervienen en la generación de variantes: son metadatos que acompañan al problema. =export= es el diccionario con las preferencias de exportación (=last_choice=, =cols=, =instances=) que guardan y leen las funciones JSON y usan los scripts de los bancos; =seed= es la semilla con la que se inicializan =numpy.random= y el módulo =random= (=_siembra=) antes de recorrer las variantes cuando el =setup= usa aleatorios, de modo que un mismo JSON produzca siempre las mismas variantes; =nombre= es el identificador del problema (el campo =nombre= del JSON, que debe coincidir con el nombre del fichero).
+Los argumentos =export=, =seed= y =nombre= no intervienen en la generación de variantes: son metadatos que acompañan al problema. =export= es el diccionario con las preferencias de exportación (=last_choice=, =cols=, =instances=) que guardan y leen las funciones JSON y usan los scripts de los bancos; =seed= es la semilla con la que se inicializan =numpy.random= y el módulo =random= (=_siembra=) antes de recorrer las variantes cuando el =setup= usa aleatorios, de modo que un mismo JSON produzca siempre las mismas variantes; =nombre= es el identificador del problema (el campo =nombre= del JSON, que debe coincidir con el nombre del fichero); =lectura= es el diccionario de opciones de la /vista de lectura/ (el campo =lectura= del JSON, hoy solo ={"cubrir": [...]}=), que usa =QuizLectura= y que el motor no consulta.
 
 Internamente, =ProblemaTipo= calcula las /partes/ del ejercicio (regla I2, vía =_plan_partes=) y genera, por cada combinación válida del marcador, la estructura =[(enunciado, cuestiones), …]= con una entrada por parte. Las hipótesis se acumulan a lo largo de /todas/ las partes: una cuestión de la parte $k$ ve los =Supuesto= de las partes anteriores.
 
 Sobre ese generador interno se ofrecen tres fachadas:
 - el protocolo de iteración estándar (=for … in problema=), que mantiene el contrato histórico =(etiqueta, enunciado, cuestiones)= para los ejercicios de *una sola parte* (lo habitual en docencia);
 - el método =por_partes()=, que devuelve =(etiqueta, [(enunciado, cuestiones), …])= y es el que debe usarse con ejercicios *multiparte*;
-- el método =por_partes_profe()=, vista de *revisión del profesor*: mantiene el mismo formato por partes, pero muestra /todas/ las cuestiones de cada sublista (no una por variante) y marca las que no superan su precondición como rechazadas, en vez de descartar la variante. No es la salida que ve el alumno ni la que se exporta.
+- el método =por_partes_profe()=, vista de *revisión del profesor*: mantiene el mismo formato por partes, pero muestra /todas/ las cuestiones de cada sublista (no una por variante) y marca las que no superan su precondición como rechazadas, en vez de descartar la variante. No es la salida que ve el alumno ni la que se exporta;
+- el método =por_partes_lectura()=, base de la /vista de lectura/ (=QuizLectura=): como la vista profe, pero conserva los *huecos* (cada sublista de =Cuestion= es un hueco del que el alumno recibe una alternativa) y devuelve registros con nombre, incluido el espacio de nombres del =setup= de cada variante.
 
 Si un ejercicio multiparte se itera por la vía histórica de tres elementos, se lanza un =ValueError= que remite a =por_partes()=, para no devolver una salida silenciosamente degradada (enunciados concatenados y cuestiones de distintas partes mezcladas).
 
@@ -789,6 +794,102 @@ def _variantes_profe(self, verbose=True):
         if not descartada:
             c += 1
             yield (str(c), list(zip(enunciados, cuestiones)))
+#+end_src
+
+**** Generador de lectura =_variantes_lectura(self)= y =por_partes_lectura()=
+
+La /vista de lectura/ es un documento para que el profesor lea y opine sobre una pregunta: un ejemplo por mundo (y, con =setup=, por combinación de valores de ciertas variables), con las alternativas *agrupadas por hueco*, cada una con su valor de verdad y su =exp= ya interpolada, y las excluidas por precondición con su motivo. La vista profe de AMC no sirve de base porque =CuestionesJuntas= aplana los huecos y porque no devuelve el espacio de nombres del =setup=.
+
+=_variantes_lectura= recorre, como =_variantes_profe=, solo las alternativas de textos y =Supuesto= (los /mundos/): cada sublista de =Cuestion= cuenta como un slot de una sola opción en el marcador y se procesa entera como un *hueco*. Para cada combinación devuelve un registro =Lectura=:
+
+- =etiqueta=: numeración de las variantes válidas (="1"=, ="2"=, …), como en las demás fachadas; vacía en los mundos descartados.
+- =mundo=: la tupla de índices elegidos en los slots de enunciado (textos y =Supuesto=). Identifica el mundo con independencia del sorteo del =setup=, así que sirve para agrupar ejemplos de semillas distintas.
+- =ns=: el espacio de nombres que devolvió el =setup= en esa variante (vacío sin =setup=). Permite elegir ejemplos por los valores de las variables en vez de reconocerlos en el texto.
+- =partes=: lista de =ParteLectura(enunciado, huecos)=; cada hueco es la lista de sus alternativas =Alternativa(texto, valor, exp, motivo)=, en el orden del JSON: =valor= es =True=/=False= si la alternativa es posible en ese mundo y =None= si su precondición la excluye, en cuyo caso =motivo= dice por qué (=exp= queda vacía).
+- =descarte=: =None= en las variantes válidas; en un mundo descartado porque un =Supuesto= no cumple su precondición, el texto que lo explica (y =partes= es =None=).
+
+=por_partes_lectura(seed=None, verbose=False, descartes=False)= es la fachada: siembra con =seed= (por defecto, =self.seed=) y emite solo las variantes válidas; con =descartes=True= emite también los mundos descartados, para listarlos en el documento. =setup()= se ejecuta una vez por mundo, así que una misma semilla da un =ns= distinto en cada mundo; quien busque cubrir combinaciones de valores debe recorrer varias semillas y agrupar por =mundo=.
+
+#+NAME: Registros de la vista de lectura
+#+begin_src python :noweb no-export
+from collections import namedtuple as _namedtuple
+
+Lectura      = _namedtuple('Lectura', 'etiqueta mundo ns partes descarte')
+ParteLectura = _namedtuple('ParteLectura', 'enunciado huecos')
+Alternativa  = _namedtuple('Alternativa', 'texto valor exp motivo')
+#+end_src
+
+#+NAME: Generador de lectura por huecos
+#+begin_src python :noweb no-export
+def _variantes_lectura(self, seed=None, verbose=False):
+    if self.setup is not None:
+        _siembra(self.seed if seed is None else seed)
+    L        = [_normaliza_slot(x) for x in self.e]
+    plan     = _plan_partes(L)
+    npar     = (plan[-1] + 1) if plan else 1
+    es_hueco = [_clasifica_slot(x) == 'cuestiones' for x in L]
+    c        = 0
+    for variante in Marcador([1 if h else len(x) for x, h in zip(L, es_hueco)]):
+        ns         = self.setup() if self.setup else {}
+        hipotesis  = []
+        enunciados = ['' for _ in range(npar)]
+        huecos     = [[] for _ in range(npar)]
+        mundo      = tuple(i for i, h in zip(variante, es_hueco) if not h)
+        descarte   = None
+        for n in range(len(L)):
+            parte = plan[n]
+            if es_hueco[n]:
+                hueco = []
+                for componente in L[n]:
+                    precond = _ns_eval(componente.p, ns)
+                    texto   = _ns_interp(_ns_eval(componente.e, ns), ns)
+                    if test(precond, hipotesis):
+                        semantica = _ns_eval(componente.s, ns)
+                        exp = _ns_interp(_ns_eval(componente.x, ns), ns)
+                        hueco.append(Alternativa(texto, bool(test(semantica, hipotesis)), exp, None))
+                    else:
+                        hueco.append(Alternativa(texto, None, '',
+                                                 'rechazada por ' + _fuente_precond(componente)))
+                huecos[parte].append(hueco)
+                continue
+            componente = L[n][variante[n]]
+            if isinstance(componente, str):
+                enunciados[parte] = _une_enunciado(enunciados[parte], _ns_interp(componente, ns))
+            else:                                   # Supuesto
+                precond = _ns_eval(componente.p, ns)
+                texto   = _ns_interp(_ns_eval(componente.e, ns), ns)
+                if test(precond, hipotesis):
+                    enunciados[parte] = _une_enunciado(enunciados[parte], texto)
+                    hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
+                else:
+                    descarte = ('Supuesto ' + repr(texto) + ' rechazado por '
+                                + _fuente_precond(componente))
+                    if verbose:
+                        print('\n ' + descarte + '\n')
+                    break
+        if descarte is None:
+            c += 1
+            yield Lectura(str(c), mundo, ns,
+                          [ParteLectura(e, h) for e, h in zip(enunciados, huecos)], None)
+        else:
+            yield Lectura('', mundo, ns, None, descarte)
+
+def por_partes_lectura(self, seed=None, verbose=False, descartes=False):
+    """Vista de lectura: como por_partes_profe(), pero con las cuestiones
+    agrupadas por hueco y con el espacio de nombres del setup de cada
+    variante. Devuelve registros Lectura(etiqueta, mundo, ns, partes,
+    descarte); cada parte es ParteLectura(enunciado, huecos) y cada
+    alternativa Alternativa(texto, valor, exp, motivo), con valor None (y
+    motivo) si la precondición la excluye en ese mundo.
+
+    seed      : semilla del setup (por defecto, la del problema).
+    verbose   : imprime los Supuesto rechazados por precondición.
+    descartes : si True, emite también los mundos descartados (partes=None
+                y descarte con el motivo)."""
+    for r in self._variantes_lectura(seed=seed, verbose=verbose):
+        if descartes or r.descarte is None:
+            yield r
+
 #+end_src
 
 **** Fachadas de iteración: =por_partes()=, =por_partes_profe()=, =__iter__= y =__next__=
@@ -1828,7 +1929,7 @@ Las funciones públicas =problema_from_dict= y =problema_to_dict= realizan la co
 
 #+NAME: Problema desde dict JSON
 #+begin_src python :noweb yes
-_CLAVES_PROBLEMA = {"version", "tipo", "nombre", "setup", "seed", "export", "componentes"}
+_CLAVES_PROBLEMA = {"version", "tipo", "nombre", "setup", "seed", "export", "lectura", "componentes"}
 
 
 def problema_from_dict(d):
@@ -1839,7 +1940,7 @@ def problema_from_dict(d):
         componentes = [_slot_from_json(s) for s in d["componentes"]]
         p = ProblemaTipo(componentes, setup=d.get("setup") or None,
                          export=d.get("export", {}), seed=d.get("seed"),
-                         nombre=d.get("nombre", ""))
+                         nombre=d.get("nombre", ""), lectura=d.get("lectura"))
         # Claves propias del usuario (p. ej. "_nivel"): se conservan para que
         # save_problema las devuelva intactas.
         p._extra = {k: v for k, v in d.items() if k not in _CLAVES_PROBLEMA}
@@ -1906,6 +2007,9 @@ def problema_to_dict(problema):
         exp = getattr(problema, 'export', {})
         if exp:
             d["export"] = exp
+        lectura = getattr(problema, 'lectura', None)
+        if lectura:
+            d["lectura"] = lectura
         d.update(getattr(problema, '_extra', {}))       # claves propias del usuario
         return d
     elif isinstance(problema, ProblemaVF):
@@ -2117,13 +2221,15 @@ def problema_to_python(problema, varname="ejercicio"):
     export_arg  = f", export={export_dict!r}" if export_dict else ""
     nombre      = d.get("nombre") or ""
     nombre_arg  = f", nombre={nombre!r}" if nombre else ""
+    lectura     = d.get("lectura", {})
+    lectura_arg = f", lectura={lectura!r}" if lectura else ""
 
     lines.append(f"{varname} = [")
     for comp in d["componentes"]:
         lines.append(_slot_to_python(comp, nivel=1))
     lines.append("]")
     lines.append("")
-    lines.append(f"p = ProblemaTipo({varname}{setup_arg}{seed_arg}{export_arg}{nombre_arg})")
+    lines.append(f"p = ProblemaTipo({varname}{setup_arg}{seed_arg}{export_arg}{nombre_arg}{lectura_arg})")
 
     lines.append("")
     return "\n".join(lines)
@@ -2142,7 +2248,7 @@ def save_problema_py(problema, filepath, varname="ejercicio"):
 
 1. Importa =Supuesto=, =Cuestion=, =ProblemaTipo= y todo de =calcprop=.
 2. Define la cadena =_SETUP= si el problema tiene setup (exactamente el código Python almacenado en el campo ="setup"= del JSON, como /raw string/ triple).
-3. Define la variable =(varname)= como lista de componentes y construye =p = ProblemaTipo(varname, setup=_SETUP, seed=…, export=…, nombre=…)=. Las semánticas y precondiciones que son fórmulas =calcprop= o =True= o =False= van tal cual (son Python válido); las lambdas van entre comillas, que es como =ProblemaTipo= las acepta y =save_problema= las guarda, así que el guión puede ejecutarse y volver a guardarse como JSON sin pérdida. Los problemas multiparte se generan también como un =ProblemaTipo= (lista plana), sin tipo aparte.
+3. Define la variable =(varname)= como lista de componentes y construye =p = ProblemaTipo(varname, setup=_SETUP, seed=…, export=…, nombre=…, lectura=…)= (los argumentos vacíos se omiten). Las semánticas y precondiciones que son fórmulas =calcprop= o =True= o =False= van tal cual (son Python válido); las lambdas van entre comillas, que es como =ProblemaTipo= las acepta y =save_problema= las guarda, así que el guión puede ejecutarse y volver a guardarse como JSON sin pérdida. Los problemas multiparte se generan también como un =ProblemaTipo= (lista plana), sin tipo aparte.
 
 =save_problema_py= simplemente escribe la cadena resultante en un fichero.
 
@@ -2958,6 +3064,7 @@ Al crecer los bancos de preguntas, las comprobaciones que se hacían a ojo —¿
 # ── Regla 8: texto ───────────────────────────────────────────────────────────
 
 <<lint: Regla 8: texto>>
+<<lint: Regla 10: lectura>>
 
 
 # ── Reglas 4 y 6: etiquetas ──────────────────────────────────────────────────
@@ -3053,6 +3160,11 @@ Reglas (código del aviso entre paréntesis):
    evalúan). Las dos reglas de ``%`` se aplican también al texto
    interpolado con unos sorteos del ``setup``.
 9. Setup (``setup``, INFO): instancias necesarias para llegar a 60 variantes.
+10. Vista de lectura (``lectura``): ``lectura`` que no es un objeto o
+    ``lectura.cubrir`` que no es una lista de nombres, ERROR ``estructura``;
+    una variable de ``cubrir`` que no define el ``setup`` (o ``cubrir`` sin
+    ``setup``), ERROR; valores reales o más de ``MAX_COMBINACIONES_LECTURA``
+    combinaciones de valores, AVISO (la vista de lectura se acota).
 """
 
 import argparse as _argparse
@@ -3079,6 +3191,7 @@ MIN_VARIANTES_SIN_SETUP = 16
 MIN_VARIANTES_CON_SETUP = 60
 MIN_OPCIONES            = 3       # opciones que debe ver el alumno en cada parte (con last_choice)
 MAX_VARIANTES_AMC       = 300     # por encima, la vista alumno AMC en un solo examcopy agota pdflatex
+MAX_COMBINACIONES_LECTURA = 24    # combinaciones de lectura.cubrir a partir de las cuales se avisa
 _MAX_REPETIDOS = 5          # avisos idénticos que se listan antes de resumir
 
 
@@ -3276,6 +3389,53 @@ def _regla_estructura(p, avisos, ruta):
     if not isinstance(cols, int) or isinstance(cols, bool) or cols < 1:
         avisos.append(Aviso(ERROR, 'estructura', f"export.cols debe ser un entero >= 1, no {cols!r}"))
     return True
+#+end_src
+
+** Regla 10: vista de lectura
+
+La clave =lectura= del JSON (={"cubrir": [...]}=) la consume =QuizLectura=, no el motor, así que un error en ella solo se notaría al generar el documento. La regla comprueba su forma (ERROR =estructura=), que cada variable de =cubrir= exista en el espacio de nombres del =setup= en todos los sorteos de =_sorteos_ns= (ERROR =lectura=; sin =setup= no hay nada que cubrir) y avisa si una variable toma valores reales (cada sorteo sería una combinación nueva) o si las combinaciones de valores vistas superan =MAX_COMBINACIONES_LECTURA= (=QuizLectura= se acota a =MAX_EJEMPLOS_LECTURA= ejemplos por pregunta).
+
+#+NAME: lint: Regla 10: lectura
+#+begin_src python :noweb yes
+def _regla_lectura(p, avisos):
+    lectura = getattr(p, 'lectura', None)
+    if not lectura:
+        return
+    if not isinstance(lectura, dict):
+        avisos.append(Aviso(ERROR, 'estructura',
+                            "'lectura' debe ser un objeto, p. ej. {\"cubrir\": [\"x\"]}"))
+        return
+    raras = sorted(set(lectura) - {'cubrir'})
+    if raras:
+        avisos.append(Aviso(AVISO, 'lectura', f"claves desconocidas en 'lectura': {raras}"))
+    cubrir = lectura.get('cubrir', [])
+    if not isinstance(cubrir, list) or not all(isinstance(x, str) for x in cubrir):
+        avisos.append(Aviso(ERROR, 'estructura',
+                            "lectura.cubrir debe ser una lista de nombres de variables del setup"))
+        return
+    if not cubrir:
+        return
+    if p.setup is None:
+        avisos.append(Aviso(ERROR, 'lectura', "lectura.cubrir sin setup: no hay variables que cubrir"))
+        return
+    nss = _sorteos_ns(p)
+    if not nss:                       # el setup falla: lo informa la regla de variantes
+        return
+    combinaciones = 1
+    for var in cubrir:
+        if not all(var in ns for ns in nss):
+            avisos.append(Aviso(ERROR, 'lectura', f"lectura.cubrir: {var!r} no está en el setup"))
+            continue
+        valores = [ns[var] for ns in nss]
+        if any(isinstance(x, float) or type(x).__name__.startswith('float') for x in valores):
+            avisos.append(Aviso(AVISO, 'lectura',
+                                f"lectura.cubrir: {var!r} toma valores reales; cada sorteo será "
+                                "una combinación nueva (sortea un valor discreto en el setup)"))
+        combinaciones *= len({repr(x) for x in valores})
+    if combinaciones > MAX_COMBINACIONES_LECTURA:
+        avisos.append(Aviso(AVISO, 'lectura',
+                            f"lectura.cubrir: al menos {combinaciones} combinaciones de valores; "
+                            "la vista de lectura se acota a unos 40 ejemplos por pregunta"))
 #+end_src
 
 ** Regla 8: texto
@@ -3748,6 +3908,7 @@ def lint(problema, instances=None, seed=None):
     if not _regla_estructura(p, avisos, ruta):
         return avisos
     _regla_texto(p, avisos)
+    _regla_lectura(p, avisos)
     _regla_etiquetas(p, avisos)
     _regla_variantes(p, avisos, instances, seed)
     _regla_mundos(p, avisos)

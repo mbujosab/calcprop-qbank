@@ -82,6 +82,11 @@ Reglas (código del aviso entre paréntesis):
    evalúan). Las dos reglas de ``%`` se aplican también al texto
    interpolado con unos sorteos del ``setup``.
 9. Setup (``setup``, INFO): instancias necesarias para llegar a 60 variantes.
+10. Vista de lectura (``lectura``): ``lectura`` que no es un objeto o
+    ``lectura.cubrir`` que no es una lista de nombres, ERROR ``estructura``;
+    una variable de ``cubrir`` que no define el ``setup`` (o ``cubrir`` sin
+    ``setup``), ERROR; valores reales o más de ``MAX_COMBINACIONES_LECTURA``
+    combinaciones de valores, AVISO (la vista de lectura se acota).
 """
 
 import argparse as _argparse
@@ -108,6 +113,7 @@ MIN_VARIANTES_SIN_SETUP = 16
 MIN_VARIANTES_CON_SETUP = 60
 MIN_OPCIONES            = 3       # opciones que debe ver el alumno en cada parte (con last_choice)
 MAX_VARIANTES_AMC       = 300     # por encima, la vista alumno AMC en un solo examcopy agota pdflatex
+MAX_COMBINACIONES_LECTURA = 24    # combinaciones de lectura.cubrir a partir de las cuales se avisa
 _MAX_REPETIDOS = 5          # avisos idénticos que se listan antes de resumir
 
 
@@ -422,6 +428,45 @@ def _regla_texto(p, avisos):
                                         f"{msg}: {_rec(hit, 30)!r} (en el texto interpolado)",
                                         f"{donde}: {_rec(t)}"))
                     break
+def _regla_lectura(p, avisos):
+    lectura = getattr(p, 'lectura', None)
+    if not lectura:
+        return
+    if not isinstance(lectura, dict):
+        avisos.append(Aviso(ERROR, 'estructura',
+                            "'lectura' debe ser un objeto, p. ej. {\"cubrir\": [\"x\"]}"))
+        return
+    raras = sorted(set(lectura) - {'cubrir'})
+    if raras:
+        avisos.append(Aviso(AVISO, 'lectura', f"claves desconocidas en 'lectura': {raras}"))
+    cubrir = lectura.get('cubrir', [])
+    if not isinstance(cubrir, list) or not all(isinstance(x, str) for x in cubrir):
+        avisos.append(Aviso(ERROR, 'estructura',
+                            "lectura.cubrir debe ser una lista de nombres de variables del setup"))
+        return
+    if not cubrir:
+        return
+    if p.setup is None:
+        avisos.append(Aviso(ERROR, 'lectura', "lectura.cubrir sin setup: no hay variables que cubrir"))
+        return
+    nss = _sorteos_ns(p)
+    if not nss:                       # el setup falla: lo informa la regla de variantes
+        return
+    combinaciones = 1
+    for var in cubrir:
+        if not all(var in ns for ns in nss):
+            avisos.append(Aviso(ERROR, 'lectura', f"lectura.cubrir: {var!r} no está en el setup"))
+            continue
+        valores = [ns[var] for ns in nss]
+        if any(isinstance(x, float) or type(x).__name__.startswith('float') for x in valores):
+            avisos.append(Aviso(AVISO, 'lectura',
+                                f"lectura.cubrir: {var!r} toma valores reales; cada sorteo será "
+                                "una combinación nueva (sortea un valor discreto en el setup)"))
+        combinaciones *= len({repr(x) for x in valores})
+    if combinaciones > MAX_COMBINACIONES_LECTURA:
+        avisos.append(Aviso(AVISO, 'lectura',
+                            f"lectura.cubrir: al menos {combinaciones} combinaciones de valores; "
+                            "la vista de lectura se acota a unos 40 ejemplos por pregunta"))
 
 
 # ── Reglas 4 y 6: etiquetas ──────────────────────────────────────────────────
@@ -745,6 +790,7 @@ def lint(problema, instances=None, seed=None):
     if not _regla_estructura(p, avisos, ruta):
         return avisos
     _regla_texto(p, avisos)
+    _regla_lectura(p, avisos)
     _regla_etiquetas(p, avisos)
     _regla_variantes(p, avisos, instances, seed)
     _regla_mundos(p, avisos)

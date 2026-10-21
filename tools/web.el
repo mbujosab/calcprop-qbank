@@ -69,3 +69,4 @@ Con CON-INDICE añade un índice de dos niveles."
 (qbank-web-exporta "GuiaDiseno.org"                "docs/guia.html")   ; ya trae #+TOC
 (qbank-web-exporta "Manual.org"                    "docs/manual.html") ; ya trae #+TOC
 (qbank-web-exporta "Fase5-prueba.org"              "docs/fase5.html")  ; hoja de la Fase 5
+(qbank-web-exporta "src/qbank/plantilla/prompts/PROMPT-qbank-generico.org" "docs/prompt.html" t)

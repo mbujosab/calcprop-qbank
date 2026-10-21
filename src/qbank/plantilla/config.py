@@ -18,6 +18,11 @@ AUX_LATEX_MOODLE = r"""
 LAST_CHOICE_TEXT_AMC    = "Ninguna de las anteriores"
 LAST_CHOICE_TEXT_MOODLE = "Las demás opciones son falsas"
 
+# Vista de lectura (make lectura): usa PREAMBULO_AMC salvo que definas
+# PREAMBULO_LECTURA. EXTRAS_LECTURA: sorteos extra por mundo (con enunciado
+# distinto) en las preguntas con setup que no declaran "lectura": {"cubrir": [...]}.
+EXTRAS_LECTURA = 2
+
 # Vista profe de las preguntas con setup aleatorio: cuántos sorteos se exploran
 # y cuántos casos distintos (mundo × patrón de marcas) se imprimen como máximo.
 N_SORTEOS_PROFE = 150

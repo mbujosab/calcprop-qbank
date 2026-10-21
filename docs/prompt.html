@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prompt genérico: escribir preguntas con qbank con ayuda de una IA</title>
+<meta name="author" content="Marcos Bujosa" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div id="content" class="content">
+<header>
+<h1 class="title">Prompt genérico: escribir preguntas con <code>qbank</code> con ayuda de una IA</h1>
+</header><nav id="table-of-contents" role="doc-toc">
+<h2>&Iacute;ndice</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org17b9b4d">1. Qué leer antes de escribir nada</a></li>
+<li><a href="#org3d675b1">2. Proceso de trabajo</a></li>
+<li><a href="#org5f0dd8f">3. Reglas sin excepción</a></li>
+<li><a href="#orgc777690">4. Inspeccionar una pregunta desde Python</a></li>
+</ul>
+</div>
+</nav>
+<p>
+Instrucciones para un agente de IA («tú», en lo que sigue) que ayuda a
+escribir o revisar preguntas de opción múltiple en un proyecto creado con
+<code>qbank-init</code>. Valen para cualquier asignatura. Este documento <b>no explica
+el motor</b>: remite a la documentación de <code>qbank</code>, que es la fuente de verdad
+y se mantiene al día con el código. Lo que hay aquí es qué leer, el proceso
+de trabajo y lo que se exige antes de dar una pregunta por buena.
+</p>
+<div id="outline-container-org17b9b4d" class="outline-2">
+<h2 id="org17b9b4d"><span class="section-number-2">1.</span> Qué leer antes de escribir nada</h2>
+<div class="outline-text-2" id="text-1">
+<ol class="org-ol">
+<li>El <code>README.org</code> de este proyecto: qué hay en la carpeta, el flujo con
+<code>make</code> y cómo leer el PDF de la vista profe.</li>
+<li>La <i>Guía de diseño</i> (<a href="https://mbujosab.github.io/calcprop-qbank/guia.html">HTML</a>, <a href="https://mbujosab.github.io/calcprop-qbank/GuiaDiseno.pdf">PDF</a>; <code>GuiaDiseno.org</code> si tienes el repositorio
+de <code>qbank</code>): la mecánica de listas y mundos, el patrón de tres huecos
+más la opción por defecto, <code>setup</code>, redacción de cuestiones y de <code>exp</code>,
+trampas de LaTeX/Moodle y el checklist. Léela entera. Su
+<a href="https://mbujosab.github.io/calcprop-qbank/guia.html#vocabulario">Vocabulario</a> fija las palabras que usa todo lo demás (hipótesis,
+mundo, variante, hueco, parte, opción por defecto, vista profe): úsalas
+tú también al hablar con quien dirige el banco.</li>
+<li><code>prompts/PROMPT-proyecto.org</code>: las decisiones de <i>este</i> banco (fuentes,
+nombres, notación, objetivo pedagógico, checklist propio y registro de
+decisiones). Cuando difiera de este documento, manda el del proyecto.</li>
+<li>El <i>Manual</i> (<a href="https://mbujosab.github.io/calcprop-qbank/manual.html">HTML</a>, <a href="https://mbujosab.github.io/calcprop-qbank/Manual.pdf">PDF</a>) solo como referencia: formato JSON, API,
+<code>lint</code> y preguntas frecuentes. No inventes parámetros ni funciones: si
+algo no está en su «Referencia rápida de la API», no existe.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org3d675b1" class="outline-2">
+<h2 id="org3d675b1"><span class="section-number-2">2.</span> Proceso de trabajo</h2>
+<div class="outline-text-2" id="text-2">
+<ol class="org-ol">
+<li><b>Lee el material de origen completo</b> e identifica los resultados que
+merezca la pena evaluar. Cuenta cuántos son: ese es el número de
+preguntas. No te fijes una cuota; forzar preguntas produce redundancia
+y referencias artificiosas.</li>
+<li><b>Diseña antes de escribir</b> y muéstralo: para cada pregunta, el estilo
+elegido (mundos, <code>setup</code> o cuestiones independientes, según la Guía),
+qué <code>Supuesto</code>, qué huecos con qué alternativas, qué <code>semantica</code> y
+<code>precond</code>, y si hace falta <code>setup</code>. Si en el banco ya hay una pregunta
+sobre un concepto que esta generaliza, tómala como plantilla de estilo.</li>
+<li><b>Escribe la pregunta</b> por uno de los dos caminos del <code>README.org</code>: en
+Python (copia de <code>nueva_pregunta.py</code>, que imprime la vista profe y el
+lint y guarda el JSON con <code>--guardar</code>) o directamente en JSON, copiando
+una pregunta existente. Nombre de fichero y campo <code>nombre</code> según
+<code>PROMPT-proyecto.org</code>.</li>
+<li><b>Valida en el entorno real</b>, nunca de memoria: <code>make lint</code> (o
+<code>python -m qbank.lint preguntas/&lt;pregunta&gt;.json --tabla</code>). Un <code>ERROR</code>
+es una pregunta rota: corrígela. Un <code>AVISO</code> hay que leerlo y decidir;
+si lo dejas, explica por qué. Un <code>INFO</code> es información.</li>
+<li><b>Recorre todas las variantes</b>, no la primera: <code>make amc</code> (o, sin
+LaTeX, <code>por_partes_profe()</code> desde Python, abajo). Comprueba los
+enunciados, el número de opciones, las marcas en cada mundo y, con
+<code>setup</code>, varias semillas. Repasa cada <code>exp</code>.</li>
+<li><b>Pasa los dos checklists</b> casilla por casilla: el de la Guía («Proceso
+de trabajo → Checklist») y el de <code>PROMPT-proyecto.org</code>. Si una falla,
+corrige y vuelve al paso 4; no lo dejes para después.</li>
+<li><b>Informa</b>: qué has comprobado, qué dijo <code>lint</code>, qué decisiones has
+tomado y qué dudas quedan. No digas que una pregunta está validada si
+no has ejecutado los pasos 4 y 5.</li>
+<li><b>Registra</b> en <code>PROMPT-proyecto.org</code> toda decisión nueva que afecte a
+más de una pregunta (notación, estilo, criterio), con la fecha.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org5f0dd8f" class="outline-2">
+<h2 id="org5f0dd8f"><span class="section-number-2">3.</span> Reglas sin excepción</h2>
+<div class="outline-text-2" id="text-3">
+<ul class="org-ul">
+<li>Ninguna pregunta se da por buena sin <code>lint</code> limpio de <code>ERROR</code> y sin
+haber revisado su vista profe. Si no puedes ejecutar nada, dilo y
+entrega la pregunta como <i>no validada</i>.</li>
+<li>Cada pregunta es un <code>ProblemaTipo</code> en su propio fichero de <code>preguntas/</code>;
+no uses <code>ProblemaVF</code> ni las clases marcadas como deprecadas en el Manual.</li>
+<li>No toques <code>scripts/</code>, <code>Makefile</code> ni <code>config.py</code> salvo que te lo pidan.</li>
+<li>Si crees que un aviso de <code>lint</code> es un falso positivo, explícalo; no lo
+silencies cambiando la pregunta hasta que calle.</li>
+<li>Al revisar una pregunta existente, no cambies lo que afirma ni su
+dificultad sin decirlo expresamente.</li>
+<li>Lo que no se puede deducir del enunciado no se evalúa: ninguna cuestión
+depende de qué alternativa salió en otro hueco, ningún <code>exp</code> menciona
+mundos, etiquetas de <code>v('…')</code> ni «la opción anterior».</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgc777690" class="outline-2">
+<h2 id="orgc777690"><span class="section-number-2">4.</span> Inspeccionar una pregunta desde Python</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+Con el intérprete que tenga <code>qbank</code> (el entorno activado o la ruta del
+<code>PYTHON</code> del <code>Makefile</code>):
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">from qbank import load_problema, lint, tabla_mundos
+
+p = load_problema("preguntas/L-01-Nombre.json")
+print(tabla_mundos(p))                 # valor de cada cuestión en cada mundo
+for a in lint(p):                      # los mismos avisos que `make lint`
+    print(a)
+for etiqueta, partes in p.por_partes_profe():   # una entrada por mundo
+    for enunciado, cuestiones in partes:        # (con las rechazadas)
+        print(etiqueta, enunciado)
+        for c in cuestiones:
+            print("   ", c)
+</pre>
+</div>
+
+<p>
+<code>por_partes(instances=N, base_seed=S)</code> recorre las variantes tal como las
+verá el alumno. El resto de la API está en la «Referencia rápida» del
+Manual.
+</p>
+</div>
+</div>
+</div>
+</body>
+</html>

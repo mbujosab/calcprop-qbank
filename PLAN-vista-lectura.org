@@ -1,0 +1,142 @@
+#+TITLE: Plan: vista de lectura de las preguntas
+#+DATE: 2026-10-20
+
+Origen: =~/SynologyDrive/ReposGH/Docencia/qbank-PEconometria/ENCARGO-2026-10-20-vista-lectura.md=
+y su prototipo =ENCARGO-2026-10-20-vista-lectura-prototipo.py= (115 líneas,
+en la raíz de qbank-PEconometria). El instructor aprobó el formato del
+prototipo: el enunciado en un recuadro, los encabezados «Hueco 1, 2, 3»,
+V en verde y F en rojo, y la =exp= en gris y cursiva. AMC sigue siendo solo
+para el examen, y no se toca su vista profe.
+
+No hacer commit sin que el instructor lo diga.
+
+* Diseño acordado (pendiente de visto bueno final)
+
+** 1. Datos: un generador nuevo en =CalcPropQuiz.org=
+- =ProblemaTipo.por_partes_lectura(verbose=False)= (el nombre se puede
+  cambiar). Se basa en =_variantes_profe=, pero *sin* =CuestionesJuntas=:
+  así se conservan los huecos, porque cada lista de =Cuestion= de =self.e=
+  es un hueco.
+- Devuelve registros estructurados, por ejemplo con namedtuple:
+  =(etiqueta, ns, partes)=, donde cada parte es =(enunciado, huecos)= y
+  cada hueco es una lista de alternativas
+  =(texto, valor: bool | None, exp, motivo: str | None)=. =motivo= es el
+  texto de rechazo si la precondición la excluye.
+- *No* cambiar la forma de =por_partes_profe=, porque la usan
+  =QuizAMCProfe= y los =gen_amc*.py= de los bancos.
+- Recoger también los mundos descartados porque un =Supuesto= no cumple su
+  precondición, para listarlos en el documento.
+- Ojo: =setup()= se llama una vez por variante, así que cada semilla da un
+  =ns= distinto en cada mundo. Hay que tenerlo en cuenta en la búsqueda.
+- Multiparte: agrupar los huecos de cada parte. El prototipo solo mira
+  =partes[0]=.
+
+** 2. Clave del JSON =lectura= (sin guion bajo: la librería la interpreta)
+- Forma: ="lectura": {"cubrir": ["ctx", "rech", "creciente"]}=. Es un
+  objeto para poder añadir =max_semillas= y otras opciones más adelante.
+- Hay que añadir la clave al cargador/guardado de =_json.py= como clave
+  oficial, no en =_extra=, y al editor de widgets si procede.
+- Búsqueda: para cada mundo, recorrer semillas hasta cubrir todas las
+  combinaciones de =ns[v]= para =v= en =cubrir=, con un tope (unas 400
+  semillas). Las combinaciones que no salgan se dan como INFO, porque
+  pueden ser imposibles por las precondiciones.
+- *Sin la clave*: un ejemplo por mundo con la =seed= del JSON. Los sorteos
+  extra, solo con un parámetro =extras=N= (por defecto 0).
+- Lint: ERROR si una variable de =cubrir= no está en el =ns=. AVISO si
+  toma valores no discretos (float) o demasiadas combinaciones.
+- Las preguntas que usen la clave quizá tengan que definir variables en el
+  =setup= (por ejemplo =rech= y =creciente= en L-15-CobbDouglas, que el
+  prototipo saca del texto con expresiones regulares). Las demás preguntas
+  no cambian.
+
+** 3. Maquetación: =QuizLectura= en =CalcPropExport.org=
+- Firma: =QuizLectura(nombre, directorio, problemas, *, aux_latex="",
+  titulo=None, last_choice=None, extras=0)=. Acepta *una lista* de
+  problemas (un documento por lección) y escribe solo el =.tex= en UTF-8,
+  como los demás =Quiz*=. La compilación queda para el Makefile.
+- El preámbulo del proyecto (=\usepackage[esp]{nacal}= en
+  qbank-PEconometria) llega por =aux_latex=, el mismo mecanismo que AMC y
+  Moodle (=_comun.py= de la plantilla).
+- =last_choice=None= significa leer =export.last_choice= de cada pregunta.
+  Es una excepción documentada a la regla de que las exportaciones no leen
+  =export=, porque en un mismo documento las preguntas difieren.
+- La nota inicial de cada pregunta se calcula: «en cada hueco se sortea
+  una», y «la opción N es "Ninguna de las anteriores"» solo con
+  =last_choice=.
+- Alternativa activa: =\item[V/F] texto= y debajo la =exp= en gris. Si la
+  =exp= interpolada es igual a la anterior del mismo hueco, se escribe «la
+  misma retroalimentación que la anterior».
+- Alternativa excluida: en un gris más claro, con su motivo. En esto
+  manda el encargo; el prototipo las omite.
+- Opcional, de coste bajo: =tabla_mundos= al principio de cada pregunta, y
+  la lista de mundos descartados.
+- Encabezado de cada ejemplo: el mundo y los valores de =cubrir=.
+- Faltan la sanitización de nombres (=:= y =_= → =-=, como el resto) y la
+  conversión de =$$…$$= si hace falta. El =tex_esc= del prototipo es
+  código muerto.
+
+** 4. Plantilla, tests y documentación
+- Plantilla: =scripts/gen_lectura.py= (lee =export=, =lectura= y
+  =--leccion=) y el objetivo =make lectura LECCION== del =Makefile=.
+- Tests: generador (huecos, =ns=, excluidas) en =test_export.py=; el script
+  y la regla de lint en =test_plantilla.py= y =test_lint.py=.
+- Documentación: una sección en =Manual.org=, una línea en =GuiaDiseno.org=
+  (checklist: revisar la vista de lectura) y =CLAUDE.md=.
+- Flujo literate: editar los =.org=, ejecutar =python tools/orgtangle.py
+  write= y después la suite.
+
+** 5. Prueba real
+- Con L-14 (lleva una figura TikZ con ruta absoluta en el =setup=) y L-15
+  de qbank-PEconometria. Comparar con =build/lectura/L-15-lectura.pdf= del
+  prototipo (27 páginas).
+- Filtrar la salida de =pdflatex= (=grep -E '^!|Warning'=); no volcar el
+  log.
+
+** 6. Al terminar
+- Avisar al instructor de la interfaz final, que la sesión de
+  qbank-PEconometria hará =make lectura= con ella.
+- Publicar la versión (0.7.0) cuando lo diga el instructor.
+
+* Modo de trabajo (por el consumo de cuota)
+- Empezar con una sesión limpia y sin subagentes.
+- Leer solo los bloques necesarios de los =.org= (=grep -n= y luego
+  =sed -n=).
+- Filtrar las salidas largas (pytest =-q=, logs de LaTeX).
+
+* Estado (se actualiza al cerrar cada paso)
+- [X] Paso 1 (2026-10-20): =por_partes_lectura(seed=None, verbose=False,
+  descartes=False)= en =CalcPropQuiz.org= (bloques «Registros de la vista
+  de lectura» y «Generador de lectura por huecos»), con namedtuples
+  =Lectura(etiqueta, mundo, ns, partes, descarte)=,
+  =ParteLectura(enunciado, huecos)= y =Alternativa(texto, valor, exp,
+  motivo)=. =mundo= es la tupla de índices de los slots de enunciado.
+- [X] Paso 2 (2026-10-20): =ProblemaTipo(..., lectura=None)= →
+  =p.lectura=; =_json.py= lo carga y guarda como clave oficial;
+  =problema_to_python= emite =lectura==. El editor de widgets ya conservaba
+  las claves desconocidas, no hace falta tocarlo. Falta la regla de lint.
+- [X] Paso 3 (2026-10-20): =QuizLectura(nombre, directorio, problemas, *,
+  aux_latex="", titulo=None, last_choice=None, last_choice_text=…,
+  extras=0, max_semillas=400)= en =CalcPropExport.org= (bloque «Quiz de
+  lectura»), con =_ejemplos_lectura= (busca combinaciones de =cubrir= por
+  semillas; =extras= sin =cubrir=; =faltan= y =descartes=), nombres de
+  mundo compactos («Mundo 2.1» solo con los slots de más de una opción),
+  macros con prefijo =qb=, fecha en español, =tabla_mundos= al principio.
+- [X] Paso 4 (2026-10-20): =scripts/gen_lectura.py= (un documento por
+  lección, =otras-lectura= para las demás, escribe solo si cambia),
+  =make lectura [LECCION=]= con sub-make =lectura-pdf=, =config.EXTRAS_LECTURA=
+  y =PREAMBULO_LECTURA= opcional; lint regla 10 =lectura=; tests en
+  =test_export.py= (4), =test_lint.py= (1) y =test_plantilla.py= (1);
+  Manual (sección nueva + referencia rápida), Guía (paso 4 y checklist),
+  README de la plantilla, CLAUDE.md de qbank y de la plantilla. PDF y
+  =docs/= regenerados. Suite: 170 tests.
+- [X] Paso 5 (2026-10-20): L-14 y L-15 de qbank-PEconometria compilan con
+  =\usepackage[esp]{nacal}= sin errores (38 y 39 páginas, =extras=2=; en
+  el scratchpad de la sesión). Ninguna pregunta de PE declara =lectura=
+  todavía: =L-15-CobbDouglas= tiene =creciente= en el =ns=; para
+  «rechaza» hay que definir la variable en el =setup=. Eso es del lado de
+  PE (encargo, «Lado del repositorio de preguntas»): no se ha tocado.
+- [ ] Paso 6: avisar al instructor de la interfaz final (hecho en el
+  informe de la sesión del 20-10); la sesión de PE añade =make lectura=
+  (puede copiar =gen_lectura.py= y la regla del =Makefile= de la
+  plantilla) y las claves =lectura=. Versión 0.7.0 cuando lo diga el
+  instructor. Nada se ha commiteado.

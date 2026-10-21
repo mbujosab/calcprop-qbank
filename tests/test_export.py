@@ -280,3 +280,81 @@ def test_tex_en_utf8_aunque_el_sistema_no_lo_sea(monkeypatch, exportar, fichero)
         exportar(d, p)
         monkeypatch.undo()
         assert "¿Qu" in (Path(d) / fichero).read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Vista de lectura
+# ---------------------------------------------------------------------------
+
+def test_por_partes_lectura_agrupa_por_hueco(problema_simple):
+    from qbank import Lectura
+    rs = list(problema_simple.por_partes_lectura())
+    assert len(rs) == 2 and all(isinstance(r, Lectura) for r in rs)
+    assert [r.mundo for r in rs] == [(0, 0, 0), (0, 1, 0)]   # solo cambia el slot de Supuesto
+    assert rs[0].ns == {} and rs[0].descarte is None
+    (parte,) = rs[0].partes
+    assert parte.enunciado.startswith("Considere")
+    assert [len(h) for h in parte.huecos] == [2]                # un hueco de dos alternativas
+    assert [a.valor for a in parte.huecos[0]] == [True, False]
+    assert [a.valor for a in rs[1].partes[0].huecos[0]] == [False, True]
+
+
+def test_por_partes_lectura_excluidas_y_descartes():
+    p = ProblemaTipo([
+        [Supuesto("A.", v("A")), Supuesto("B.", v("B"))],
+        Supuesto("", v("C"), precond=v("A")),                  # descarta el mundo B
+        [Cuestion("a", v("A")), Cuestion("solo si A", v("A"), precond=v("A"))],
+    ])
+    rs = list(p.por_partes_lectura(descartes=True))
+    assert [r.descarte is None for r in rs] == [True, False]
+    assert "rechazado por" in rs[1].descarte and rs[1].partes is None
+    assert list(p.por_partes_lectura()) == rs[:1]
+    p2 = ProblemaTipo([[Supuesto("A.", v("A")), Supuesto("B.", v("B"))],
+                       [Cuestion("a", v("A")), Cuestion("solo si A", v("A"), precond=v("A"))]])
+    mundo_b = list(p2.por_partes_lectura())[1]
+    a = mundo_b.partes[0].huecos[0][1]
+    assert a.valor is None and a.motivo.startswith("rechazada por") and a.exp == ""
+
+
+def test_ejemplos_lectura_cubre_las_combinaciones():
+    from qbank._export import _ejemplos_lectura
+    p = ProblemaTipo([
+        "Sea $x=@{a}$ (@{ctx}).", [Supuesto("Crece.", v("C")), Supuesto("Decrece.", -v("C"))],
+        [Cuestion("$f(@{a})>f(0)$", "lambda ns: ns['a'] > 0", exp="Porque @{a}."),
+         Cuestion("$f(@{a})<f(0)$", "lambda ns: ns['a'] < 0", exp="Porque @{a}.")],
+    ], setup="import numpy as np\na = int(np.random.choice([-1, 1]))\nb = np.random.randint(0, 3)\n"
+             "ctx = str(np.random.choice(['casa', 'coche']))",
+       seed=3, lectura={"cubrir": ["a", "b"]})
+    ejemplos, descartes, faltan = _ejemplos_lectura(p, max_semillas=60)
+    assert descartes == [] and faltan == []
+    assert len(ejemplos) == 2 * 2 * 3                           # 2 mundos × a × b
+    assert [k for _, k, _ in ejemplos][:3] == [(("a", "-1"), ("b", "0")), (("a", "-1"), ("b", "1")),
+                                               (("a", "-1"), ("b", "2"))]
+    assert all(r.ns["a"] == int(dict(k)["a"]) for _, k, r in ejemplos)
+    # sin cubrir: un ejemplo por mundo, y con extras uno más por mundo con otro
+    # contexto (las cifras no cuentan como enunciado distinto)
+    p.lectura = {}
+    assert len(_ejemplos_lectura(p)[0]) == 2
+    ex = _ejemplos_lectura(p, extras=1)[0]
+    assert len(ex) == 4 and [k for _, k, _ in ex][1][0][0] == "sorteo"
+    textos = {r.partes[0].enunciado.split("(")[1].split(")")[0] for _, _, r in ex if r.mundo == (0, 0)}
+    assert textos == {"casa", "coche"}
+
+
+def test_quiz_lectura_escribe_un_documento(problema_simple, tmp_path):
+    from qbank import QuizLectura
+    p2 = ProblemaTipo([
+        "Texto.", [Cuestion("misma", "True", exp="E"), Cuestion("otra", "False", exp="E")],
+        Cuestion("y otra", "False", exp="F"), Cuestion("z", "True"),
+    ], nombre="L-01-Dos_partes", export={"last_choice": True})
+    n = QuizLectura("doc", str(tmp_path), [problema_simple, p2], aux_latex="% preambulo del proyecto")
+    assert n == 3
+    tex = (tmp_path / "doc.tex").read_text(encoding="utf-8")
+    assert tex.count("\\section*{") == 2 and "\\section*{L-01-Dos\\_partes}" in tex
+    assert "% preambulo del proyecto" in tex and "\\end{document}" in tex
+    assert "la opción 4 es «Ninguna de las anteriores»" in tex       # 3 huecos + last_choice
+    assert "El alumno ve 1 opción." in tex                            # problema_simple: un hueco, sin last_choice
+    assert tex.count("la misma retroalimentación que la anterior") == 1
+    assert "\\subsection*{Mundo 1}" in tex and "\\subsection*{Mundo único}" in tex
+    assert QuizLectura("uno", str(tmp_path), problema_simple, last_choice=True) == 2
+    assert "la opción 2 es" in (tmp_path / "uno.tex").read_text(encoding="utf-8")   # 1 hueco + opción por defecto

@@ -582,17 +582,34 @@ ya documentados pero no probados:
 La Fase 5 con un compañero real, a ser posible en Windows, es la prueba
 que falta.
 
-** TODO Fase 4 — Prompts reutilizables para quien use una IA
-- [ ] =prompts/PROMPT-qbank-generico.org= corto (≈100 líneas): remite a
-  =GuiaDiseno.org= y al Manual, exige validar con =lint= y
-  =por_partes_profe()=, y describe el proceso de trabajo. No duplica la
-  documentación (se desincronizaría).
-- [ ] =prompts/PROMPT-proyecto-plantilla.org= con huecos: fuentes del
-  contenido, convención de nombres, notación, objetivo pedagógico,
-  checklist propio, registro de decisiones.
-- [ ] Plantilla de =CLAUDE.md= para un banco.
-- [ ] El prompt de PEconometria se reduce a sus decisiones específicas y
-  enlaza a los documentos de qbank.
+** DONE Fase 4 — Prompts reutilizables para quien use una IA
+CLOSED: [2026-10-20]
+Los prompts viven en la plantilla (=src/qbank/plantilla/=), no en una
+carpeta =prompts/= del repositorio: así =qbank-init= los deja en cada banco
+y llegan también con =pip install= (D1). Sin commit todavía.
+- [X] =plantilla/prompts/PROMPT-qbank-generico.org= (99 líneas): qué leer
+  (README del banco, Guía con su Vocabulario, prompt del proyecto, Manual
+  solo como referencia), proceso en 8 pasos, reglas sin excepción para una
+  IA (validar en el entorno real, no inventar API, no tocar scripts,
+  informar) y un bloque para inspeccionar una pregunta desde Python. Se
+  exporta a la web como =docs/prompt.html= (=web.el=) y la portada lo
+  enlaza en el punto 6.
+- [X] =plantilla/prompts/PROMPT-proyecto.org= con huecos =[RELLENAR: …]=:
+  objetivo y alcance, convención de nombres, notación, estilo, checklist
+  propio y registro de decisiones.
+- [X] =plantilla/CLAUDE.md=: punto de entrada del banco (orden de lectura,
+  entorno, estructura, órdenes, reglas resumidas). Ojo: Claude Code puede
+  cargarlo al tocar ficheros de =src/qbank/plantilla/= desde el repo de
+  qbank; el texto dice de qué es.
+- [X] qbank-PEconometria: =PROMPT-generar-preguntas.org= cita la Guía y el
+  Manual por título de sección en vez de «PROMPT-qbank-generico.org §N»,
+  y remite al prompt genérico de la plantilla (ruta del repo de qbank, sin
+  copia); su =CLAUDE.md= y =TUTORIAL-entorno.org= igual. El antiguo
+  =PROMPT-qbank-generico.org= (927 líneas) queda con una nota de archivado
+  al principio; borrarlo es decisión del instructor.
+- Tocados además: README de la plantilla (tabla y «Más documentación»,
+  ahora con la web), =README.org=/=README.md=, =Manual.org= (dos
+  listados), =CLAUDE.md= de qbank, =tests/test_plantilla.py=, =docs/=.
 
 ** TODO Fase 5 — Validar con un usuario nuevo
 Un compañero (o un agente con acceso solo a la documentación pública) monta

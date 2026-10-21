@@ -69,12 +69,22 @@ tuyas y borra este párrafo.
 
 <tr>
 <td class="org-left"><code>Makefile</code></td>
-<td class="org-left"><code>make lint</code>, <code>make tabla</code>, <code>make amc</code>, <code>make amc-student</code>, <code>make moodle</code>, <code>make clean</code>.</td>
+<td class="org-left"><code>make lint</code>, <code>make tabla</code>, <code>make amc</code>, <code>make lectura</code>, <code>make amc-student</code>, <code>make moodle</code>, <code>make clean</code>.</td>
 </tr>
 
 <tr>
 <td class="org-left"><code>build/</code></td>
 <td class="org-left">Todo lo generado (PDF, XML, <code>.tex</code>). No se versiona.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>prompts/</code></td>
+<td class="org-left">Instrucciones para escribir preguntas con ayuda de una IA: <code>PROMPT-qbank-generico.org</code> (proceso y reglas, remite a la Guía y al Manual) y <code>PROMPT-proyecto.org</code> (las decisiones de tu banco, con huecos por rellenar).</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>CLAUDE.md</code></td>
+<td class="org-left">Punto de entrada para Claude Code (u otro agente): remite a <code>prompts/</code> y resume entorno y órdenes. Rellena sus huecos o bórralo si no usas una IA.</td>
 </tr>
 </tbody>
 </table>
@@ -153,7 +163,11 @@ llevan <code>precond</code> sobre los números solo verás los mundos que ese so
 admite; la vista completa es la de <code>make amc</code>).</li>
 <li><b>Revísala en PDF:</b> <code>make amc</code> genera <code>build/amc/&lt;pregunta&gt;.pdf</code>, la vista
 del profesor (cómo leerla, más abajo). Es lo que conviene repasar
-entero antes de dar una pregunta por buena.</li>
+entero antes de dar una pregunta por buena. <code>make lectura</code> genera
+<code>build/lectura/L-NN-lectura.pdf</code>, un documento por lección para <i>leer</i>
+las preguntas: un ejemplo por mundo, las alternativas agrupadas por
+hueco con su V/F y su <code>exp</code> debajo, y las excluidas con su motivo (más
+abajo). Es el que conviene dar a quien las revise.</li>
 <li><b>Exporta:</b>
 <ul class="org-ul">
 <li><code>make amc-student</code> → <code>build/amc-student/&lt;pregunta&gt;.pdf</code> con todas las
@@ -218,6 +232,21 @@ cada uno), y <code>make amc</code> dice cuántos mundos y casos salen. Así ves 
 rama de la pregunta una vez. Con <code>setup</code>, por tanto, aquí «mundo» cuenta
 también los textos sorteados distintos (una pregunta sin <code>Supuesto</code> que
 sortea cuatro tratados da cuatro «mundos»).
+</p>
+
+<p>
+<b>La vista de lectura</b> (<code>make lectura</code>) tiene la misma información con otro
+formato, pensado para leer: cada pregunta empieza con su tabla de mundos y
+una nota con cuántas opciones ve el alumno; cada ejemplo lleva el enunciado
+en un recuadro y, debajo, «Hueco 1, 2, …» con todas sus alternativas (el
+alumno recibe una de cada hueco), V en verde o F en rojo, la <code>exp</code> en gris
+debajo («la misma retroalimentación que la anterior» si se repite) y las
+excluidas por su precondición en gris claro con el motivo. Con <code>setup</code>, una
+pregunta puede pedir ejemplos para todas las combinaciones de valores de
+algunas variables: <code>"lectura": {"cubrir": ["ctx", "rech"]}</code> en su JSON (los
+valores deben ser discretos; <code>lint</code> lo comprueba). Sin esa clave, un
+ejemplo por mundo más <code>config.EXTRAS_LECTURA</code> sorteos con enunciado
+distinto.
 </p>
 
 <p>
@@ -333,6 +362,11 @@ Nivel superior del JSON (o argumentos de <code>ProblemaTipo</code> en Python):
 <td class="org-left"><code>export</code></td>
 <td class="org-left"><code>{"last_choice": true, "cols": 2, "instances": N}</code>; ver abajo.</td>
 </tr>
+
+<tr>
+<td class="org-left"><code>lectura</code></td>
+<td class="org-left">Opcional: <code>{"cubrir": ["var", …]}</code>, variables del <code>setup</code> cuyas combinaciones de valores debe mostrar <code>make lectura</code>.</td>
+</tr>
 </tbody>
 </table>
 
@@ -407,10 +441,12 @@ Campo <code>export</code>:
 <h2 id="org135c64a"><span class="section-number-2">8.</span> Más documentación</h2>
 <div class="outline-text-2" id="text-8">
 <p>
-En el repositorio de <a href="https://github.com/mbujosab/calcprop-qbank">qbank</a>, en este orden: <code>Tutorial.ipynb</code> (ejemplos
-progresivos), <code>GuiaDiseno.org</code> (cómo diseñar buenas preguntas) y <code>Manual.org</code>
-(referencia completa de la API y del formato JSON); la Guía y el Manual
-están también en PDF (<code>GuiaDiseno.pdf</code>, <code>Manual.pdf</code>).
+En la web de <code>qbank</code> (<a href="https://mbujosab.github.io/calcprop-qbank/">mbujosab.github.io/calcprop-qbank</a>) o en su
+<a href="https://github.com/mbujosab/calcprop-qbank">repositorio</a>, en este orden: <code>Tutorial.ipynb</code> (ejemplos progresivos),
+la Guía de diseño (<code>GuiaDiseno.org</code>, cómo diseñar buenas preguntas) y el
+Manual (<code>Manual.org</code>, referencia completa de la API y del formato JSON);
+la Guía y el Manual están también en PDF (<code>GuiaDiseno.pdf</code>, <code>Manual.pdf</code>).
+Si escribes preguntas con ayuda de una IA, empieza por <code>prompts/</code>.
 </p>
 </div>
 </div>

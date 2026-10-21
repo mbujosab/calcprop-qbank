@@ -18,6 +18,7 @@
 import os as _os
 import re as _re
 from qbank._quiz import *
+from qbank._quiz import _normaliza_slot, _clasifica_slot   # no los exporta el *
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -324,6 +325,236 @@ def QuizAMCProfe(nombre, directorio, problema, cols=1, *,
                                      last_choice_text=last_choice_text))
                 count += 1
     return count
+MAX_EJEMPLOS_LECTURA = 40     # ejemplos por pregunta, como mucho
+
+_CIFRAS_RE = _re.compile(r'-?\d+(?:[.,]\d+)?')
+
+
+def _ejemplos_lectura(p, extras=0, max_semillas=400):
+    """Ejemplos de la vista de lectura de un problema.
+
+    Devuelve (ejemplos, descartes, faltan): ejemplos es una lista de
+    (mundo, valores, registro Lectura) ordenada por mundo y valores, donde
+    valores es la tupla de (variable, repr(valor)) de lectura.cubrir;
+    descartes, los textos de los mundos que un Supuesto descarta (con la
+    semilla del problema); faltan, las combinaciones de cubrir que no han
+    aparecido en ningún mundo tras max_semillas semillas."""
+    lectura = p.lectura if isinstance(p.lectura, dict) else {}
+    cubrir  = [v for v in lectura.get('cubrir', []) if isinstance(v, str)]
+    vistos, descartes = {}, []
+    def clave(r):
+        return tuple((v, _valor_lectura(r.ns.get(v))) for v in cubrir)
+    def guarda(r, k):
+        if (r.mundo, k) not in vistos and len(vistos) < MAX_EJEMPLOS_LECTURA:
+            vistos[(r.mundo, k)] = r
+            return True
+        return False
+    for r in p.por_partes_lectura(descartes=True):
+        if r.descarte is not None:
+            if r.descarte not in descartes:
+                descartes.append(r.descarte)
+        else:
+            guarda(r, clave(r))
+    if p.setup is not None and cubrir:
+        base = p.seed if p.seed is not None else 0
+        for semilla in range(base + 1, base + max_semillas):
+            for r in p.por_partes_lectura(seed=semilla):
+                guarda(r, clave(r))
+    elif p.setup is not None and extras:
+        base = p.seed if p.seed is not None else 0
+        enunciados = {(r.mundo, tuple(_CIFRAS_RE.sub('#', pa.enunciado) for pa in r.partes))
+                      for r in vistos.values()}
+        cuantos = {m: 0 for m, _ in vistos}
+        for semilla in range(base + 1, base + max_semillas):
+            if all(n >= extras for n in cuantos.values()):
+                break
+            for r in p.por_partes_lectura(seed=semilla):
+                e = (r.mundo, tuple(_CIFRAS_RE.sub('#', pa.enunciado) for pa in r.partes))
+                if e in enunciados or cuantos.get(r.mundo, 0) >= extras:
+                    continue
+                enunciados.add(e)
+                if guarda(r, (('sorteo', semilla),)):
+                    cuantos[r.mundo] = cuantos.get(r.mundo, 0) + 1
+    ejemplos = sorted(((m, k, r) for (m, k), r in vistos.items()),
+                      key=lambda x: (x[0], tuple(_orden_lectura(val) for _, val in x[1])))
+    faltan = []
+    if cubrir:
+        import itertools as _it
+        mundos = {m for m, _ in vistos}
+        valores = {v: sorted({dict(k)[v] for _, k in vistos}) for v in cubrir}
+        for m in sorted(mundos):
+            for combo in _it.product(*(valores[v] for v in cubrir)):
+                k = tuple(zip(cubrir, combo))
+                if (m, k) not in vistos:
+                    faltan.append((m, k))
+    return ejemplos, descartes, faltan
+
+
+def _valor_lectura(x):
+    """Valor de una variable del setup tal como se muestra y se compara:
+    los escalares (también los de numpy) por su str(); el resto por repr()."""
+    if isinstance(x, (str, bool)) or x is None:
+        return str(x)
+    try:
+        return str(x.item()) if hasattr(x, 'item') else str(x)
+    except Exception:                                        # noqa: BLE001
+        return repr(x)
+
+
+def _orden_lectura(x):
+    """Clave de ordenación: numérica si el valor lo es, alfabética si no."""
+    try:
+        return (0, float(str(x).replace(',', '.')), '')
+    except ValueError:
+        return (1, 0.0, str(x))
+
+
+def _tex_lectura_escapa(s):
+    """Escapa en texto LaTeX los caracteres de un valor del setup."""
+    return (str(s).replace('\\', r'\textbackslash{}').replace('_', r'\_').replace('%', r'\%')
+            .replace('&', r'\&').replace('#', r'\#').replace('$', r'\$').replace('{', r'\{')
+            .replace('}', r'\}').replace('~', r'\textasciitilde{}').replace('^', r'\^{}'))
+
+
+def _fecha_lectura():
+    import datetime as _dt
+    hoy = _dt.date.today()
+    meses = ('enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
+             'septiembre', 'octubre', 'noviembre', 'diciembre')
+    return f'{hoy.day} de {meses[hoy.month - 1]} de {hoy.year}'
+
+
+def _tex_lectura_cabecera(titulo, aux_latex):
+    return (
+        '\\documentclass[11pt,a4paper]{article}\n'
+        '\\usepackage[utf8]{inputenc}\n'
+        '\\usepackage[T1]{fontenc}\n'
+        '\\usepackage{amsmath,amssymb}\n'
+        '\\usepackage[margin=2.2cm]{geometry}\n'
+        '\\usepackage{xcolor,enumitem,graphicx}\n'
+        + aux_latex.strip() + '\n'
+        '\\definecolor{qbverde}{rgb}{0,0.5,0}\\definecolor{qbrojo}{rgb}{0.75,0,0}\n'
+        '\\newcommand{\\qbV}{\\textbf{\\textcolor{qbverde}{V}}}\n'
+        '\\newcommand{\\qbF}{\\textbf{\\textcolor{qbrojo}{F}}}\n'
+        '\\newcommand{\\qbX}{\\textcolor{black!40}{--}}\n'
+        '\\newcommand{\\qbExp}[1]{\\par\\vspace{1pt}{\\small\\color{black!65}\\emph{#1}}\\par}\n'
+        '\\newcommand{\\qbRecuadro}[1]{\\noindent\\fbox{\\parbox{\\dimexpr\\linewidth-2\\fboxsep-2\\fboxrule}{#1}}}\n'
+        '\\setlength{\\parindent}{0pt}\\setlength{\\parskip}{4pt}\n'
+        '\\title{' + titulo + '}\\date{' + _fecha_lectura() + '}\n'
+        '\\begin{document}\\maketitle\n'
+        'Un ejemplo por cada mundo de cada pregunta (y, si la pregunta lo pide, por cada '
+        'combinación de valores de su \\texttt{setup}). En cada hueco el alumno recibe '
+        '\\emph{una} de las alternativas listadas. \\qbV/\\qbF{} es el valor de verdad en ese '
+        'ejemplo; debajo, en gris, la retroalimentación. Las alternativas que la precondición '
+        'excluye en ese mundo van en gris claro, con su motivo.\n\n')
+
+
+def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, last_choice_text):
+    from qbank._lint import tabla_mundos
+    L = ['\\clearpage\\section*{' + _tex_lectura_escapa(nombre) + '}\n']
+    if ejemplos:
+        n_huecos = [len(pa.huecos) for pa in ejemplos[0][2].partes]
+        opciones = [n + (1 if last_choice else 0) for n in n_huecos]
+        def plural(o):
+            return f'{o} opción' if o == 1 else f'{o} opciones'
+        if len(opciones) == 1:
+            nota = 'El alumno ve ' + plural(opciones[0])
+        else:
+            nota = 'El alumno ve ' + ', '.join(f'{plural(o)} en la parte {k + 1}'
+                                               for k, o in enumerate(opciones))
+        if last_choice:
+            nota += ('; la última' if len(opciones) > 1 or opciones[0] != n_huecos[0] + 1
+                     else f'; la opción {opciones[0]}') + \
+                    ' es «' + last_choice_text + '», correcta solo si las demás son falsas'
+        L.append(nota + '.\n\n')
+    try:
+        L.append('{\\footnotesize\\begin{verbatim}\n' + tabla_mundos(p) + '\n\\end{verbatim}}\n')
+    except Exception as e:                                   # noqa: BLE001
+        L.append('{\\small\\color{black!65}(sin tabla de mundos: ' + _tex_lectura_escapa(e) + ')}\n\n')
+    # Solo los slots de enunciado con más de una opción identifican el mundo.
+    multi = [j for j, x in enumerate(x for x in p.e
+                                     if _clasifica_slot(_normaliza_slot(x)) != 'cuestiones')
+             if len(_normaliza_slot(x)) > 1]
+    def nombre_mundo(mundo):
+        return ('Mundo ' + '.'.join(str(mundo[j] + 1) for j in multi)) if multi else 'Mundo único'
+    for mundo, valores, r in ejemplos:
+        cab = nombre_mundo(mundo)
+        if valores:
+            cab += ' · ' + ' · '.join(f'{_tex_lectura_escapa(v)} = {_tex_lectura_escapa(x)}'
+                                      for v, x in valores)
+        L.append('\\subsection*{' + cab + '}\n')
+        h = 0
+        for k, pa in enumerate(r.partes):
+            if pa.enunciado.strip():
+                L.append('\\qbRecuadro{' + pa.enunciado.strip() + '}\\par\\medskip\n')
+            for hueco in pa.huecos:
+                h += 1
+                L.append('\\par\\textbf{Hueco ' + str(h) + '}\\begin{itemize}[leftmargin=2.2em,itemsep=3pt]\n')
+                prev = None
+                for a in hueco:
+                    if a.valor is None:
+                        L.append('\\item[\\qbX] {\\color{black!40} ' + a.texto + ' --- '
+                                 + _tex_lectura_escapa(a.motivo) + '}\n')
+                        continue
+                    exp = ('la misma retroalimentación que la anterior'
+                           if a.exp and a.exp == prev else a.exp)
+                    L.append('\\item[' + ('\\qbV' if a.valor else '\\qbF') + '] ' + a.texto
+                             + ('\\qbExp{' + exp + '}' if exp else '') + '\n')
+                    prev = a.exp
+                L.append('\\end{itemize}\n')
+    if descartes:
+        L.append('\\par{\\small\\color{black!65}Mundos descartados: '
+                 + '; '.join(_tex_lectura_escapa(d) for d in descartes) + '.}\n')
+    if faltan:
+        L.append('\\par{\\small\\color{black!65}Combinaciones no encontradas: '
+                 + '; '.join(nombre_mundo(m) + ' con '
+                             + ', '.join(f'{_tex_lectura_escapa(v)} = {_tex_lectura_escapa(x)}'
+                                         for v, x in k) for m, k in faltan) + '.}\n')
+    if not ejemplos:
+        L.append('{\\color{qbrojo}Sin ninguna variante válida.}\n')
+    return ''.join(L)
+
+
+def QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
+                last_choice=None, last_choice_text="Ninguna de las anteriores",
+                extras=0, max_semillas=400):
+    """Vista de lectura: escribe directorio/nombre.tex, un documento LaTeX
+    completo con, por cada pregunta, un ejemplo por mundo (y por combinación
+    de valores de lectura.cubrir), las alternativas por hueco con V/F y su
+    exp, y las excluidas por precondición con su motivo.
+
+    problemas        : ProblemaTipo, lista de ProblemaTipo (nombre = _nombre)
+                       o dict {nombre: ProblemaTipo}
+    aux_latex        : preámbulo del proyecto (macros, babel), como en AMC/Moodle
+    titulo           : título del documento (por defecto, nombre)
+    last_choice      : None lee export.last_choice de cada pregunta; True/False
+                       lo fija para todas (solo afecta a la nota inicial)
+    last_choice_text : texto de la opción por defecto en esa nota
+    extras           : sin lectura.cubrir, sorteos extra por mundo con enunciado
+                       distinto (solo con setup)
+    max_semillas     : semillas que se recorren buscando combinaciones
+
+    Devuelve el número de ejemplos escritos."""
+    if isinstance(problemas, dict):
+        pares = list(problemas.items())
+    elif isinstance(problemas, (list, tuple)):
+        pares = [(getattr(p, '_nombre', '') or f'pregunta{i + 1}', p) for i, p in enumerate(problemas)]
+    else:
+        pares = [(nombre, problemas)]
+    total = 0
+    partes = [_tex_lectura_cabecera(titulo if titulo is not None else _tex_lectura_escapa(nombre),
+                                    aux_latex)]
+    for nom, p in pares:
+        ejemplos, descartes, faltan = _ejemplos_lectura(p, extras=extras, max_semillas=max_semillas)
+        lc = (p.export.get('last_choice', False) if isinstance(p.export, dict) else False) \
+             if last_choice is None else last_choice
+        partes.append(_tex_lectura_pregunta(nom, p, ejemplos, descartes, faltan, lc, last_choice_text))
+        total += len(ejemplos)
+    partes.append('\\end{document}\n')
+    with open(_os.path.join(directorio, nombre + '.tex'), 'w', encoding='utf-8') as f:
+        f.write(''.join(partes))
+    return total
+
 
 def QuizVFMoodle(nombre, directorio, GenVar, num, opc=None):
     if opc is None:

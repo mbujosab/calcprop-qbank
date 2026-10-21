@@ -62,9 +62,10 @@ make amc           # PDF de revisión (vista profe) en build/amc/
 
 El proyecto contiene cinco preguntas de ejemplo en `preguntas/`, los
 scripts que las exportan a AMC y Moodle, un `Makefile` (`lint`, `tabla`,
-`amc`, `amc-student`, `moodle`, `clean`, filtro `LECCION=N`) y
+`amc`, `amc-student`, `moodle`, `clean`, filtro `LECCION=N`),
 `nueva_pregunta.py`, un guion para escribir una pregunta en Python y
-guardarla como JSON. Su `README.org` explica el flujo.
+guardarla como JSON, y en `prompts/` las instrucciones para escribir
+preguntas con ayuda de una IA. Su `README.org` explica el flujo.
 
 `make` usa el intérprete `python3` del sistema. Si instalaste qbank en
 un entorno virtual, actívalo antes (`source .venv/bin/activate`) o

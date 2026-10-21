@@ -204,8 +204,9 @@ make amc           # PDF de revisión (vista profe) en build/amc/
 #+end_src
 
 El proyecto contiene cinco preguntas de ejemplo, los scripts que las exportan, un
-=Makefile= y =nueva_pregunta.py=, un guion para escribir una pregunta en Python y
-guardarla como JSON. Su =README.org= explica el flujo completo. El resto de este
+=Makefile=, =nueva_pregunta.py= (un guion para escribir una pregunta en Python y
+guardarla como JSON) y, en =prompts/=, instrucciones para escribir preguntas con
+ayuda de una IA. Su =README.org= explica el flujo completo. El resto de este
 manual describe las piezas que esos scripts usan.
 
 * Conceptos fundamentales
@@ -1010,6 +1011,69 @@ with open("ejemplosManual/exportaciones/superheroes_amc.tex", "w") as f:       #
         f.write(AMC_multipart("Superheroes", etiqueta, "", partes, last_choice=True))
 #+end_src
 
+* La vista de lectura (=QuizLectura=)
+
+La /vista de lectura/ es un documento LaTeX completo pensado para que el
+profesor (o un revisor) *lea y opine* sobre las preguntas, distinto del
+catálogo AMC, que se queda para el examen. Para cada pregunta contiene su
+tabla de mundos, una nota con cuántas opciones ve el alumno y cuál es la
+opción por defecto, y una serie de ejemplos: el enunciado en un recuadro y,
+debajo, las alternativas agrupadas por hueco («Hueco 1, 2, …»; el alumno
+recibe una de cada hueco), cada una marcada V (verde) o F (rojo) con su =exp=
+ya interpolada debajo, en gris («la misma retroalimentación que la anterior»
+si se repite), y las que la precondición excluye en ese mundo en gris claro
+con su motivo. Al final de la pregunta se listan los mundos que un =Supuesto=
+descarta.
+
+#+begin_src python :eval no
+QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
+            last_choice=None, last_choice_text="Ninguna de las anteriores",
+            extras=0, max_semillas=400)                 # → número de ejemplos
+#+end_src
+
+- =problemas= es un =ProblemaTipo=, una *lista* de ellos (un documento por
+  lección es el uso previsto; el nombre de cada uno es su =nombre=) o un
+  diccionario ={nombre: ProblemaTipo}=. Escribe solo =directorio/nombre.tex=
+  (UTF-8); compilarlo con =pdflatex= es cosa del =Makefile= (=make lectura=
+  en la plantilla).
+- =aux_latex= es el preámbulo del proyecto (macros, =babel=), como en AMC y
+  Moodle; el documento carga por su cuenta =inputenc=, =fontenc=,
+  =amsmath=, =amssymb=, =geometry=, =xcolor=, =enumitem= y =graphicx=.
+- =last_choice=None= lee =export.last_choice= de cada pregunta (una
+  excepción a la regla de que los exportadores no leen =export=, porque
+  en un mismo documento las preguntas difieren); solo afecta a la nota
+  inicial.
+
+Qué ejemplos salen:
+
+- Sin =setup=: uno por mundo (cada combinación de =Supuesto= y textos
+  alternativos).
+- Con =setup= y sin más indicación: uno por mundo con la =seed= de la
+  pregunta, más =extras= sorteos por mundo cuyo enunciado (sin cifras) sea
+  distinto de los ya vistos.
+- Con la clave =lectura= en el JSON (o el argumento =lectura= de
+  =ProblemaTipo=), ="lectura": {"cubrir": ["ctx", "rech"]}=: en cada mundo,
+  un ejemplo por cada combinación de valores de esas variables del
+  =setup=, buscada recorriendo hasta =max_semillas= semillas. Las
+  combinaciones del producto de los valores vistos que no aparezcan se
+  listan al final como /no encontradas/ (una =precond= puede hacerlas
+  imposibles). Los valores deben ser discretos; =lint= avisa si son
+  reales o si hay demasiadas combinaciones, y da ERROR si una variable no
+  existe en el =setup=. Si la variable que interesa no existe como tal
+  (por ejemplo, «rechaza» se deduce de un =p=-valor), basta definirla en el
+  =setup=: =rech = p < 0.05=.
+
+Los datos salen de =ProblemaTipo.por_partes_lectura(seed=None,
+verbose=False, descartes=False)=, que es como =por_partes_profe()= pero
+conserva los huecos y el espacio de nombres del =setup=: produce registros
+=Lectura(etiqueta, mundo, ns, partes, descarte)=, donde =mundo= es la tupla
+de índices elegidos en los slots de enunciado, cada parte es
+=ParteLectura(enunciado, huecos)= y cada alternativa
+=Alternativa(texto, valor, exp, motivo)= (=valor= es =None=, con =motivo=,
+si la precondición la excluye). Con =descartes=True= emite también los
+mundos descartados por un =Supuesto= (=partes=None=, =descarte= con el
+motivo).
+
 * Comprobación automática de preguntas (=lint=)
 
 Antes de exportar conviene comprobar que la pregunta está bien construida. =lint=
@@ -1152,6 +1216,17 @@ QuizVFMoodle    (nombre, directorio, GenVar, num, opc=None)                     
 codchar(s)      vocales acentuadas minúsculas y ñ → secuencias LaTeX (lo aplican las funciones Moodle)
 #+end_example
 
+** Vista de lectura
+
+#+begin_example
+QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
+            last_choice=None, last_choice_text="Ninguna de las anteriores",
+            extras=0, max_semillas=400)                                    → int (ejemplos)
+ProblemaTipo.por_partes_lectura(seed=None, verbose=False, descartes=False)
+    # → Lectura(etiqueta, mundo, ns, partes, descarte); ParteLectura(enunciado, huecos);
+    #   Alternativa(texto, valor, exp, motivo)
+#+end_example
+
 ** Comprobación automática
 
 #+begin_example
@@ -1166,7 +1241,7 @@ python -m qbank.lint FICHEROS.json [--instances N] [--seed S] [--tabla] [--quiet
 
 #+begin_example
 qbank-init DIR [--forzar]        copia la plantilla (preguntas/, scripts/, Makefile, config.py,
-                                 nueva_pregunta.py, README.org) en DIR; equivale a
+                                 nueva_pregunta.py, README.org, prompts/, CLAUDE.md) en DIR; equivale a
                                  python -m qbank._plantilla DIR
 #+end_example
 

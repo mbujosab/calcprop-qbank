@@ -25,7 +25,8 @@ src/qbank/
   _lint.py      — lint, tabla_mundos, Aviso; lint.py es el shim de `python -m qbank.lint`
   _plantilla.py — qbank-init: copia plantilla/ (proyecto de banco) a un directorio
   plantilla/    — datos del paquete: preguntas/ de ejemplo, scripts/, Makefile,
-                  config.py, nueva_pregunta.py, README.org (ver tests/test_plantilla.py)
+                  config.py, nueva_pregunta.py, README.org, CLAUDE.md (el del banco,
+                  no este) y prompts/ (Fase 4: prompts para una IA) (ver tests/test_plantilla.py)
 ```
 
 ## Fuentes de verdad y ficheros generados
@@ -130,8 +131,8 @@ p = ProblemaTipo([s, [s1, s2], [c1, c2]], setup=None, export=None, seed=None, no
 `src/qbank/plantilla/` a `DIR`: `preguntas/*.json`, `scripts/gen_amc.py`,
 `gen_amc_student.py`, `gen_moodle.py`, `_comun.py` (filtro `--leccion`,
 escritura solo-si-cambia, preámbulo AMC), `fix_moodle_xml.py`,
-`merge_moodle_xml.py`, `Makefile` (`lint`, `tabla PREGUNTA=`, `amc`,
-`amc-student`, `moodle`, `all`, `clean`, `LECCION=`; `PYTHON=` para el
+`merge_moodle_xml.py`, `gen_lectura.py`, `Makefile` (`lint`, `tabla PREGUNTA=`, `amc`,
+`amc-student`, `moodle`, `lectura`, `all`, `clean`, `LECCION=`; `PYTHON=` para el
 intérprete), `config.py`, `nueva_pregunta.py`, `README.org`. Los scripts leen `export` de cada JSON.
 `tests/test_plantilla.py` ejecuta los scripts sobre las preguntas de ejemplo
 (sin compilar LaTeX); las preguntas de ejemplo deben pasar `lint` sin AVISO.
@@ -235,6 +236,30 @@ QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="",
   `export.cols` la mostrará a una columna aunque la vista alumno use dos.
 - La vista alumno AMC pone todas las variantes en un `examcopy`; por encima
   de ~300 `pdflatex` puede agotar la memoria (el lint lo informa).
+
+### Vista de lectura
+
+```python
+QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
+            last_choice=None, last_choice_text="Ninguna de las anteriores",
+            extras=0, max_semillas=400)        # escribe directorio/nombre.tex; -> nº ejemplos
+for r in p.por_partes_lectura(seed=None, verbose=False, descartes=False):
+    r.etiqueta, r.mundo, r.ns, r.partes, r.descarte      # Lectura; partes: ParteLectura(enunciado, huecos)
+```
+
+- Documento completo para *leer* las preguntas (no para el examen): tabla
+  de mundos, un ejemplo por mundo (y por combinación de valores de
+  `lectura.cubrir` con `setup`), alternativas por hueco con V/F y `exp`,
+  excluidas en gris con motivo, mundos descartados. `problemas` admite
+  lista (un documento por lección) o dict; `last_choice=None` lee
+  `export.last_choice` de cada pregunta (excepción documentada).
+- Clave JSON oficial `lectura` (`{"cubrir": [...]}`) → `p.lectura`;
+  `ProblemaTipo(..., lectura=)`, `save_problema` y `problema_to_python` la
+  conservan. `lint` regla 10 (`lectura`): var ausente del `setup` o
+  `cubrir` sin `setup` ERROR; valores reales o > 24 combinaciones AVISO.
+- Plantilla: `scripts/gen_lectura.py` y `make lectura [LECCION=N]` →
+  `build/lectura/L-NN-lectura.pdf` (preámbulo `config.PREAMBULO_AMC` o
+  `PREAMBULO_LECTURA`; `config.EXTRAS_LECTURA` sorteos extra sin `cubrir`).
 
 ### Comprobación automática (`lint`)
 

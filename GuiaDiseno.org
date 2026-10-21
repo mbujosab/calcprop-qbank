@@ -793,8 +793,10 @@ detecta Moodle, que es más caro.
 4. Genera la vista profe (=make amc=) y repasa *todas* sus entradas, no
    la primera: enunciados bien formados, número de opciones esperado,
    marcas correctas en cada mundo, varias semillas si hay =setup=. La
-   vista profe imprime cada =exp= en cursiva junto a su cuestión: es el
-   sitio para revisarlas (el PDF de =make moodle= también las muestra).
+   vista profe imprime cada =exp= en cursiva junto a su cuestión. Para
+   leer con calma, =make lectura= produce un documento por lección con un
+   ejemplo por mundo, las alternativas agrupadas por hueco con su V/F y
+   su =exp=, y las excluidas con su motivo: es el formato para el paso 7.
 5. Pasa el checklist de abajo cuestión por cuestión.
 6. Si algo falla, corrige y vuelve al paso 3; no lo dejes para después.
 7. Antes de publicar, que la lea *otra persona* sin el contexto de quien la
@@ -832,8 +834,8 @@ detecta Moodle, que es más caro.
   claramente falsa en los otros, sin «depende»? ¿La hipótesis del
   =Supuesto= basta para decidirla, sin suponer conocimientos que no están
   en el enunciado?
-- [ ] ¿Has repasado todas las entradas de la vista profe y, con =setup=,
-  varias semillas?
+- [ ] ¿Has repasado todas las entradas de la vista profe (o de la vista de
+  lectura) y, con =setup=, varias semillas?
 
 Si alguna casilla falla, la pregunta no está lista.
 

@@ -1,0 +1,99 @@
+#+TITLE: Prompt genérico: escribir preguntas con =qbank= con ayuda de una IA
+#+LANGUAGE: es
+
+Instrucciones para un agente de IA («tú», en lo que sigue) que ayuda a
+escribir o revisar preguntas de opción múltiple en un proyecto creado con
+=qbank-init=. Valen para cualquier asignatura. Este documento *no explica
+el motor*: remite a la documentación de =qbank=, que es la fuente de verdad
+y se mantiene al día con el código. Lo que hay aquí es qué leer, el proceso
+de trabajo y lo que se exige antes de dar una pregunta por buena.
+
+* Qué leer antes de escribir nada
+
+1. El =README.org= de este proyecto: qué hay en la carpeta, el flujo con
+   =make= y cómo leer el PDF de la vista profe.
+2. La /Guía de diseño/ ([[https://mbujosab.github.io/calcprop-qbank/guia.html][HTML]], [[https://mbujosab.github.io/calcprop-qbank/GuiaDiseno.pdf][PDF]]; =GuiaDiseno.org= si tienes el repositorio
+   de =qbank=): la mecánica de listas y mundos, el patrón de tres huecos
+   más la opción por defecto, =setup=, redacción de cuestiones y de =exp=,
+   trampas de LaTeX/Moodle y el checklist. Léela entera. Su
+   [[https://mbujosab.github.io/calcprop-qbank/guia.html#vocabulario][Vocabulario]] fija las palabras que usa todo lo demás (hipótesis,
+   mundo, variante, hueco, parte, opción por defecto, vista profe): úsalas
+   tú también al hablar con quien dirige el banco.
+3. =prompts/PROMPT-proyecto.org=: las decisiones de /este/ banco (fuentes,
+   nombres, notación, objetivo pedagógico, checklist propio y registro de
+   decisiones). Cuando difiera de este documento, manda el del proyecto.
+4. El /Manual/ ([[https://mbujosab.github.io/calcprop-qbank/manual.html][HTML]], [[https://mbujosab.github.io/calcprop-qbank/Manual.pdf][PDF]]) solo como referencia: formato JSON, API,
+   =lint= y preguntas frecuentes. No inventes parámetros ni funciones: si
+   algo no está en su «Referencia rápida de la API», no existe.
+
+* Proceso de trabajo
+
+1. *Lee el material de origen completo* e identifica los resultados que
+   merezca la pena evaluar. Cuenta cuántos son: ese es el número de
+   preguntas. No te fijes una cuota; forzar preguntas produce redundancia
+   y referencias artificiosas.
+2. *Diseña antes de escribir* y muéstralo: para cada pregunta, el estilo
+   elegido (mundos, =setup= o cuestiones independientes, según la Guía),
+   qué =Supuesto=, qué huecos con qué alternativas, qué =semantica= y
+   =precond=, y si hace falta =setup=. Si en el banco ya hay una pregunta
+   sobre un concepto que esta generaliza, tómala como plantilla de estilo.
+3. *Escribe la pregunta* por uno de los dos caminos del =README.org=: en
+   Python (copia de =nueva_pregunta.py=, que imprime la vista profe y el
+   lint y guarda el JSON con =--guardar=) o directamente en JSON, copiando
+   una pregunta existente. Nombre de fichero y campo =nombre= según
+   =PROMPT-proyecto.org=.
+4. *Valida en el entorno real*, nunca de memoria: =make lint= (o
+   =python -m qbank.lint preguntas/<pregunta>.json --tabla=). Un =ERROR=
+   es una pregunta rota: corrígela. Un =AVISO= hay que leerlo y decidir;
+   si lo dejas, explica por qué. Un =INFO= es información.
+5. *Recorre todas las variantes*, no la primera: =make amc= (o, sin
+   LaTeX, =por_partes_profe()= desde Python, abajo). Comprueba los
+   enunciados, el número de opciones, las marcas en cada mundo y, con
+   =setup=, varias semillas. Repasa cada =exp=.
+6. *Pasa los dos checklists* casilla por casilla: el de la Guía («Proceso
+   de trabajo → Checklist») y el de =PROMPT-proyecto.org=. Si una falla,
+   corrige y vuelve al paso 4; no lo dejes para después.
+7. *Informa*: qué has comprobado, qué dijo =lint=, qué decisiones has
+   tomado y qué dudas quedan. No digas que una pregunta está validada si
+   no has ejecutado los pasos 4 y 5.
+8. *Registra* en =PROMPT-proyecto.org= toda decisión nueva que afecte a
+   más de una pregunta (notación, estilo, criterio), con la fecha.
+
+* Reglas sin excepción
+
+- Ninguna pregunta se da por buena sin =lint= limpio de =ERROR= y sin
+  haber revisado su vista profe. Si no puedes ejecutar nada, dilo y
+  entrega la pregunta como /no validada/.
+- Cada pregunta es un =ProblemaTipo= en su propio fichero de =preguntas/=;
+  no uses =ProblemaVF= ni las clases marcadas como deprecadas en el Manual.
+- No toques =scripts/=, =Makefile= ni =config.py= salvo que te lo pidan.
+- Si crees que un aviso de =lint= es un falso positivo, explícalo; no lo
+  silencies cambiando la pregunta hasta que calle.
+- Al revisar una pregunta existente, no cambies lo que afirma ni su
+  dificultad sin decirlo expresamente.
+- Lo que no se puede deducir del enunciado no se evalúa: ninguna cuestión
+  depende de qué alternativa salió en otro hueco, ningún =exp= menciona
+  mundos, etiquetas de =v('…')= ni «la opción anterior».
+
+* Inspeccionar una pregunta desde Python
+
+Con el intérprete que tenga =qbank= (el entorno activado o la ruta del
+=PYTHON= del =Makefile=):
+
+#+begin_src python
+from qbank import load_problema, lint, tabla_mundos
+
+p = load_problema("preguntas/L-01-Nombre.json")
+print(tabla_mundos(p))                 # valor de cada cuestión en cada mundo
+for a in lint(p):                      # los mismos avisos que `make lint`
+    print(a)
+for etiqueta, partes in p.por_partes_profe():   # una entrada por mundo
+    for enunciado, cuestiones in partes:        # (con las rechazadas)
+        print(etiqueta, enunciado)
+        for c in cuestiones:
+            print("   ", c)
+#+end_src
+
+=por_partes(instances=N, base_seed=S)= recorre las variantes tal como las
+verá el alumno. El resto de la API está en la «Referencia rápida» del
+Manual.

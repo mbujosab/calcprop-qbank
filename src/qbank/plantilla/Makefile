@@ -4,10 +4,12 @@
 #   make tabla PREGUNTA=L-01-Nombre — lint de una pregunta con su tabla de mundos
 #                       (con o sin .json)
 #   make amc          — build/amc/<pregunta>.pdf: vista profe (todas las cuestiones con marcas)
+#   make lectura      — build/lectura/<leccion>-lectura.pdf: vista de lectura, un documento
+#                       por lección (ejemplos por mundo, alternativas por hueco con V/F y exp)
 #   make amc-student  — build/amc-student/<pregunta>.pdf: vista alumno (variantes)
 #   make moodle       — build/moodle/<pregunta>-moodle.xml (+ PDF de revisión) y
 #                       build/moodle/_banco.xml con todas, para importar en Moodle
-#   make all          — los tres (por defecto)
+#   make all          — amc, amc-student y moodle (por defecto; lectura va aparte)
 #   make clean        — borra build/
 #
 # LECCION limita cualquier objetivo a las preguntas L-NN-* de esas lecciones:
@@ -25,7 +27,7 @@ LATEX_AMC    ?= pdflatex -interaction=nonstopmode
 LATEX_MOODLE ?= pdflatex -interaction=nonstopmode -halt-on-error
 NOMBRES      := $(shell $(PYTHON) scripts/_comun.py --leccion "$(LECCION)")
 
-.PHONY: all comprueba lint lint-previo tabla amc amc-student moodle clean
+.PHONY: all comprueba lint lint-previo tabla amc amc-student moodle lectura lectura-pdf clean
 
 all: amc amc-student moodle
 
@@ -68,6 +70,14 @@ amc-student: lint-previo
 	$(PYTHON) scripts/gen_amc_student.py --leccion "$(LECCION)"
 	@test -z "$(NOMBRES)" || $(MAKE) --no-print-directory $(addprefix build/amc-student/,$(addsuffix .pdf,$(NOMBRES)))
 
+# Lectura: la lista de documentos (uno por lección) solo se conoce tras
+# ejecutar el script, de ahí el sub-make con wildcard.
+lectura: lint-previo
+	$(PYTHON) scripts/gen_lectura.py --leccion "$(LECCION)"
+	@$(MAKE) --no-print-directory lectura-pdf
+
+lectura-pdf: $(patsubst %.tex,%.pdf,$(wildcard build/lectura/*-lectura.tex))
+
 moodle: lint-previo
 	$(PYTHON) scripts/gen_moodle.py --leccion "$(LECCION)"
 	@test -z "$(NOMBRES)" || $(MAKE) --no-print-directory $(addprefix build/moodle/,$(addsuffix -moodle.xml,$(NOMBRES)))
@@ -91,6 +101,12 @@ build/amc-student/%.pdf: build/amc-student/%-doc.tex build/amc-student/%.tex
 	@cd build/amc-student && rm -f $*.pdf; $(LATEX_AMC) -jobname=$* $*-doc.tex > /dev/null; \
 	 if ! test -f $*.pdf || grep -qE $(ERRORES_LATEX) $*.log; then \
 	   rm -f $*.pdf; echo "  ERROR en $* (ver build/amc-student/$*.log)"; exit 1; fi
+
+build/lectura/%.pdf: build/lectura/%.tex
+	@echo "  pdflatex $*"
+	@cd build/lectura && rm -f $*.pdf; $(LATEX_AMC) $*.tex > /dev/null; \
+	 if ! test -f $*.pdf || grep -qE $(ERRORES_LATEX) $*.log; then \
+	   rm -f $*.pdf; echo "  ERROR en $* (ver build/lectura/$*.log)"; exit 1; fi
 
 # Moodle: el paquete moodle escribe <pregunta>-moodle.xml al compilar el .tex.
 build/moodle/%-moodle.xml: build/moodle/%.tex

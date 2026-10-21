@@ -552,3 +552,25 @@ class TestRevisionFase3:
 def load_problema_dict(d):
     from qbank import load_problema
     return load_problema(copy.deepcopy(d))
+
+
+# ---------------------------------------------------------------------------
+# Regla 10: lectura
+# ---------------------------------------------------------------------------
+
+def test_lint_lectura():
+    setup = "import numpy as np\na = int(np.random.randint(0, 3))\nr = float(np.random.rand())"
+    comps = ["$x=@{a}$.", [S("A.", "v('A')"), S("B.", "v('B')")],
+             C("a", "v('A')"), C("b", "v('B')"), C("c", "v('A')")]
+    def con(lectura, **kw):
+        d = problema(comps, setup=setup, seed=1, instances=4, **kw)
+        d["lectura"] = lectura
+        return lint(d)
+    assert "lectura" not in codigos(con({"cubrir": ["a"]}))
+    assert "lectura" in codigos(con({"cubrir": ["zz"]}), ERROR)
+    assert "lectura" in codigos(con({"cubrir": ["r"]}), AVISO)       # valores reales
+    assert "estructura" in codigos(con({"cubrir": "a"}), ERROR)
+    assert "estructura" in codigos(con(["a"]), ERROR)
+    assert "lectura" in codigos(con({"cubrir": ["a"], "otra": 1}), AVISO)
+    d = problema(comps[1:], nombre="p"); d["lectura"] = {"cubrir": ["a"]}
+    assert "lectura" in codigos(lint(d), ERROR)                      # cubrir sin setup

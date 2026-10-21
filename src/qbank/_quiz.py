@@ -125,6 +125,11 @@ def CuestionesJuntas(lista):
         else:
             p.extend(CreaLista(e))
     return p
+from collections import namedtuple as _namedtuple
+
+Lectura      = _namedtuple('Lectura', 'etiqueta mundo ns partes descarte')
+ParteLectura = _namedtuple('ParteLectura', 'enunciado huecos')
+Alternativa  = _namedtuple('Alternativa', 'texto valor exp motivo')
 class Marcador:
     def __init__(self, data):
         self.data = data
@@ -249,7 +254,8 @@ def _plan_partes(L):
         plan.append(parte)
     return plan
 class ProblemaTipo:
-    def __init__(self, supuestos_y_cuestiones, setup=None, export=None, seed=None, nombre=None):
+    def __init__(self, supuestos_y_cuestiones, setup=None, export=None, seed=None, nombre=None,
+                 lectura=None):
         self.e = supuestos_y_cuestiones
         if isinstance(setup, str):
             if setup.strip():
@@ -260,6 +266,7 @@ class ProblemaTipo:
         self.setup  = setup
         self.export = export if export is not None else {}
         self.seed   = seed
+        self.lectura = lectura if lectura is not None else {}
         if nombre is not None:
             self._nombre = nombre
 
@@ -356,6 +363,75 @@ class ProblemaTipo:
             if not descartada:
                 c += 1
                 yield (str(c), list(zip(enunciados, cuestiones)))
+    def _variantes_lectura(self, seed=None, verbose=False):
+        if self.setup is not None:
+            _siembra(self.seed if seed is None else seed)
+        L        = [_normaliza_slot(x) for x in self.e]
+        plan     = _plan_partes(L)
+        npar     = (plan[-1] + 1) if plan else 1
+        es_hueco = [_clasifica_slot(x) == 'cuestiones' for x in L]
+        c        = 0
+        for variante in Marcador([1 if h else len(x) for x, h in zip(L, es_hueco)]):
+            ns         = self.setup() if self.setup else {}
+            hipotesis  = []
+            enunciados = ['' for _ in range(npar)]
+            huecos     = [[] for _ in range(npar)]
+            mundo      = tuple(i for i, h in zip(variante, es_hueco) if not h)
+            descarte   = None
+            for n in range(len(L)):
+                parte = plan[n]
+                if es_hueco[n]:
+                    hueco = []
+                    for componente in L[n]:
+                        precond = _ns_eval(componente.p, ns)
+                        texto   = _ns_interp(_ns_eval(componente.e, ns), ns)
+                        if test(precond, hipotesis):
+                            semantica = _ns_eval(componente.s, ns)
+                            exp = _ns_interp(_ns_eval(componente.x, ns), ns)
+                            hueco.append(Alternativa(texto, bool(test(semantica, hipotesis)), exp, None))
+                        else:
+                            hueco.append(Alternativa(texto, None, '',
+                                                     'rechazada por ' + _fuente_precond(componente)))
+                    huecos[parte].append(hueco)
+                    continue
+                componente = L[n][variante[n]]
+                if isinstance(componente, str):
+                    enunciados[parte] = _une_enunciado(enunciados[parte], _ns_interp(componente, ns))
+                else:                                   # Supuesto
+                    precond = _ns_eval(componente.p, ns)
+                    texto   = _ns_interp(_ns_eval(componente.e, ns), ns)
+                    if test(precond, hipotesis):
+                        enunciados[parte] = _une_enunciado(enunciados[parte], texto)
+                        hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
+                    else:
+                        descarte = ('Supuesto ' + repr(texto) + ' rechazado por '
+                                    + _fuente_precond(componente))
+                        if verbose:
+                            print('\n ' + descarte + '\n')
+                        break
+            if descarte is None:
+                c += 1
+                yield Lectura(str(c), mundo, ns,
+                              [ParteLectura(e, h) for e, h in zip(enunciados, huecos)], None)
+            else:
+                yield Lectura('', mundo, ns, None, descarte)
+    
+    def por_partes_lectura(self, seed=None, verbose=False, descartes=False):
+        """Vista de lectura: como por_partes_profe(), pero con las cuestiones
+        agrupadas por hueco y con el espacio de nombres del setup de cada
+        variante. Devuelve registros Lectura(etiqueta, mundo, ns, partes,
+        descarte); cada parte es ParteLectura(enunciado, huecos) y cada
+        alternativa Alternativa(texto, valor, exp, motivo), con valor None (y
+        motivo) si la precondición la excluye en ese mundo.
+    
+        seed      : semilla del setup (por defecto, la del problema).
+        verbose   : imprime los Supuesto rechazados por precondición.
+        descartes : si True, emite también los mundos descartados (partes=None
+                    y descarte con el motivo)."""
+        for r in self._variantes_lectura(seed=seed, verbose=verbose):
+            if descartes or r.descarte is None:
+                yield r
+    
     def por_partes(self, instances=1, base_seed=None, verbose=False):
         """Itera las variantes válidas como (etiqueta, [(enunciado, cuestiones), …]).
     

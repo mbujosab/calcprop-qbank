@@ -1,0 +1,88 @@
+#+TITLE: Prompt del proyecto: decisiones de este banco
+#+LANGUAGE: es
+
+Este fichero recoge *solo las decisiones propias de este banco*. La
+mecánica de =qbank= está en la Guía de diseño y el Manual, y el proceso de
+trabajo para una IA en =PROMPT-qbank-generico.org= (misma carpeta): no se
+repiten aquí porque se desincronizarían. Rellena los huecos marcados
+=[RELLENAR: …]= y borra lo que no aplique. Cuando este documento y el
+genérico difieran, manda este.
+
+* Objetivo y alcance
+
+- *Asignatura y nivel*: [RELLENAR: curso, titulación, qué saben ya los
+  alumnos].
+- *Fuentes del contenido*: [RELLENAR: rutas o referencias de los apuntes,
+  lecciones, capítulos; qué ficheros ignorar (borradores, versiones
+  antiguas)]. Solo se evalúa lo que esté en la fuente de la lección que se
+  procesa: no se adelanta material de lecciones posteriores aunque la
+  fuente lo mencione.
+- *Para qué se usan las preguntas*: [RELLENAR: examen en papel con AMC,
+  cuestionarios Moodle de entrenamiento, ambos; cuántas por lección se
+  espera que caigan en cada sitio].
+- *Objetivo pedagógico*: [RELLENAR: por ejemplo, «más interpretación que
+  derivación formal», «cálculo mental con cocientes sencillos», «sencillas
+  sin ser triviales»]. Lo que no se busca: [RELLENAR].
+
+* Convención de nombres
+
+- Fichero y campo =nombre=: =L-<NN>-<DescripcionCorta>=, con =<NN>= el
+  número de [RELLENAR: lección / tema / semana] a dos cifras y
+  =<DescripcionCorta>= en CamelCase sin espacios ni tildes. Sin =:= ni
+  espacios (=lint= lo señala; =make= se rompe).
+- =seed=: [RELLENAR: por ejemplo, el número de la lección], solo si el
+  =setup= sortea valores.
+- Otras carpetas: [RELLENAR: por ejemplo =preguntas/reserva/= para las
+  apartadas, fuera de los scripts; ficheros de selección para exámenes].
+
+* Notación matemática
+
+- Se reutiliza la notación de la fuente tal cual: [RELLENAR: negrita para
+  vectores, subíndices, nombres de los estimadores, etc.].
+- Macros propias: [RELLENAR: «ninguna; todo en LaTeX estándar» o la lista
+  de macros y en qué fichero del preámbulo (=config.py=) se definen].
+- Notación que se da por conocida sin definirla en el enunciado:
+  [RELLENAR: lista cerrada]. Todo lo demás se define en el enunciado de
+  la pregunta que lo use.
+- Vocabulario fijado (términos que tienen un único uso en este curso):
+  [RELLENAR: por ejemplo «error estándar» solo para …, «muestra» solo
+  para …].
+
+* Estilo de las preguntas en este banco
+
+- Patrón por defecto: tres huecos más la opción por defecto
+  (="export": {"last_choice": true}=), como recomienda la Guía.
+  [RELLENAR: si este banco adopta otro patrón, o lo hace regla dura sin
+  excepciones, dilo aquí].
+- =cols= en AMC: [RELLENAR: 1 para opciones largas, 2 para cortas].
+- Antes de diseñar una pregunta nueva, buscar en =preguntas/= si ya hay
+  una de una lección anterior sobre el concepto que esta generaliza y
+  tomarla como plantilla de estilo.
+- Tamaño objetivo por lección: [RELLENAR: por ejemplo 4 o 5, 6 como
+  máximo; si una lección crece, fusionar solapamientos antes de añadir].
+
+* Checklist propio
+
+Además del checklist de la Guía, antes de aceptar una pregunta:
+
+- [ ] ¿El fichero y el campo =nombre= siguen la convención de arriba y
+  está guardado en =preguntas/=?
+- [ ] ¿La notación coincide con la de la fuente y solo usa sin definir lo
+  que la lista de notación conocida permite?
+- [ ] ¿La pregunta se ciñe al material de su lección?
+- [ ] [RELLENAR: comprobaciones propias de la asignatura; por ejemplo,
+  que las cifras de un =setup= sean coherentes con lo que la pregunta
+  afirma, o que los términos del vocabulario fijado se usen bien].
+- [ ] ¿La ha leído una segunda persona (o un revisor independiente, sin el
+  contexto de quien la escribió) contra la fuente, además de pasar el
+  checklist?
+
+* Registro de decisiones
+
+Una entrada por decisión que afecte a más de una pregunta, con fecha,
+motivo y una pregunta donde se vea aplicada. Las más recientes arriba.
+Cuando una decisión se convierte en regla general, pásala a la sección que
+le corresponda y deja aquí solo la fecha.
+
+- [RELLENAR: AAAA-MM-DD] — [RELLENAR: decisión]. Motivo: [RELLENAR].
+  Ejemplo: =L-NN-Nombre=.

@@ -206,7 +206,9 @@ def test_crear_copia_la_plantilla(proyecto):
     assert ruta_plantilla().is_dir()
     for f in ["Makefile", "README.org", "config.py", "nueva_pregunta.py", ".gitignore",
               "scripts/_comun.py", "scripts/gen_amc.py", "scripts/gen_amc_student.py",
-              "scripts/gen_moodle.py", "scripts/merge_moodle_xml.py", "scripts/fix_moodle_xml.py"]:
+              "scripts/gen_moodle.py", "scripts/merge_moodle_xml.py", "scripts/fix_moodle_xml.py",
+              "scripts/gen_lectura.py",
+              "CLAUDE.md", "prompts/PROMPT-qbank-generico.org", "prompts/PROMPT-proyecto.org"]:
         assert (proyecto / f).is_file(), f
     assert len(list((proyecto / "preguntas").glob("L-*.json"))) == 5
 
@@ -524,3 +526,17 @@ def test_exportadores_aceptan_directorio_sin_barra(tmp_path):
     QuizMoodle("q", str(tmp_path), p)
     QuizAMCProfe("q", str(tmp_path), p)
     assert (tmp_path / "q.tex").exists() and (tmp_path / "q_profe.tex").exists()
+
+
+def test_gen_lectura_un_documento_por_leccion(proyecto):
+    salida = _run(proyecto, "scripts/gen_lectura.py")
+    assert "L-01-lectura.tex" in salida and "L-03-lectura.tex" in salida
+    tex = (proyecto / "build/lectura/L-02-lectura.tex").read_text(encoding="utf-8")
+    assert tex.startswith("\\documentclass") and tex.rstrip().endswith("\\end{document}")
+    assert "\\section*{L-02-MatrizInvertible}" in tex and "\\section*{L-02-ComparacionNumerica}" in tex
+    assert "Hueco 6" in tex                       # dos partes de tres huecos, numerados seguidos
+    assert "\\qbV" in tex and "\\qbF" in tex
+    assert "es-noshorthands" in tex               # el preámbulo del proyecto (config.PREAMBULO_AMC)
+    # segunda ejecución: nada cambia (make no recompila)
+    assert "sin cambios" in _run(proyecto, "scripts/gen_lectura.py", "--leccion", "2")
+    assert "L-01" not in _run(proyecto, "scripts/gen_lectura.py", "--leccion", "2")
