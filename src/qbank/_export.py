@@ -33,6 +33,16 @@ def codchar(s):
      s = s.replace("ó", "\\'{o}")
      s = s.replace("ú", "\\'{u}")
      s = s.replace("ñ", "\\~{n}")
+     s = s.replace("ü", '\\"{u}')
+     s = s.replace("Á", "\\'{A}")
+     s = s.replace("É", "\\'{E}")
+     s = s.replace("Í", "\\'{I}")
+     s = s.replace("Ó", "\\'{O}")
+     s = s.replace("Ú", "\\'{U}")
+     s = s.replace("Ñ", "\\~{N}")
+     s = s.replace("Ü", '\\"{U}')
+     s = s.replace("¿", "\\textquestiondown ")
+     s = s.replace("¡", "\\textexclamdown ")
      return s
 
 # ── Exportadores AMC ──────────────────────────────────────────────────────────
@@ -469,8 +479,9 @@ def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, l
         L.append(nota + '.\n\n')
     try:
         # 96 caracteres: los que caben en \\footnotesize monoespaciada con margin=2.2cm.
+        # El cierre va partido: entero, cerraría el verbatim del PDF de este .org.
         L.append('{\\footnotesize\\begin{verbatim}\n' + tabla_mundos(p, linea=96, elipsis='...')
-                 + '\n\\end{verbatim}}\n')
+                 + '\n\\end' '{verbatim}}\n')
     except Exception as e:                                   # noqa: BLE001
         L.append('{\\small\\color{black!65}(sin tabla de mundos: ' + _tex_lectura_escapa(e) + ')}\n\n')
     # Solo los slots de enunciado con más de una opción identifican el mundo.

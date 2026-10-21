@@ -222,8 +222,19 @@ QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="",
 ```
 
 - Los nombres sanitizan `:` y `_` → `-` para compatibilidad LaTeX.
+- `codchar` (lo aplican las funciones Moodle) convierte todas las letras del
+  español (también mayúsculas y `ü`) y `¿` `¡` (`\textquestiondown ` con
+  espacio, no `{}`, que llegaría literal al HTML). `moodle.sty` las pasa a
+  entidades HTML; un carácter no convertido llega al XML en UTF-8 bajo la
+  declaración `iso-8859-1` (`antigÃ¼edad` en Moodle) y solo lo salva el
+  `fix_moodle_xml.py` de la plantilla (los bancos tenían una copia antigua).
+- Subir/actualizar en Moodle desde el terminal con la cookie `MoodleSession`:
+  `scripts/moodle_sync.py` y `moodle_quiz.py` del banco PEconometria,
+  documentados en `Manual.org` («Subir y actualizar el banco en Moodle desde
+  el terminal»); fechas y visibilidad, a mano.
 - Los `Quiz*` escriben el `.tex` en UTF-8 explícito (en Windows `open()`
-  usaría cp1252 y «¿», que `codchar` no convierte, rompía `gen_moodle.py`).
+  usaría cp1252 y un carácter que `codchar` no convierte —«¿» hasta 0.7.0,
+  hoy p. ej. «“»— rompía `gen_moodle.py`).
 - (AMC, no Moodle) `AMCblock` y `AMC_multipart` convierten `$$...$$` a `\[...\]`.
 - **Multiparte en AMC**: `AMC_multipart(nombre, etiqueta, "", partes,
   last_choice=, cols=, profe=, last_choice_text=)` — un solo `questionmult`

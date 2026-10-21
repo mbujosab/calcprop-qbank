@@ -211,7 +211,7 @@ def _sanitize_name(nombre):
 
 **** Función =codchar=
 
-Para evitar la tediosa escritura manual de acentos y eñes al estilo \LaTeX{} (como =\'{a}= o =\~{n}=), delegamos la tarea en Python mediante la función =codchar(s)=, que realiza una sustitución masiva de strings:
+Para evitar la tediosa escritura manual de acentos y eñes al estilo \LaTeX{} (como =\'{a}= o =\~{n}=), delegamos la tarea en Python mediante la función =codchar(s)=, que realiza una sustitución masiva de strings. El paquete =moodle= convierte esas órdenes en entidades HTML (=&aacute;=, =&uuml;=, =&iquest;=, etc.); un carácter que se le escape llega al XML en UTF-8 aunque el fichero se declare =iso-8859-1=, y Moodle lo muestra mal (=antigÃ¼edad=). Por eso cubre también las mayúsculas, la diéresis y los signos de apertura =¿= y =¡= (con =\textquestiondown= y =\textexclamdown= seguidos de un espacio, que \TeX{} consume: unas llaves vacías llegarían literales al HTML):
 
 #+NAME: Método codchar para codificar caracteres no ASCII en LaTeX
 #+begin_src python :noweb yes
@@ -222,6 +222,16 @@ def codchar(s):
      s = s.replace("ó", "\\'{o}")
      s = s.replace("ú", "\\'{u}")
      s = s.replace("ñ", "\\~{n}")
+     s = s.replace("ü", '\\"{u}')
+     s = s.replace("Á", "\\'{A}")
+     s = s.replace("É", "\\'{E}")
+     s = s.replace("Í", "\\'{I}")
+     s = s.replace("Ó", "\\'{O}")
+     s = s.replace("Ú", "\\'{U}")
+     s = s.replace("Ñ", "\\~{N}")
+     s = s.replace("Ü", '\\"{U}')
+     s = s.replace("¿", "\\textquestiondown ")
+     s = s.replace("¡", "\\textexclamdown ")
      return s
 #+end_src
 
@@ -1073,8 +1083,9 @@ def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, l
         L.append(nota + '.\n\n')
     try:
         # 96 caracteres: los que caben en \\footnotesize monoespaciada con margin=2.2cm.
+        # El cierre va partido: entero, cerraría el verbatim del PDF de este .org.
         L.append('{\\footnotesize\\begin{verbatim}\n' + tabla_mundos(p, linea=96, elipsis='...')
-                 + '\n\\end{verbatim}}\n')
+                 + '\n\\end' '{verbatim}}\n')
     except Exception as e:                                   # noqa: BLE001
         L.append('{\\small\\color{black!65}(sin tabla de mundos: ' + _tex_lectura_escapa(e) + ')}\n\n')
     # Solo los slots de enunciado con más de una opción identifican el mundo.

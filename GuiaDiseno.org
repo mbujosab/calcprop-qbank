@@ -745,7 +745,8 @@ mundo con =precond=.
 * LaTeX y Moodle: trampas conocidas
 
 Los textos (enunciados, cuestiones y explicaciones) son LaTeX, aunque no
-lleven ni una fórmula. En español puedes teclear tal cual =á é í ó ú ñ ¿ ¡=
+lleven ni una fórmula. En español puedes teclear tal cual =á é í ó ú ñ ü ¿ ¡=
+(también en mayúscula)
 y las comillas tipográficas =“ ”=; lo que sigue, no. =lint= lo detecta
 (=texto=; el =%= sin barra es ERROR, el resto AVISO) y lo que no detecta lo
 detecta Moodle, que es más caro.

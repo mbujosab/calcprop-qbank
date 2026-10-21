@@ -64,38 +64,39 @@
 <li><a href="#org5013fc9">6.1. Funciones</a></li>
 <li><a href="#org8d68ec3">6.2. Ejemplo</a></li>
 <li><a href="#org7e8ca59">6.3. Preguntas con varias partes</a></li>
+<li><a href="#orgc19880f">6.4. Subir y actualizar el banco en Moodle desde el terminal</a></li>
 </ul>
 </li>
-<li><a href="#orgc19880f">7. La vista de lectura (<code>QuizLectura</code>)</a></li>
-<li><a href="#orgbda0c3d">8. Comprobación automática de preguntas (<code>lint</code>)</a></li>
-<li><a href="#orgbe5cc00">9. Referencia rápida de la API</a>
+<li><a href="#orgbda0c3d">7. La vista de lectura (<code>QuizLectura</code>)</a></li>
+<li><a href="#orgbe5cc00">8. Comprobación automática de preguntas (<code>lint</code>)</a></li>
+<li><a href="#org40c37a1">9. Referencia rápida de la API</a>
 <ul>
-<li><a href="#org40c37a1">9.1. Clases</a></li>
-<li><a href="#org0c2d36c">9.2. Funciones JSON</a></li>
-<li><a href="#orgfd4725b">9.3. Funciones AMC</a></li>
-<li><a href="#org8be0b68">9.4. Funciones Moodle</a></li>
-<li><a href="#org631e3be">9.5. Vista de lectura</a></li>
-<li><a href="#org53b7f09">9.6. Comprobación automática</a></li>
-<li><a href="#orgf575406">9.7. Proyecto de banco</a></li>
-<li><a href="#orgfa91d47">9.8. Operadores de <code>calcprop</code> (disponibles tras <code>from qbank import *</code>)</a></li>
+<li><a href="#org0c2d36c">9.1. Clases</a></li>
+<li><a href="#orgfd4725b">9.2. Funciones JSON</a></li>
+<li><a href="#org8be0b68">9.3. Funciones AMC</a></li>
+<li><a href="#org631e3be">9.4. Funciones Moodle</a></li>
+<li><a href="#org53b7f09">9.5. Vista de lectura</a></li>
+<li><a href="#orgf575406">9.6. Comprobación automática</a></li>
+<li><a href="#orgfa91d47">9.7. Proyecto de banco</a></li>
+<li><a href="#org07936e4">9.8. Operadores de <code>calcprop</code> (disponibles tras <code>from qbank import *</code>)</a></li>
 </ul>
 </li>
-<li><a href="#org07936e4">10. Preguntas frecuentes</a>
+<li><a href="#orgc850363">10. Preguntas frecuentes</a>
 <ul>
-<li><a href="#orgc850363">10.1. ¿Por qué algunas variantes no se generan?</a></li>
-<li><a href="#org8b36a4c">10.2. ¿Cómo incluyo texto LaTeX en los enunciados?</a></li>
-<li><a href="#org29e8fae">10.3. ¿Puedo escribir un porcentaje, grados, comillas…?</a></li>
-<li><a href="#org92e7e6e">10.4. ¿Cómo escribo display math?</a></li>
-<li><a href="#org5d349d8">10.5. ¿Puedo incluir una figura en el enunciado?</a></li>
-<li><a href="#orgf7aa531">10.6. ¿Para qué sirve <code>codchar</code>?</a></li>
-<li><a href="#org13210c8">10.7. ¿Cómo exporto varias preguntas a un mismo cuestionario Moodle?</a></li>
+<li><a href="#org8b36a4c">10.1. ¿Por qué algunas variantes no se generan?</a></li>
+<li><a href="#org29e8fae">10.2. ¿Cómo incluyo texto LaTeX en los enunciados?</a></li>
+<li><a href="#org92e7e6e">10.3. ¿Puedo escribir un porcentaje, grados, comillas…?</a></li>
+<li><a href="#org5d349d8">10.4. ¿Cómo escribo display math?</a></li>
+<li><a href="#orgf7aa531">10.5. ¿Puedo incluir una figura en el enunciado?</a></li>
+<li><a href="#org13210c8">10.6. ¿Para qué sirve <code>codchar</code>?</a></li>
+<li><a href="#org1bc4417">10.7. ¿Cómo exporto varias preguntas a un mismo cuestionario Moodle?</a></li>
 </ul>
 </li>
-<li><a href="#org1bc4417">11. Apéndice: API avanzada y compatibilidad</a>
+<li><a href="#orgee35ccb">11. Apéndice: API avanzada y compatibilidad</a>
 <ul>
-<li><a href="#orgee35ccb">11.1. <code>ProblemaVF</code> — preguntas de verdadero/falso</a></li>
-<li><a href="#org055ac3f">11.2. Clases deprecadas</a></li>
-<li><a href="#orgb75db06">11.3. Editor visual en Jupyter (<code>ProblemaTipoEditor</code>)</a></li>
+<li><a href="#org055ac3f">11.1. <code>ProblemaVF</code> — preguntas de verdadero/falso</a></li>
+<li><a href="#orgb75db06">11.2. Clases deprecadas</a></li>
+<li><a href="#orgc233b18">11.3. Editor visual en Jupyter (<code>ProblemaTipoEditor</code>)</a></li>
 </ul>
 </li>
 </ul>
@@ -242,7 +243,7 @@ Abre una terminal (en Windows: <i>Símbolo del sistema</i> o <i>PowerShell</i>) 
 directorio donde quieres trabajar, por ejemplo:
 </p>
 
-<pre class="example" id="orgc233b18">
+<pre class="example" id="orgee1a7a8">
 mkdir mis_cuestionarios
 cd mis_cuestionarios
 </pre>
@@ -376,7 +377,7 @@ En Windows, dentro del entorno virtual, usa <code>python</code> (no <code>python
 en PowerShell (<code>.venv\Scripts\Activate.ps1</code>) sale un error de permisos, ejecuta antes:
 </p>
 
-<pre class="example" id="orgee1a7a8">
+<pre class="example" id="org8f4ae8b">
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 </pre>
 </div>
@@ -736,8 +737,8 @@ posibles, una variante por cada combinación.
 manual lo hacen). Los scripts de un banco de <code>qbank-init</code> sí lo leen de cada JSON.
 </p>
 </div>
-<div id="outline-container-org8f4ae8b" class="outline-4">
-<h4 id="org8f4ae8b"><span class="section-number-4">3.4.1.</span> La mecánica: listas = sorteo, elementos consecutivos = opciones</h4>
+<div id="outline-container-orgc5d6741" class="outline-4">
+<h4 id="orgc5d6741"><span class="section-number-4">3.4.1.</span> La mecánica: listas = sorteo, elementos consecutivos = opciones</h4>
 <div class="outline-text-4" id="text-3-4-1">
 <p>
 Cada componente es, o bien un valor suelto (siempre se incluye), o bien una lista de
@@ -763,8 +764,8 @@ La Guía desarrolla todo esto; aquí basta un ejemplo completo.
 </p>
 </div>
 </div>
-<div id="outline-container-org4e49aa2" class="outline-4">
-<h4 id="org4e49aa2"><span class="section-number-4">3.4.2.</span> Ejemplo</h4>
+<div id="outline-container-org6fcdf18" class="outline-4">
+<h4 id="org6fcdf18"><span class="section-number-4">3.4.2.</span> Ejemplo</h4>
 <div class="outline-text-4" id="text-3-4-2">
 <div class="org-src-container">
 <pre class="src src-python">from qbank import *
@@ -810,7 +811,7 @@ print("…", len(list(p.por_partes())), "variantes en total")
 </pre>
 </div>
 
-<pre class="example" id="orgc5d6741">
+<pre class="example" id="org4e49aa2">
 Variante 1: Considere $\mathcal{A}$ y que $\mathcal{A}\Rightarrow\mathcal{C}$. Entonces, con toda seguridad:
   ✓ se da $\mathcal{C}$
   ✓ se da $\mathcal{A}$
@@ -834,8 +835,8 @@ una explicación (<code>exp</code>) en cada cuestión que aquí se omite por bre
 </p>
 </div>
 </div>
-<div id="outline-container-org6fcdf18" class="outline-4">
-<h4 id="org6fcdf18"><span class="section-number-4">3.4.3.</span> Iterar las variantes</h4>
+<div id="outline-container-org428af44" class="outline-4">
+<h4 id="org428af44"><span class="section-number-4">3.4.3.</span> Iterar las variantes</h4>
 <div class="outline-text-4" id="text-3-4-3">
 <dl class="org-dl">
 <dt><code>por_partes(instances=1, base_seed=None, verbose=False)</code></dt><dd>la vía recomendada.
@@ -875,8 +876,8 @@ El delimitador <code>@</code> se eligió para evitar conflictos con el modo mate
 Para una arroba literal, escribe <code>@@</code>.
 </p>
 </div>
-<div id="outline-container-org428af44" class="outline-4">
-<h4 id="org428af44"><span class="section-number-4">3.5.1.</span> <code>setup</code> como cadena, <code>np.random</code> y <code>seed</code></h4>
+<div id="outline-container-org8696940" class="outline-4">
+<h4 id="org8696940"><span class="section-number-4">3.5.1.</span> <code>setup</code> como cadena, <code>np.random</code> y <code>seed</code></h4>
 <div class="outline-text-4" id="text-3-5-1">
 <p>
 Escribe el <code>setup</code> como cadena de código (es lo que guarda el JSON, y la única forma
@@ -923,8 +924,8 @@ de alternativas y llama al <code>setup</code> en cada una. Para obtener más ins
 </p>
 </div>
 </div>
-<div id="outline-container-org8696940" class="outline-4">
-<h4 id="org8696940"><span class="section-number-4">3.5.2.</span> Precondiciones que dependen de los valores</h4>
+<div id="outline-container-orgdde26ee" class="outline-4">
+<h4 id="orgdde26ee"><span class="section-number-4">3.5.2.</span> Precondiciones que dependen de los valores</h4>
 <div class="outline-text-4" id="text-3-5-2">
 <p>
 El motor razona de forma proposicional y <b>no conoce</b> los valores numéricos: si
@@ -981,8 +982,8 @@ varios sorteos para no perder mundos.
 </p>
 </div>
 </div>
-<div id="outline-container-orgdde26ee" class="outline-4">
-<h4 id="orgdde26ee"><span class="section-number-4">3.5.3.</span> <code>seed</code>: reproducibilidad independiente del orden</h4>
+<div id="outline-container-orgbab6173" class="outline-4">
+<h4 id="orgbab6173"><span class="section-number-4">3.5.3.</span> <code>seed</code>: reproducibilidad independiente del orden</h4>
 <div class="outline-text-4" id="text-3-5-3">
 <p>
 Cuando varios problemas con <code>setup</code> aleatorio se generan en secuencia (en un bucle o
@@ -994,8 +995,8 @@ cuando no se pasa <code>base_seed</code>.
 </p>
 </div>
 </div>
-<div id="outline-container-orgbab6173" class="outline-4">
-<h4 id="orgbab6173"><span class="section-number-4">3.5.4.</span> <code>setup</code> como función (solo uso interactivo)</h4>
+<div id="outline-container-orge29dc10" class="outline-4">
+<h4 id="orge29dc10"><span class="section-number-4">3.5.4.</span> <code>setup</code> como función (solo uso interactivo)</h4>
 <div class="outline-text-4" id="text-3-5-4">
 <p>
 <code>setup</code> admite también una función sin argumentos que devuelve el diccionario de
@@ -1194,7 +1195,7 @@ print(len(list(p.por_partes())), "variantes por instancia;",
 </pre>
 </div>
 
-<pre class="example" id="orge29dc10">
+<pre class="example" id="org5833be6">
 Variante 1: Considere una matriz $A$ de $3$ filas y $2$ columnas. Suponga que $A$ tiene rango máximo ($\mathrm{rg}(A)=2$). Indique qué afirmaciones son correctas:
   ✓ Las $2$ columnas de $A$ son linealmente independientes.
   ✓ $A^\top A$ es invertible.
@@ -1231,7 +1232,7 @@ print("\n".join(codigo.splitlines()[:30]))   # las primeras 30 líneas
 </pre>
 </div>
 
-<pre class="example" id="org5833be6">
+<pre class="example" id="org87d507e">
 from qbank import Supuesto, Cuestion, ProblemaTipo
 from calcprop import *
 
@@ -1376,7 +1377,7 @@ print(AMCblock("MiCuestionario", etiqueta, enunciado, cuestiones, last_choice=Tr
 </pre>
 </div>
 
-<pre class="example" id="org87d507e">
+<pre class="example" id="orgbcc1224">
 \element{MiCuestionario}{
  \begin{questionmult}{MiCuestionario-1}
   Considere $\mathcal{A}$ y que $\mathcal{A}\Rightarrow\mathcal{C}$. Entonces, con toda seguridad:
@@ -1483,7 +1484,7 @@ Moodle XML</i>). Como las de AMC, no leen <code>export</code>: pasa <code>last_c
 (los scripts de un banco sí lo leen).
 </p>
 
-<pre class="example" id="orgbcc1224">
+<pre class="example" id="orgd528858">
 Python (qbank)  →  nombre.tex  →  xelatex / pdflatex  →  nombre.pdf + nombre-moodle.xml  →  Moodle
 </pre>
 
@@ -1491,9 +1492,10 @@ Python (qbank)  →  nombre.tex  →  xelatex / pdflatex  →  nombre.pdf + nomb
 El <code>.tex</code> compila con cualquier motor (su cabecera distingue <code>pdflatex</code> de
 <code>xelatex</code> o <code>lualatex</code>). Si lo compilas <b>a mano</b>, usa <code>xelatex</code>: el XML sale declarado en
 UTF-8. Con <code>pdflatex</code> el paquete <code>moodle</code> lo declara en <code>iso-8859-1</code> aunque escribe en
-UTF-8 los caracteres que <code>codchar</code> no convierte (los signos <code>¿</code> y <code>¡</code>, las mayúsculas
-acentuadas como <code>Á</code> o <code>Ñ</code> y la <code>ü</code>), y Moodle los mostraría mal (por ejemplo, <code>Â¿</code> en
-lugar de <code>¿</code>);
+UTF-8 los caracteres que <code>codchar</code> no convierte (desde la 0.7.1 <code>codchar</code> cubre todas
+las letras del español, mayúsculas y <code>ü</code> incluidas, y los signos <code>¿</code> y <code>¡</code>; quedan, por
+ejemplo, las comillas <code>“ ”</code>), y Moodle los mostraría mal (por ejemplo, <code>antigÃ¼edad</code>
+en lugar de <code>antigüedad</code>);
 los proyectos de <code>qbank-init</code> compilan con <code>pdflatex</code> y corrigen la declaración
 después (<code>scripts/fix_moodle_xml.py</code>, que <code>make moodle</code> ejecuta).
 </p>
@@ -1643,8 +1645,9 @@ xelatex EjemploMoodle.tex
 
 <p>
 Se generan <code>ejemplosManual/EjemploMoodle-moodle.xml</code> (para importar en Moodle) y
-<code>ejemplosManual/EjemploMoodle.pdf</code> (vista previa de las preguntas). Las vocales acentuadas
-minúsculas y la <code>ñ</code> las convierte <code>codchar</code> (ver la referencia) de forma automática.
+<code>ejemplosManual/EjemploMoodle.pdf</code> (vista previa de las preguntas). Las letras acentuadas,
+la <code>ñ</code>, la <code>ü</code> y los signos <code>¿</code> y <code>¡</code> las convierte <code>codchar</code> (ver la referencia) de forma
+automática.
 </p>
 </div>
 </div>
@@ -1669,7 +1672,7 @@ print(len(list(p.por_partes())), "variantes")
 </pre>
 </div>
 
-<pre class="example" id="orgd528858">
+<pre class="example" id="orgdceabbe">
 Conteste qué afirmaciones sobre Spider-Man (Peter Parker) son ciertas. Uno de sus superpoderes consiste en
     ✓ tener sentidos superdesarrollados
     ✗ volar
@@ -1693,9 +1696,92 @@ with open("ejemplosManual/exportaciones/superheroes_amc.tex", "w") as f:       #
 </div>
 </div>
 </div>
+<div id="outline-container-orgc19880f" class="outline-3">
+<h3 id="orgc19880f"><span class="section-number-3">6.4.</span> Subir y actualizar el banco en Moodle desde el terminal</h3>
+<div class="outline-text-3" id="text-6-4">
+<p>
+Importar a mano (<i>Banco de preguntas → Importar</i>) basta para una pregunta suelta,
+pero al corregir una pregunta ya subida hay que borrar antes sus variantes viejas
+de la categoría, y con cientos de variantes por pregunta eso es tedioso y propenso
+a errores. El banco <code>qbank-PEconometria</code> tiene dos scripts que reproducen desde el
+terminal los formularios de Moodle con la sesión del navegador, sin servicios web
+ni permisos de administración: <code>scripts/moodle_sync.py</code> (banco de preguntas) y
+<code>scripts/moodle_quiz.py</code> (cuestionarios). No forman parte de la plantilla: están
+escritos para el Campus Virtual de la UCM (Moodle 4.3 con <code>auth_saml2</code>; constantes
+<code>BASE</code> y <code>COURSEID</code> al principio de <code>moodle_sync.py</code>, o <code>--base</code> y <code>--curso</code>). Para
+otro Moodle hay que copiarlos y comprobar que sus páginas son iguales; si no lo son,
+los scripts fallan sin tocar nada.
+</p>
+
+<p>
+<b>La sesión.</b> Entra en el campus con el navegador, abre las herramientas de
+desarrollo (F12; Firefox: <i>Almacenamiento → Cookies</i>; Chrome: <i>Application →
+Cookies</i>), copia el <b>valor</b> de la cookie <code>MoodleSession</code> del dominio del campus y
+guárdalo, solo el valor, en <code>~/.config/moodle-ucm/session</code> (permisos <code>600</code>) o en la
+variable <code>MOODLE_SESSION</code>. Equivale a tu contraseña mientras dure la sesión: no la
+pegues en ningún fichero versionado. Caduca con la sesión del navegador (en la UCM,
+tras una hora de inactividad); si un script dice que no hay sesión, copia otra.
+</p>
+
+<p>
+<b>Siempre simulan.</b> Sin <code>--ejecutar</code> los dos scripts solo dicen lo que harían;
+ejecútalos primero así y compara con lo que esperas.
+</p>
+
+<pre class="example" id="org5735552">
+PY=~/ruta/a/qbank/.venv/bin/python
+$PY scripts/moodle_sync.py categorias                      # categorías y nº de preguntas
+$PY scripts/moodle_sync.py preguntas L-14-LeerElVIF        # ids de una categoría
+$PY scripts/moodle_sync.py reimportar build/moodle/X.xml   # simula
+$PY scripts/moodle_sync.py reimportar build/moodle/X.xml --ejecutar
+$PY scripts/moodle_sync.py importar X.xml --ejecutar       # solo importar
+$PY scripts/moodle_sync.py borrar L-14-A L-14-B --ejecutar # vaciar categorías
+
+$PY scripts/moodle_quiz.py cuestionarios                   # cmid, nombre, ranuras, apertura
+$PY scripts/moodle_quiz.py ranuras 185724                  # ranuras de un cuestionario
+$PY scripts/moodle_quiz.py aleatorias 185725 L-15-A L-15-B --ejecutar
+</pre>
+
+<p>
+<b>Actualizar preguntas: <code>reimportar</code>.</b> Recibe un XML con las preguntas corregidas
+(para unas pocas, fusiona solo sus <code>*-moodle.xml</code> en un fichero aparte; el de todo el
+banco también vale). Para cada categoría <code>$course$/top/&lt;nombre&gt;</code> del XML que ya exista
+borra sus preguntas visibles y, después, importa el XML una sola vez: Moodle reutiliza
+la categoría del mismo nombre (conserva su id) y crea las que falten. <b>Las categorías
+no se borran nunca</b>, y es deliberado: las ranuras aleatorias de un cuestionario
+filtran por el id de la categoría, y borrar una categoría para volver a importarla
+deja esas ranuras rotas. <code>--solo</code> y <code>--excluir</code> limitan las categorías afectadas.
+Salvaguardas: aborta si el recuento que muestra Moodle no cuadra con el listado o si
+una pregunta aparece en dos categorías; fotografía todo el banco antes y después de
+borrar y se detiene antes de importar si cambió algo fuera de lo previsto; al final
+compara el recuento de cada categoría con el XML y dice <code>TODO CORRECTO</code>.
+</p>
+
+<p>
+<b>Cuestionarios: <code>aleatorias</code>.</b> Añade al final del cuestionario (por su <code>cmid</code>, el
+número de <code>mod/quiz/view.php?id=…</code>) una ranura «pregunta aleatoria» por cada categoría
+dada, una por página y en el orden dado, y comprueba después que las ranuras nuevas
+son las pedidas. Usa el mismo servicio AJAX que el botón del navegador.
+</p>
+
+<p>
+<b>Lo que se hace a mano, en el navegador:</b> las fechas de apertura y cierre, la
+visibilidad para los estudiantes y quitar ranuras. <code>moodle_quiz.py</code> tiene una orden
+<code>apertura</code> que reenvía el formulario de ajustes, pero <b>no se usa</b>: la única vez que se
+probó, Moodle devolvió un 404 sin guardar nada y la sesión quedó bloqueada.
+</p>
+
+<p>
+<b>Con moderación.</b> El cortafuegos de la UCM llegó a dejar colgadas dos sesiones (toda
+petición con esa cookie quedaba sin respuesta, y durante un rato no se pudo abrir
+sesión desde la misma IP) tras ráfagas de peticiones rápidas. Por eso los scripts
+esperan dos segundos entre peticiones. Haz una tarea, comprueba el resultado y para.
+</p>
 </div>
-<div id="outline-container-orgc19880f" class="outline-2">
-<h2 id="orgc19880f"><span class="section-number-2">7.</span> La vista de lectura (<code>QuizLectura</code>)</h2>
+</div>
+</div>
+<div id="outline-container-orgbda0c3d" class="outline-2">
+<h2 id="orgbda0c3d"><span class="section-number-2">7.</span> La vista de lectura (<code>QuizLectura</code>)</h2>
 <div class="outline-text-2" id="text-7">
 <p>
 La <i>vista de lectura</i> es un documento LaTeX completo pensado para que el
@@ -1770,8 +1856,8 @@ motivo).
 </p>
 </div>
 </div>
-<div id="outline-container-orgbda0c3d" class="outline-2">
-<h2 id="orgbda0c3d"><span class="section-number-2">8.</span> Comprobación automática de preguntas (<code>lint</code>)</h2>
+<div id="outline-container-orgbe5cc00" class="outline-2">
+<h2 id="orgbe5cc00"><span class="section-number-2">8.</span> Comprobación automática de preguntas (<code>lint</code>)</h2>
 <div class="outline-text-2" id="text-8">
 <p>
 Antes de exportar conviene comprobar que la pregunta está bien construida. <code>lint</code>
@@ -1864,7 +1950,7 @@ Desde la línea de órdenes (código de salida 1 si hay algún ERROR; <code>--qu
 INFO y los ficheros sin avisos):
 </p>
 
-<pre class="example" id="orgdceabbe">
+<pre class="example" id="orgeca0e2d">
 python -m qbank.lint preguntas/*.json --quiet
 qbank-lint preguntas/L-01-Nombre.json --tabla      # equivalente, con la tabla de mundos
 </pre>
@@ -1875,14 +1961,14 @@ En un proyecto de <code>qbank-init</code>: <code>make lint</code>, <code>make ta
 </p>
 </div>
 </div>
-<div id="outline-container-orgbe5cc00" class="outline-2">
-<h2 id="orgbe5cc00"><span class="section-number-2">9.</span> Referencia rápida de la API</h2>
+<div id="outline-container-org40c37a1" class="outline-2">
+<h2 id="org40c37a1"><span class="section-number-2">9.</span> Referencia rápida de la API</h2>
 <div class="outline-text-2" id="text-9">
 </div>
-<div id="outline-container-org40c37a1" class="outline-3">
-<h3 id="org40c37a1"><span class="section-number-3">9.1.</span> Clases</h3>
+<div id="outline-container-org0c2d36c" class="outline-3">
+<h3 id="org0c2d36c"><span class="section-number-3">9.1.</span> Clases</h3>
 <div class="outline-text-3" id="text-9-1">
-<pre class="example" id="org5735552">
+<pre class="example" id="orgfaa5c47">
 Supuesto(enunciado, semantica, precond=True)
 Cuestion(enunciado, semantica, precond=True, exp="")
     semantica y precond: fórmula calcprop, True/False, lambda ns: …, o la cadena de cualquiera de ellos
@@ -1896,10 +1982,10 @@ qbank.__version__                                                versión instal
 </pre>
 </div>
 </div>
-<div id="outline-container-org0c2d36c" class="outline-3">
-<h3 id="org0c2d36c"><span class="section-number-3">9.2.</span> Funciones JSON</h3>
+<div id="outline-container-orgfd4725b" class="outline-3">
+<h3 id="orgfd4725b"><span class="section-number-3">9.2.</span> Funciones JSON</h3>
 <div class="outline-text-3" id="text-9-2">
-<pre class="example" id="orgeca0e2d">
+<pre class="example" id="org4e290a0">
 problema_from_dict(d)              → ProblemaTipo o ProblemaVF
 problema_to_dict(problema)         → dict (conserva las claves propias del JSON)
 load_problema(ruta_o_dict)         → ProblemaTipo o ProblemaVF
@@ -1911,10 +1997,10 @@ save_problema_py(problema, ruta, varname="ejercicio")
 </pre>
 </div>
 </div>
-<div id="outline-container-orgfd4725b" class="outline-3">
-<h3 id="orgfd4725b"><span class="section-number-3">9.3.</span> Funciones AMC</h3>
+<div id="outline-container-org8be0b68" class="outline-3">
+<h3 id="org8be0b68"><span class="section-number-3">9.3.</span> Funciones AMC</h3>
 <div class="outline-text-3" id="text-9-3">
-<pre class="example" id="orgfaa5c47">
+<pre class="example" id="org2f5cf8b">
 AMCblock     (nombre, etiqueta, enunciado, cuestiones,
               last_choice=False, cols=1, profe=False, *,
               aux_latex="", last_choice_text="Ninguna de las anteriores")      → str
@@ -1927,10 +2013,10 @@ AMC_VF       (nombre, etiqueta, enunciado, cuestiones, opc=None)               �
 </pre>
 </div>
 </div>
-<div id="outline-container-org8be0b68" class="outline-3">
-<h3 id="org8be0b68"><span class="section-number-3">9.4.</span> Funciones Moodle</h3>
+<div id="outline-container-org631e3be" class="outline-3">
+<h3 id="org631e3be"><span class="section-number-3">9.4.</span> Funciones Moodle</h3>
 <div class="outline-text-3" id="text-9-4">
-<pre class="example" id="org4e290a0">
+<pre class="example" id="org4ec034c">
 QuizMoodle      (nombre, directorio, problema, last_choice=False, instances=1, *,
                  aux_latex="", last_choice_text="Las demás opciones son falsas")  → int (variantes)
 QuizMoodleProfe (nombre, directorio, problema, *, aux_latex="",
@@ -1941,10 +2027,10 @@ codchar(s)      vocales acentuadas minúsculas y ñ → secuencias LaTeX (lo apl
 </pre>
 </div>
 </div>
-<div id="outline-container-org631e3be" class="outline-3">
-<h3 id="org631e3be"><span class="section-number-3">9.5.</span> Vista de lectura</h3>
+<div id="outline-container-org53b7f09" class="outline-3">
+<h3 id="org53b7f09"><span class="section-number-3">9.5.</span> Vista de lectura</h3>
 <div class="outline-text-3" id="text-9-5">
-<pre class="example" id="org2f5cf8b">
+<pre class="example" id="orgb26c10b">
 QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
             last_choice=None, last_choice_text="Ninguna de las anteriores",
             extras=0, max_semillas=400)                                    → int (ejemplos)
@@ -1954,10 +2040,10 @@ ProblemaTipo.por_partes_lectura(seed=None, verbose=False, descartes=False)
 </pre>
 </div>
 </div>
-<div id="outline-container-org53b7f09" class="outline-3">
-<h3 id="org53b7f09"><span class="section-number-3">9.6.</span> Comprobación automática</h3>
+<div id="outline-container-orgf575406" class="outline-3">
+<h3 id="orgf575406"><span class="section-number-3">9.6.</span> Comprobación automática</h3>
 <div class="outline-text-3" id="text-9-6">
-<pre class="example" id="org4ec034c">
+<pre class="example" id="org52ab030">
 lint(problema_o_ruta, instances=None, seed=None)  → list[Aviso]
     # Aviso(nivel, codigo, mensaje, donde); nivel ∈ {ERROR, AVISO, INFO}; errores primero
 tabla_mundos(problema_o_ruta)                     → str   # tabla Cuestion × mundo
@@ -1966,20 +2052,20 @@ python -m qbank.lint FICHEROS.json [--instances N] [--seed S] [--tabla] [--quiet
 </pre>
 </div>
 </div>
-<div id="outline-container-orgf575406" class="outline-3">
-<h3 id="orgf575406"><span class="section-number-3">9.7.</span> Proyecto de banco</h3>
+<div id="outline-container-orgfa91d47" class="outline-3">
+<h3 id="orgfa91d47"><span class="section-number-3">9.7.</span> Proyecto de banco</h3>
 <div class="outline-text-3" id="text-9-7">
-<pre class="example" id="orgb26c10b">
+<pre class="example" id="org9ca9813">
 qbank-init DIR [--forzar]        copia la plantilla (preguntas/, scripts/, Makefile, config.py,
                                  nueva_pregunta.py, README.org, prompts/, CLAUDE.md) en DIR; equivale a
                                  python -m qbank._plantilla DIR
 </pre>
 </div>
 </div>
-<div id="outline-container-orgfa91d47" class="outline-3">
-<h3 id="orgfa91d47"><span class="section-number-3">9.8.</span> Operadores de <code>calcprop</code> (disponibles tras <code>from qbank import *</code>)</h3>
+<div id="outline-container-org07936e4" class="outline-3">
+<h3 id="org07936e4"><span class="section-number-3">9.8.</span> Operadores de <code>calcprop</code> (disponibles tras <code>from qbank import *</code>)</h3>
 <div class="outline-text-3" id="text-9-8">
-<pre class="example" id="org52ab030">
+<pre class="example" id="org7a01898">
 v("X")           variable proposicional X
 -v("X")          negación de X
 v("X") &amp; v("Y")  conjunción (X ∧ Y)
@@ -1997,12 +2083,12 @@ test(formula, lista_de_formulas)  → bool
 </div>
 </div>
 </div>
-<div id="outline-container-org07936e4" class="outline-2">
-<h2 id="org07936e4"><span class="section-number-2">10.</span> Preguntas frecuentes</h2>
+<div id="outline-container-orgc850363" class="outline-2">
+<h2 id="orgc850363"><span class="section-number-2">10.</span> Preguntas frecuentes</h2>
 <div class="outline-text-2" id="text-10">
 </div>
-<div id="outline-container-orgc850363" class="outline-3">
-<h3 id="orgc850363"><span class="section-number-3">10.1.</span> ¿Por qué algunas variantes no se generan?</h3>
+<div id="outline-container-org8b36a4c" class="outline-3">
+<h3 id="org8b36a4c"><span class="section-number-3">10.1.</span> ¿Por qué algunas variantes no se generan?</h3>
 <div class="outline-text-3" id="text-10-1">
 <p>
 Si un <code>Supuesto</code> o una <code>Cuestion</code> tiene una precondición que no se satisface en una
@@ -2013,8 +2099,8 @@ también allí.
 </p>
 </div>
 </div>
-<div id="outline-container-org8b36a4c" class="outline-3">
-<h3 id="org8b36a4c"><span class="section-number-3">10.2.</span> ¿Cómo incluyo texto LaTeX en los enunciados?</h3>
+<div id="outline-container-org29e8fae" class="outline-3">
+<h3 id="org29e8fae"><span class="section-number-3">10.2.</span> ¿Cómo incluyo texto LaTeX en los enunciados?</h3>
 <div class="outline-text-3" id="text-10-2">
 <p>
 Los campos <code>enunciado</code> y <code>exp</code> son cadenas Python que se insertan tal cual en el <code>.tex</code>.
@@ -2031,8 +2117,8 @@ En JSON cada barra se dobla: <code>"$\\mathbf{X}^\\top\\mathbf{X}$"</code>.
 </p>
 </div>
 </div>
-<div id="outline-container-org29e8fae" class="outline-3">
-<h3 id="org29e8fae"><span class="section-number-3">10.3.</span> ¿Puedo escribir un porcentaje, grados, comillas…?</h3>
+<div id="outline-container-org92e7e6e" class="outline-3">
+<h3 id="org92e7e6e"><span class="section-number-3">10.3.</span> ¿Puedo escribir un porcentaje, grados, comillas…?</h3>
 <div class="outline-text-3" id="text-10-3">
 <p>
 El símbolo <code>%</code> es, en LaTeX, el inicio de un comentario: escribe siempre <code>\%</code> (y fuera
@@ -2042,8 +2128,8 @@ rectas <code>"…"</code> (usa <code>``así''</code>): el paquete <code>moodle</
 </p>
 </div>
 </div>
-<div id="outline-container-org92e7e6e" class="outline-3">
-<h3 id="org92e7e6e"><span class="section-number-3">10.4.</span> ¿Cómo escribo display math?</h3>
+<div id="outline-container-org5d349d8" class="outline-3">
+<h3 id="org5d349d8"><span class="section-number-3">10.4.</span> ¿Cómo escribo display math?</h3>
 <div class="outline-text-3" id="text-10-4">
 <p>
 Con <code>$$...$$</code>, nunca <code>\[...\]</code> ni <code>\(...\)</code> directamente: el paquete <code>moodle</code> necesita
@@ -2053,8 +2139,8 @@ expresiones en línea contiguas con un espacio (<code>$A$ $B$</code>, no <code>$
 </p>
 </div>
 </div>
-<div id="outline-container-org5d349d8" class="outline-3">
-<h3 id="org5d349d8"><span class="section-number-3">10.5.</span> ¿Puedo incluir una figura en el enunciado?</h3>
+<div id="outline-container-orgf7aa531" class="outline-3">
+<h3 id="orgf7aa531"><span class="section-number-3">10.5.</span> ¿Puedo incluir una figura en el enunciado?</h3>
 <div class="outline-text-3" id="text-10-5">
 <p>
 Sí, con <code>\includegraphics</code> en el texto (el enunciado es LaTeX), pero cada destino la
@@ -2081,22 +2167,27 @@ multiplica el XML.
 </p>
 </div>
 </div>
-<div id="outline-container-orgf7aa531" class="outline-3">
-<h3 id="orgf7aa531"><span class="section-number-3">10.6.</span> ¿Para qué sirve <code>codchar</code>?</h3>
+<div id="outline-container-org13210c8" class="outline-3">
+<h3 id="org13210c8"><span class="section-number-3">10.6.</span> ¿Para qué sirve <code>codchar</code>?</h3>
 <div class="outline-text-3" id="text-10-6">
 <p>
-<code>codchar(s)</code> convierte las vocales acentuadas minúsculas y la <code>ñ</code> a secuencias LaTeX
-(<code>á</code> → <code>\'{a}</code>). Las funciones Moodle lo aplican automáticamente, porque el <code>.tex</code> que
-generan usa codificación OT1; no hace falta llamarlo a mano. Las mayúsculas
-acentuadas (como <code>Á</code> o <code>Ñ</code>), la <code>ü</code> y los signos <code>¿</code> y <code>¡</code> pasan tal cual: con <code>xelatex</code>
-salen bien; con <code>pdflatex</code> el XML queda mal declarado y lo corrige
-<code>scripts/fix_moodle_xml.py</code> de la plantilla (ver la sección <a href="#org03a47b4">6</a>). Para AMC no
-suele hacer falta si el documento principal usa <code>inputenc</code> con UTF-8.
+<code>codchar(s)</code> convierte las letras del español con tilde o diéresis, mayúsculas y
+minúsculas, y la <code>ñ</code> a órdenes de acento de LaTeX (<code>á</code> → <code>\'{a}</code>, <code>ü</code> → <code>\"{u}</code>), y los
+signos <code>¿</code> y <code>¡</code> a <code>\textquestiondown</code> y <code>\textexclamdown</code>. Las funciones Moodle lo aplican
+automáticamente; no hace falta llamarlo a mano. El paquete <code>moodle</code> convierte esas
+órdenes en entidades HTML (<code>&amp;aacute;</code>, <code>&amp;uuml;</code>, <code>&amp;iquest;</code>), que se leen bien se declare
+el XML como se declare. Un carácter que <code>codchar</code> no cubra (las comillas <code>“ ”</code>, por
+ejemplo) pasa tal cual: con <code>xelatex</code> sale bien; con <code>pdflatex</code> llega al XML en UTF-8
+con la declaración <code>iso-8859-1</code> y lo corrige <code>scripts/fix_moodle_xml.py</code> de la plantilla
+(ver la sección <a href="#org03a47b4">6</a>). Hasta la 0.7.0 <code>codchar</code> solo cubría
+las minúsculas acentuadas y la <code>ñ</code>, y un banco con una copia antigua de ese script
+mostraba en Moodle <code>antigÃ¼edad</code> o <code>Â¿Qué</code>. Para AMC no suele hacer falta si el documento
+principal usa <code>inputenc</code> con UTF-8.
 </p>
 </div>
 </div>
-<div id="outline-container-org13210c8" class="outline-3">
-<h3 id="org13210c8"><span class="section-number-3">10.7.</span> ¿Cómo exporto varias preguntas a un mismo cuestionario Moodle?</h3>
+<div id="outline-container-org1bc4417" class="outline-3">
+<h3 id="org1bc4417"><span class="section-number-3">10.7.</span> ¿Cómo exporto varias preguntas a un mismo cuestionario Moodle?</h3>
 <div class="outline-text-3" id="text-10-7">
 <p>
 Pasa un diccionario a <code>QuizMoodle</code>: todas van al cuestionario <code>MiExamen</code>, y cada clave
@@ -2115,12 +2206,12 @@ Un banco de <code>qbank-init</code> guarda cada pregunta en su propio fichero, y
 </div>
 </div>
 </div>
-<div id="outline-container-org1bc4417" class="outline-2">
-<h2 id="org1bc4417"><span class="section-number-2">11.</span> Apéndice: API avanzada y compatibilidad</h2>
+<div id="outline-container-orgee35ccb" class="outline-2">
+<h2 id="orgee35ccb"><span class="section-number-2">11.</span> Apéndice: API avanzada y compatibilidad</h2>
 <div class="outline-text-2" id="text-11">
 </div>
-<div id="outline-container-orgee35ccb" class="outline-3">
-<h3 id="orgee35ccb"><span class="section-number-3">11.1.</span> <code>ProblemaVF</code> — preguntas de verdadero/falso</h3>
+<div id="outline-container-org055ac3f" class="outline-3">
+<h3 id="org055ac3f"><span class="section-number-3">11.1.</span> <code>ProblemaVF</code> — preguntas de verdadero/falso</h3>
 <div class="outline-text-3" id="text-11-1">
 <p>
 <code>ProblemaVF</code> sirve para un formato distinto: un banco de afirmaciones del que se extrae
@@ -2187,7 +2278,7 @@ for _ in range(2):
 </pre>
 </div>
 
-<pre class="example" id="org9ca9813">
+<pre class="example" id="org58f23e4">
 Variante 1: Indique qué afirmaciones son verdaderas:
   ✗ Todo alumno que va a clase aprueba
   ✗ Si aprueban todos eres buen profesor
@@ -2205,8 +2296,8 @@ y carga en JSON sin restricciones.
 </p>
 </div>
 </div>
-<div id="outline-container-org055ac3f" class="outline-3">
-<h3 id="org055ac3f"><span class="section-number-3">11.2.</span> Clases deprecadas</h3>
+<div id="outline-container-orgb75db06" class="outline-3">
+<h3 id="orgb75db06"><span class="section-number-3">11.2.</span> Clases deprecadas</h3>
 <div class="outline-text-3" id="text-11-2">
 <dl class="org-dl">
 <dt><code>ProblemaTipoProfe</code></dt><dd><p>
@@ -2214,7 +2305,7 @@ emite <code>DeprecationWarning</code>; usa
 <code>ProblemaTipo(...).por_partes_profe()</code>. Firma:
 </p>
 
-<pre class="example" id="org7a01898">
+<pre class="example" id="orgd630c0a">
 ProblemaTipoProfe(lista, setup=None)
 </pre></dd>
 <dt><code>ProblemaMultiParte</code> y <code>SubPregunta</code></dt><dd><p>
@@ -2224,15 +2315,15 @@ ProblemaTipoProfe(lista, setup=None)
 <code>ProblemaTipo</code> y recórrelo con <code>por_partes()</code>. Firmas:
 </p>
 
-<pre class="example" id="org58f23e4">
+<pre class="example" id="org31cada9">
 ProblemaMultiParte(componentes, subpreguntas, setup=None)
 SubPregunta(intro, cuestiones)
 </pre></dd>
 </dl>
 </div>
 </div>
-<div id="outline-container-orgb75db06" class="outline-3">
-<h3 id="orgb75db06"><span class="section-number-3">11.3.</span> Editor visual en Jupyter (<code>ProblemaTipoEditor</code>)</h3>
+<div id="outline-container-orgc233b18" class="outline-3">
+<h3 id="orgc233b18"><span class="section-number-3">11.3.</span> Editor visual en Jupyter (<code>ProblemaTipoEditor</code>)</h3>
 <div class="outline-text-3" id="text-11-3">
 <p>
 <code>ProblemaTipoEditor</code> es un formulario interactivo para diseñar un <code>ProblemaTipo</code> desde

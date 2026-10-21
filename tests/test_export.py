@@ -264,7 +264,7 @@ class TestQuizMoodleProfeLastChoiceInstances:
     (lambda d, p: QuizAMCProfe("q", d, p), "q_profe.tex"),
 ])
 def test_tex_en_utf8_aunque_el_sistema_no_lo_sea(monkeypatch, exportar, fichero):
-    # codchar no convierte «¿»: llega tal cual al .tex y tiene que ir en UTF-8
+    # codchar no convierte «»: llega tal cual al .tex y tiene que ir en UTF-8
     import builtins
     open_original = builtins.open
 
@@ -273,13 +273,13 @@ def test_tex_en_utf8_aunque_el_sistema_no_lo_sea(monkeypatch, exportar, fichero)
             kw["encoding"] = "cp1252"
         return open_original(f, mode, *args, **kw)
 
-    p = ProblemaTipo(["¿Qué ocurre? ", [Supuesto("A. ", v("A")), Supuesto("B. ", v("B"))],
+    p = ProblemaTipo(["«Qué» ocurre. ", [Supuesto("A. ", v("A")), Supuesto("B. ", v("B"))],
                       Cuestion("A", v("A")), Cuestion("B", v("B")), Cuestion("C", False)])
     with tempfile.TemporaryDirectory() as d:
         monkeypatch.setattr(builtins, "open", open_cp1252)
         exportar(d, p)
         monkeypatch.undo()
-        assert "¿Qu" in (Path(d) / fichero).read_text(encoding="utf-8")
+        assert "«Qu" in (Path(d) / fichero).read_text(encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -358,3 +358,11 @@ def test_quiz_lectura_escribe_un_documento(problema_simple, tmp_path):
     assert "\\subsection*{Mundo 1}" in tex and "\\subsection*{Mundo único}" in tex
     assert QuizLectura("uno", str(tmp_path), problema_simple, last_choice=True) == 2
     assert "la opción 2 es" in (tmp_path / "uno.tex").read_text(encoding="utf-8")   # 1 hueco + opción por defecto
+
+
+def test_codchar_cubre_los_caracteres_del_espanol():
+    # moodle.sty pasa las órdenes de acento a entidades HTML; un carácter sin
+    # convertir llega al XML en UTF-8 y Moodle lo muestra mal (antigÃ¼edad).
+    s = codchar("¿Antigüedad? ¡Índice! Árbol Él Óleo Último Ñu Ü")
+    assert all(ord(ch) < 128 for ch in s)
+    assert s.startswith("\\textquestiondown Antig\\\"{u}edad? \\textexclamdown \\'{I}ndice!")

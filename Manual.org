@@ -902,9 +902,10 @@ Python (qbank)  →  nombre.tex  →  xelatex / pdflatex  →  nombre.pdf + nomb
 El =.tex= compila con cualquier motor (su cabecera distingue =pdflatex= de
 =xelatex= o =lualatex=). Si lo compilas *a mano*, usa =xelatex=: el XML sale declarado en
 UTF-8. Con =pdflatex= el paquete =moodle= lo declara en =iso-8859-1= aunque escribe en
-UTF-8 los caracteres que =codchar= no convierte (los signos ~¿~ y ~¡~, las mayúsculas
-acentuadas como ~Á~ o ~Ñ~ y la ~ü~), y Moodle los mostraría mal (por ejemplo, ~Â¿~ en
-lugar de ~¿~);
+UTF-8 los caracteres que =codchar= no convierte (desde la 0.7.1 =codchar= cubre todas
+las letras del español, mayúsculas y ~ü~ incluidas, y los signos ~¿~ y ~¡~; quedan, por
+ejemplo, las comillas ~“ ”~), y Moodle los mostraría mal (por ejemplo, ~antigÃ¼edad~
+en lugar de ~antigüedad~);
 los proyectos de =qbank-init= compilan con =pdflatex= y corrigen la declaración
 después (=scripts/fix_moodle_xml.py=, que =make moodle= ejecuta).
 
@@ -968,8 +969,9 @@ xelatex EjemploMoodle.tex
 #+end_src
 
 Se generan =ejemplosManual/EjemploMoodle-moodle.xml= (para importar en Moodle) y
-=ejemplosManual/EjemploMoodle.pdf= (vista previa de las preguntas). Las vocales acentuadas
-minúsculas y la =ñ= las convierte =codchar= (ver la referencia) de forma automática.
+=ejemplosManual/EjemploMoodle.pdf= (vista previa de las preguntas). Las letras acentuadas,
+la =ñ=, la =ü= y los signos =¿= y =¡= las convierte =codchar= (ver la referencia) de forma
+automática.
 
 ** Preguntas con varias partes
 
@@ -1010,6 +1012,73 @@ with open("ejemplosManual/exportaciones/superheroes_amc.tex", "w") as f:       #
     for etiqueta, partes in p.por_partes():
         f.write(AMC_multipart("Superheroes", etiqueta, "", partes, last_choice=True))
 #+end_src
+
+** Subir y actualizar el banco en Moodle desde el terminal
+
+Importar a mano (/Banco de preguntas → Importar/) basta para una pregunta suelta,
+pero al corregir una pregunta ya subida hay que borrar antes sus variantes viejas
+de la categoría, y con cientos de variantes por pregunta eso es tedioso y propenso
+a errores. El banco =qbank-PEconometria= tiene dos scripts que reproducen desde el
+terminal los formularios de Moodle con la sesión del navegador, sin servicios web
+ni permisos de administración: =scripts/moodle_sync.py= (banco de preguntas) y
+=scripts/moodle_quiz.py= (cuestionarios). No forman parte de la plantilla: están
+escritos para el Campus Virtual de la UCM (Moodle 4.3 con =auth_saml2=; constantes
+=BASE= y =COURSEID= al principio de =moodle_sync.py=, o =--base= y =--curso=). Para
+otro Moodle hay que copiarlos y comprobar que sus páginas son iguales; si no lo son,
+los scripts fallan sin tocar nada.
+
+*La sesión.* Entra en el campus con el navegador, abre las herramientas de
+desarrollo (F12; Firefox: /Almacenamiento → Cookies/; Chrome: /Application →
+Cookies/), copia el *valor* de la cookie =MoodleSession= del dominio del campus y
+guárdalo, solo el valor, en =~/.config/moodle-ucm/session= (permisos =600=) o en la
+variable =MOODLE_SESSION=. Equivale a tu contraseña mientras dure la sesión: no la
+pegues en ningún fichero versionado. Caduca con la sesión del navegador (en la UCM,
+tras una hora de inactividad); si un script dice que no hay sesión, copia otra.
+
+*Siempre simulan.* Sin =--ejecutar= los dos scripts solo dicen lo que harían;
+ejecútalos primero así y compara con lo que esperas.
+
+#+begin_example
+PY=~/ruta/a/qbank/.venv/bin/python
+$PY scripts/moodle_sync.py categorias                      # categorías y nº de preguntas
+$PY scripts/moodle_sync.py preguntas L-14-LeerElVIF        # ids de una categoría
+$PY scripts/moodle_sync.py reimportar build/moodle/X.xml   # simula
+$PY scripts/moodle_sync.py reimportar build/moodle/X.xml --ejecutar
+$PY scripts/moodle_sync.py importar X.xml --ejecutar       # solo importar
+$PY scripts/moodle_sync.py borrar L-14-A L-14-B --ejecutar # vaciar categorías
+
+$PY scripts/moodle_quiz.py cuestionarios                   # cmid, nombre, ranuras, apertura
+$PY scripts/moodle_quiz.py ranuras 185724                  # ranuras de un cuestionario
+$PY scripts/moodle_quiz.py aleatorias 185725 L-15-A L-15-B --ejecutar
+#+end_example
+
+*Actualizar preguntas: =reimportar=.* Recibe un XML con las preguntas corregidas
+(para unas pocas, fusiona solo sus =*-moodle.xml= en un fichero aparte; el de todo el
+banco también vale). Para cada categoría =$course$/top/<nombre>= del XML que ya exista
+borra sus preguntas visibles y, después, importa el XML una sola vez: Moodle reutiliza
+la categoría del mismo nombre (conserva su id) y crea las que falten. *Las categorías
+no se borran nunca*, y es deliberado: las ranuras aleatorias de un cuestionario
+filtran por el id de la categoría, y borrar una categoría para volver a importarla
+deja esas ranuras rotas. =--solo= y =--excluir= limitan las categorías afectadas.
+Salvaguardas: aborta si el recuento que muestra Moodle no cuadra con el listado o si
+una pregunta aparece en dos categorías; fotografía todo el banco antes y después de
+borrar y se detiene antes de importar si cambió algo fuera de lo previsto; al final
+compara el recuento de cada categoría con el XML y dice =TODO CORRECTO=.
+
+*Cuestionarios: =aleatorias=.* Añade al final del cuestionario (por su =cmid=, el
+número de ~mod/quiz/view.php?id=…~) una ranura «pregunta aleatoria» por cada categoría
+dada, una por página y en el orden dado, y comprueba después que las ranuras nuevas
+son las pedidas. Usa el mismo servicio AJAX que el botón del navegador.
+
+*Lo que se hace a mano, en el navegador:* las fechas de apertura y cierre, la
+visibilidad para los estudiantes y quitar ranuras. =moodle_quiz.py= tiene una orden
+=apertura= que reenvía el formulario de ajustes, pero *no se usa*: la única vez que se
+probó, Moodle devolvió un 404 sin guardar nada y la sesión quedó bloqueada.
+
+*Con moderación.* El cortafuegos de la UCM llegó a dejar colgadas dos sesiones (toda
+petición con esa cookie quedaba sin respuesta, y durante un rato no se pudo abrir
+sesión desde la misma IP) tras ráfagas de peticiones rápidas. Por eso los scripts
+esperan dos segundos entre peticiones. Haz una tarea, comprueba el resultado y para.
 
 * La vista de lectura (=QuizLectura=)
 
@@ -1321,13 +1390,18 @@ multiplica el XML.
 
 ** ¿Para qué sirve =codchar=?
 
-=codchar(s)= convierte las vocales acentuadas minúsculas y la =ñ= a secuencias LaTeX
-(=á= → =\'{a}=). Las funciones Moodle lo aplican automáticamente, porque el =.tex= que
-generan usa codificación OT1; no hace falta llamarlo a mano. Las mayúsculas
-acentuadas (como ~Á~ o ~Ñ~), la ~ü~ y los signos ~¿~ y ~¡~ pasan tal cual: con =xelatex=
-salen bien; con =pdflatex= el XML queda mal declarado y lo corrige
-=scripts/fix_moodle_xml.py= de la plantilla (ver la sección [[*Exportar a Moodle (vía LaTeX)]]). Para AMC no
-suele hacer falta si el documento principal usa =inputenc= con UTF-8.
+=codchar(s)= convierte las letras del español con tilde o diéresis, mayúsculas y
+minúsculas, y la =ñ= a órdenes de acento de LaTeX (=á= → =\'{a}=, =ü= → =\"{u}=), y los
+signos =¿= y =¡= a =\textquestiondown= y =\textexclamdown=. Las funciones Moodle lo aplican
+automáticamente; no hace falta llamarlo a mano. El paquete =moodle= convierte esas
+órdenes en entidades HTML (=&aacute;=, =&uuml;=, =&iquest;=), que se leen bien se declare
+el XML como se declare. Un carácter que =codchar= no cubra (las comillas ~“ ”~, por
+ejemplo) pasa tal cual: con =xelatex= sale bien; con =pdflatex= llega al XML en UTF-8
+con la declaración =iso-8859-1= y lo corrige =scripts/fix_moodle_xml.py= de la plantilla
+(ver la sección [[*Exportar a Moodle (vía LaTeX)]]). Hasta la 0.7.0 =codchar= solo cubría
+las minúsculas acentuadas y la =ñ=, y un banco con una copia antigua de ese script
+mostraba en Moodle =antigÃ¼edad= o =Â¿Qué=. Para AMC no suele hacer falta si el documento
+principal usa =inputenc= con UTF-8.
 
 ** ¿Cómo exporto varias preguntas a un mismo cuestionario Moodle?
 
