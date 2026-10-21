@@ -6,7 +6,7 @@ Para quien modifica qbank, no para quien lo usa.
   `CalcPropExport.org` sin Emacs (`write`), comprueba que coinciden (`check`,
   lo ejecuta `tests/test_literate.py`) o dice qué bloques difieren (`informe`).
 - `cuadernos/` — guiones que generan `Tutorial.ipynb`, `Ejemplos.ipynb` y
-  `ejemplosManual/Demo.ipynb`: se edita el guion, no el cuaderno.
+  `Demo.ipynb`: se edita el guion, no el cuaderno.
   `sh tools/cuadernos/regenera.sh [--ejecuta]` los reescribe y, con
   `--ejecuta`, los ejecuta con el kernel `qbank` para comprobar que no fallan.
 - `web.sh` y `web.el` — regeneran `docs/`, la web de GitHub Pages

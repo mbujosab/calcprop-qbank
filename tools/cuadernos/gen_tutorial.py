@@ -24,7 +24,7 @@ ya está todo preparado).
 Para crear un banco de verdad, con `Makefile` y scripts, el siguiente paso es `qbank-init`
 (ver el README); para diseñar buenas preguntas, `GuiaDiseno.org`. El recorrido por la API
 de Python (construir preguntas en Python, editor visual, exportadores) está en
-`ejemplosManual/Demo.ipynb`.
+`Demo.ipynb`.
 
 ## Cuatro palabras y una advertencia
 
@@ -255,7 +255,7 @@ de un banco), pero puedes *escribirlas* en Python, que se lee mejor: `v('crec')`
 comillas, cadenas crudas `r"..."` sin doblar barras. `problema_to_python` muestra la
 traducción del Ejemplo B; `save_problema` hace el camino inverso (de Python a JSON). La
 comprobación de que el guion reconstruye exactamente la misma pregunta está en
-`ejemplosManual/Demo.ipynb` (sección 7). En un banco creado con `qbank-init`,
+`Demo.ipynb` (sección 7). En un banco creado con `qbank-init`,
 `nueva_pregunta.py` es la plantilla para este camino.
 """)
 
@@ -393,7 +393,7 @@ md(r"""
   `make amc-student` y `make moodle`; su `README.org` explica el flujo completo.
 - `GuiaDiseno.org` explica cómo diseñar buenas preguntas (mundos, huecos, `setup`, redacción,
   explicaciones, trampas de LaTeX y Moodle).
-- `ejemplosManual/Demo.ipynb` recorre la API de Python: construir preguntas en Python,
+- `Demo.ipynb` recorre la API de Python: construir preguntas en Python,
   guardarlas, el editor visual y los exportadores.
 - `Manual.org` es la referencia completa de la API y del formato JSON.
 """)

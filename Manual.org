@@ -1463,4 +1463,4 @@ variantes, con la casilla /vista profe/), ={ } JSON= y =</> .py= (muestran el JS
 guion Python), =💾 Guardar= y =📂 Cargar= (en el fichero indicado) y =⬇ .json= /
 =⬇ .py= (descargas al navegador). Al guardar conserva las claves de =export= que el
 formulario no edita (como =instances=) y las claves propias del JSON.
-=ejemplosManual/Demo.ipynb= (sección 8) lo muestra en uso.
+=Demo.ipynb= (sección 8) lo muestra en uso.

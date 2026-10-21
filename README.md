@@ -365,8 +365,8 @@ Todo se puede leer sin clonar el repositorio en
         — cinco ejemplos progresivos ejecutables: verdadero/falso
         literales, mundos, `precond`, interpolación `@{var}` y semántica
         lambda.
-    -   [`ejemplosManual/Demo.ipynb`](https://github.com/mbujosab/calcprop-qbank/blob/main/ejemplosManual/Demo.ipynb)
-        ([MyBinder](https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/ejemplosManual/Demo.ipynb))
+    -   [`Demo.ipynb`](https://github.com/mbujosab/calcprop-qbank/blob/main/Demo.ipynb)
+        ([MyBinder](https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Demo.ipynb))
         — los mismos ejemplos, recorriendo la API Python y el editor
         visual.
     -   [`Ejemplos.ipynb`](https://github.com/mbujosab/calcprop-qbank/blob/main/Ejemplos.ipynb)

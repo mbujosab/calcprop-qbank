@@ -13,8 +13,9 @@ determinan automáticamente mediante lógica proposicional. Este cuaderno recorr
 *desde Python*: construir preguntas como listas de `Supuesto` y `Cuestion`, revisarlas,
 guardarlas en JSON, el editor visual y los exportadores. Es complementario de
 `Tutorial.ipynb` (los ejemplos progresivos, en JSON) y de `GuiaDiseno.org` (cómo diseñar
-buenas preguntas). Ejecuta las celdas en orden con **Shift+Enter**, desde la carpeta
-`ejemplosManual/`.
+buenas preguntas). Ejecuta las celdas en orden con **Shift+Enter**, desde la raíz del
+repositorio: los ficheros de ejemplo que carga están en `ejemplosManual/`, y lo que
+escribe va a `ejemplosManual/mis_problemas/` y `ejemplosManual/exportaciones/`.
 
 **Contenidos:**
 1. [Bloque básico: `ProblemaTipo`](#1)
@@ -204,10 +205,10 @@ y `nombre`). El JSON es el formato de las preguntas de un banco.
 """)
 
 code(r'''
-os.makedirs("mis_problemas", exist_ok=True)
+os.makedirs("ejemplosManual/mis_problemas", exist_ok=True)
 
-save_problema(p_param, "mis_problemas/parametrica.json")
-p2 = load_problema("mis_problemas/parametrica.json")
+save_problema(p_param, "ejemplosManual/mis_problemas/parametrica.json")
+p2 = load_problema("ejemplosManual/mis_problemas/parametrica.json")
 assert problema_to_dict(p2) == problema_to_dict(p_param)
 print("Guardado y recuperado sin pérdida:", len(list(p2.por_partes(instances=15))), "variantes")
 ''')
@@ -222,8 +223,8 @@ con `make` y con el control de versiones).
 """)
 
 code(r'''
-save_banco([p, p_param], "mis_problemas/banco.json")
-problemas = load_banco("mis_problemas/banco.json")
+save_banco([p, p_param], "ejemplosManual/mis_problemas/banco.json")
+problemas = load_banco("ejemplosManual/mis_problemas/banco.json")
 print(f"Cargados {len(problemas)} problemas:", [problema_to_dict(q)["nombre"] for q in problemas])
 ''')
 
@@ -253,7 +254,7 @@ print(json.dumps(d, ensure_ascii=False, indent=2)[:900], "…")
 code(r'''
 codigo = problema_to_python(p_param)
 print(codigo)
-save_problema_py(p_param, "mis_problemas/parametrica.py")
+save_problema_py(p_param, "ejemplosManual/mis_problemas/parametrica.py")
 
 ns = {}
 exec(codigo, ns)                                    # define p
@@ -311,7 +312,7 @@ precondición de un supuesto, esa variante no aparece.
 """)
 
 code(r'''
-editor_numeros = ProblemaTipoEditor('numeros.json')
+editor_numeros = ProblemaTipoEditor('ejemplosManual/numeros.json')
 ''')
 
 code(r'''
@@ -384,7 +385,7 @@ ejemplo de tres partes sobre cuatro superhéroes (cuatro mundos).
 """)
 
 code(r'''
-editor_superheroes = ProblemaTipoEditor('superheroes.json')
+editor_superheroes = ProblemaTipoEditor('ejemplosManual/superheroes.json')
 ''')
 
 md(r"""
@@ -451,26 +452,26 @@ opciones en N columnas. Para una pregunta de varias partes, `AMC_multipart` prod
 """)
 
 code(r'''
-os.makedirs("exportaciones", exist_ok=True)
+os.makedirs("ejemplosManual/exportaciones", exist_ok=True)
 
-p_numeros = load_problema("numeros.json")       # el ejemplo de la sección 8.2
-with open("exportaciones/numeros_amc.tex", "w") as f:
+p_numeros = load_problema("ejemplosManual/numeros.json")       # el ejemplo de la sección 8.2
+with open("ejemplosManual/exportaciones/numeros_amc.tex", "w") as f:
     for etiqueta, partes in p_numeros.por_partes(instances=p_numeros.export.get("instances", 1)):
         enunciado, cuestiones = partes[0]
         f.write(AMCblock("Numeros", etiqueta, enunciado, cuestiones,
                          last_choice=p_numeros.export.get("last_choice", False),
                          cols=p_numeros.export.get("cols", 1)))
 
-with open("exportaciones/numeros_amc.tex") as f:
+with open("ejemplosManual/exportaciones/numeros_amc.tex") as f:
     print(f.read()[:700], "…")
 ''')
 
 code(r'''
-with open("exportaciones/matriz_amc.tex", "w") as f:
+with open("ejemplosManual/exportaciones/matriz_amc.tex", "w") as f:
     for etiqueta, partes in p_matriz.por_partes():
         f.write(AMC_multipart("AlgebraLineal", etiqueta, "", partes, last_choice=True))
 
-with open("exportaciones/matriz_amc.tex") as f:
+with open("ejemplosManual/exportaciones/matriz_amc.tex") as f:
     print(f.read()[:900], "…")
 ''')
 
@@ -484,7 +485,7 @@ variantes. Al compilarlo se obtienen un PDF de revisión y el fichero
 Formato Moodle XML**):
 
 ```bash
-cd exportaciones
+cd ejemplosManual/exportaciones
 xelatex MiCuestionario.tex      # → MiCuestionario.pdf y MiCuestionario-moodle.xml
 ```
 
@@ -498,16 +499,16 @@ sin hacer nada especial.
 """)
 
 code(r'''
-n = QuizMoodle("MiCuestionario", "exportaciones/", p, last_choice=True)
-print(f"{n} variantes en exportaciones/MiCuestionario.tex\n")
-with open("exportaciones/MiCuestionario.tex") as f:
+n = QuizMoodle("MiCuestionario", "ejemplosManual/exportaciones/", p, last_choice=True)
+print(f"{n} variantes en ejemplosManual/exportaciones/MiCuestionario.tex\n")
+with open("ejemplosManual/exportaciones/MiCuestionario.tex") as f:
     print(f.read()[:800], "…")
 ''')
 
 code(r'''
-QuizMoodle("AlgebraLineal", "exportaciones/", p_matriz, last_choice=True)
-QuizMoodle("Superheroes", "exportaciones/", load_problema("superheroes.json"), last_choice=True)
-print("Escritos exportaciones/AlgebraLineal.tex y exportaciones/Superheroes.tex (cloze con varias partes)")
+QuizMoodle("AlgebraLineal", "ejemplosManual/exportaciones/", p_matriz, last_choice=True)
+QuizMoodle("Superheroes", "ejemplosManual/exportaciones/", load_problema("ejemplosManual/superheroes.json"), last_choice=True)
+print("Escritos ejemplosManual/exportaciones/AlgebraLineal.tex y ejemplosManual/exportaciones/Superheroes.tex (cloze con varias partes)")
 ''')
 
 md(r"""
@@ -554,4 +555,4 @@ md(r"""
 - `Manual.org`: la referencia completa de la API y del formato JSON.
 """)
 
-nb.write("ejemplosManual/Demo.ipynb")
+nb.write("Demo.ipynb")

@@ -311,7 +311,7 @@ variantes, `pocas-opciones`, `opciones`, `constante`, `lista-1`,
   Sin dependencias de econometría. Cubre: T/F literales, mundos proposicionales,
   `precond`, interpolación `@{var}` y semántica lambda.
 
-- **`ejemplosManual/Demo.ipynb`** — demostración interactiva que usa los mismos
+- **`Demo.ipynb`** — demostración interactiva que usa los mismos
   JSONs de `ejemplosManual/`.
 
 Los tres deben funcionar en MyBinder tras cada release.

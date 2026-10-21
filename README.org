@@ -353,7 +353,7 @@ Todo se puede leer sin clonar el repositorio en
 - Tres cuadernos Jupyter, que se abren en MyBinder sin instalar nada:
   - [[https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb][=Tutorial.ipynb=]] ([[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb][MyBinder]]) — cinco ejemplos progresivos ejecutables:
     verdadero/falso literales, mundos, =precond=, interpolación =@{var}= y semántica lambda.
-  - [[https://github.com/mbujosab/calcprop-qbank/blob/main/ejemplosManual/Demo.ipynb][=ejemplosManual/Demo.ipynb=]] ([[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/ejemplosManual/Demo.ipynb][MyBinder]]) — los mismos ejemplos, recorriendo la
+  - [[https://github.com/mbujosab/calcprop-qbank/blob/main/Demo.ipynb][=Demo.ipynb=]] ([[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Demo.ipynb][MyBinder]]) — los mismos ejemplos, recorriendo la
     API Python y el editor visual.
   - [[https://github.com/mbujosab/calcprop-qbank/blob/main/Ejemplos.ipynb][=Ejemplos.ipynb=]] ([[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Ejemplos.ipynb][MyBinder]]) — el flujo completo en Python con un ejemplo de
     econometría: construir la pregunta, revisarla, guardarla en JSON y exportarla a Moodle y AMC.
