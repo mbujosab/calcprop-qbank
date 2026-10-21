@@ -468,7 +468,9 @@ def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, l
                     ' es «' + last_choice_text + '», correcta solo si las demás son falsas'
         L.append(nota + '.\n\n')
     try:
-        L.append('{\\footnotesize\\begin{verbatim}\n' + tabla_mundos(p) + '\n\\end{verbatim}}\n')
+        # 96 caracteres: los que caben en \\footnotesize monoespaciada con margin=2.2cm.
+        L.append('{\\footnotesize\\begin{verbatim}\n' + tabla_mundos(p, linea=96, elipsis='...')
+                 + '\n\\end{verbatim}}\n')
     except Exception as e:                                   # noqa: BLE001
         L.append('{\\small\\color{black!65}(sin tabla de mundos: ' + _tex_lectura_escapa(e) + ')}\n\n')
     # Solo los slots de enunciado con más de una opción identifican el mundo.

@@ -3848,11 +3848,15 @@ def _regla_mundos(p, avisos):
                                         f"coinciden en {len(comunes)} mundo(s)", _rec(texto)))
 
 
-def tabla_mundos(problema, ancho=50):
+def tabla_mundos(problema, ancho=50, linea=None, elipsis='…'):
     """Tabla en texto plano: una fila por Cuestion, una columna por mundo.
 
     Celdas: ``V`` verdadera, ``F`` falsa, ``-`` rechazada por precond, ``?``
     valor no constante dentro del mismo mundo (solo posible con setup).
+    ``ancho`` recorta el texto de cada Cuestion; con ``linea`` (caracteres
+    por línea) el recorte se calcula para que cada fila ocupe ``linea``.
+    ``elipsis`` marca el texto recortado (en LaTeX ``…`` ocupa tres
+    caracteres de ancho y desalinea las columnas: allí se pasa ``'...'``).
     """
     avisos = []
     p, _ = _carga(problema, avisos)
@@ -3873,11 +3877,19 @@ def tabla_mundos(problema, ancho=50):
             return 'F'
         return '?'
 
+    def rec(t, n):
+        t = ' '.join(str(t).split())
+        return t if len(t) <= n else t[:n - len(elipsis)].rstrip() + elipsis
+
     out = ["Mundos:"]
     for k, m in enumerate(mundos, 1):
-        out.append(f"  M{k}: {_rec(' / '.join(m) or '(sin supuestos)', 100)}")
+        n = 100 if linea is None else max(20, linea - len(f"  M{k}: "))
+        out.append(f"  M{k}: {rec(' / '.join(m) or '(sin supuestos)', n)}")
     cab = ' '.join(f"M{k}" for k in range(1, len(mundos) + 1))
-    etiq = [f"[{i}.{j}] {_rec(t, ancho)}" for i, j, t, _, _ in filas]
+    if linea is not None:
+        pre = max((len(f"[{i}.{j}] ") for i, j, _, _, _ in filas), default=0)
+        ancho = max(20, linea - pre - 2 - len(cab))
+    etiq = [f"[{i}.{j}] {rec(t, ancho)}" for i, j, t, _, _ in filas]
     w = max(len(e) for e in etiq) if etiq else 0
     out.append('')
     out.append(' ' * w + '  ' + cab)
