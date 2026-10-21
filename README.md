@@ -359,10 +359,21 @@ Todo se puede leer sin clonar el repositorio en
 [mbujosab.github.io/calcprop-qbank](https://mbujosab.github.io/calcprop-qbank/)
 (HTML y PDF). En este orden:
 
--   [`Tutorial.ipynb`](https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb)
-    — ejemplos progresivos ejecutables (también en MyBinder);
-    [`ejemplosManual/Demo.ipynb`](https://github.com/mbujosab/calcprop-qbank/blob/main/ejemplosManual/Demo.ipynb)
-    recorre la API Python.
+-   Tres cuadernos Jupyter, que se abren en MyBinder sin instalar nada:
+    -   [`Tutorial.ipynb`](https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb)
+        ([MyBinder](https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb))
+        — cinco ejemplos progresivos ejecutables: verdadero/falso
+        literales, mundos, `precond`, interpolación `@{var}` y semántica
+        lambda.
+    -   [`ejemplosManual/Demo.ipynb`](https://github.com/mbujosab/calcprop-qbank/blob/main/ejemplosManual/Demo.ipynb)
+        ([MyBinder](https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/ejemplosManual/Demo.ipynb))
+        — los mismos ejemplos, recorriendo la API Python y el editor
+        visual.
+    -   [`Ejemplos.ipynb`](https://github.com/mbujosab/calcprop-qbank/blob/main/Ejemplos.ipynb)
+        ([MyBinder](https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Ejemplos.ipynb))
+        — el flujo completo en Python con un ejemplo de econometría:
+        construir la pregunta, revisarla, guardarla en JSON y exportarla
+        a Moodle y AMC.
 -   [`GuiaDiseno.org`](https://github.com/mbujosab/calcprop-qbank/blob/main/GuiaDiseno.org)
     (impresa en
     [`GuiaDiseno.pdf`](https://github.com/mbujosab/calcprop-qbank/blob/main/GuiaDiseno.pdf))

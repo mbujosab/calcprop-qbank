@@ -55,7 +55,10 @@ Instalar Python y crear el entorno virtual paso a paso, también en Windows:
 2. *Tutorial* ([[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb][abrir en MyBinder]], sin instalar nada;
    [[https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb][verlo en GitHub]]): cinco ejemplos progresivos ejecutables. Es un
    cuaderno Jupyter y se puede saltar: sin cuadernos, el camino es README →
-   Guía → Manual, trabajando en el proyecto que crea =qbank-init=.
+   Guía → Manual, trabajando en el proyecto que crea =qbank-init=. Hay dos
+   cuadernos más: =Demo.ipynb= ([[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/ejemplosManual/Demo.ipynb][MyBinder]]), los mismos ejemplos con la API
+   Python y el editor visual, y =Ejemplos.ipynb= ([[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Ejemplos.ipynb][MyBinder]]), el flujo completo
+   con un ejemplo de econometría.
 3. *README del banco* ([[file:plantilla.html][HTML]]): el que =qbank-init= deja en cada proyecto.
    Qué hay en el proyecto, el flujo de trabajo con =make=, cómo leer la vista
    profe, los caracteres que rompen la exportación y cómo llevar las preguntas

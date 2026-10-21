@@ -350,8 +350,13 @@ localizar distractores constantes.
 Todo se puede leer sin clonar el repositorio en
 [[https://mbujosab.github.io/calcprop-qbank/][mbujosab.github.io/calcprop-qbank]] (HTML y PDF). En este orden:
 
-- [[https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb][=Tutorial.ipynb=]] — ejemplos progresivos ejecutables (también en MyBinder);
-  [[https://github.com/mbujosab/calcprop-qbank/blob/main/ejemplosManual/Demo.ipynb][=ejemplosManual/Demo.ipynb=]] recorre la API Python.
+- Tres cuadernos Jupyter, que se abren en MyBinder sin instalar nada:
+  - [[https://github.com/mbujosab/calcprop-qbank/blob/main/Tutorial.ipynb][=Tutorial.ipynb=]] ([[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Tutorial.ipynb][MyBinder]]) — cinco ejemplos progresivos ejecutables:
+    verdadero/falso literales, mundos, =precond=, interpolación =@{var}= y semántica lambda.
+  - [[https://github.com/mbujosab/calcprop-qbank/blob/main/ejemplosManual/Demo.ipynb][=ejemplosManual/Demo.ipynb=]] ([[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/ejemplosManual/Demo.ipynb][MyBinder]]) — los mismos ejemplos, recorriendo la
+    API Python y el editor visual.
+  - [[https://github.com/mbujosab/calcprop-qbank/blob/main/Ejemplos.ipynb][=Ejemplos.ipynb=]] ([[https://mybinder.org/v2/gh/mbujosab/calcprop-qbank/main?urlpath=lab/tree/Ejemplos.ipynb][MyBinder]]) — el flujo completo en Python con un ejemplo de
+    econometría: construir la pregunta, revisarla, guardarla en JSON y exportarla a Moodle y AMC.
 - [[https://github.com/mbujosab/calcprop-qbank/blob/main/GuiaDiseno.org][=GuiaDiseno.org=]] (impresa en [[https://github.com/mbujosab/calcprop-qbank/blob/main/GuiaDiseno.pdf][=GuiaDiseno.pdf=]]) — cómo diseñar buenas
   preguntas: la mecánica de listas y mundos, el patrón de tres huecos + opción por defecto, =setup=, redacción
   de cuestiones y explicaciones, trampas de LaTeX/Moodle y checklist.
