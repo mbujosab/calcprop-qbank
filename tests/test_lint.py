@@ -671,3 +671,10 @@ def test_patron_cli(tmp_path, capsys):
     assert "[patron]" in out and "casi constante" in out
     assert main([str(f), "--patrones"]) == 0
     assert "[patron]" in capsys.readouterr().out
+    assert main(["--quiet", "--patrones", str(f)]) == 0               # el fichero tras --patrones no es N
+    assert "[patron]" in capsys.readouterr().out
+
+
+def test_patron_ignora_palabras_cortas():
+    from qbank._lint import _palabras
+    assert _palabras("el precio de los coches usados y la edad") == {"precio", "coches", "usados", "edad"}

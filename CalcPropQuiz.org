@@ -3925,7 +3925,7 @@ def tabla_mundos(problema, ancho=50, linea=None, elipsis='…'):
 
 Multiplicar variantes tiene un reverso: si algún rasgo superficial se repite en las opciones verdaderas (o en las falsas), el alumno que ha visto varias variantes —en Moodle, en especial— puede acertar sin entender nada: «la frase larga es la falsa», «la cifra pequeña es la buena», «si dice /precio/ es falsa». Esta regla hace de ese alumno: muestrea las variantes (=por_partes_lectura=, un ejemplo por mundo y sorteo, con =N_SEMILLAS_PATRONES= sorteos del =setup=) y busca lo que predice la verdad /sin leer el enunciado/. Es cara (recorre muchas variantes), así que solo corre con =lint(..., patrones=True)= o =--patrones [N]=, y todo lo que encuentra es AVISO: son indicios que hay que leer.
 
-Tres comprobaciones, de lo estructural a lo superficial. (1) Por =Cuestion=: una de verdad variable pero /casi constante/ (el mismo valor en ≥ 85 % de sus apariciones), o constante en toda la muestra siendo una lambda con =setup= (ahí la regla 3 solo pudo dar INFO, porque la tabla de mundos usa un único sorteo). Las constantes de verdad quedan para la regla 3. (2) Por /tipo de frase/ (el texto de la opción con las cifras sustituidas por =#=, que agrupa las gemelas numéricas aunque vengan de =Cuestion= distintas): una cifra cuyo valor separa por completo las verdaderas de las falsas, como una elasticidad verdadera siempre menor que 1 y su gemela inversa siempre mayor. (3) Por hueco, rasgos binarios de la opción tal como la ve el alumno: cada palabra, cada cifra concreta, repetir una cifra del enunciado, tener la cifra mayor o la menor del hueco, llevar fórmula, ser más larga que la mediana del hueco. Un rasgo (o su ausencia) es un patrón si predice la verdad en ≥ 85 % de los casos, al menos 15 puntos por encima de la tasa base del hueco, con soporte mínimo a ambos lados y un p-valor hipergeométrico corregido por el número de rasgos probados. Se descartan los rasgos que solo reúnen =Cuestion= enteras (esos reexpresan «constante» o «casi constante»), y los candidatos que cubren los mismos casos se funden en un aviso (uno que cubre un subconjunto de otro —«la» dentro de «precio»— no añade nada). No hay lista de palabras: los rasgos salen del propio banco, así que la regla no depende del idioma ni de la asignatura. Tampoco se miran relaciones aritméticas con el enunciado (suma, producto, inverso…): en una pregunta de cálculo la respuesta correcta /debe/ ser función de los datos, y señalarlo sería un falso positivo en cada pregunta numérica.
+Tres comprobaciones, de lo estructural a lo superficial. (1) Por =Cuestion=: una de verdad variable pero /casi constante/ (el mismo valor en ≥ 85 % de sus apariciones), o constante en toda la muestra siendo una lambda con =setup= (ahí la regla 3 solo pudo dar INFO, porque la tabla de mundos usa un único sorteo). Las constantes de verdad quedan para la regla 3. (2) Por /tipo de frase/ (el texto de la opción con las cifras sustituidas por =#=, que agrupa las gemelas numéricas aunque vengan de =Cuestion= distintas): una cifra cuyo valor separa por completo las verdaderas de las falsas, como una elasticidad verdadera siempre menor que 1 y su gemela inversa siempre mayor. (3) Por hueco, rasgos binarios de la opción tal como la ve el alumno: cada palabra de al menos =_MIN_LETRAS_PALABRA= letras (las más cortas son artículos y preposiciones en casi cualquier idioma, y solo meten ruido), cada cifra concreta, repetir una cifra del enunciado, tener la cifra mayor o la menor del hueco, llevar fórmula, ser más larga que la mediana del hueco. Un rasgo (o su ausencia) es un patrón si predice la verdad en ≥ 85 % de los casos, al menos 15 puntos por encima de la tasa base del hueco, con soporte mínimo a ambos lados y un p-valor hipergeométrico corregido por el número de rasgos probados. Se descartan los rasgos que solo reúnen =Cuestion= enteras (esos reexpresan «constante» o «casi constante»), y los candidatos que cubren los mismos casos se funden en un aviso (uno que cubre un subconjunto de otro —«la» dentro de «precio»— no añade nada). No hay lista de palabras: los rasgos salen del propio banco, así que la regla no depende del idioma ni de la asignatura. Tampoco se miran relaciones aritméticas con el enunciado (suma, producto, inverso…): en una pregunta de cálculo la respuesta correcta /debe/ ser función de los datos, y señalarlo sería un falso positivo en cada pregunta numérica.
 
 #+NAME: lint: Regla 11: patrones
 #+begin_src python :noweb yes
@@ -3936,6 +3936,7 @@ _PRECISION_PATRON   = 0.85   # acierto mínimo de un rasgo (y de una Cuestion «
 _MEJORA_PATRON      = 0.15   # … y al menos esta mejora sobre la tasa base del hueco
 _P_PATRON           = 0.01   # p-valor hipergeométrico, corregido por el número de rasgos probados
 _MAX_PATRONES_HUECO = 3      # rasgos que se listan por hueco
+_MIN_LETRAS_PALABRA = 4      # palabras más cortas (artículos, preposiciones…) no son señal
 
 _RE_SUBIND  = _re.compile(r'[_^](\{[^}]*\}|\\?\w)')     # subíndices y exponentes: no se leen como cifras
 _RE_NOTACION = _re.compile(r'\\(?:boldsymbol|mathbf|mathbb|mathcal|mathrm|mathit|bm|symbf|textbf|vec|hat|bar|tilde)'
@@ -3943,7 +3944,7 @@ _RE_NOTACION = _re.compile(r'\\(?:boldsymbol|mathbf|mathbb|mathcal|mathrm|mathit
 _RE_CMD     = _re.compile(r'\\[A-Za-z]+')
 _RE_FRAC    = _re.compile(r'(-?)\\[dt]?frac\{(-?\d+(?:[.,]\d+)?)\}\{(-?\d+(?:[.,]\d+)?)\}')
 _RE_CIFRA   = _re.compile(r'(?<![\w.,])-?\d+(?:(?:\{,\}|[.,])\d+)?')
-_RE_PALABRA = _re.compile(r'[^\W\d_]{2,}')
+_RE_PALABRA = _re.compile(r'[^\W\d_]{%d,}' % _MIN_LETRAS_PALABRA)
 
 
 def _sin_fracciones(texto):
@@ -4230,7 +4231,7 @@ def main(argv=None):
     ap = _argparse.ArgumentParser(
         prog='python -m qbank.lint',
         description="Comprueba preguntas qbank (JSON). Código de salida 1 si hay algún ERROR.")
-    ap.add_argument('ficheros', nargs='+', metavar='FICHERO.json')
+    ap.add_argument('ficheros', nargs='*', metavar='FICHERO.json')
     ap.add_argument('--instances', type=int, default=None,
                     help="número de instancias (por defecto export.instances)")
     ap.add_argument('--seed', type=int, default=None, help="semilla base")
@@ -4238,10 +4239,18 @@ def main(argv=None):
                     help="imprime la tabla Cuestion × mundo aunque no haya avisos")
     ap.add_argument('--quiet', action='store_true',
                     help="omite los INFO y los ficheros sin avisos")
-    ap.add_argument('--patrones', nargs='?', const=True, type=int, default=None, metavar='N',
+    ap.add_argument('--patrones', nargs='?', const=True, default=None, metavar='N',
                     help="busca además patrones memorizables (regla 11, más lenta), "
                          f"con N sorteos del setup (por defecto {N_SEMILLAS_PATRONES})")
     args = ap.parse_args(argv)
+    if isinstance(args.patrones, str):              # «--patrones fichero.json»: N era un fichero
+        try:
+            args.patrones = int(args.patrones)
+        except ValueError:
+            args.ficheros.insert(0, args.patrones)
+            args.patrones = True
+    if not args.ficheros:
+        ap.error("hace falta al menos un FICHERO.json")
 
     hay_error = False
     for f in args.ficheros:

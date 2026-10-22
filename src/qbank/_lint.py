@@ -811,6 +811,7 @@ _PRECISION_PATRON   = 0.85   # acierto mínimo de un rasgo (y de una Cuestion «
 _MEJORA_PATRON      = 0.15   # … y al menos esta mejora sobre la tasa base del hueco
 _P_PATRON           = 0.01   # p-valor hipergeométrico, corregido por el número de rasgos probados
 _MAX_PATRONES_HUECO = 3      # rasgos que se listan por hueco
+_MIN_LETRAS_PALABRA = 4      # palabras más cortas (artículos, preposiciones…) no son señal
 
 _RE_SUBIND  = _re.compile(r'[_^](\{[^}]*\}|\\?\w)')     # subíndices y exponentes: no se leen como cifras
 _RE_NOTACION = _re.compile(r'\\(?:boldsymbol|mathbf|mathbb|mathcal|mathrm|mathit|bm|symbf|textbf|vec|hat|bar|tilde)'
@@ -818,7 +819,7 @@ _RE_NOTACION = _re.compile(r'\\(?:boldsymbol|mathbf|mathbb|mathcal|mathrm|mathit
 _RE_CMD     = _re.compile(r'\\[A-Za-z]+')
 _RE_FRAC    = _re.compile(r'(-?)\\[dt]?frac\{(-?\d+(?:[.,]\d+)?)\}\{(-?\d+(?:[.,]\d+)?)\}')
 _RE_CIFRA   = _re.compile(r'(?<![\w.,])-?\d+(?:(?:\{,\}|[.,])\d+)?')
-_RE_PALABRA = _re.compile(r'[^\W\d_]{2,}')
+_RE_PALABRA = _re.compile(r'[^\W\d_]{%d,}' % _MIN_LETRAS_PALABRA)
 
 
 def _sin_fracciones(texto):
@@ -1101,7 +1102,7 @@ def main(argv=None):
     ap = _argparse.ArgumentParser(
         prog='python -m qbank.lint',
         description="Comprueba preguntas qbank (JSON). Código de salida 1 si hay algún ERROR.")
-    ap.add_argument('ficheros', nargs='+', metavar='FICHERO.json')
+    ap.add_argument('ficheros', nargs='*', metavar='FICHERO.json')
     ap.add_argument('--instances', type=int, default=None,
                     help="número de instancias (por defecto export.instances)")
     ap.add_argument('--seed', type=int, default=None, help="semilla base")
@@ -1109,10 +1110,18 @@ def main(argv=None):
                     help="imprime la tabla Cuestion × mundo aunque no haya avisos")
     ap.add_argument('--quiet', action='store_true',
                     help="omite los INFO y los ficheros sin avisos")
-    ap.add_argument('--patrones', nargs='?', const=True, type=int, default=None, metavar='N',
+    ap.add_argument('--patrones', nargs='?', const=True, default=None, metavar='N',
                     help="busca además patrones memorizables (regla 11, más lenta), "
                          f"con N sorteos del setup (por defecto {N_SEMILLAS_PATRONES})")
     args = ap.parse_args(argv)
+    if isinstance(args.patrones, str):              # «--patrones fichero.json»: N era un fichero
+        try:
+            args.patrones = int(args.patrones)
+        except ValueError:
+            args.ficheros.insert(0, args.patrones)
+            args.patrones = True
+    if not args.ficheros:
+        ap.error("hace falta al menos un FICHERO.json")
 
     hay_error = False
     for f in args.ficheros:
