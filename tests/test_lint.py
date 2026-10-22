@@ -652,6 +652,12 @@ def test_patron_no_repite_lo_que_dice_constante():
     assert "patron" not in codigos(av)
 
 
+def test_patron_cifras_ignora_la_notacion():
+    from qbank._lint import _cifras
+    assert _cifras(r"el vector $\boldsymbol 1$ y $\mathbf{1}$ frente a $x_1^2$") == []
+    assert _cifras(r"mayor que $1$, $0{,}5$, $-\frac{2}{3}$ y 12 %") == pytest.approx([1.0, 0.5, -2 / 3, 12.0], abs=1e-5)
+
+
 def test_patron_cli(tmp_path, capsys):
     d = problema(["Sea $n=@{n}$.", [C("$n>1$", "lambda ns: ns['n'] > 1"), C("$n$ es par", "lambda ns: ns['n'] % 2 == 0"),
                                     C("$n<0$", "lambda ns: ns['n'] < 0")]],

@@ -54,7 +54,7 @@ lint: comprueba
 # sin leer el enunciado. Más lento que lint; SEMILLAS=N cambia los sorteos del setup.
 patrones: comprueba
 	@if test -z "$(NOMBRES)"; then echo "patrones: no hay preguntas que comprobar$(if $(LECCION), en LECCION=$(LECCION))"; \
-	 else $(PYTHON) -m qbank.lint --quiet --patrones $(SEMILLAS) $(addprefix preguntas/,$(addsuffix .json,$(NOMBRES))); fi
+	 else $(PYTHON) -m qbank.lint $(addprefix preguntas/,$(addsuffix .json,$(NOMBRES))) --quiet --patrones $(SEMILLAS); fi
 
 # PREGUNTA admite el nombre con o sin .json (y con preguntas/ delante).
 tabla: comprueba

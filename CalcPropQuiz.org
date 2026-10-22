@@ -3938,6 +3938,8 @@ _P_PATRON           = 0.01   # p-valor hipergeométrico, corregido por el númer
 _MAX_PATRONES_HUECO = 3      # rasgos que se listan por hueco
 
 _RE_SUBIND  = _re.compile(r'[_^](\{[^}]*\}|\\?\w)')     # subíndices y exponentes: no se leen como cifras
+_RE_NOTACION = _re.compile(r'\\(?:boldsymbol|mathbf|mathbb|mathcal|mathrm|mathit|bm|symbf|textbf|vec|hat|bar|tilde)'
+                           r'\s*(?:\{\s*\d+\s*\}|\d)')   # \boldsymbol 1, \mathbf{1}: notación, no cifras
 _RE_CMD     = _re.compile(r'\\[A-Za-z]+')
 _RE_FRAC    = _re.compile(r'(-?)\\[dt]?frac\{(-?\d+(?:[.,]\d+)?)\}\{(-?\d+(?:[.,]\d+)?)\}')
 _RE_CIFRA   = _re.compile(r'(?<![\w.,])-?\d+(?:(?:\{,\}|[.,])\d+)?')
@@ -3953,7 +3955,7 @@ def _sin_fracciones(texto):
 
 
 def _limpia(texto):
-    return _RE_CMD.sub(' ', _RE_SUBIND.sub(' ', _sin_fracciones(texto)))
+    return _RE_CMD.sub(' ', _RE_SUBIND.sub(' ', _RE_NOTACION.sub(' ', _sin_fracciones(texto))))
 
 
 def _cifras(texto):

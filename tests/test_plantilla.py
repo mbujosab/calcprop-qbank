@@ -273,6 +273,8 @@ def test_make_patrones(proyecto):
                               cwd=proyecto, capture_output=True, text=True)
     r = make("patrones", "LECCION=9")                   # lección sin preguntas
     assert r.returncode == 0 and "no hay preguntas" in r.stdout
+    r = make("patrones")                                # sin SEMILLAS: --patrones no debe tragarse un fichero
+    assert r.returncode == 0 and "invalid int" not in r.stderr, r.stdout + r.stderr
     r = make("patrones", "SEMILLAS=10")                 # los AVISO no cambian el código de salida
     assert r.returncode == 0, r.stdout + r.stderr
 
