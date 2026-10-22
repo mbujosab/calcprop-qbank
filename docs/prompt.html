@@ -73,7 +73,8 @@ lint y guarda el JSON con <code>--guardar</code>) o directamente en JSON, copian
 una pregunta existente. Nombre de fichero y campo <code>nombre</code> según
 <code>PROMPT-proyecto.org</code>.</li>
 <li><b>Valida en el entorno real</b>, nunca de memoria: <code>make lint</code> (o
-<code>python -m qbank.lint preguntas/&lt;pregunta&gt;.json --tabla</code>). Un <code>ERROR</code>
+<code>python -m qbank.lint preguntas/&lt;pregunta&gt;.json --tabla</code>) y, al final,
+<code>make patrones</code> (patrones memorizables; ver el Manual). Un <code>ERROR</code>
 es una pregunta rota: corrígela. Un <code>AVISO</code> hay que leerlo y decidir;
 si lo dejas, explica por qué. Un <code>INFO</code> es información.</li>
 <li><b>Recorre todas las variantes</b>, no la primera: <code>make amc</code> (o, sin

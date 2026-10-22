@@ -902,7 +902,7 @@ Python (qbank)  →  nombre.tex  →  xelatex / pdflatex  →  nombre.pdf + nomb
 El =.tex= compila con cualquier motor (su cabecera distingue =pdflatex= de
 =xelatex= o =lualatex=). Si lo compilas *a mano*, usa =xelatex=: el XML sale declarado en
 UTF-8. Con =pdflatex= el paquete =moodle= lo declara en =iso-8859-1= aunque escribe en
-UTF-8 los caracteres que =codchar= no convierte (desde la 0.7.1 =codchar= cubre todas
+UTF-8 los caracteres que =codchar= no convierte (desde la 0.8.0 =codchar= cubre todas
 las letras del español, mayúsculas y ~ü~ incluidas, y los signos ~¿~ y ~¡~; quedan, por
 ejemplo, las comillas ~“ ”~), y Moodle los mostraría mal (por ejemplo, ~antigÃ¼edad~
 en lugar de ~antigüedad~);

@@ -103,7 +103,7 @@ p = ProblemaTipo([s, [s1, s2], [c1, c2]], setup=None, export=None, seed=None, no
   `export`: hay que pasarles `last_choice=`, `instances=`, `cols=` (los
   scripts de la plantilla sí lo leen).
 - `qbank.__version__` (de los metadatos); el `Makefile` de la plantilla exige
-  ≥ 0.7 en `comprueba` (desde 0.7.0, por `make lectura`).
+  ≥ 0.8 en `comprueba` (desde 0.8.0, por `make patrones`; 0.7 traía `make lectura`).
 - `seed` / `base_seed` siembran `numpy.random` **y** el módulo `random`
   (`_siembra`); `por_partes(base_seed=S)` también actúa con `instances=1`.
   `tabla_mundos` siembra con `seed` (o 42) y, como el motor, cada `Cuestion`

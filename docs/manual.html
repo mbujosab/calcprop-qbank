@@ -1492,7 +1492,7 @@ Python (qbank)  →  nombre.tex  →  xelatex / pdflatex  →  nombre.pdf + nomb
 El <code>.tex</code> compila con cualquier motor (su cabecera distingue <code>pdflatex</code> de
 <code>xelatex</code> o <code>lualatex</code>). Si lo compilas <b>a mano</b>, usa <code>xelatex</code>: el XML sale declarado en
 UTF-8. Con <code>pdflatex</code> el paquete <code>moodle</code> lo declara en <code>iso-8859-1</code> aunque escribe en
-UTF-8 los caracteres que <code>codchar</code> no convierte (desde la 0.7.1 <code>codchar</code> cubre todas
+UTF-8 los caracteres que <code>codchar</code> no convierte (desde la 0.8.0 <code>codchar</code> cubre todas
 las letras del español, mayúsculas y <code>ü</code> incluidas, y los signos <code>¿</code> y <code>¡</code>; quedan, por
 ejemplo, las comillas <code>“ ”</code>), y Moodle los mostraría mal (por ejemplo, <code>antigÃ¼edad</code>
 en lugar de <code>antigüedad</code>);
@@ -1935,6 +1935,24 @@ textos que parecen código <code>lambda ns:</code> (desde JSON no se evalúan). 
 <code>%</code> se aplican también al texto interpolado con unos sorteos del <code>setup</code> (el mensaje
 lo indica con «en el texto interpolado»).</dd>
 <dt><code>setup</code> (INFO)</dt><dd>variantes por instancia e <code>instances</code> necesarias para llegar a 60.</dd>
+<dt><code>patron</code> (AVISO; solo con <code>patrones=True</code> o <code>--patrones</code>)</dt><dd>patrones memorizables:
+lo que un alumno podría acertar <i>sin leer el enunciado</i> tras ver varias variantes.
+Muestrea las variantes (40 sorteos del <code>setup</code>, o los que se pidan) y avisa de una
+<code>Cuestion</code> de verdad variable pero «casi constante» (el mismo valor en ≥ 85 % de sus
+apariciones; las constantes del todo las da <code>constante</code>), de una lambda con <code>setup</code>
+constante en toda la muestra (donde <code>constante</code> solo pudo dar INFO), de una cifra
+que dentro de un «tipo de frase» (el texto sin cifras) separa por completo las
+verdaderas de las falsas (una elasticidad verdadera siempre menor que 1 y su gemela
+inversa siempre mayor), y de un rasgo superficial de la opción —una palabra, una
+cifra concreta, repetir una cifra del enunciado, tener la cifra mayor o menor del
+hueco, ser más larga que la mediana— que, con él o sin él, predice la verdad en el
+hueco (≥ 85 % de acierto, ≥ 15 puntos sobre la tasa base, soporte a ambos lados y
+p-valor corregido). Los rasgos salen del propio banco (no hay lista de palabras ni
+dependencia del idioma), y no se miran relaciones aritméticas con los datos del
+enunciado: en una pregunta de cálculo la respuesta correcta <i>debe</i> ser función de
+ellos. Es más lenta que el resto del <code>lint</code>, por eso no corre por defecto; sus avisos
+son indicios que hay que leer: a veces el remedio es una gemela más (que la cifra
+grande sea a veces la verdadera), a veces no hay nada que corregir.</dd>
 </dl>
 
 <p>
@@ -1953,11 +1971,13 @@ INFO y los ficheros sin avisos):
 <pre class="example" id="orgeca0e2d">
 python -m qbank.lint preguntas/*.json --quiet
 qbank-lint preguntas/L-01-Nombre.json --tabla      # equivalente, con la tabla de mundos
+qbank-lint preguntas/*.json --quiet --patrones     # además, patrones memorizables (--patrones 100: más sorteos)
 </pre>
 
 <p>
-En un proyecto de <code>qbank-init</code>: <code>make lint</code>, <code>make tabla PREGUNTA=L-01-Nombre</code>, y
-<code>make amc</code> / <code>make moodle</code> pasan <code>lint</code> antes de exportar.
+En un proyecto de <code>qbank-init</code>: <code>make lint</code>, <code>make tabla PREGUNTA=L-01-Nombre</code>,
+<code>make patrones</code> (<code>SEMILLAS=N</code> para cambiar los sorteos), y <code>make amc</code> / <code>make moodle</code>
+pasan <code>lint</code> antes de exportar.
 </p>
 </div>
 </div>
@@ -2044,10 +2064,11 @@ ProblemaTipo.por_partes_lectura(seed=None, verbose=False, descartes=False)
 <h3 id="orgf575406"><span class="section-number-3">9.6.</span> Comprobación automática</h3>
 <div class="outline-text-3" id="text-9-6">
 <pre class="example" id="org52ab030">
-lint(problema_o_ruta, instances=None, seed=None)  → list[Aviso]
+lint(problema_o_ruta, instances=None, seed=None, patrones=None)  → list[Aviso]
     # Aviso(nivel, codigo, mensaje, donde); nivel ∈ {ERROR, AVISO, INFO}; errores primero
+    # patrones=True (o nº de sorteos): añade la regla 11, patrones memorizables (más lenta)
 tabla_mundos(problema_o_ruta)                     → str   # tabla Cuestion × mundo
-python -m qbank.lint FICHEROS.json [--instances N] [--seed S] [--tabla] [--quiet]
+python -m qbank.lint FICHEROS.json [--instances N] [--seed S] [--tabla] [--quiet] [--patrones [N]]
     # también `qbank-lint`; código de salida 1 si hay algún ERROR
 </pre>
 </div>

@@ -69,7 +69,7 @@ tuyas y borra este párrafo.
 
 <tr>
 <td class="org-left"><code>Makefile</code></td>
-<td class="org-left"><code>make lint</code>, <code>make tabla</code>, <code>make amc</code>, <code>make lectura</code>, <code>make amc-student</code>, <code>make moodle</code>, <code>make clean</code>.</td>
+<td class="org-left"><code>make lint</code>, <code>make tabla</code>, <code>make patrones</code>, <code>make amc</code>, <code>make lectura</code>, <code>make amc-student</code>, <code>make moodle</code>, <code>make clean</code>.</td>
 </tr>
 
 <tr>
@@ -99,12 +99,12 @@ procesan; solo quedan fuera cuando se filtra con <code>LECCION</code>.
 <h2 id="requisitos"><span class="section-number-2">2.</span> Requisitos</h2>
 <div class="outline-text-2" id="text-requisitos">
 <ul class="org-ul">
-<li>Python 3.9 o superior con <code>calcprop-qbank</code> 0.7.0 o posterior (la versión
+<li>Python 3.9 o superior con <code>calcprop-qbank</code> 0.8.0 o posterior (la versión
 que trae <code>qbank-init</code>): <code>pip install calcprop-qbank</code> (o <code>pip install -U
   calcprop-qbank</code> para actualizar una anterior).
 Si usas un entorno virtual, actívalo antes de <code>make</code>, o pasa el
 intérprete: <code>make amc PYTHON=/ruta/al/venv/bin/python</code>. Cada objetivo
-comprueba primero que ese intérprete tenga <code>qbank</code> 0.7 o posterior (un
+comprueba primero que ese intérprete tenga <code>qbank</code> 0.8 o posterior (un
 <code>python3</code> del sistema puede cargar uno antiguo); si no, se para con un
 mensaje que dice eso mismo.</li>
 <li>GNU <code>make</code> (en Linux suele estar; en macOS viene con las herramientas de
@@ -153,7 +153,9 @@ el JSON en <code>preguntas/</code>.</li>
 <li>Directamente en JSON, copiando una de las preguntas de ejemplo de
 <code>preguntas/</code> (los campos, más abajo).</li>
 </ul></li>
-<li><b>Compruébala:</b> <code>make lint</code> (o <code>make lint LECCION=3</code> para una sola lección).
+<li><b>Compruébala:</b> <code>make lint</code> (o <code>make lint LECCION=3</code> para una sola lección);
+antes de dar la pregunta por buena, también <code>make patrones</code> (más lento:
+busca lo que un alumno podría acertar sin leer el enunciado).
 Un <code>ERROR</code> significa que la pregunta está rota (p. ej. una variante con
 todas las opciones correctas); un <code>AVISO</code> hay que leerlo y decidir; un
 <code>INFO</code> es información. <code>make tabla PREGUNTA=L-01-Nombre</code> (con o sin

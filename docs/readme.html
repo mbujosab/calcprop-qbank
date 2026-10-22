@@ -481,7 +481,7 @@ Desde la línea de órdenes (código de salida 1 si hay algún <code>ERROR</code
 </p>
 
 <div class="org-src-container">
-<pre class="src src-bash">python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet]
+<pre class="src src-bash">python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet] [--patrones [N]]
 qbank-lint preguntas/*.json --quiet      # equivalente; omite INFO y ficheros OK
 </pre>
 </div>
@@ -494,7 +494,12 @@ falta de un <code>unoDe(...)</code>, interpolaciones <code>@{var}</code> sin res
 huérfanas, la estructura del JSON y caracteres que rompen la exportación a
 Moodle. La tabla de mundos muestra el valor de cada <code>Cuestion</code> en cada
 combinación de <code>Supuesto</code> (<code>V</code>, <code>F</code> o <code>-</code> si la rechaza su <code>precond</code>), para
-localizar distractores constantes.
+localizar distractores constantes. Con <code>--patrones</code> (o <code>lint(..., patrones=True)</code>;
+<code>make patrones</code> en un proyecto) busca además <i>patrones memorizables</i>: lo que un
+alumno podría acertar sin leer el enunciado tras ver varias variantes (una
+opción casi siempre verdadera, una cifra que separa las verdaderas de las
+falsas, la frase larga o la cifra grande siempre falsa…). Es más lento y sus
+avisos son indicios que hay que leer.
 </p>
 </div>
 </div>

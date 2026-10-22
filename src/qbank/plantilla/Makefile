@@ -16,7 +16,7 @@
 # LECCION limita cualquier objetivo a las preguntas L-NN-* de esas lecciones:
 #   make amc LECCION=2        make lint LECCION=2-3        make moodle LECCION=1,3
 #
-# PYTHON es el intérprete que tiene instalado qbank >= 0.7 (por defecto, python3
+# PYTHON es el intérprete que tiene instalado qbank >= 0.8 (por defecto, python3
 # del PATH: activa el entorno virtual antes, o pasa PYTHON=/ruta/al/venv/bin/python).
 #
 # Solo se recompila lo que ha cambiado: los scripts gen_*.py reescriben un .tex
@@ -35,7 +35,7 @@ all: amc amc-student moodle
 # ¿Tiene el intérprete elegido un qbank reciente (con qbank.lint y versión >=
 # QBANK_MIN)? Un python3 del sistema puede cargar un qbank viejo (p. ej. de
 # ~/.local) que no lo tiene: el mensaje dice qué hacer.
-QBANK_MIN := 0.7
+QBANK_MIN := 0.8
 comprueba:
 	@$(PYTHON) -c "import re, qbank, qbank.lint; \
 	  v = getattr(qbank, '__version__', '0'); \

@@ -19,7 +19,7 @@ Antes de escribir o modificar una pregunta, lee en este orden:
   o la ruta de otro entorno]. Pásalo a `make` si no está activado:
   `make lint PYTHON=/ruta/al/python`.
 - Comprobar la versión: `python -c "import qbank; print(qbank.__version__)"`
-  (el `Makefile` exige 0.7 o posterior).
+  (el `Makefile` exige 0.8 o posterior).
 - LaTeX: [RELLENAR: disponible (`pdflatex` con `automultiplechoice` y
   `moodle`) o no; sin LaTeX solo `make lint` y `make tabla`].
 

@@ -294,7 +294,7 @@ def test_make_rechaza_un_qbank_antiguo(proyecto, tmp_path):
         r = subprocess.run(["make", "lint", f"PYTHON={py}"], cwd=proyecto,
                            capture_output=True, text=True, timeout=60)
         salida = r.stdout + r.stderr
-        assert r.returncode != 0 and "anterior a la 0.7" in salida and "PYTHON=" in salida, salida
+        assert r.returncode != 0 and "anterior a la 0.8" in salida and "PYTHON=" in salida, salida
 
 
 def test_gen_amc_cuenta_mundos_y_solo_casos_con_setup(proyecto):
