@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "calcprop-qbank"
-version = "0.8.0"
+version = "0.8.1"
 description = "Generador de bancos de preguntas de opción múltiple (AMC y Moodle) con cálculo proposicional"
 authors = [
     {name = "Marcos Bujosa", email = "mbujosab@ucm.es"},
