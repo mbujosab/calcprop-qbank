@@ -12,7 +12,7 @@ tuyas y borra este párrafo.
 | =nueva_pregunta.py=  | Guion para escribir una pregunta en Python y guardarla como JSON en =preguntas/=.                     |
 | =config.py=          | Preámbulo LaTeX propio (el de AMC ya carga =babel= en español), textos de la opción por defecto y cuántos casos imprime la vista profe con =setup=. |
 | =scripts/=           | Generadores de AMC y Moodle que usa el =Makefile=; no hace falta tocarlos.                            |
-| =Makefile=           | =make lint=, =make tabla=, =make amc=, =make lectura=, =make amc-student=, =make moodle=, =make clean=. |
+| =Makefile=           | =make lint=, =make tabla=, =make patrones=, =make amc=, =make lectura=, =make amc-student=, =make moodle=, =make clean=. |
 | =build/=             | Todo lo generado (PDF, XML, =.tex=). No se versiona.                                                  |
 | =prompts/=           | Instrucciones para escribir preguntas con ayuda de una IA: =PROMPT-qbank-generico.org= (proceso y reglas, remite a la Guía y al Manual) y =PROMPT-proyecto.org= (las decisiones de tu banco, con huecos por rellenar). |
 | =CLAUDE.md=          | Punto de entrada para Claude Code (u otro agente): remite a =prompts/= y resume entorno y órdenes. Rellena sus huecos o bórralo si no usas una IA. |
@@ -74,7 +74,9 @@ Todos los comandos se lanzan *desde esta carpeta* (la que contiene el
      el JSON en =preguntas/=.
    - Directamente en JSON, copiando una de las preguntas de ejemplo de
      =preguntas/= (los campos, más abajo).
-2. *Compruébala:* =make lint= (o =make lint LECCION=3= para una sola lección).
+2. *Compruébala:* =make lint= (o =make lint LECCION=3= para una sola lección);
+   antes de dar la pregunta por buena, también =make patrones= (más lento:
+   busca lo que un alumno podría acertar sin leer el enunciado).
    Un =ERROR= significa que la pregunta está rota (p. ej. una variante con
    todas las opciones correctas); un =AVISO= hay que leerlo y decidir; un
    =INFO= es información. =make tabla PREGUNTA=L-01-Nombre= (con o sin

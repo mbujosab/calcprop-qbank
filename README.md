@@ -340,7 +340,7 @@ print(tabla_mundos("preguntas/L-01-FuncionMonotona.json"))   # Cuestion × mundo
 Desde la línea de órdenes (código de salida 1 si hay algún `ERROR`):
 
 ``` bash
-python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet]
+python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet] [--patrones [N]]
 qbank-lint preguntas/*.json --quiet      # equivalente; omite INFO y ficheros OK
 ```
 
@@ -351,7 +351,13 @@ podrían deducirse por falta de un `unoDe(...)`, interpolaciones `@{var}`
 sin resolver, etiquetas huérfanas, la estructura del JSON y caracteres
 que rompen la exportación a Moodle. La tabla de mundos muestra el valor
 de cada `Cuestion` en cada combinación de `Supuesto` (`V`, `F` o `-` si
-la rechaza su `precond`), para localizar distractores constantes.
+la rechaza su `precond`), para localizar distractores constantes. Con
+`--patrones` (o `lint(..., patrones=True)`; `make patrones` en un
+proyecto) busca además *patrones memorizables*: lo que un alumno podría
+acertar sin leer el enunciado tras ver varias variantes (una opción casi
+siempre verdadera, una cifra que separa las verdaderas de las falsas, la
+frase larga o la cifra grande siempre falsa…). Es más lento y sus avisos
+son indicios que hay que leer.
 
 # Documentación
 

@@ -43,7 +43,8 @@ de trabajo y lo que se exige antes de dar una pregunta por buena.
    una pregunta existente. Nombre de fichero y campo =nombre= según
    =PROMPT-proyecto.org=.
 4. *Valida en el entorno real*, nunca de memoria: =make lint= (o
-   =python -m qbank.lint preguntas/<pregunta>.json --tabla=). Un =ERROR=
+   =python -m qbank.lint preguntas/<pregunta>.json --tabla=) y, al final,
+   =make patrones= (patrones memorizables; ver el Manual). Un =ERROR=
    es una pregunta rota: corrígela. Un =AVISO= hay que leerlo y decidir;
    si lo dejas, explica por qué. Un =INFO= es información.
 5. *Recorre todas las variantes*, no la primera: =make amc= (o, sin

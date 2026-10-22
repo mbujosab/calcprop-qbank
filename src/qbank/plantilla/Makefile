@@ -1,6 +1,7 @@
 # ── Banco de preguntas qbank ─────────────────────────────────────────────
 # Objetivos:
 #   make lint         — comprueba las preguntas con qbank.lint (sin LaTeX)
+#   make patrones     — lint + busca patrones memorizables (regla 11, más lenta; SEMILLAS=N)
 #   make tabla PREGUNTA=L-01-Nombre — lint de una pregunta con su tabla de mundos
 #                       (con o sin .json)
 #   make amc          — build/amc/<pregunta>.pdf: vista profe (todas las cuestiones con marcas)
@@ -27,7 +28,7 @@ LATEX_AMC    ?= pdflatex -interaction=nonstopmode
 LATEX_MOODLE ?= pdflatex -interaction=nonstopmode -halt-on-error
 NOMBRES      := $(shell $(PYTHON) scripts/_comun.py --leccion "$(LECCION)")
 
-.PHONY: all comprueba lint lint-previo tabla amc amc-student moodle lectura lectura-pdf clean
+.PHONY: all comprueba lint patrones lint-previo tabla amc amc-student moodle lectura lectura-pdf clean
 
 all: amc amc-student moodle
 
@@ -48,6 +49,12 @@ comprueba:
 lint: comprueba
 	@if test -z "$(NOMBRES)"; then echo "lint: no hay preguntas que comprobar$(if $(LECCION), en LECCION=$(LECCION))"; \
 	 else $(PYTHON) -m qbank.lint $(addprefix preguntas/,$(addsuffix .json,$(NOMBRES))); fi
+
+# Patrones memorizables (qbank.lint --patrones): lo que un alumno podría acertar
+# sin leer el enunciado. Más lento que lint; SEMILLAS=N cambia los sorteos del setup.
+patrones: comprueba
+	@if test -z "$(NOMBRES)"; then echo "patrones: no hay preguntas que comprobar$(if $(LECCION), en LECCION=$(LECCION))"; \
+	 else $(PYTHON) -m qbank.lint --quiet --patrones $(SEMILLAS) $(addprefix preguntas/,$(addsuffix .json,$(NOMBRES))); fi
 
 # PREGUNTA admite el nombre con o sin .json (y con preguntas/ delante).
 tabla: comprueba

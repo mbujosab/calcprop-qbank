@@ -1,0 +1,210 @@
+#+TITLE: Detector de patrones memorizables: punto de partida
+#+DATE: 2026-10-21
+
+Notas para retomar la tarea (con Fable). No es un plan cerrado: recoge lo
+que hay, lo que se sabe de sus límites y las preguntas que hay que decidir.
+Marcos quiere *repensar el enfoque*: el prototipo está demasiado influido
+por unas pocas preguntas de una única asignatura (Econometría, L-15).
+
+* Qué se busca
+
+Que un alumno no pueda acertar una opción sin entender la pregunta, solo
+por algún rasgo superficial que se repite en las variantes: una cifra,
+una palabra, la longitud, el tipo de frase o el escenario. Es lo contrario
+de lo que se quiere al multiplicar variantes, y encaja con la regla de
+=GuiaDiseno.org= «Sin desvelar el diseño global» (no dar pistas de que
+«esta frase es siempre falsa»). El peligro es mayor en Moodle, donde el
+alumno ve muchas variantes de la misma pregunta.
+
+* Dónde está lo que hay (todo en =../qbank-PEconometria/=, sin commit)
+
+- =ENCARGO-2026-10-20-vista-lectura.md=, sección «Añadido el 20-10:
+  detector de patrones memorizables». Es el encargo para esta librería.
+  Propone integrarlo en =qbank.lint= como AVISO, con el número de semillas
+  configurable.
+- =ENCARGO-2026-10-20-detector-patrones-prototipo.py= (126 líneas). Se
+  ejecuta con =python prototipo.py preguntas/X.json [semillas]=.
+- =AUDITORIA-2026-10-20-L15.md=: casos reales y puntos ciegos (l. 35, 57 y
+  siguientes, 95, 121).
+- =REVISION-2026-10-20-L15-revisor.md= l. 78-86: un hueco con las tres
+  alternativas F en un mundo (60 de 60). Ese caso lo delataba ya el lint
+  con «sin-uso».
+- =RESPUESTA-2026-10-21-vista-lectura.md=: confirma que el detector está
+  sin hacer.
+
+* Qué hace el prototipo
+
+Para cada semilla s de 0 a N−1 (60 por defecto), fija =p.seed = s= y
+recorre =p.por_partes_profe(verbose=False)=. De cada parte toma solo la
+primera (=partes[0]=). En cada hueco (cada lista de =Cuestion= del JSON)
+recoge las opciones activas: tuplas con =len(c) >= 4= y =c[2]= verdadero,
+donde =c[0]= es el texto y =c[1]= la verdad. Después aplica cuatro
+comprobaciones:
+
+1. *Escenario*: el «esqueleto» del enunciado es el texto con cada
+   =$…$= sustituido por =#= (mundo y contexto, sin cifras). Avisa si en
+   algún escenario todas las alternativas del hueco son V, o todas F.
+2. *Rasgo que predice la verdad* en el hueco: acierto ≥ 85 % y al menos
+   15 puntos por encima de la tasa base. Exige que cada lado del rasgo
+   tenga al menos el 10 % de los casos. Rasgos:
+   - la última cifra es < 1, > 1, entera o ≥ 10, o aparece en el
+     enunciado;
+   - la opción tiene cifras;
+   - la opción es más larga que la mediana de su hueco;
+   - contiene alguna de 12 palabras fijas en español: «porque»,
+     «debido», «siempre», «solo», «nunca», «aunque», «como», «no»,
+     «sin más», «demuestra», «en general», «aproximadamente».
+3. *Alternativa de verdad variable* cuya verdad separa por completo uno de
+   esos rasgos.
+4. *Umbral dentro de un tipo de frase*: el tipo es el texto de la opción
+   con las =$…$= borradas. Avisa si la última cifra separa por completo
+   las V de las F (ejemplo: elasticidad verdadera < 1, su gemela inversa
+   > 1).
+
+Se validó con versiones antiguas de L-15. Encontró lo que habían visto a
+mano el instructor y dos revisores (el umbral de la elasticidad, un hueco
+todo F, seis umbrales por tipo de frase) y cuatro fallos más que nadie
+había visto.
+
+* Límites detectados (el motivo para repensarlo)
+
+- *Sesgo de origen*: rasgos y palabras sacados de L-15 de Econometría.
+  Los umbrales 1 y 10 son los de las elasticidades. La lista de palabras
+  depende del idioma y de la asignatura.
+- *Cifras*: la expresión regular solo reconoce cifras con coma decimal
+  =\{,\}= dentro de =$…$=. No ve cifras fuera de =$…$=, fracciones ni
+  símbolos. Además, solo mira la última cifra de la opción.
+- *No compara valores concretos*: 0,625 es la única cifra con tres
+  decimales y se ve que es un inverso, pero el detector no lo ve
+  (AUDITORIA l. 35). El arreglo fue hacer el conjunto cerrado por
+  inversión: {0,5; 0,8; 1,25; 2}.
+- *Coincidencia de subcadenas*: «aparece en el enunciado» compara floats,
+  pero la AUDITORIA (l. 121) avisa de que «2» coincide con «1,2» como
+  subcadena y el detector no lo distinguiría. Hay que comprobar cuál de
+  las dos cosas es cierta.
+- *Multiparte*: solo mira =partes[0]=.
+- *Escenario = texto sin =$…$=*: si el contexto cambia con una palabra
+  fuera de =$…$=, cada contexto cuenta como un escenario distinto. Eso
+  está bien. Pero si la cifra va fuera de =$…$=, se multiplican los
+  escenarios.
+- *Estadística*: pruebas múltiples sobre muchos rasgos, sin corrección.
+  Con pocas variantes salen falsos positivos, y un rasgo con 100 % de
+  acierto en 6 casos no significa nada.
+- *Coste*: 60 semillas × variantes × huecos. Es más lento que el lint
+  actual; si fuera siempre en el lint, =make lint= se notaría.
+- *Solapa con reglas que ya existen*: la regla 3 (=constante=, =solape=)
+  ya ve las opciones de verdad constante, y =sin-uso= / =huerfana= vieron
+  el hueco todo F. Hay que decidir qué aporta lo nuevo y no avisar dos
+  veces.
+
+* Ideas para repensarlo (sin decidir)
+
+- Enfocarlo como un alumno que «no lee el enunciado»: ¿cuánto acierta un
+  clasificador sencillo que solo ve el texto de la opción (y, como mucho,
+  su relación superficial con el enunciado)? Se evalúa con validación
+  cruzada *por variante*, o dejando fuera un mundo o un contexto cada
+  vez. Los rasgos se aprenden (n-gramas, posición, longitud relativa,
+  relaciones de las cifras entre sí y con el enunciado) en lugar de salir
+  de una lista fija. Avisa si el acierto supera claramente el de adivinar.
+  Pregunta abierta: ¿se puede sin dependencias nuevas (numpy basta para un
+  bayesiano ingenuo o un árbol de un nivel)?
+- Separar dos preguntas distintas:
+  1. Lo *estructural*, que no depende de la superficie del texto: un hueco
+     sin V o sin F en un mundo, y una opción cuya verdad solo depende del
+     mundo y el mundo se adivina por una palabra. Esto se puede hacer con
+     la tabla Cuestion × mundo de =tabla_mundos= y =por_partes_profe=, y
+     no depende del idioma.
+  2. Lo *superficial*: rasgos del texto.
+- Cifras: comparar cada cifra con las del enunciado y con funciones
+  sencillas de ellas (inverso, negativo, ×10, cuadrado). Así se ve una
+  «gemela» calculada que el alumno puede reconocer sin entender.
+- La clave del «tipo de frase» (texto sin =$…$=) es una buena idea
+  general. Generalizarla: una «plantilla» de opción es el texto antes de
+  interpolar =@{…}=, que la librería conoce sin adivinarlo por expresiones
+  regulares. Así se agrupa por la =Cuestion= de origen y se ve si una
+  variable del =setup= separa las V de las F.
+- Salida: AVISO en el lint, una opción aparte (=--patrones=, =make
+  patrones=) o una sección en la vista de lectura (=QuizLectura=), donde
+  el profesor ya mira cada pregunta.
+
+* Corpus para validar (que no sea solo L-15)
+
+- =../qbank-PEconometria/preguntas/=: 75 JSON (incluye las versiones
+  arregladas de L-15; las antiguas, en el historial de git de ese repo).
+- =../qbank-econometria/preguntas/=: 38 JSON (repo inactivo, pero sirve de
+  corpus).
+- =ejemplosManual/= y =src/qbank/plantilla/preguntas/=: 14 JSON genéricos,
+  no de Econometría.
+- Idealmente, preguntas de otra asignatura. Las hojas de la Fase 5
+  (=Fase5-recogida.org=) pueden traer alguna.
+- Hay que medir tanto los aciertos como los falsos positivos. En un banco
+  revisado a mano casi todo debería salir limpio.
+
+* Datos técnicos a tener en cuenta
+
+- =_lint.py= *sí* es literate: sale de =CalcPropQuiz.org= (flujo noweb,
+  =python tools/orgtangle.py write= / =check=). Las reglas son funciones
+  =_regla_*(p, avisos, …)=, y el docstring de =_lint.py= lista las 10
+  reglas que hay. Una nueva sería la 11.
+- Niveles: =ERROR= / =AVISO= / =INFO=. La CLI tiene =--instances=,
+  =--seed=, =--tabla= y =--quiet=.
+- La siembra va por =_siembra= (numpy y =random=). =tabla_mundos= siembra
+  con =seed= (o 42).
+- =por_partes_lectura()= devuelve =Lectura(etiqueta, mundo, ns, partes,
+  descarte)= con el =ns= de cada ejemplo: útil para relacionar la verdad
+  con las variables del =setup=.
+- Se publicaría en la 0.8.0. Actualizar =CLAUDE.md=, =Manual.org=
+  (lint), =GuiaDiseno.org= (checklist) y la plantilla (=Makefile=, si
+  hay =make patrones=).
+
+* Decisiones pendientes para Marcos
+
+1. Enfoque: rasgos fijos mejorados, clasificador aprendido, o la parte
+   estructural primero y la superficial después.
+2. Dónde se ve: lint por defecto, opción aparte o vista de lectura.
+3. Idioma y asignatura: palabras configurables (=config.py=) o sin
+   palabras fijas.
+4. Qué hacer con lo que ya detectan =constante=, =solape= y =sin-uso=.
+
+* Decisiones (22-10, Marcos con Fable)
+
+1. Enfoque: estructural primero, superficial después, en una misma regla.
+   Sin clasificador aprendido: un rasgo binario con umbrales fijos de
+   acierto, mejora sobre la base, soporte y p-valor hipergeométrico
+   corregido por el número de rasgos; es explicable aviso por aviso.
+2. Salida: regla 11 de =qbank.lint=, código =patron=, nivel AVISO, solo
+   con =lint(..., patrones=True|N)= / =--patrones [N]= / =make patrones
+   [SEMILLAS=N]=. =make lint= no cambia.
+3. Idioma: sin lista fija; los rasgos (palabras, cifras) salen del propio
+   banco.
+4. Solape: la regla solo mira verdad variable. Las constantes quedan para
+   =constante=; los rasgos que solo reúnen =Cuestion= enteras se descartan.
+   Excepción: una lambda con =setup= constante en toda la muestra sí se
+   avisa, porque ahí la regla 3 solo pudo dar INFO.
+
+* Estado (22-10): HECHO en qbank (sin publicar)
+
+- Código en =CalcPropQuiz.org= («Regla 11: patrones memorizables»),
+  tangleado a =src/qbank/_lint.py=; tests en =tests/test_lint.py= (7) y
+  =tests/test_plantilla.py= (=make patrones=); plantilla (=Makefile=,
+  =README.org=, =CLAUDE.md=, prompt genérico); =Manual.org=, =README.org=,
+  =GuiaDiseno.org= (checklist), =CLAUDE.md=. Falta: publicar 0.8.0 (PDF,
+  web, PyPI) cuando Marcos lo diga.
+- Qué cambió respecto al prototipo: muestreo con =por_partes_lectura= (todas
+  las partes, no solo la primera; el hueco agrupa por =Cuestion= de origen);
+  cifras también fuera de =$…$=, con fracciones =\frac{a}{b}= evaluadas y sin
+  contar subíndices ni exponentes; comparación de cifras como números, no
+  como subcadenas; sin palabras fijas ni umbrales 1/10; sin relaciones
+  aritméticas con el enunciado (suma, producto, inverso…: daban un falso
+  positivo en casi toda pregunta de cálculo, porque la correcta /debe/ ser
+  función de los datos); el «escenario todo V / todo F» no se repite (lo
+  dan =mezcla=, =sin-uso= y =constante=).
+- Medida sobre los bancos (40 sorteos): PEconometria 75 preguntas, 17 con
+  avisos (37 avisos); plantilla + =ejemplosManual=, 3 de 14; econometría
+  (inactivo) 3 de 38. Los casos sintéticos del tipo de la auditoría de L-15
+  (elasticidad verdadera < 1 y gemela inversa > 1; gemela siempre mayor;
+  opción casi siempre falsa) se detectan; una pregunta de cálculo legítima
+  y dos mundos equilibrados no dan nada. Los avisos de PEconometria quedan
+  por leer (Marcos): casi constantes en L-02/L-03/L-07; «la cifra mayor del
+  hueco ⇒ F» en varias numéricas (la gemela falsa siempre mayor); palabras
+  del contexto interpolado que solo aparecen en falsas (L-13, L-14).

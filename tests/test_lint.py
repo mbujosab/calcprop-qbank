@@ -574,3 +574,94 @@ def test_lint_lectura():
     assert "lectura" in codigos(con({"cubrir": ["a"], "otra": 1}), AVISO)
     d = problema(comps[1:], nombre="p"); d["lectura"] = {"cubrir": ["a"]}
     assert "lectura" in codigos(lint(d), ERROR)                      # cubrir sin setup
+
+
+# ---------------------------------------------------------------------------
+# Regla 11: patrones memorizables (solo con patrones=)
+# ---------------------------------------------------------------------------
+
+def _patrones(d, n=30):
+    return [a for a in lint(d, patrones=n) if a.codigo == "patron"]
+
+
+def test_patrones_no_corre_por_defecto():
+    d = problema(["Si $b=@{b}$,", [C("$b<1$", "lambda ns: ns['b'] < 1"), C("$b>5$", "lambda ns: ns['b'] > 5"),
+                                    C("$b$ es par", "lambda ns: ns['b'] % 2 == 0")]],
+                 setup="import numpy as np\nb = int(np.random.randint(1, 40))", seed=1)
+    assert "patron" not in codigos(lint(d))
+    assert "patron" in codigos(lint(d, patrones=True))
+
+
+def test_patron_casi_constante_y_lambda_constante_en_la_muestra():
+    d = problema(["Sea $n=@{n}$.", [C("$n>1$", "lambda ns: ns['n'] > 1"), C("$n$ es par", "lambda ns: ns['n'] % 2 == 0"),
+                                    C("$n<0$", "lambda ns: ns['n'] < 0")]],
+                 setup="import numpy as np\nn = int(np.random.randint(1, 40))", seed=1)
+    av = _patrones(d)
+    assert any("casi constante" in a.mensaje and "comp 1[0]" in a.donde for a in av)
+    assert any("semantica lambda" in a.mensaje and "comp 1[2]" in a.donde for a in av)
+    assert not any("comp 1[1]" in a.donde for a in av)                 # 50 %: nada que memorizar
+    assert all(a.nivel == AVISO for a in av)
+
+
+def test_patron_umbral_en_un_tipo_de_frase():
+    # La elasticidad verdadera siempre < 1 y su gemela falsa siempre > 1 (el caso de la auditoría).
+    comps = ["El modelo estimado es", [S("nivel-log.", "v('nl') & -v('ln')"), S("log-nivel.", "v('ln') & -v('nl')")],
+             "Entonces", [C("un 1 % más de $x$ da $@{c_nl}$ unidades más", "True", "v('nl')"),
+                          C("un 1 % más de $x$ da $@{c_ll}$ unidades más", "False", "v('nl')"),
+                          C("una unidad más de $x$ da un $@{c_ln}$ % más", "True", "v('ln')"),
+                          C("una unidad más de $x$ da un $@{c_nn}$ % más", "False", "v('ln')"),
+                          C("el modelo es lineal", "False")]]
+    setup = ("import numpy as np\nc_nl = round(float(np.random.uniform(1.5, 3)), 2)\n"
+             "c_ll = round(float(np.random.uniform(0.2, 0.9)), 2)\nc_ln = round(float(np.random.uniform(0.2, 0.9)), 2)\n"
+             "c_nn = round(float(np.random.uniform(1.5, 3)), 2)")
+    av = _patrones(problema(comps, setup=setup, seed=1))
+    assert sum("separa V" in a.mensaje for a in av) == 2
+    assert any("unidades más" in a.mensaje and "de F (0,2" in a.mensaje for a in av)
+
+
+def test_patron_cifra_mayor_del_hueco():
+    # La gemela falsa es siempre mayor que la verdadera: «elige la menor» acierta siempre.
+    comps = ["Con $\\hat\\beta=@{b}$,", [C("la elasticidad vale $@{e}$", "lambda ns: ns['e'] == ns['e_real']"),
+                                          C("la elasticidad vale $@{e2}$", "lambda ns: ns['e2'] == ns['e_real']")]]
+    setup = ("import numpy as np\nb = round(float(np.random.uniform(0.2, 3)), 1); e_real = b\n"
+             "e = round(float(np.random.choice([e_real, e_real + 1])), 1); e2 = round(e_real + 1 if e == e_real else e_real, 1)")
+    av = _patrones(problema(comps, setup=setup, seed=1))
+    assert any("con la cifra mayor del hueco" in a.mensaje and "⇒ F" in a.mensaje for a in av)
+    assert any("con la cifra menor del hueco" in a.mensaje and "⇒ V" in a.mensaje for a in av)
+
+
+def test_patron_calculo_legitimo_y_mundos_equilibrados_no_avisan():
+    comps = ["Sea $x=@{x}$ e $y=@{y}$. Entonces", [C("$x+y=@{s}$", "True"), C("$x+y=@{s1}$", "False"),
+                                                   C("$xy=@{p}$", "True"), C("$xy=@{p1}$", "False")]]
+    setup = ("import numpy as np\nx = int(np.random.randint(2, 20)); y = int(np.random.randint(2, 20)); s = x + y; p = x * y\n"
+             "s1 = s + int(np.random.choice([-2, -1, 1, 2])); p1 = p + int(np.random.choice([-3, -1, 1, 3]))")
+    assert _patrones(problema(comps, setup=setup, seed=1)) == []
+    comps = ["Sea", [S("A.", "v('A') & -v('B')"), S("B.", "v('B') & -v('A')")],
+             [C("entonces A", "v('A')"), C("entonces B", "v('B')"), C("A o B", "True"), C("A y B", "False")]]
+    assert _patrones(problema(comps)) == []
+
+
+def test_patron_no_repite_lo_que_dice_constante():
+    # Las falsas largas son constantes: la regla 3 ya las señala; «patron» calla.
+    comps = ["Sea", [S("A.", "v('A') & -v('B')"), S("B.", "v('B') & -v('A')")],
+             [C("A", "v('A')"), C("B", "v('B')"),
+              C("no A, porque en general la condición no se cumple nunca", "False"),
+              C("no B, lo que se demuestra sin más en general", "False")]]
+    av = lint(problema(comps), patrones=True)
+    assert "constante" in codigos(av)
+    assert "patron" not in codigos(av)
+
+
+def test_patron_cli(tmp_path, capsys):
+    d = problema(["Sea $n=@{n}$.", [C("$n>1$", "lambda ns: ns['n'] > 1"), C("$n$ es par", "lambda ns: ns['n'] % 2 == 0"),
+                                    C("$n<0$", "lambda ns: ns['n'] < 0")]],
+                 setup="import numpy as np\nn = int(np.random.randint(1, 40))", seed=1)
+    f = tmp_path / "p.json"
+    f.write_text(json.dumps(d), encoding="utf-8")
+    assert main([str(f), "--quiet"]) == 0
+    assert "[patron]" not in capsys.readouterr().out
+    assert main([str(f), "--patrones", "20", "--quiet"]) == 0           # un AVISO no cambia el código de salida
+    out = capsys.readouterr().out
+    assert "[patron]" in out and "casi constante" in out
+    assert main([str(f), "--patrones"]) == 0
+    assert "[patron]" in capsys.readouterr().out

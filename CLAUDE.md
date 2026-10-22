@@ -275,15 +275,15 @@ for r in p.por_partes_lectura(seed=None, verbose=False, descartes=False):
 ### Comprobación automática (`lint`)
 
 ```python
-avisos = lint(problema_o_ruta, instances=None, seed=None)   # -> list[Aviso]
+avisos = lint(problema_o_ruta, instances=None, seed=None, patrones=None)   # -> list[Aviso]
 print(tabla_mundos(problema_o_ruta))                         # Cuestion × mundo
 ```
 
-CLI: `python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet]`
+CLI: `python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet] [--patrones [N]]`
 (también `qbank-lint`). Código de salida 1 si hay algún `ERROR`. `--quiet`
 omite los INFO y los ficheros sin avisos.
 
-Implementación en `src/qbank/_lint.py` (el docstring lista las 9 reglas y
+Implementación en `src/qbank/_lint.py` (el docstring lista las 11 reglas y
 sus códigos). Niveles: `ERROR` (la pregunta está rota: `mezcla`, `negacion`
 sin `unoDe`, `interp` —`@{var}` sin resolver—, `estructura`, `nombre`,
 `tipo`, `carga`, `ejecucion` —el `setup` lanza—, `variantes` —ninguna
@@ -310,6 +310,23 @@ variantes, `pocas-opciones`, `opciones`, `constante`, `lista-1`,
   `qbank._quiz.STRICT_INTERP = True`) lanza `ValueError` ante `@{var}`
   desconocida. Por defecto sigue dejando el texto intacto.
 - `por_partes_profe(verbose=True)` admite `verbose=False` como `por_partes`.
+- **Regla 11 `patron`** (AVISO; solo con `lint(..., patrones=True|N)` /
+  `--patrones [N]` / `make patrones [SEMILLAS=N]`): patrones memorizables,
+  lo que un alumno acertaría sin leer el enunciado. Muestrea con
+  `por_partes_lectura` (`N_SEMILLAS_PATRONES` = 40 sorteos; uno sin
+  `setup`), sin tocar los generadores aleatorios. Tres comprobaciones:
+  `Cuestion` «casi constante» (≥ 85 %) o lambda constante en toda la
+  muestra; cifra que dentro de un tipo de frase (texto sin cifras) separa
+  por completo V de F; rasgo binario de la opción (palabra, cifra concreta,
+  cifra del enunciado, cifra mayor/menor del hueco, fórmula, más larga que
+  la mediana) que con él o sin él predice la verdad (≥ 85 %, +15 puntos,
+  soporte 10 %/3 a cada lado, p hipergeométrico × nº rasgos < 0,01). Los
+  rasgos que solo reúnen `Cuestion` enteras se descartan (los cubre
+  `constante`); candidatos con la misma cobertura se funden, los
+  subconjuntos se omiten; máximo 3 por hueco. Sin lista de palabras ni
+  relaciones aritméticas con el enunciado (falsos positivos en preguntas de
+  cálculo). Si el muestreo lanza, calla (la regla 2 da `ejecucion`). Diseño
+  y decisiones en `PLAN-detector-patrones.org`.
 
 ## Notebooks de referencia
 

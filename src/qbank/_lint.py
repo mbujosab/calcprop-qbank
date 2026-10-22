@@ -30,6 +30,7 @@ ficheros ni compila LaTeX. Uso::
 o desde la línea de órdenes::
 
     python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet]
+                                          [--patrones [N]]
 
 Reglas (código del aviso entre paréntesis):
 
@@ -87,6 +88,21 @@ Reglas (código del aviso entre paréntesis):
     una variable de ``cubrir`` que no define el ``setup`` (o ``cubrir`` sin
     ``setup``), ERROR; valores reales o más de ``MAX_COMBINACIONES_LECTURA``
     combinaciones de valores, AVISO (la vista de lectura se acota).
+11. Patrones memorizables (``patron``, AVISO; solo con ``patrones=`` /
+    ``--patrones``): lo que un alumno podría acertar sin leer el enunciado,
+    muestreando las variantes con ``N_SEMILLAS_PATRONES`` sorteos del
+    ``setup`` (uno si no lo hay). Una ``Cuestion`` de verdad variable pero
+    «casi constante» (≥ 85 % de las veces el mismo valor), o constante en
+    toda la muestra siendo lambda con ``setup`` (la regla 3 solo dio INFO);
+    dentro de un tipo de frase (el texto sin cifras), una cifra cuyo valor
+    separa por completo las V de las F; un rasgo superficial de la opción
+    —una palabra, una cifra concreta, repetir una cifra del enunciado, tener
+    la cifra mayor o menor del hueco, ser más larga que la mediana— que, con
+    él o sin él, predice la verdad en ≥ 85 % de los casos, ≥ 15 puntos
+    sobre la tasa base, con soporte en ambos lados y p-valor corregido
+    < 0,01. Los rasgos que solo reúnen ``Cuestion`` enteras no cuentan (eso
+    ya lo dicen ``constante`` y «casi constante»). Son indicios: hay que
+    leerlos y decidir.
 """
 
 import argparse as _argparse
@@ -101,7 +117,7 @@ from pathlib import Path as _Path
 from calcprop import Proposicion as _Proposicion, test as _test
 from qbank._quiz import (Supuesto, Cuestion, ProblemaTipo, Marcador as _Marcador,
                          _normaliza_slot, _clasifica_slot, _ns_eval, _ns_interp, _siembra,
-                         validar_componentes as _validar_componentes)
+                         _plan_partes, validar_componentes as _validar_componentes)
 from qbank._json import load_problema as _load_problema
 
 __all__ = ['Aviso', 'lint', 'tabla_mundos', 'main', 'ERROR', 'AVISO', 'INFO']
@@ -786,14 +802,272 @@ def tabla_mundos(problema, ancho=50, linea=None, elipsis='…'):
     return '\n'.join(out)
 
 
+# ── Regla 11: patrones memorizables ──────────────────────────────────────────
+
+N_SEMILLAS_PATRONES = 40     # sorteos del setup que muestrea --patrones (uno si no hay setup)
+_MIN_CASOS_PATRON   = 8      # casos mínimos para analizar un hueco, una Cuestion o un tipo de frase
+_SOPORTE_PATRON     = 0.10   # cada lado de un rasgo: al menos esta fracción de los casos (y 3)
+_PRECISION_PATRON   = 0.85   # acierto mínimo de un rasgo (y de una Cuestion «casi constante»)
+_MEJORA_PATRON      = 0.15   # … y al menos esta mejora sobre la tasa base del hueco
+_P_PATRON           = 0.01   # p-valor hipergeométrico, corregido por el número de rasgos probados
+_MAX_PATRONES_HUECO = 3      # rasgos que se listan por hueco
+
+_RE_SUBIND  = _re.compile(r'[_^](\{[^}]*\}|\\?\w)')     # subíndices y exponentes: no se leen como cifras
+_RE_CMD     = _re.compile(r'\\[A-Za-z]+')
+_RE_FRAC    = _re.compile(r'(-?)\\[dt]?frac\{(-?\d+(?:[.,]\d+)?)\}\{(-?\d+(?:[.,]\d+)?)\}')
+_RE_CIFRA   = _re.compile(r'(?<![\w.,])-?\d+(?:(?:\{,\}|[.,])\d+)?')
+_RE_PALABRA = _re.compile(r'[^\W\d_]{2,}')
+
+
+def _sin_fracciones(texto):
+    """Sustituye cada \\frac{a}{b} numérica por su valor decimal."""
+    def valor(m):
+        num, den = (float(x.replace(',', '.')) for x in m.group(2, 3))
+        return f" {m.group(1)}{num / den:.6g} " if den else m.group(0)
+    return _RE_FRAC.sub(valor, texto)
+
+
+def _limpia(texto):
+    return _RE_CMD.sub(' ', _RE_SUBIND.sub(' ', _sin_fracciones(texto)))
+
+
+def _cifras(texto):
+    """Cifras legibles del texto, como float (coma o punto decimal, {,} de LaTeX)."""
+    out = []
+    for m in _RE_CIFRA.finditer(_limpia(texto)):
+        try:
+            out.append(float(m.group(0).replace('{,}', '.').replace(',', '.')))
+        except ValueError:
+            pass
+    return out
+
+
+def _tipo_frase(texto):
+    """El texto con cada cifra sustituida por «#»: agrupa las opciones que solo difieren en los números."""
+    return ' '.join(_RE_CIFRA.sub('#', _limpia(texto)).split())
+
+
+def _palabras(texto):
+    return {w.lower() for w in _RE_PALABRA.findall(_RE_CMD.sub(' ', texto))}
+
+
+def _fmt_cifra(x):
+    return f"{x:g}".replace('.', ',')
+
+
+def _iguales(a, b):
+    return abs(a - b) <= 1e-9 + 0.005 * max(abs(a), abs(b))
+
+
+def _rasgos(texto, cifras, cifras_enun, cifras_hueco, longitudes):
+    """Rasgos superficiales de una opción: lo que un alumno puede ver sin entenderla."""
+    r = {f"«{w}»" for w in _palabras(texto)}
+    r |= {f"cifra {_fmt_cifra(x)}" for x in cifras}
+    if cifras:
+        r.add('cifras')
+        if any(_iguales(x, y) for x in cifras for y in cifras_enun):
+            r.add('una cifra del enunciado')
+        otras = [c for c in cifras_hueco if c is not cifras]
+        if otras:
+            if all(max(cifras) > max(o) for o in otras):
+                r.add('la cifra mayor del hueco')
+            if all(min(cifras) < min(o) for o in otras):
+                r.add('la cifra menor del hueco')
+    if '$' in texto:
+        r.add('fórmula')
+    if len(texto) > sorted(longitudes)[len(longitudes) // 2]:
+        r.add('texto más largo que la mediana del hueco')
+    return r
+
+
+def _muestra_patrones(p, n_semillas):
+    """Un caso por alternativa no excluida, en cada mundo y en n_semillas sorteos
+    del setup (uno solo si no hay setup), sin alterar los generadores aleatorios.
+    Cada caso: dict con parte k, hueco h, componente i, alternativa j, texto,
+    valor, rasgos, cifras y tipo de frase."""
+    L     = [_normaliza_slot(x) for x in p.e]
+    plan  = _plan_partes(L)
+    comps = _defaultdict(list)                     # (parte) -> índices de sus huecos
+    for n, slot in enumerate(L):
+        if _clasifica_slot(slot) == 'cuestiones':
+            comps[plan[n]].append(n)
+    semillas = range(n_semillas) if p.setup is not None else [None]
+    import random as _random
+    estado = _random.getstate()
+    try:
+        import numpy as _np
+        estado_np = _np.random.get_state()
+    except ImportError:
+        _np = None
+    casos = []
+    try:
+        for s in semillas:
+            for r in p.por_partes_lectura(seed=s):
+                for k, parte in enumerate(r.partes):
+                    cifras_enun = _cifras(parte.enunciado)
+                    for h, hueco in enumerate(parte.huecos):
+                        activas = [(j, a) for j, a in enumerate(hueco) if a.valor is not None]
+                        if not activas:
+                            continue
+                        cifras = {j: _cifras(a.texto) for j, a in activas}
+                        con_cifras = [c for c in cifras.values() if c]
+                        longitudes = [len(a.texto) for _, a in activas]
+                        for j, a in activas:
+                            casos.append(dict(k=k, h=h, i=comps[k][h], j=j, texto=a.texto, valor=bool(a.valor),
+                                              rasgos=_rasgos(a.texto, cifras[j], cifras_enun, con_cifras, longitudes),
+                                              cifras=cifras[j], tipo=_tipo_frase(a.texto)))
+    finally:
+        _random.setstate(estado)
+        if _np is not None:
+            _np.random.set_state(estado_np)
+    return casos
+
+
+def _log_comb(n, k):
+    return _math.lgamma(n + 1) - _math.lgamma(k + 1) - _math.lgamma(n - k + 1)
+
+
+def _p_cola(N, K, n, k):
+    """P(X >= k) para X hipergeométrica: K éxitos entre N casos, n extracciones."""
+    return sum(_math.exp(_log_comb(K, x) + _log_comb(N - K, n - x) - _log_comb(N, n))
+               for x in range(k, min(K, n) + 1))
+
+
+def _rango(xs):
+    lo, hi = min(xs), max(xs)
+    return _fmt_cifra(lo) if lo == hi else f"{_fmt_cifra(lo)}–{_fmt_cifra(hi)}"
+
+
+def _patrones_cuestiones(p, avisos, por_j, i):
+    """Cuestiones casi constantes (y constantes en la muestra si son lambda con setup)."""
+    L = [s for _, s, _ in _slots(p)]
+    for j, lst in sorted(por_j.items()):
+        n, nV = len(lst), sum(c['valor'] for c in lst)
+        if n < _MIN_CASOS_PATRON:
+            continue
+        if 0 < nV < n:
+            frac = max(nV, n - nV) / n
+            if frac >= _PRECISION_PATRON:
+                avisos.append(Aviso(AVISO, 'patron',
+                                    f"casi constante: {'verdadera' if 2 * nV > n else 'falsa'} en el "
+                                    f"{frac:.0%} de las {n} veces que aparece (se puede memorizar)",
+                                    _donde(i, j, lst[0]['texto'])))
+        elif p.setup is not None and callable(L[i][j].s):      # la regla 3 solo dio INFO
+            avisos.append(Aviso(AVISO, 'patron',
+                                f"{'verdadera' if nV else 'falsa'} en las {n} veces que aparece en la muestra "
+                                "(semantica lambda: la tabla de mundos solo usa un sorteo)",
+                                _donde(i, j, lst[0]['texto'])))
+
+
+def _patrones_umbral(casos):
+    """Candidatos (precision, soporte, cubre, nombre, hacia, ejemplo): dentro de un
+    tipo de frase, una cifra cuyo valor separa por completo las V de las F."""
+    por_tipo = _defaultdict(list)
+    for c in casos:
+        por_tipo[(c['tipo'], len(c['cifras']))].append(c)
+    out = []
+    for (tipo, nc), G in por_tipo.items():
+        if nc == 0 or len(G) < _MIN_CASOS_PATRON:
+            continue
+        for pos in range(nc):
+            V = [c['cifras'][pos] for c in G if c['valor']]
+            F = [c['cifras'][pos] for c in G if not c['valor']]
+            if len(V) >= 3 and len(F) >= 3 and (max(V) < min(F) or max(F) < min(V)):
+                cual = '' if nc == 1 else f" nº {pos + 1}"
+                out.append((1.0, len(G), frozenset(id(c) for c in G if c['valor']),
+                            f"en «{_rec(tipo, 50)}» la cifra{cual} separa V ({_rango(V)}) de F ({_rango(F)})",
+                            None, None))
+                break                                   # las demás cifras del tipo suelen derivar de esta
+    return out
+
+
+def _patrones_rasgos(casos, por_j):
+    """Candidatos: rasgos superficiales (con o sin ellos) que predicen la verdad en
+    el hueco. Se descartan los que solo reúnen Cuestiones enteras: esos reexpresan
+    «constante» o «casi constante»."""
+    N = len(casos)
+    nV = sum(c['valor'] for c in casos)
+    base = {True: nV / N, False: 1 - nV / N}
+    rasgos = set().union(*(c['rasgos'] for c in casos))
+    m = 2 * len(rasgos)
+    minimo = max(3, _math.ceil(_SOPORTE_PATRON * N))
+    ids_j = [frozenset(id(c) for c in lst) for lst in por_j.values()]
+    out = []
+    for f in rasgos:
+        for neg in (False, True):
+            con = [c for c in casos if (f in c['rasgos']) != neg]
+            n = len(con)
+            if n < minimo or N - n < minimo:
+                continue
+            v = sum(c['valor'] for c in con)
+            for hacia, k in ((True, v), (False, n - v)):
+                prec = k / n
+                if prec < _PRECISION_PATRON or prec - base[hacia] < _MEJORA_PATRON:
+                    continue
+                if _p_cola(N, nV if hacia else N - nV, n, k) * m > _P_PATRON:
+                    continue
+                cubre = frozenset(id(c) for c in con)
+                if all(ids <= cubre or not (ids & cubre) for ids in ids_j):
+                    continue
+                ejemplo = next(c['texto'] for c in con if c['valor'] == hacia)
+                out.append((prec, n, cubre, ('sin ' if neg else 'con ') + f, hacia, ejemplo))
+    return out, base, N
+
+
+def _regla_patrones(p, avisos, n_semillas=N_SEMILLAS_PATRONES):
+    try:
+        casos = _muestra_patrones(p, n_semillas)
+    except Exception:                               # noqa: BLE001
+        return                                      # la regla 2 ya informa (ejecucion)
+    por_hueco = _defaultdict(list)
+    for c in casos:
+        por_hueco[(c['k'], c['h'], c['i'])].append(c)
+    for (k, h, i), R in sorted(por_hueco.items()):
+        por_j = _defaultdict(list)
+        for c in R:
+            por_j[c['j']].append(c)
+        _patrones_cuestiones(p, avisos, por_j, i)
+        if len(R) < _MIN_CASOS_PATRON:
+            continue
+        candidatos = _patrones_umbral(R)
+        rasgos, base, N = _patrones_rasgos(R, por_j)
+        candidatos += rasgos
+        # Un candidato que cubre los mismos casos que otro mejor se funde con él; uno
+        # que cubre un subconjunto (p. ej. «la» dentro de «precio») no añade nada.
+        aceptados = []
+        for cand in sorted(candidatos, key=lambda c: (-c[0], -c[1])):
+            for a in aceptados:
+                if cand[4] == a['hacia'] and cand[2] <= a['cubre']:
+                    if cand[2] == a['cubre']:
+                        a['nombres'].append(cand[3])
+                    break
+            else:
+                aceptados.append(dict(prec=cand[0], n=cand[1], cubre=cand[2], nombres=[cand[3]],
+                                      hacia=cand[4], ejemplo=cand[5]))
+        donde = f"parte {k + 1}, hueco {h + 1} (comp {i})"
+        for a in aceptados[:_MAX_PATRONES_HUECO]:
+            nombres = ' / '.join(a['nombres'][:3]) + (f" (+{len(a['nombres']) - 3})" if len(a['nombres']) > 3 else '')
+            if a['hacia'] is None:
+                avisos.append(Aviso(AVISO, 'patron', nombres, donde))
+            else:
+                avisos.append(Aviso(AVISO, 'patron',
+                                    f"{nombres} ⇒ {'V' if a['hacia'] else 'F'} en el {a['prec']:.0%} de "
+                                    f"{a['n']} casos (base {base[a['hacia']]:.0%} en {N})",
+                                    f"{donde}: {_rec(a['ejemplo'])}"))
+        if len(aceptados) > _MAX_PATRONES_HUECO:
+            avisos.append(Aviso(INFO, 'patron', f"… y {len(aceptados) - _MAX_PATRONES_HUECO} rasgo(s) más", donde))
+
+
 # ── API ──────────────────────────────────────────────────────────────────────
 
-def lint(problema, instances=None, seed=None):
+def lint(problema, instances=None, seed=None, patrones=None):
     """Revisa un problema y devuelve la lista de :class:`Aviso` (errores primero).
 
     problema  : ProblemaTipo, dict JSON o ruta a un fichero JSON.
     instances : sobreescribe ``export.instances`` (solo con setup).
     seed      : semilla base para ``por_partes`` (por defecto la del problema).
+    patrones  : True (o un número de sorteos del setup) activa además la regla 11,
+                patrones memorizables (más lenta); por defecto no corre.
     """
     avisos = []
     p, ruta = _carga(problema, avisos)
@@ -806,6 +1080,8 @@ def lint(problema, instances=None, seed=None):
     _regla_etiquetas(p, avisos)
     _regla_variantes(p, avisos, instances, seed)
     _regla_mundos(p, avisos)
+    if patrones:
+        _regla_patrones(p, avisos, N_SEMILLAS_PATRONES if patrones is True else int(patrones))
     avisos.sort(key=lambda a: _ORDEN[a.nivel])
     return avisos
 
@@ -831,11 +1107,14 @@ def main(argv=None):
                     help="imprime la tabla Cuestion × mundo aunque no haya avisos")
     ap.add_argument('--quiet', action='store_true',
                     help="omite los INFO y los ficheros sin avisos")
+    ap.add_argument('--patrones', nargs='?', const=True, type=int, default=None, metavar='N',
+                    help="busca además patrones memorizables (regla 11, más lenta), "
+                         f"con N sorteos del setup (por defecto {N_SEMILLAS_PATRONES})")
     args = ap.parse_args(argv)
 
     hay_error = False
     for f in args.ficheros:
-        avisos = lint(f, instances=args.instances, seed=args.seed)
+        avisos = lint(f, instances=args.instances, seed=args.seed, patrones=args.patrones)
         hay_error |= any(a.nivel == ERROR for a in avisos)
         if args.quiet:
             avisos = [a for a in avisos if a.nivel != INFO]

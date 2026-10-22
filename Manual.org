@@ -1211,6 +1211,24 @@ un =INFO= es información. Las reglas, con el código de cada aviso:
   =%= se aplican también al texto interpolado con unos sorteos del =setup= (el mensaje
   lo indica con «en el texto interpolado»).
 - =setup= (INFO) :: variantes por instancia e =instances= necesarias para llegar a 60.
+- =patron= (AVISO; solo con =patrones=True= o =--patrones=) :: patrones memorizables:
+  lo que un alumno podría acertar /sin leer el enunciado/ tras ver varias variantes.
+  Muestrea las variantes (40 sorteos del =setup=, o los que se pidan) y avisa de una
+  =Cuestion= de verdad variable pero «casi constante» (el mismo valor en ≥ 85 % de sus
+  apariciones; las constantes del todo las da =constante=), de una lambda con =setup=
+  constante en toda la muestra (donde =constante= solo pudo dar INFO), de una cifra
+  que dentro de un «tipo de frase» (el texto sin cifras) separa por completo las
+  verdaderas de las falsas (una elasticidad verdadera siempre menor que 1 y su gemela
+  inversa siempre mayor), y de un rasgo superficial de la opción —una palabra, una
+  cifra concreta, repetir una cifra del enunciado, tener la cifra mayor o menor del
+  hueco, ser más larga que la mediana— que, con él o sin él, predice la verdad en el
+  hueco (≥ 85 % de acierto, ≥ 15 puntos sobre la tasa base, soporte a ambos lados y
+  p-valor corregido). Los rasgos salen del propio banco (no hay lista de palabras ni
+  dependencia del idioma), y no se miran relaciones aritméticas con los datos del
+  enunciado: en una pregunta de cálculo la respuesta correcta /debe/ ser función de
+  ellos. Es más lenta que el resto del =lint=, por eso no corre por defecto; sus avisos
+  son indicios que hay que leer: a veces el remedio es una gemela más (que la cifra
+  grande sea a veces la verdadera), a veces no hay nada que corregir.
 
 =tabla_mundos(problema)= devuelve una tabla de texto con el valor de cada =Cuestion=
 (=V=, =F=, o =-= si la rechaza su =precond=) en cada combinación de =Supuesto=, para
@@ -1224,10 +1242,12 @@ INFO y los ficheros sin avisos):
 #+begin_example
 python -m qbank.lint preguntas/*.json --quiet
 qbank-lint preguntas/L-01-Nombre.json --tabla      # equivalente, con la tabla de mundos
+qbank-lint preguntas/*.json --quiet --patrones     # además, patrones memorizables (--patrones 100: más sorteos)
 #+end_example
 
-En un proyecto de =qbank-init=: =make lint=, =make tabla PREGUNTA=L-01-Nombre=, y
-=make amc= / =make moodle= pasan =lint= antes de exportar.
+En un proyecto de =qbank-init=: =make lint=, =make tabla PREGUNTA=L-01-Nombre=,
+=make patrones= (=SEMILLAS=N= para cambiar los sorteos), y =make amc= / =make moodle=
+pasan =lint= antes de exportar.
 
 * Referencia rápida de la API
 
@@ -1299,10 +1319,11 @@ ProblemaTipo.por_partes_lectura(seed=None, verbose=False, descartes=False)
 ** Comprobación automática
 
 #+begin_example
-lint(problema_o_ruta, instances=None, seed=None)  → list[Aviso]
+lint(problema_o_ruta, instances=None, seed=None, patrones=None)  → list[Aviso]
     # Aviso(nivel, codigo, mensaje, donde); nivel ∈ {ERROR, AVISO, INFO}; errores primero
+    # patrones=True (o nº de sorteos): añade la regla 11, patrones memorizables (más lenta)
 tabla_mundos(problema_o_ruta)                     → str   # tabla Cuestion × mundo
-python -m qbank.lint FICHEROS.json [--instances N] [--seed S] [--tabla] [--quiet]
+python -m qbank.lint FICHEROS.json [--instances N] [--seed S] [--tabla] [--quiet] [--patrones [N]]
     # también `qbank-lint`; código de salida 1 si hay algún ERROR
 #+end_example
 

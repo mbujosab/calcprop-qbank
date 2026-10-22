@@ -837,6 +837,10 @@ detecta Moodle, que es más caro.
   en el enunciado?
 - [ ] ¿Has repasado todas las entradas de la vista profe (o de la vista de
   lectura) y, con =setup=, varias semillas?
+- [ ] ¿Has pasado =make patrones= (=lint --patrones=) y leído sus avisos?
+  ¿Podría un alumno acertar sin leer el enunciado, por la longitud de la
+  frase, una palabra, una cifra o porque la gemela falsa es siempre la
+  mayor?
 
 Si alguna casilla falla, la pregunta no está lista.
 

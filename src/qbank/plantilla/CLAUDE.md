@@ -39,6 +39,7 @@ build/                            todo lo generado; no se versiona
 ```sh
 make lint                         # todas las preguntas; LECCION=N para una lección
 make tabla PREGUNTA=L-01-Nombre   # lint + tabla de mundos de una pregunta
+make patrones                     # lint --patrones: pistas memorizables (más lento; LECCION=N)
 make amc                          # vista profe en build/amc/ (repasar entera)
 make lectura                      # documento por lección para leer las preguntas (build/lectura/)
 make amc-student                  # variantes del alumno (AMC)
