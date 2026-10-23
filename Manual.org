@@ -1225,7 +1225,11 @@ un =INFO= es información. Las reglas, con el código de cada aviso:
   cifra concreta, repetir una cifra del enunciado, tener la cifra mayor o menor del
   hueco, ser más larga que la mediana— que, con él o sin él, predice la verdad en el
   hueco (≥ 85 % de acierto, ≥ 15 puntos sobre la tasa base, soporte a ambos lados y
-  p-valor corregido). Los rasgos salen del propio banco (no hay lista de palabras ni
+  p-valor corregido). Un rasgo que solo reúne =Cuestion= enteras se descarta (eso lo
+  dice =constante=), salvo que sea un rasgo de cifras —lleva cifras, un intervalo
+  $[a,b]$, la cifra mayor— y reúna dos o más =Cuestion= enteras dejando fuera otras
+  dos o más: «las dos opciones que escriben un intervalo son siempre falsas» se
+  aprende sin leer. Los rasgos salen del propio banco (no hay lista de palabras ni
   dependencia del idioma), y no se miran relaciones aritméticas con los datos del
   enunciado: en una pregunta de cálculo la respuesta correcta /debe/ ser función de
   ellos. Es más lenta que el resto del =lint=, por eso no corre por defecto; sus avisos
@@ -1257,14 +1261,17 @@ un =INFO= es información. Las reglas, con el código de cada aviso:
   Guía de diseño.
 - =longitud= (AVISO) :: la opción larga es la verdadera: una alternativa /claramente/ más
   larga (o más corta) que las que el alumno ve con ella es un rasgo memorable, y debe
-  tener en su hueco una /pareja/ de longitud parecida (a menos de un 30 %) y valor
-  contrario; si no, ese rasgo delata la respuesta. Longitud /visible/: sin =$=, llaves
+  tener en su hueco una /pareja/ de longitud parecida (a menos de un 30 %, o de 10
+  caracteres) y valor contrario; si no, ese rasgo delata la respuesta. Longitud /visible/: sin =$=, llaves
   ni nombres de macros, que =len()= contaría. «Las que ve con ella» son una alternativa
   de cada otro hueco, así que destacar es probabilístico: la opción destaca si mide el doble
   (y 10 caracteres) más que todas sus compañeras —o menos que todas— en al menos
   la mitad de las combinaciones; el aviso dice en qué fracción. Se comprueba mundo a
   mundo con unos sorteos del =setup=; una opción que destaca unas veces como verdadera
-  y otras como falsa es su propia pareja. No compara medias ni castiga huecos
+  y otras como falsa es su propia pareja. Y si, entre lo que se muestra en esa parte,
+  la claramente más corta (o más larga) es verdadera entre el 30 % y el 70 % de las
+  veces (una larga verdadera en un hueco y una larga falsa en otro), los avisos de ese
+  lado callan: el alumno no puede sacar regla. No compara medias ni castiga huecos
   compensados (una larga verdadera junto a una larga falsa): el remedio es local,
   recortar la destacada (el porqué va al =exp=) o darle una gemela, que suele ser la
   misma que pide =gemela=.
@@ -1273,8 +1280,15 @@ un =INFO= es información. Las reglas, con el código de cada aviso:
   con igualdad, desigualdad u operación— y sin una falsa /gemela/ en su hueco: el mismo
   texto con otras cifras (y los mismos símbolos) o con otros símbolos (y las mismas
   cifras), sin importar el orden, con «mayor»/«menor», el signo, la desigualdad y la
-  negación identificados. Sin gemela, el alumno la marca sin comprobar nada. Es INFO
-  cuando la fórmula va dentro de una frase (una propiedad enunciada, no un cálculo). La
+  negación identificados; basta con que coincidan en el 80 % de las palabras, así que
+  una coletilla no rompe la gemela. Sin gemela, el alumno la marca sin comprobar nada.
+  No cuentan como cifra los subíndices, los rótulos «(1)», el 0 y el 1 (una
+  indicadora, «un 1 % más») ni un porcentaje que el enunciado ya da; y una verdadera
+  que solo repite cifras del enunciado («la constante, 22, es…») no avisa si alguna
+  falsa del hueco lleva una de ellas con otra lectura: la cifra no delata. Es INFO
+  cuando la fórmula va dentro de una frase (una propiedad enunciada, no un cálculo),
+  salvo que la fórmula opere con dos o más objetos del enunciado («la coordenada pasa
+  a ser $\hat\beta_2+\hat\beta_3$»): eso es un cálculo con los datos, y es AVISO. La
   regla =constante= ya señala las verdaderas fijas; esta dice cuáles de ellas, por ser
   calculables, necesitan una versión falsa. Con =decimal== (=--decimal=, =DECIMAL= en
   =config.py=) se fija qué separadores decimales admiten las cifras: con ="{,}"=, una coma

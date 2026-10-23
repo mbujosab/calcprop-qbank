@@ -936,3 +936,102 @@ def test_decimal_del_banco_en_cifras_y_tipo_de_frase(tmp_path, capsys):
     ruta = tmp_path / "p.json"
     ruta.write_text(json.dumps(d), encoding="utf-8")
     assert main([str(ruta), "--decimal", "{,}", "--quiet"]) == 0
+
+
+# ── Reglas 13, 14 y 11: ajustes tras la lectura de PE (23-10) ────────────────
+
+def test_gemela_cifra_copiada_del_enunciado_con_falsa_vecina_no_avisa():
+    enun = "La media del precio es $28$ junto al río y $22$ sin río; el coeficiente de la indicadora es $6$."
+    v = C("la constante, $22$, es la media del precio de los barrios sin río, la categoría base", "True")
+    f = C("la constante, $22$, es la media del precio de toda la muestra", "False")
+    d = problema([enun, [S("si A,", "v('A')"), S("si B,", "v('B')")], "entonces:", [v, f, C("nada", "False")]])
+    assert not _codigo(d, "gemela")
+    # Sin una falsa que lleve la cifra, la cifra delata.
+    d["componentes"][3][1] = C("la constante es la media del precio de toda la muestra", "False")
+    assert len(_codigo(d, "gemela")) == 1
+    # Una cifra que no da el enunciado (un resultado) necesita gemela numérica aunque una falsa la repita.
+    d["componentes"][3] = [C("la diferencia de medias es $6{,}5$ unidades", "True"),
+                           C("la diferencia de medias, $6{,}5$, es la media de toda la muestra", "False"), C("nada", "False")]
+    assert "con cifra" in _codigo(d, "gemela")[0].mensaje
+
+
+def test_gemela_una_coletilla_no_rompe_la_gemela():
+    d = base()
+    d["componentes"][3] = [C("el modelo solo produce dos valores ajustados, $22$ para los barrios sin río y $28$ para los "
+                             "barrios junto al río: las medias de los dos grupos", "True"),
+                           C("el modelo solo produce dos valores ajustados, $22$ para los barrios sin río y $6$ para los "
+                             "barrios junto al río", "False"), C("nada", "False")]
+    assert not _codigo(d, "gemela")
+    from qbank._lint import _parecidos
+    assert _parecidos(("a", "b", "c", "d"), ("a", "b", "c", "d", "e")) == pytest.approx(8 / 9)
+    assert _parecidos(("a", "a", "b"), ("a", "c")) == pytest.approx(0.4)
+
+
+def test_gemela_cifras_incidentales_no_son_contenido_calculable():
+    from qbank._lint import _calculable
+    assert _calculable("la indicadora vale $1$ para los hombres y $0$ para las mujeres") is None
+    assert _calculable("el modelo (1) anida al modelo (2)") is None
+    assert _calculable("la coordenada $x_{2}$ y el cuadrado $x^2$ no cambian") is None
+    assert _calculable("$H_0$ se rechaza al $5$\\,\\% de significación", cifras_enun=[5.0]) is None
+    assert _calculable("$H_0$ se rechaza al $5$\\,\\% de significación") == "cifra"
+    assert _calculable("$300$ mil euros es la previsión") == "cifra"
+    assert _calculable("$\\sigma_x^2 = 2/3$") == "fórmula"
+
+
+def test_gemela_calculo_entre_objetos_del_enunciado_dentro_de_una_frase_es_aviso():
+    enun = (r"Se regresa $\boldsymbol{y}$ sobre $\boldsymbol{1}$, $\boldsymbol{x}_2$ y $\boldsymbol{x}_3$, "
+            r"con coordenadas $\hat\beta_2$ y $\hat\beta_3$.")
+    v = C(r"si se sustituye $\boldsymbol{x}_3$ por $\boldsymbol{x}_3-\boldsymbol{x}_2$, el ajuste no cambia, "
+          r"pero la coordenada de $\boldsymbol{x}_2$ pasa a ser $\hat\beta_2+\hat\beta_3$", "True")
+    d = problema([enun, [S("si A,", "v('A')"), S("si B,", "v('B')")], "entonces:",
+                  [v, C("el ajuste cambia porque los regresores son otros", "False"), C("nada", "False")]])
+    av = _codigo(d, "gemela")
+    assert len(av) == 1 and av[0].nivel == AVISO and "cálculo entre objetos" in av[0].mensaje
+    # Una propiedad (igualdad sin operación entre objetos) sigue siendo INFO…
+    d["componentes"][3][0] = C(r"si $\rho_{\boldsymbol{x}_2\boldsymbol{x}_3}=0$, la coordenada de $\boldsymbol{x}_2$ "
+                               r"es la misma en los dos ajustes", "True")
+    av = _codigo(d, "gemela")
+    assert len(av) == 1 and av[0].nivel == INFO
+    # … y una definición con símbolos que el enunciado no presenta, también.
+    d["componentes"][3][0] = C(r"$\mathcal{L}(\boldsymbol{x}_2,\boldsymbol{x}_3)$ es el conjunto de las combinaciones "
+                               r"$\gamma_1\boldsymbol{x}_2+\gamma_2\boldsymbol{x}_3$ con $\gamma_1,\gamma_2$ reales", "True")
+    av = _codigo(d, "gemela")
+    assert len(av) == 1 and av[0].nivel == INFO
+
+
+def test_longitud_pareja_de_cadenas_cortas():
+    from qbank._lint import _parecida
+    assert _parecida(3, 4) and _parecida(100, 125) and not _parecida(20, 40)
+    # «$F=4$» (3 visibles) y «$F=14$» (4): razón 1,33, pero entre ellas nada destaca.
+    slot = [C("$F=4$", "True"), C("$F=14$", "False")]
+    largo = [C("la hipótesis nula no se rechaza al nivel habitual de significación", "v('A')"),
+             C("la hipótesis nula se rechaza al nivel habitual de significación", "v('B')"), C("ninguna lo es", "False")]
+    d = problema(["Sea", [S("si A,", "v('A')"), S("si B,", "v('B')")], "entonces:", slot, largo])
+    assert not [a for a in _codigo(d, "longitud") if "comp 3[" in a.donde]
+
+
+def test_patron_rasgo_de_cifras_que_reune_cuestiones_enteras():
+    # Dos distractores constantes escriben un intervalo y ninguna verdadera lo hace: se aprende sin leer.
+    comps = ["Sea", [S("A.", "v('A') & -v('B')"), S("B.", "v('B') & -v('A')")],
+             [C("A", "v('A')"), C("B", "v('B')"),
+              C("el intervalo es $[20,\\,40]$\\,\\%", "False"), C("el intervalo es $[25,\\,45]$\\,\\%", "False")]]
+    av = [a for a in lint(problema(comps, setup="x = 1"), patrones=True) if a.codigo == "patron"]
+    assert any("intervalo" in a.mensaje or "cifras" in a.mensaje for a in av)
+    # Una sola Cuestion entera sigue siendo cosa de «constante».
+    comps[2].pop()
+    av = [a for a in lint(problema(comps, setup="x = 1"), patrones=True) if a.codigo == "patron"]
+    assert not av
+
+
+def test_longitud_calla_si_la_destacada_de_lo_mostrado_es_verdadera_la_mitad_de_las_veces():
+    # Hueco 3: larga siempre V sin pareja; hueco 4: larga siempre F sin pareja. Entre lo que el
+    # alumno ve, la claramente más larga es V la mitad de las veces: nada que aprender.
+    larga_v = C("entonces A o B, porque la hipótesis lo garantiza en todos los casos", "True")
+    larga_f = C("ninguna, porque la hipótesis nunca garantiza nada en ningún caso", "False")
+    d = problema(["Sea", [S("si A,", "v('A')"), S("si B,", "v('B')")], "entonces:",
+                  [larga_v, C("entonces B", "v('B')"), C("nada", "False")],
+                  [larga_f, C("A es cierta", "v('A')"), C("B es cierta", "v('B')")]])
+    assert not _codigo(d, "longitud")
+    # Si la larga falsa desaparece, la destacada es siempre verdadera y el aviso vuelve.
+    d["componentes"][4][0] = C("ninguna", "False")
+    assert [a for a in _codigo(d, "longitud") if "comp 3[0]" in a.donde and "más larga" in a.mensaje]

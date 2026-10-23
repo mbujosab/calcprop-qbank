@@ -3219,25 +3219,38 @@ Reglas (código del aviso entre paréntesis):
     y ``_MIN_DIF_LONGITUD`` caracteres más que una alternativa de cada otro
     hueco, en al menos la mitad de las combinaciones— es un rasgo
     memorable; si en su hueco
-    no tiene una pareja de longitud parecida (razón ≤ 1,3) y valor
-    contrario, «la opción larga es la verdadera». Se comprueba mundo a
+    no tiene una pareja de longitud parecida (razón ≤ 1,3, o menos de
+    ``_MIN_DIF_LONGITUD`` caracteres de diferencia) y valor contrario, «la
+    opción larga es la verdadera». Se comprueba mundo a
     mundo con unos sorteos del ``setup``; una opción que destaca unas veces
-    como verdadera y otras como falsa es su propia pareja.
+    como verdadera y otras como falsa es su propia pareja. Y si, entre lo
+    que se muestra en esa parte, la claramente más corta (o más larga) es
+    verdadera entre el 30 % y el 70 % de las veces, los avisos de ese lado
+    callan: no hay nada que aprender.
 14. Verdadera sin gemela (``gemela``, AVISO): una alternativa verdadera
     siempre que aparece, con contenido calculable (una cifra, o una fórmula
     con una igualdad, desigualdad u operación), en un hueco donde ninguna
     falsa comparte su esqueleto: el mismo texto con otras cifras (símbolos
     iguales) o con otros símbolos (cifras iguales), ignorando el orden, con
-    «mayor»/«menor», ``+``/``-``, ``<``/``>`` y la negación identificados.
+    «mayor»/«menor», ``+``/``-``, ``<``/``>`` y la negación identificados;
+    basta con que la falsa comparta el 80 % de los tokens (una coletilla no
+    rompe la gemela). No cuentan como cifra los subíndices, los rótulos
+    «(1)», el 0 y el 1 ni un porcentaje que el enunciado ya da; y una
+    verdadera que solo repite cifras del enunciado no avisa si una falsa
+    del hueco lleva alguna de ellas (la cifra no delata). Una fórmula
+    dentro de una frase es INFO, salvo que opere con dos o más objetos del
+    enunciado («pasa a ser $\\hat\\beta_2+\\hat\\beta_3$»): entonces es AVISO.
     Sin gemela, el alumno la marca sin comprobar nada.
 """
 
 import argparse as _argparse
 import json as _json
+import itertools as _itertools
 import math as _math
+import random as _random
 import re as _re
 import sys as _sys
-from collections import defaultdict as _defaultdict
+from collections import defaultdict as _defaultdict, Counter as _Counter
 from dataclasses import dataclass as _dataclass
 from pathlib import Path as _Path
 
@@ -3969,7 +3982,7 @@ def tabla_mundos(problema, ancho=50, linea=None, elipsis='…'):
 
 Multiplicar variantes tiene un reverso: si algún rasgo superficial se repite en las opciones verdaderas (o en las falsas), el alumno que ha visto varias variantes —en Moodle, en especial— puede acertar sin entender nada: «la frase larga es la falsa», «la cifra pequeña es la buena», «si dice /precio/ es falsa». Esta regla hace de ese alumno: muestrea las variantes (=por_partes_lectura=, un ejemplo por mundo y sorteo, con =N_SEMILLAS_PATRONES= sorteos del =setup=) y busca lo que predice la verdad /sin leer el enunciado/. Es cara (recorre muchas variantes), así que solo corre con =lint(..., patrones=True)= o =--patrones [N]=, y todo lo que encuentra es AVISO: son indicios que hay que leer.
 
-Tres comprobaciones, de lo estructural a lo superficial. (1) Por =Cuestion=: una de verdad variable pero /casi constante/ (el mismo valor en ≥ 85 % de sus apariciones), o constante en toda la muestra siendo una lambda con =setup= (ahí la regla 3 solo pudo dar INFO, porque la tabla de mundos usa un único sorteo). Las constantes de verdad quedan para la regla 3. (2) Por /tipo de frase/ (el texto de la opción con las cifras sustituidas por =#=, que agrupa las gemelas numéricas aunque vengan de =Cuestion= distintas): una cifra cuyo valor separa por completo las verdaderas de las falsas, como una elasticidad verdadera siempre menor que 1 y su gemela inversa siempre mayor; y, con los mismos umbrales estadísticos que los rasgos de (3), una cifra cuya /forma/ predice la verdad: entera o con decimales (y cuántos), múltiplo de 5 o de 10. El caso real (=L-16-DiferenciaPorcentualEnLogNivel=): con $\beta$ sorteada en $\{0{,}2;\,0{,}3;\,0{,}4\}$, en «en diferencia porcentual exacta, un X %» la cifra redonda (20, 30, 40) era siempre la aproximación $100\beta$, y por tanto siempre falsa, y la exacta verdadera (18, 26, 33, 22, 35, 49) nunca era redonda; el umbral de (2) no lo veía porque los valores se solapan. El remedio fue sortear también valores de $\beta$ con exponencial redonda. (3) Por hueco, rasgos binarios de la opción tal como la ve el alumno: cada palabra de al menos =_MIN_LETRAS_PALABRA= letras (las más cortas son artículos y preposiciones en casi cualquier idioma, y solo meten ruido), cada cifra concreta, repetir una cifra del enunciado, tener la cifra mayor o la menor del hueco, llevar fórmula, ser más larga que la mediana del hueco. Un rasgo (o su ausencia) es un patrón si predice la verdad en ≥ 85 % de los casos, al menos 15 puntos por encima de la tasa base del hueco, con soporte mínimo a ambos lados y un p-valor hipergeométrico corregido por el número de rasgos probados. Se descartan los rasgos que solo reúnen =Cuestion= enteras (esos reexpresan «constante» o «casi constante»), y los candidatos que cubren los mismos casos se funden en un aviso (uno que cubre un subconjunto de otro —«la» dentro de «precio»— no añade nada). No hay lista de palabras: los rasgos salen del propio banco, así que la regla no depende del idioma ni de la asignatura. Tampoco se miran relaciones aritméticas con el enunciado (suma, producto, inverso…): en una pregunta de cálculo la respuesta correcta /debe/ ser función de los datos, y señalarlo sería un falso positivo en cada pregunta numérica.
+Tres comprobaciones, de lo estructural a lo superficial. (1) Por =Cuestion=: una de verdad variable pero /casi constante/ (el mismo valor en ≥ 85 % de sus apariciones), o constante en toda la muestra siendo una lambda con =setup= (ahí la regla 3 solo pudo dar INFO, porque la tabla de mundos usa un único sorteo). Las constantes de verdad quedan para la regla 3. (2) Por /tipo de frase/ (el texto de la opción con las cifras sustituidas por =#=, que agrupa las gemelas numéricas aunque vengan de =Cuestion= distintas): una cifra cuyo valor separa por completo las verdaderas de las falsas, como una elasticidad verdadera siempre menor que 1 y su gemela inversa siempre mayor; y, con los mismos umbrales estadísticos que los rasgos de (3), una cifra cuya /forma/ predice la verdad: entera o con decimales (y cuántos), múltiplo de 5 o de 10. El caso real (=L-16-DiferenciaPorcentualEnLogNivel=): con $\beta$ sorteada en $\{0{,}2;\,0{,}3;\,0{,}4\}$, en «en diferencia porcentual exacta, un X %» la cifra redonda (20, 30, 40) era siempre la aproximación $100\beta$, y por tanto siempre falsa, y la exacta verdadera (18, 26, 33, 22, 35, 49) nunca era redonda; el umbral de (2) no lo veía porque los valores se solapan. El remedio fue sortear también valores de $\beta$ con exponencial redonda. (3) Por hueco, rasgos binarios de la opción tal como la ve el alumno: cada palabra de al menos =_MIN_LETRAS_PALABRA= letras (las más cortas son artículos y preposiciones en casi cualquier idioma, y solo meten ruido), cada cifra concreta, repetir una cifra del enunciado, tener la cifra mayor o la menor del hueco, llevar fórmula, ser más larga que la mediana del hueco. Un rasgo (o su ausencia) es un patrón si predice la verdad en ≥ 85 % de los casos, al menos 15 puntos por encima de la tasa base del hueco, con soporte mínimo a ambos lados y un p-valor hipergeométrico corregido por el número de rasgos probados. Se descartan los rasgos que solo reúnen =Cuestion= enteras (esos reexpresan «constante» o «casi constante»), salvo un rasgo de cifras (=_rasgo_de_cifras=: lleva cifras, un intervalo, la cifra mayor…; no una palabra ni la longitud) que reúne dos o más =Cuestion= enteras y deja fuera otras dos o más: «las dos que escriben un intervalo son siempre falsas» se aprende sin leer y =constante= no lo dice (caso de PE, 23-10; en ese banco añade 4 avisos a 61). Los candidatos que cubren los mismos casos se funden en un aviso (uno que cubre un subconjunto de otro —«la» dentro de «precio»— no añade nada). No hay lista de palabras: los rasgos salen del propio banco, así que la regla no depende del idioma ni de la asignatura. Tampoco se miran relaciones aritméticas con el enunciado (suma, producto, inverso…): en una pregunta de cálculo la respuesta correcta /debe/ ser función de los datos, y señalarlo sería un falso positivo en cada pregunta numérica.
 
 #+NAME: lint: Regla 11: patrones
 #+begin_src python :noweb yes
@@ -4069,6 +4082,9 @@ def _iguales(a, b):
     return abs(a - b) <= 1e-9 + 0.005 * max(abs(a), abs(b))
 
 
+_RE_INTERVALO = _re.compile(r'\[\s*-?\d[\d{},.]*\s*[,;]\s*(?:\\[,;!]\s*)*-?\d[\d{},.]*\s*\]')   # [20,\,40]
+
+
 def _rasgos(texto, cifras, cifras_enun, cifras_hueco, longitudes):
     """Rasgos superficiales de una opción: lo que un alumno puede ver sin entenderla."""
     r = {f"«{w}»" for w in _palabras(texto)}
@@ -4085,6 +4101,8 @@ def _rasgos(texto, cifras, cifras_enun, cifras_hueco, longitudes):
                 r.add('la cifra menor del hueco')
     if '$' in texto:
         r.add('fórmula')
+    if _RE_INTERVALO.search(texto):
+        r.add('un intervalo [a, b]')
     if len(texto) > sorted(longitudes)[len(longitudes) // 2]:
         r.add('texto más largo que la mediana del hueco')
     return r
@@ -4256,10 +4274,18 @@ def _patrones_forma(casos):
     return list(out.values())
 
 
+def _rasgo_de_cifras(f):
+    """Rasgos que el alumno ve sin leer: lleva cifras, un intervalo, la cifra mayor…;
+    no las palabras ni la longitud."""
+    return not f.startswith('«') and 'mediana' not in f
+
+
 def _patrones_rasgos(casos, por_j):
     """Candidatos: rasgos superficiales (con o sin ellos) que predicen la verdad en
     el hueco. Se descartan los que solo reúnen Cuestiones enteras: esos reexpresan
-    «constante» o «casi constante»."""
+    «constante» o «casi constante». Excepción: un rasgo de cifras que reúne dos o más
+    Cuestiones enteras y deja fuera otras dos o más («las que escriben un intervalo
+    son siempre falsas») sí se aprende sin leer, y se conserva."""
     _, base, _ = _tasa(casos)
     rasgos = set().union(*(c['rasgos'] for c in casos))
     m = 2 * len(rasgos)
@@ -4272,8 +4298,10 @@ def _patrones_rasgos(casos, por_j):
             if r is None:
                 continue
             prec, n, cubre, hacia, ejemplo = r
-            if all(ids <= cubre or not (ids & cubre) for ids in ids_j):
-                continue
+            enteras = sum(ids <= cubre for ids in ids_j)
+            if (all(ids <= cubre or not (ids & cubre) for ids in ids_j)
+                    and not (_rasgo_de_cifras(f) and 2 <= enteras <= len(ids_j) - 2)):
+                continue                            # (a un lado o al otro queda una sola Cuestion: eso es «constante»)
             out.append((prec, n, cubre, ('sin ' if neg else 'con ') + f, hacia, ejemplo))
     return out, base, len(casos)
 
@@ -4483,9 +4511,11 @@ def _regla_inventario(p, avisos, conocidos=(), lecturas=None):
 
 Dos reglas de diseño de la Guía que hasta ahora solo se comprobaban a mano, y que la revisión completa de un banco (22-10-2026) señaló como la fuente de la mayoría de sus hallazgos: /la opción larga es la verdadera/ y /la afirmación numérica siempre cierta y sin gemela/. Las dos recorren las mismas lecturas que el inventario (=_lecturas=, con =_N_SORTEOS_LECTURAS= sorteos del =setup=), que =lint= calcula una sola vez.
 
-*Regla 13, longitud.* La primera versión comparaba las medias de verdaderas y falsas de cada hueco, como pedía el banco; pero el alumno no ve los huecos, ve una alternativa de cada uno, y la única regla que puede aprender es «entre las que veo, la larga es la buena». Esa regla solo funciona si existe una opción que /destaca/ y destacar es /informativo/. De ahí la formulación final, estructural y no estadística: una alternativa claramente más larga (o más corta) que las que se muestran con ella tiene un rasgo memorable. «Las que se muestran con ella» son una alternativa activa de cada /otro/ hueco (las de su propio hueco nunca las ve a la vez), así que destacar es probabilístico: =_destaca= calcula la fracción de combinaciones de compañeras en que la opción mide al menos =_DESTACA_LONGITUD= veces (el doble; con 1,5 salían 89 avisos en PE frente a 60, y Marcos prefirió el umbral más alto) y =_MIN_DIF_LONGITUD= caracteres más que todas ellas, o menos que todas, y la opción destaca si esa fracción llega a =_P_DESTACA=. Compararla con la mediana de la parte era más simple pero contaba como compañeras a las de su propio hueco, y señalaba una opción larga aunque otro hueco mostrara casi siempre una igual de larga. Una opción que destaca, y debe ir acompañada en su hueco de una /pareja/ de longitud parecida (razón ≤ =_PARECIDA_LONGITUD=, el 30 % de la regla del banco) y valor contrario; así el alumno ve opciones largas verdaderas y falsas con la misma frecuencia y el rasgo no le sirve. La longitud es la /visible/ (=_visible=): sin =$=, sin llaves y sin nombres de macros, porque =len()= cuenta el \LaTeX{} y una fórmula corta pesaría como una frase. Se comprueba mundo a mundo y sorteo a sorteo; una opción que destaca unas veces como verdadera y otras como falsa es su propia pareja, y solo se avisa si en al menos el 85 % de sus apariciones sin pareja tiene el mismo valor. Frente a comparar medias, esta formulación no castiga los huecos compensados (una larga verdadera y una larga falsa, y las demás cortas) ni empuja a alargar las falsas para igualar: el remedio es local, recortar la destacada (el porqué va al =exp=) o darle una gemela, que de paso suele ser la que pide la regla 14.
+*Regla 13, longitud.* La primera versión comparaba las medias de verdaderas y falsas de cada hueco, como pedía el banco; pero el alumno no ve los huecos, ve una alternativa de cada uno, y la única regla que puede aprender es «entre las que veo, la larga es la buena». Esa regla solo funciona si existe una opción que /destaca/ y destacar es /informativo/. De ahí la formulación final, estructural y no estadística: una alternativa claramente más larga (o más corta) que las que se muestran con ella tiene un rasgo memorable. «Las que se muestran con ella» son una alternativa activa de cada /otro/ hueco (las de su propio hueco nunca las ve a la vez), así que destacar es probabilístico: =_destaca= calcula la fracción de combinaciones de compañeras en que la opción mide al menos =_DESTACA_LONGITUD= veces (el doble; con 1,5 salían 89 avisos en PE frente a 60, y Marcos prefirió el umbral más alto) y =_MIN_DIF_LONGITUD= caracteres más que todas ellas, o menos que todas, y la opción destaca si esa fracción llega a =_P_DESTACA=. Compararla con la mediana de la parte era más simple pero contaba como compañeras a las de su propio hueco, y señalaba una opción larga aunque otro hueco mostrara casi siempre una igual de larga. Una opción que destaca, y debe ir acompañada en su hueco de una /pareja/ de longitud parecida (=_parecida=: razón ≤ =_PARECIDA_LONGITUD=, el 30 % de la regla del banco, o menos de =_MIN_DIF_LONGITUD= caracteres de diferencia: entre «$F=4$» y «$F=14$» la razón es 1,33 y nada destaca) y valor contrario; así el alumno ve opciones largas verdaderas y falsas con la misma frecuencia y el rasgo no le sirve. La longitud es la /visible/ (=_visible=): sin =$=, sin llaves y sin nombres de macros, porque =len()= cuenta el \LaTeX{} y una fórmula corta pesaría como una frase. Se comprueba mundo a mundo y sorteo a sorteo; una opción que destaca unas veces como verdadera y otras como falsa es su propia pareja, y solo se avisa si en al menos el 85 % de sus apariciones sin pareja tiene el mismo valor. Queda una compensación que la pareja en el mismo hueco no ve: en L-12-CambioDeUnidadesEnLaTabla avisaban tres opciones cortas de un hueco, pero otro hueco de la misma parte mostraba cortas verdaderas con la misma frecuencia, y entre todas las variantes la claramente más corta de lo mostrado era verdadera 66 veces de 144. PE lo propuso (23-10) y Marcos lo aceptó: =_destacadas= recorre, por parte y lectura, las combinaciones de una alternativa por hueco (todas, o una muestra de =_MAX_COMBINACIONES= con un generador propio) y cuenta cuántas veces la claramente más corta (o más larga) es verdadera; si esa fracción cae en =_COMPENSADA= (30-70 %), los avisos de ese lado en esa parte callan. Es el criterio que de verdad ve el alumno; la pareja en el mismo hueco es la manera de conseguirlo. Medido en PE: de 49 avisos a 23. Frente a comparar medias, esta formulación no castiga los huecos compensados (una larga verdadera y una larga falsa, y las demás cortas) ni empuja a alargar las falsas para igualar: el remedio es local, recortar la destacada (el porqué va al =exp=) o darle una gemela, que de paso suele ser la que pide la regla 14.
 
 *Regla 14, gemela.* Una alternativa verdadera siempre que aparece (en todos los mundos y sorteos de la muestra), con /contenido calculable/ —una cifra, o una fórmula con igualdad, desigualdad u operación (=_RE_CALCULO=)—, debe tener en su hueco una falsa /gemela/: el mismo texto con las cifras o los símbolos sustituidos, o con «mayor»/«menor», el signo o la desigualdad al revés; si no, el alumno la marca sin comprobar nada. Dos esqueletos (=_esqueletos=): uno abstrae las cifras y conserva los símbolos ($\sigma_x^2=2/3$ y $\sigma_x^2=3/2$ coinciden), el otro abstrae los símbolos de las fórmulas y conserva las cifras ($\mu_x=1$ y $\mu_y=1$ coinciden); una falsa es gemela si coincide con la verdadera en alguno de los dos. No en ambos a la vez: $\sigma_x^2=2/3$ frente a $\sigma_{xy}=-1$ cambia símbolo y cifra, y es otra afirmación, no una versión falsa de la misma. Cada esqueleto es la bolsa de /tokens/ del texto (sin orden: los papeles intercambiados son gemelas), con los antónimos y los operadores opuestos identificados (=_ANTONIMOS=, =_OPUESTOS=), la negación suprimida y las decoraciones (=\hat=, =\boldsymbol=…) y la puntuación fuera. La regla 3 (=constante=) ya señala las verdaderas constantes; esta dice cuáles de ellas, por ser calculables, necesitan una gemela y no la tienen.
+
+La lectura de PE de sus avisos en L-11..L-16 (23-10, segundo mensaje: de 72 avisos de las reglas 13 y 14, 53 no señalaban nada, y casi todos seguían cuatro patrones) ajustó la regla en cuatro puntos. (a) /Cifra copiada del enunciado/: la verdadera repite una cifra que el enunciado da («la constante, 22, es…») y una falsa del hueco lleva esa misma cifra con otra lectura; la cifra no delata nada, así que =_regla_gemela= calla si, en todas sus lecturas, todas las cifras de la verdadera (en valor absoluto) están en el enunciado de esa variante (el de la parte y los anteriores) y alguna falsa activa del hueco lleva alguna; una cifra que es un resultado sigue necesitando gemela numérica. (b) /Coletillas/: «…: las medias de los dos grupos» o «sean cuales sean $\hat\alpha$ y $\hat\gamma$» rompían la igualdad de bolsas; ahora una falsa es gemela si comparte con la verdadera al menos =_GEMELA_PARECIDO= (0,8, coeficiente de Dice, =_parecidos=) de los tokens de uno de los dos esqueletos. (c) /Cifras incidentales/ (=_cifras_calculo=): no son contenido calculable los subíndices y exponentes, los rótulos «(1)» y «(2)», el 0 y el 1 (una indicadora, «un 1 % más») ni un porcentaje que el enunciado ya da («al 5 %»). (d) /Cálculo dentro de una frase/: el caso SE-1 del banco («la coordenada de $\boldsymbol x_2$ pasa a ser $\hat\beta_2+\hat\beta_3$») era INFO por llevar la fórmula dentro de una frase y se perdía entre los INFO; =_opera_con_objetos= lo sube a AVISO cuando la fórmula opera (suma, resta, cociente, producto) con dos o más objetos con subíndice, todos presentados por el enunciado: un cálculo con los datos. Una igualdad ($\rho_{x_2x_3}=0$, $H_0\!:\beta_2=0$), una definición con símbolos sin presentar ($\beta_1v_1+\beta_2v_2$) o una fórmula sin objetos del enunciado ($E[U\mid X]=0$) siguen siendo INFO. Medido en PE: =gemela= pasa de 151 AVISO en 58 preguntas a 50 en 31 (9 con cifra, 40 con fórmula, 1 con cálculo en la frase), más 48 INFO, y conserva los dos hallazgos importantes de L-13-ModeloRestringido; =longitud=, con =_parecida=, de 60 a 49 (29 preguntas).
 
 #+NAME: lint: Reglas 13 y 14: longitud y gemela
 #+begin_src python :noweb yes
@@ -4493,7 +4523,10 @@ _DESTACA_LONGITUD  = 2.0    # una opción es claramente más larga que otra si m
 _P_DESTACA         = 0.5    # … y destaca si lo es frente a todas las que el alumno ve con ella en al menos esta fracción de las variantes
 _PARECIDA_LONGITUD = 1.3    # su pareja mide parecido: razón de longitudes ≤ 1,3 (el 30 % de la regla del banco)
 _MIN_DIF_LONGITUD  = 10     # diferencia mínima, en caracteres visibles, para que algo destaque
+_COMPENSADA        = (0.3, 0.7)   # si la claramente más corta (o larga) de lo que se muestra es verdadera entre estas fracciones de las veces, no hay nada que aprender
+_MAX_COMBINACIONES = 2000   # combinaciones de una alternativa por hueco que se recorren por parte y lectura (más: una muestra)
 _MAX_PROSA_FORMULA = 30     # caracteres visibles fuera de $…$ para que una opción cuente como fórmula
+_GEMELA_PARECIDO   = 0.8    # una falsa es gemela si comparte con la verdadera esta fracción (Dice) de los tokens de un esqueleto
 
 _RE_TEXTO_VISIBLE = _re.compile(r'\\(?:text|textrm|textit|textbf|mathrm|mathit|mathsf|mathfrak|mathcal|mathbb|operatorname)\s*\{([^{}]*)\}')
 _RE_INVISIBLE     = _re.compile(r'\\(?:hat|widehat|bar|overline|tilde|widetilde|vec|dot|boldsymbol|mathbf|bm|symbf|mathop|left|right|'
@@ -4515,6 +4548,12 @@ def _mas(l, otra):
     return l >= _DESTACA_LONGITUD * otra and l - otra >= _MIN_DIF_LONGITUD
 
 
+def _parecida(l, otra):
+    """¿Miden parecido? Razón ≤ _PARECIDA_LONGITUD, o menos de _MIN_DIF_LONGITUD caracteres de
+    diferencia (entre «$F=4$» y «$F=14$» la razón es 1,33, pero nada destaca)."""
+    return max(l, otra) <= _PARECIDA_LONGITUD * min(l, otra) or abs(l - otra) < _MIN_DIF_LONGITUD
+
+
 def _destaca(l, companeras):
     """Con qué probabilidad una opción de longitud l es claramente la más larga (o la
     más corta) de las que el alumno ve con ella: una alternativa activa de cada otro
@@ -4530,11 +4569,37 @@ def _destaca(l, companeras):
     return None, 0.0
 
 
+def _destacadas(listas):
+    """Recorre las combinaciones de una alternativa (longitud, valor) por hueco —todas, o
+    una muestra si son más de _MAX_COMBINACIONES— y cuenta, para cada lado, cuántas
+    veces hay una claramente más corta (o más larga) que las demás y cuántas de ellas
+    es verdadera: {'corta': [nV, n], 'larga': [nV, n]}."""
+    total = _math.prod(len(l) for l in listas)
+    if total <= _MAX_COMBINACIONES:
+        combos = _itertools.product(*listas)
+    else:
+        rng = _random.Random(total)                 # propio: no toca los generadores del banco
+        combos = (tuple(rng.choice(l) for l in listas) for _ in range(_MAX_COMBINACIONES))
+    out = {'corta': [0, 0], 'larga': [0, 0]}
+    for combo in combos:
+        for n, (l, v) in enumerate(combo):
+            otras = [l2 for m, (l2, _) in enumerate(combo) if m != n]
+            if all(_mas(l, l2) for l2 in otras):
+                out['larga'][0] += v
+                out['larga'][1] += 1
+            elif all(_mas(l2, l) for l2 in otras):
+                out['corta'][0] += v
+                out['corta'][1] += 1
+    return out
+
+
 def _regla_longitud(p, avisos, lecturas):
     comps  = _huecos_comp(p)
     orden  = {}                                     # mundo -> número de orden (su primera lectura)
     veces  = _defaultdict(int)                      # (i, j) -> apariciones
     solas  = {}                                     # (i, j) -> [nV, nF, mundos, (lado, l, prob), texto]
+    comp   = _defaultdict(lambda: [0, 0])           # (parte, lado) -> [destacadas verdaderas, destacadas]
+    parte_de = {}                                   # (i, j) -> parte
     for r in lecturas:
         orden.setdefault(r.mundo, len(orden) + 1)
         for k, parte in enumerate(r.partes):
@@ -4543,15 +4608,19 @@ def _regla_longitud(p, avisos, lecturas):
             activas = {h: lst for h, lst in activas.items() if lst}
             if len(activas) < 2:
                 continue                            # sin compañeras no hay con qué destacar
+            for lado, (nV, n) in _destacadas([[(l, v) for _, l, v in lst] for lst in activas.values()]).items():
+                comp[(k, lado)][0] += nV
+                comp[(k, lado)][1] += n
             for h, lst in activas.items():
                 companeras = [[l2 for _, l2, _ in lst2] for h2, lst2 in activas.items() if h2 != h]
                 for j, l, valor in lst:
                     i = comps[k][h]
                     veces[(i, j)] += 1
+                    parte_de[(i, j)] = k
                     lado, prob = _destaca(l, companeras)
                     if lado is None:
                         continue
-                    pareja = any(v2 != valor and max(l, l2) <= _PARECIDA_LONGITUD * min(l, l2) for j2, l2, v2 in lst if j2 != j)
+                    pareja = any(v2 != valor and _parecida(l, l2) for j2, l2, v2 in lst if j2 != j)
                     if not pareja:
                         reg = solas.setdefault((i, j), [0, 0, set(), (lado, l, prob), parte.huecos[h][j].texto])
                         reg[0 if valor else 1] += 1
@@ -4560,6 +4629,9 @@ def _regla_longitud(p, avisos, lecturas):
         n = nV + nF
         if max(nV, nF) < _PRECISION_PATRON * n:
             continue                                # unas veces verdadera y otras falsa: es su propia pareja
+        nV_c, n_c = comp[(parte_de[(i, j)], lado)]
+        if n_c and _COMPENSADA[0] <= nV_c / n_c <= _COMPENSADA[1]:
+            continue                                # entre lo que se muestra, la destacada es unas veces V y otras F: nada que aprender
         valor = "verdadera" if nV >= nF else "falsa"
         en = f"en {n} de las {veces[(i, j)]} veces que aparece" if n < veces[(i, j)] else "siempre"
         donde_m = (f"; mundo{'s' if len(mundos) > 1 else ''} {', '.join(map(str, sorted(mundos)))} de {len(orden)}"
@@ -4571,7 +4643,8 @@ def _regla_longitud(p, avisos, lecturas):
                             _donde(i, j, texto)))
 
 
-_RE_NUMERO_SUELTO = _re.compile(r'^\s*-?\d[\d{},.\s]*$')     # una fórmula que es solo un número: $-2{,}5$
+_RE_NUMERO_SUELTO = _re.compile(r'\$(\s*-?\d[\d{},.\s]*)\$')   # una fórmula que es solo un número: $-2{,}5$
+_RE_PORCENTAJE    = _re.compile(r'\s*(?:\\[,;!]\s*)*\\?%')          # lo que sigue a la cifra de «al $5$\,\%»
 _RE_CALCULO = _re.compile(r'\$[^$]*(?:[=<>+\-/]|\\(?:le|ge|leq|geq|ne|neq|approx|frac|dfrac|tfrac|sqrt|cdot|times|sum|pm|mp)\b)[^$]*\$')
 _RE_TOKEN   = _re.compile(r'§[^§]*§|\\[A-Za-z]+|\\.|[^\W\d_]+|\S')
 _ANTONIMOS  = (('mayor', 'menor'), ('mayores', 'menores'), ('más', 'menos'), ('máximo', 'mínimo'), ('máxima', 'mínima'),
@@ -4600,19 +4673,60 @@ _GRIEGAS    = {'\\' + g for g in ('alpha beta gamma delta epsilon varepsilon zet
                                    'Theta Lambda Xi Pi Sigma Upsilon Phi Psi Omega ell').split()}
 
 
-def _calculable(texto, decimal=None):
+def _cifras_calculo(texto, decimal=None, cifras_enun=()):
+    """Cifras de una opción que son un dato o un resultado, como [(valor, va dentro de
+    una fórmula)]. Una fórmula que es solo un número ($-2{,}5$) cuenta como prosa. Fuera
+    quedan las cifras incidentales: subíndices y exponentes, los rótulos «(1)», el 0 y
+    el 1 (una indicadora, «un 1 % más») y un porcentaje que el enunciado ya da («al 5 %»)."""
+    texto = _RE_SUBIND.sub(' ', _RE_NUMERO_SUELTO.sub(r' \1 ', texto))
+    out = []
+    for m in _re_cifra(decimal).finditer(texto):
+        antes, despues = texto[:m.start()], texto[m.end():]
+        if antes.rstrip().endswith('(') and despues.lstrip().startswith(')'):
+            continue
+        x = float(m.group(0).replace('{,}', '.').replace(',', '.'))
+        if x in (0.0, 1.0) or (_RE_PORCENTAJE.match(despues) and any(_iguales(x, y) for y in cifras_enun)):
+            continue
+        out.append((x, antes.count('$') % 2 == 1))
+    return out
+
+
+def _calculable(texto, decimal=None, cifras_enun=()):
     """Contenido calculable de una opción: 'cifra' si lleva un valor (en la prosa o
     como fórmula suelta, $-2{,}5$; una cifra dentro de una ecuación no cuenta); 'fórmula' si es
     una fórmula con igualdad, desigualdad u operación y poca prosa alrededor; 'prosa'
     si la fórmula va dentro de una frase (una propiedad enunciada, no un cálculo);
     None si no hay nada que calcular."""
-    trozos = texto.split('$')
-    prosa, formulas = ' '.join(trozos[::2]), trozos[1::2]
-    if _cifras(prosa, decimal) or any(_RE_NUMERO_SUELTO.match(f) for f in formulas):
+    cifras = _cifras_calculo(texto, decimal, cifras_enun)
+    if any(not en_formula for _, en_formula in cifras):
         return 'cifra'                              # un valor: en la prosa o como fórmula suelta
-    if not (_RE_CALCULO.search(texto) or _cifras(texto, decimal)):
+    if not (_RE_CALCULO.search(texto) or cifras):
         return None
-    return 'fórmula' if _visible(prosa) <= _MAX_PROSA_FORMULA else 'prosa'
+    return 'fórmula' if _visible(' '.join(texto.split('$')[::2])) <= _MAX_PROSA_FORMULA else 'prosa'
+
+
+def _parecidos(e, f):
+    """Fracción de tokens que comparten dos esqueletos (coeficiente de Dice)."""
+    if not e or not f:
+        return 0.0
+    return 2 * sum((_Counter(e) & _Counter(f)).values()) / (len(e) + len(f))
+
+
+_RE_OPERACION = _re.compile(r'[+\-/]|\\(?:frac|dfrac|tfrac|cdot|times|sqrt)\b')
+
+
+def _opera_con_objetos(texto, enun):
+    """¿Alguna fórmula del texto opera (suma, resta, cociente, producto) con dos o más
+    objetos con subíndice, todos presentados por el enunciado? «pasa a ser
+    $\\hat\\beta_2+\\hat\\beta_3$» es un cálculo con los datos; «$\\rho_{x_2x_3}=0$» o
+    «$E[U\\mid X]=0$» son propiedades, y «$\\beta_1v_1+\\beta_2v_2$» con $\\beta_1$, $\\beta_2$
+    sin presentar es una definición."""
+    for m in _RE_CALCULO.finditer(texto):
+        objs = _objetos(m.group(0))
+        if (_RE_OPERACION.search(_RE_SUBIND.sub(' ', m.group(0))) and objs and all(_en(c, enun) for c in objs)
+                and sum(fam == 'subindice' for fam, _ in objs.values()) >= 2):
+            return True
+    return False
 
 
 def _esqueletos(texto, decimal=None):
@@ -4641,16 +4755,30 @@ def _esqueletos(texto, decimal=None):
     return tuple(sorted(cifras)), tuple(sorted(simbolos))
 
 
+_ORDEN_CALCULABLE = {None: 0, 'prosa': 1, 'fórmula': 2, 'cifra': 3}
+
+
 def _regla_gemela(p, avisos, lecturas, decimal=None):
-    comps  = _huecos_comp(p)
+    comps   = _huecos_comp(p)
     valores = _defaultdict(set)                     # (i, j) -> {True, False} con que aparece
     textos  = {}                                    # (i, j) -> último texto
+    ques    = _defaultdict(set)                     # (i, j) -> contenido calculable en cada lectura
     veces   = _defaultdict(int)
     falsas  = _defaultdict(set)                     # i -> textos de las alternativas falsas alguna vez
+    copiada = {}                                    # (i, j) -> en todas sus lecturas, sus cifras son del enunciado y una falsa del hueco lleva alguna
+    calculo = {}                                    # (i, j) -> en alguna lectura, su fórmula opera con objetos del enunciado
+    enuns   = {}
     for r in lecturas:
+        enun = ''
         for k, parte in enumerate(r.partes):
+            enun += ' ' + parte.enunciado           # el de esta parte y los anteriores
+            if enun not in enuns:
+                enuns[enun] = (_cifras(enun, decimal), _objetos(enun, rangos=True))
+            c_enun, o_enun = enuns[enun]
             for h, hueco in enumerate(parte.huecos):
                 i = comps[k][h]
+                c_falsas = [x for a in hueco if a.valor is not None and not a.valor
+                            for x, _ in _cifras_calculo(a.texto, decimal, c_enun)]
                 for j, a in enumerate(hueco):
                     if a.valor is None:
                         continue
@@ -4659,20 +4787,31 @@ def _regla_gemela(p, avisos, lecturas, decimal=None):
                     veces[(i, j)] += 1
                     if not a.valor:
                         falsas[i].add(a.texto)
+                        continue
+                    ques[(i, j)].add(_calculable(a.texto, decimal, c_enun))
+                    cs = [x for x, _ in _cifras_calculo(a.texto, decimal, c_enun)]
+                    copiada[(i, j)] = (copiada.get((i, j), True) and bool(cs)
+                                       and all(any(_iguales(abs(x), abs(y)) for y in c_enun) for x in cs)
+                                       and any(_iguales(abs(x), abs(y)) for x in cs for y in c_falsas))
+                    calculo[(i, j)] = calculo.get((i, j), False) or _opera_con_objetos(a.texto, o_enun)
     for (i, j), vs in sorted(valores.items()):
         texto = textos[(i, j)]
-        que = _calculable(texto, decimal) if vs == {True} else None
-        if que is None:
-            continue
-        e1, e2 = _esqueletos(texto, decimal)
-        if any(e1 == f1 or e2 == f2 for f1, f2 in (_esqueletos(f, decimal) for f in falsas[i])):
+        que = max(ques[(i, j)], key=_ORDEN_CALCULABLE.get) if vs == {True} else None
+        if que is None or (que == 'cifra' and copiada[(i, j)]):
+            continue                                # copia una cifra del enunciado que una falsa también lleva: la cifra no delata
+        esq = _esqueletos(texto, decimal)
+        if any(_parecidos(e, f) >= _GEMELA_PARECIDO for fs in (_esqueletos(f, decimal) for f in falsas[i])
+               for e, f in zip(esq, fs)):
             continue
         n = veces[(i, j)]
         siempre = f"verdadera siempre que aparece ({n} lectura{'s' if n > 1 else ''})"
         sin = "el hueco no tiene ninguna falsa" if not falsas[i] else "ninguna falsa del hueco es su gemela"
-        if que == 'prosa':
+        if que == 'prosa' and not calculo[(i, j)]:
             avisos.append(Aviso(INFO, 'gemela', f"{siempre}, con una fórmula dentro de la frase; {sin}. Si es un "
                                 "cálculo y no una propiedad, dale una versión falsa", _donde(i, j, texto)))
+        elif que == 'prosa':
+            avisos.append(Aviso(AVISO, 'gemela', f"{siempre} y con un cálculo entre objetos del enunciado dentro de la "
+                                f"frase; {sin}: dale una versión falsa (otro resultado u otros símbolos)", _donde(i, j, texto)))
         else:
             avisos.append(Aviso(AVISO, 'gemela', f"{siempre} y con {que}; {sin}: sortéala con una versión falsa "
                                 "(otras cifras o símbolos, el signo o la desigualdad al revés)", _donde(i, j, texto)))

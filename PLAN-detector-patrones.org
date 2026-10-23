@@ -180,7 +180,13 @@ había visto.
 4. Solape: la regla solo mira verdad variable. Las constantes quedan para
    =constante=; los rasgos que solo reúnen =Cuestion= enteras se descartan.
    Excepción: una lambda con =setup= constante en toda la muestra sí se
-   avisa, porque ahí la regla 3 solo pudo dar INFO.
+   avisa, porque ahí la regla 3 solo pudo dar INFO. Segunda excepción
+   (23-10, PE): un rasgo de cifras (cifras, intervalo, cifra mayor…; no
+   palabras ni longitud) que reúne dos o más =Cuestion= enteras y deja
+   fuera otras dos o más: «las dos que escriben un intervalo son siempre
+   falsas» se aprende sin leer y =constante= no lo dice. Relajarlo para
+   todos los rasgos daba 105 avisos en PE frente a 61; para los
+   estructurales incluida la longitud, 74; para los de cifras, 65.
 
 * Estado (22-10): HECHO en qbank (sin publicar)
 
@@ -247,3 +253,15 @@ había visto.
   como el decimal 2,2 y daba un falso «cifra con decimales ⇒ V»; el banco
   escribe siempre =0{,}5=, así que declara ="{,}"= y la coma desnuda separa
   componentes.
+- Segundo mensaje de PE (23-10, tras leer los 72 avisos de L-11..L-16: 9
+  ya vistos, 10 hallazgos nuevos —2 importantes en L-13-ModeloRestringido
+  que la revisión a mano no vio— y 53 sin problema): =gemela= calla la
+  cifra copiada del enunciado con falsa vecina, admite coletillas (Dice ≥
+  0,8), ignora cifras incidentales (subíndices, «(1)», 0 y 1, porcentaje
+  del enunciado) y sube a AVISO el cálculo entre objetos del enunciado
+  dentro de una frase (SE-1 de L-14); =longitud= acepta pareja a menos de
+  10 caracteres (=$F=4$=/=$F=14$=); =--patrones= gana el rasgo «intervalo»
+  y la excepción de arriba. PE: =gemela= 151 → 50 AVISO, =longitud= 60 →
+  49, =patron= 61 → 65. Su propuesta 5, aceptada por Marcos: =longitud=
+  calla si la claramente más corta/larga de lo mostrado en la parte es
+  verdadera entre el 30 % y el 70 % de las veces (=_COMPENSADA=): 49 → 23.

@@ -679,7 +679,9 @@ alternativa por hueco: una opción claramente más larga (o más corta) que
 las que se muestran con ella —el doble, en longitud visible, sin =$= ni
 macros— tiene un rasgo memorable y debe ir acompañada en su hueco de una
 /pareja/ de longitud parecida y valor contrario; si no, avisa. No pide que
-todas midan igual, ni castiga una larga verdadera junto a una larga falsa:
+todas midan igual, ni castiga una larga verdadera junto a una larga falsa
+(en el mismo hueco o en otro de la misma parte, si entre lo que se muestra
+la que destaca es verdadera más o menos la mitad de las veces):
 el remedio es recortar la que destaca o darle gemela, nunca engordar las
 demás.
 
@@ -700,9 +702,13 @@ comprobar nada. =lint= avisa de ellas (regla =gemela=): una alternativa
 verdadera siempre que aparece, con una cifra o una fórmula con igualdad,
 desigualdad u operación, en un hueco donde ninguna falsa tiene su mismo
 esqueleto, es decir, el mismo texto con otras cifras o con otros símbolos,
-o con «mayor»/«menor», el signo, la desigualdad o la negación al revés.
-Cuando la fórmula va dentro de una frase (una propiedad enunciada, no un
-cálculo) es solo INFO.
+o con «mayor»/«menor», el signo, la desigualdad o la negación al revés
+(una coletilla de más no rompe la gemela). No avisa si la verdadera solo
+repite una cifra del enunciado y una falsa del hueco la lleva con otra
+lectura: ahí la gemela es de sentido, no de cifra. Cuando la fórmula va
+dentro de una frase (una propiedad enunciada, no un cálculo) es solo INFO,
+salvo que opere con objetos del enunciado («pasa a ser
+$\hat\beta_2+\hat\beta_3$»): eso es un cálculo y avisa.
 
 ** Afirmaciones que no funcionan como opción
 

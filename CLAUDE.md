@@ -323,7 +323,10 @@ variantes, `pocas-opciones`, `opciones`, `constante`, `lista-1`,
   la mediana) que con él o sin él predice la verdad (≥ 85 %, +15 puntos,
   soporte 10 %/3 a cada lado, p hipergeométrico × nº rasgos < 0,01). Los
   rasgos que solo reúnen `Cuestion` enteras se descartan (los cubre
-  `constante`); candidatos con la misma cobertura se funden, los
+  `constante`), salvo un rasgo de cifras (`_rasgo_de_cifras`: cifras,
+  intervalo `[a, b]`, cifra mayor…) que reúne ≥ 2 `Cuestion` enteras y
+  deja fuera ≥ 2 (23-10, PE: «las que escriben un intervalo son siempre
+  falsas»; +4 avisos en PE); candidatos con la misma cobertura se funden, los
   subconjuntos se omiten; máximo 3 por hueco. Sin lista de palabras ni
   relaciones aritméticas con el enunciado (falsos positivos en preguntas de
   cálculo). Si el muestreo lanza, calla (la regla 2 da `ejecucion`). Diseño
@@ -363,24 +366,35 @@ variantes, `pocas-opciones`, `opciones`, `constante`, `lista-1`,
   (`_destaca`: ≥ 2× y ≥ 10 caracteres visibles frente a una alternativa
   de cada *otro* hueco, en ≥ 50 % de las combinaciones, `_P_DESTACA`) debe
   tener en su hueco una *pareja* de valor contrario y longitud parecida
-  (razón ≤ 1,3, `_PARECIDA_LONGITUD`); se comprueba mundo a mundo y solo
+  (`_parecida`: razón ≤ 1,3, `_PARECIDA_LONGITUD`, o diferencia < 10); se comprueba mundo a mundo y solo
   avisa si ≥ 85 % de sus apariciones sin pareja tienen el mismo valor (si
-  no, es su propia pareja). `_visible`: sin `$`, llaves ni macros; cada
-  macro con glifo cuenta 1. Medido en PE: 60 AVISO en 33 preguntas (20
-  corta-F, 14 corta-V, 14 larga-F, 12 larga-V); con factor 1,5 eran 89/45
-  (Marcos subió el umbral al doble), con la media por hueco 71/49 y con
-  la mediana de la parte 124/53. `gemela`: alternativa verdadera siempre que aparece
+  no, es su propia pareja); y calla si, entre lo mostrado en esa parte
+  (`_destacadas`: producto de una alternativa por hueco, o muestra de
+  `_MAX_COMBINACIONES` con un `random.Random` propio), la claramente más
+  corta/larga es V entre el 30 % y el 70 % (`_COMPENSADA`; propuesta 5 de
+  PE del 23-10, aceptada por Marcos). `_visible`: sin `$`, llaves ni macros; cada
+  macro con glifo cuenta 1. Medido en PE: 23 AVISO en 15 preguntas (sin
+  la compensación entre huecos, 49/29; con pareja solo por razón, 60/33;
+  con factor 1,5, 89/45 —Marcos subió el umbral al doble—; con la media
+  por hueco 71/49 y con la mediana de la parte 124/53). `gemela`: alternativa verdadera siempre que aparece
   con contenido calculable (`_calculable`: 'cifra' = valor en la prosa o
   fórmula que es solo un número; 'fórmula' = igualdad/desigualdad/operación
   con ≤ 30 caracteres de prosa; 'prosa' = fórmula dentro de una frase →
-  INFO) sin falsa que coincida en alguno de los dos esqueletos
+  INFO, salvo `_opera_con_objetos` —suma/resta/cociente/producto con ≥ 2
+  objetos con subíndice, todos presentados por el enunciado— → AVISO) sin
+  falsa que se parezca (Dice ≥ `_GEMELA_PARECIDO` 0,8, `_parecidos`) en
+  alguno de los dos esqueletos
   (`_esqueletos`: bolsa de tokens con cifras → `#` y símbolos conservados,
   o símbolos de fórmula → `S` y cifras conservadas; antónimos
   `_ANTONIMOS`, opuestos `_OPUESTOS`, `+ - ^ _` y decoraciones sin peso).
   Las dos abstracciones a la vez no son gemela: `σ_x²=2/3` frente a
-  `σ_xy=-1` es otra afirmación. Medido en PE (79 preguntas): `gemela`
-  151 AVISO en 58 (más 62 INFO): son las reglas del banco del 14-10
-  aplicadas a su propio estado; los
+  `σ_xy=-1` es otra afirmación. `_cifras_calculo` excluye las cifras
+  incidentales (subíndices, «(1)», 0 y 1, porcentaje que el enunciado ya
+  da) y `copiada` calla la 'cifra' cuyas cifras están todas en el
+  enunciado de la variante (partes anteriores incluidas) si una falsa
+  activa del hueco lleva alguna. Medido en PE (79 preguntas): `gemela`
+  50 AVISO en 31 (más 48 INFO); antes de la lectura de PE del 23-10 eran
+  151 en 58 (de sus 72 avisos en L-11..L-16, 53 no señalaban nada); los
   ejemplos de la plantilla se retocaron para pasar sin AVISO. `decimal=` /
   `--decimal` / `DECIMAL` en `config.py` (`_re_cifra(decimal)`, cacheado):
   separadores decimales admitidos; `"{,}"` hace que `(2,2,-1)` no lleve un
