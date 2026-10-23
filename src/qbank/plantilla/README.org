@@ -76,7 +76,16 @@ Todos los comandos se lanzan *desde esta carpeta* (la que contiene el
      =preguntas/= (los campos, más abajo).
 2. *Compruébala:* =make lint= (o =make lint LECCION=3= para una sola lección);
    antes de dar la pregunta por buena, también =make patrones= (más lento:
-   busca lo que un alumno podría acertar sin leer el enunciado).
+   busca lo que un alumno podría acertar sin leer el enunciado). =make lint=
+   avisa también de los objetos que una cuestión o su explicación nombran
+   sin que el enunciado los presente (=inventario=; la notación del curso
+   que no hay que presentar se declara en =NOTACION_CONOCIDA= de =config.py=),
+   de las opciones claramente más largas (o más cortas) que las que se
+   muestran con ellas sin una pareja de longitud parecida y valor contrario
+   en su hueco (=longitud=) y de las verdaderas fijas con cifra o fórmula que no tienen una
+   falsa gemela en su hueco (=gemela=). Si el banco escribe los decimales
+   siempre como =0{,}5=, declara =DECIMAL = "{,}"= en =config.py= para que
+   una coma desnuda, =(2,2,-1)=, no se lea como decimal.
    Un =ERROR= significa que la pregunta está rota (p. ej. una variante con
    todas las opciones correctas); un =AVISO= hay que leerlo y decidir; un
    =INFO= es información. =make tabla PREGUNTA=L-01-Nombre= (con o sin

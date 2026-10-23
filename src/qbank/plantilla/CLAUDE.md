@@ -19,7 +19,7 @@ Antes de escribir o modificar una pregunta, lee en este orden:
   o la ruta de otro entorno]. Pásalo a `make` si no está activado:
   `make lint PYTHON=/ruta/al/python`.
 - Comprobar la versión: `python -c "import qbank; print(qbank.__version__)"`
-  (el `Makefile` exige 0.8 o posterior).
+  (el `Makefile` exige 0.9 o posterior).
 - LaTeX: [RELLENAR: disponible (`pdflatex` con `automultiplechoice` y
   `moodle`) o no; sin LaTeX solo `make lint` y `make tabla`].
 
@@ -29,7 +29,9 @@ Antes de escribir o modificar una pregunta, lee en este orden:
 preguntas/L-NN-Descripcion.json   una pregunta por fichero (ProblemaTipo)
 prompts/                          instrucciones para la IA (los dos de arriba)
 nueva_pregunta.py                 escribir una pregunta en Python y guardarla como JSON
-config.py                         preámbulo LaTeX propio y textos de la opción por defecto
+config.py                         preámbulo LaTeX propio, textos de la opción por defecto,
+                                  notación conocida y separador decimal (NOTACION_CONOCIDA,
+                                  DECIMAL: para el lint)
 scripts/, Makefile                generadores AMC y Moodle; no se tocan
 build/                            todo lo generado; no se versiona
 ```

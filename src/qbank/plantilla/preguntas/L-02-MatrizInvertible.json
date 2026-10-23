@@ -33,7 +33,10 @@
        "exp": "El determinante de la traspuesta coincide siempre con el de la matriz."},
       {"tipo": "Cuestion", "enunciado": "$\\det(A^\\top) = -\\det(A)$",
        "semantica": "v('sing')", "precond": "True",
-       "exp": "Como $\\det(A^\\top) = \\det(A)$, la igualdad $\\det(A) = -\\det(A)$ solo se cumple si $\\det(A) = 0$, es decir, si $A$ es singular."}
+       "exp": "Como $\\det(A^\\top) = \\det(A)$, la igualdad $\\det(A) = -\\det(A)$ solo se cumple si $\\det(A) = 0$, es decir, si $A$ es singular."},
+      {"tipo": "Cuestion", "enunciado": "$\\det(A^{-1}) = -1/\\det(A)$",
+       "semantica": "False", "precond": "v('inv')",
+       "exp": "De $A A^{-1} = I$ se sigue $\\det(A)\\det(A^{-1}) = 1$: el determinante de la inversa es $1/\\det(A)$, con el mismo signo que $\\det(A)$."}
     ],
     [
       {"tipo": "Cuestion", "enunciado": "$\\det(A^2) = \\det(A)^2$",
@@ -41,7 +44,10 @@
        "exp": "El determinante de un producto es el producto de los determinantes: $\\det(A^2) = \\det(A)\\det(A)$."},
       {"tipo": "Cuestion", "enunciado": "$\\det(A^2) = 0$",
        "semantica": "v('sing')", "precond": "True",
-       "exp": "$\\det(A^2) = \\det(A)^2$, que es cero exactamente cuando $\\det(A) = 0$: si $A$ es invertible, $\\det(A^2) \\neq 0$; si es singular, $\\det(A^2) = 0$."}
+       "exp": "$\\det(A^2) = \\det(A)^2$, que es cero exactamente cuando $\\det(A) = 0$: si $A$ es invertible, $\\det(A^2) \\neq 0$; si es singular, $\\det(A^2) = 0$."},
+      {"tipo": "Cuestion", "enunciado": "$\\det(A^2) = 2\\det(A)$",
+       "semantica": "v('sing')", "precond": "True",
+       "exp": "$\\det(A^2) = \\det(A)^2$, que solo coincide con $2\\det(A)$ si $\\det(A)$ vale $0$ (matriz singular) o $2$; para una matriz invertible cualquiera es falso."}
     ],
     " Sobre sus columnas y los sistemas $A\\boldsymbol{x} = \\boldsymbol{b}$:",
     [

@@ -43,7 +43,13 @@ genérico difieran, manda este.
   de macros y en qué fichero del preámbulo (=config.py=) se definen].
 - Notación que se da por conocida sin definirla en el enunciado:
   [RELLENAR: lista cerrada]. Todo lo demás se define en el enunciado de
-  la pregunta que lo use.
+  la pregunta que lo use. La misma lista, escrita como en las preguntas
+  (=\mathrm{SRC}=, =\boldsymbol{y}=, =\beta_=), va en =NOTACION_CONOCIDA= de
+  =config.py=: es lo que el inventario de objetos de =make lint= deja
+  pasar sin avisar.
+- Decimales: [RELLENAR: «siempre =0{,}5=» o «=0,5= en prosa y =0{,}5= en
+  fórmulas»]. Si es siempre =0{,}5=, pon =DECIMAL = "{,}"= en =config.py=:
+  así =make lint= no lee una coma desnuda, =(2,2,-1)=, como un decimal.
 - Vocabulario fijado (términos que tienen un único uso en este curso):
   [RELLENAR: por ejemplo «error estándar» solo para …, «muestra» solo
   para …].

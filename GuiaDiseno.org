@@ -629,6 +629,39 @@ todos* los =Supuesto=: cada fórmula con ese símbolo es entonces una única
 de los mundos donde es cierta, en vez de repetir la misma fórmula varias
 veces con =precond= distintos.
 
+** Inventario de objetos
+
+Un fallo que ni el autor ni un revisor independiente vieron, y sí el
+instructor leyendo como un alumno: el enunciado mostraba estimado un
+modelo con cinco columnas, y las opciones hablaban del modelo con un
+producto de columnas más —el sin restringir de un contraste—, que no se
+había presentado en ningún sitio; el $n-k$ de las explicaciones usaba sus
+seis columnas. Se les escapó porque los dos tenían el material de origen
+en la cabeza y rellenaban con lo que sabían. El remedio es escribir la
+lista: *lee solo el enunciado de una variante y anota los objetos que
+presenta* (modelos, columnas, cifras, símbolos, muestras). Después, por
+cada opción y cada =exp=, comprueba que no habla de nada fuera de esa
+lista. La lista escrita obliga a leer como el alumno, que no tiene nada
+más.
+
+=lint= hace esta comprobación para lo que se reconoce en el \LaTeX{}
+(regla =inventario=: nombres en =\text{…}=, productos
+=\text{a}\cdot\text{b}= como una unidad, vectores en =\boldsymbol{…}=,
+símbolos con subíndice numérico), y la notación del curso que no hace
+falta presentar se declara en =NOTACION_CONOCIDA= de =config.py=. Lo que
+no puede ver, y por eso hace falta la lista a mano, es lo nombrado en
+prosa: «el modelo sin restringir», «la segunda muestra», «la regresión
+auxiliar». Un objeto que la opción presenta ella misma («con la
+indicadora $\text{hombre}$, $1$ en los hombres y $0$ en las mujeres») es
+legítimo.
+
+La lectura inversa del inventario también es una comprobación: *ningún
+objeto de la lista debe tener dos versiones*. Dos modelos sin restringir,
+dos ajustes de lo mismo con cifras distintas, una muestra descrita de dos
+maneras: es un fallo de diseño, no de redacción, y nombrar la segunda
+versión en el enunciado no lo arregla (así se intentó parchear el caso de
+arriba; el arreglo fue rediseñar la pregunta con un solo modelo).
+
 ** El enunciado desnudo; la justificación, en =exp=
 
 No escribas «$X$ se cumple porque $Y$» ni «$X$, por el teorema $Z$» dentro
@@ -640,7 +673,15 @@ porque la verdadera llevaba su «porque…» y la falsa iba desnuda.
 Comprobación mecánica antes de aceptar una pregunta: media de caracteres
 de las opciones verdaderas frente a las falsas; si difieren en más de un
 30 %, quita las justificaciones de las verdaderas o da a las falsas una
-justificación plausible pero errónea.
+justificación plausible pero errónea. =lint= lo comprueba (regla
+=longitud=) con la formulación que de verdad importa al alumno, que ve una
+alternativa por hueco: una opción claramente más larga (o más corta) que
+las que se muestran con ella —el doble, en longitud visible, sin =$= ni
+macros— tiene un rasgo memorable y debe ir acompañada en su hueco de una
+/pareja/ de longitud parecida y valor contrario; si no, avisa. No pide que
+todas midan igual, ni castiga una larga verdadera junto a una larga falsa:
+el remedio es recortar la que destaca o darle gemela, nunca engordar las
+demás.
 
 ** Gemelas: cada verdadera, con su falsa parecida
 
@@ -655,7 +696,13 @@ con el divisor equivocado, el valor numérico con los datos cruzados.
 
 Una afirmación numérica *siempre cierta y sin gemela*
 (=$(a+b)^2 = @{cuad}$= sin su =$(a+b)^2 = @{cuad_falso}$=) se marca sin
-comprobar nada.
+comprobar nada. =lint= avisa de ellas (regla =gemela=): una alternativa
+verdadera siempre que aparece, con una cifra o una fórmula con igualdad,
+desigualdad u operación, en un hueco donde ninguna falsa tiene su mismo
+esqueleto, es decir, el mismo texto con otras cifras o con otros símbolos,
+o con «mayor»/«menor», el signo, la desigualdad o la negación al revés.
+Cuando la fórmula va dentro de una frase (una propiedad enunciada, no un
+cálculo) es solo INFO.
 
 ** Afirmaciones que no funcionan como opción
 
@@ -821,10 +868,15 @@ detecta Moodle, que es más caro.
   pleno y verdad inequívoca? ¿Nada remite a otra alternativa?
 - [ ] ¿Todo símbolo está definido, y las identidades generales usan letras
   distintas de los objetos concretos?
+- [ ] Inventario de objetos: leyendo solo el enunciado, ¿has escrito la
+  lista de lo que presenta, y ninguna opción ni =exp= habla de nada fuera
+  de ella? ¿Ningún objeto tiene dos versiones? (=lint= avisa de los que
+  reconoce en el LaTeX; la prosa la miras tú.)
 - [ ] ¿El enunciado afirma solo lo que el =precond= garantiza sobre los
   números?
 - [ ] ¿Cada verdadera numérica tiene su gemela falsa? ¿Las opciones
-  verdaderas y falsas miden parecido?
+  verdaderas y falsas miden parecido? (=lint= avisa de las dos cosas,
+  =gemela= y =longitud=; léelos y decide.)
 - [ ] ¿Los casos degenerados en que un distractor se vuelve cierto están
   excluidos?
 - [ ] ¿Cada =exp= justifica cada mundo alcanzable, sin jerga del diseño,

@@ -208,3 +208,42 @@ había visto.
   por leer (Marcos): casi constantes en L-02/L-03/L-07; «la cifra mayor del
   hueco ⇒ F» en varias numéricas (la gemela falsa siempre mayor); palabras
   del contexto interpolado que solo aparecen en falsas (L-13, L-14).
+
+* Añadido (22-10, encargo de PEconometria): forma de la cifra
+
+- Caso: =L-16-DiferenciaPorcentualEnLogNivel=, con β ∈ {0,2; 0,3; 0,4}. En
+  «en diferencia porcentual exacta, un X %» la cifra redonda (20, 30, 40)
+  era siempre la aproximación 100β, y por tanto siempre falsa; la exacta
+  verdadera (18, 26, 33, 22, 35, 49) nunca era redonda. El umbral por tipo
+  de frase no lo ve porque los valores se solapan.
+- Hecho: =_patrones_forma=, dentro de cada tipo de frase, rasgos de la
+  forma de cada cifra tal como está escrita (=_formas_cifra=: entera,
+  múltiplo de 5, múltiplo de 10, con decimales, con k decimales), con los
+  mismos umbrales que los rasgos (=_predice=: ≥ 85 %, +15 puntos, soporte,
+  p hipergeométrico × nº de pruebas). El remedio del banco (sortear también
+  β = 0,223 y 0,405, de exponencial redonda) hace callar el aviso; la
+  versión arreglada sigue dando «con decimales ⇒ F» si la aproximación es
+  la única con decimales, que también es un patrón.
+- Misma sesión: regla 12 =inventario= (objetos que el enunciado no
+  presenta), con =conocidos=; véase =CLAUDE.md= y el Manual.
+
+* Añadido (23-10, petición de PEconometria tras su revisión completa): reglas fijas 13 y 14
+
+- La revisión a mano del banco entero (22-10) encontró que la mayoría de
+  sus hallazgos eran /longitudes descompensadas/ y /verdaderas sin
+  gemela/, y que =--patrones= no avisaba de la mayor parte (sus umbrales
+  estadísticos exigen soporte y p-valor; la regla del banco es fija: 30 %).
+- Hecho: regla 13 =longitud= (formulación de Marcos, tras descartar las
+  medias por hueco y por parte: una opción claramente más larga o más
+  corta —el doble y 10 caracteres visibles— que las que se muestran con
+  ella, en al menos la mitad de las combinaciones de los otros huecos,
+  debe tener en su hueco una pareja de valor contrario y longitud parecida,
+  razón ≤ 1,3; mundo a mundo) y
+  regla 14 =gemela= (verdadera siempre que aparece con contenido
+  calculable y sin falsa que coincida en uno de dos esqueletos: cifras
+  abstraídas o símbolos abstraídos). Corren por defecto, con las lecturas
+  del inventario. Detalle en =CalcPropQuiz.org=, «Reglas 13 y 14».
+- =--decimal= / =DECIMAL=: en L-10-SelectorNumerico «$(2,2,-1)$» se leía
+  como el decimal 2,2 y daba un falso «cifra con decimales ⇒ V»; el banco
+  escribe siempre =0{,}5=, así que declara ="{,}"= y la coma desnuda separa
+  componentes.

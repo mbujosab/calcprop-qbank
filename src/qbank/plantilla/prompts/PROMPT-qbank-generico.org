@@ -51,13 +51,21 @@ de trabajo y lo que se exige antes de dar una pregunta por buena.
    LaTeX, =por_partes_profe()= desde Python, abajo). Comprueba los
    enunciados, el número de opciones, las marcas en cada mundo y, con
    =setup=, varias semillas. Repasa cada =exp=.
-6. *Pasa los dos checklists* casilla por casilla: el de la Guía («Proceso
+6. *Inventario de objetos*: lee solo el enunciado de una variante y
+   escribe la lista de objetos que presenta (modelos, columnas, cifras,
+   símbolos, muestras). Después, por cada opción y cada =exp=, comprueba
+   que no habla de nada fuera de esa lista, y que ningún objeto de la
+   lista tiene dos versiones (dos modelos sin restringir, dos ajustes de
+   lo mismo). =lint= avisa (=inventario=) de los objetos que reconoce en
+   el LaTeX; los nombrados en prosa («el modelo sin restringir») solo los
+   ve la lista escrita.
+7. *Pasa los dos checklists* casilla por casilla: el de la Guía («Proceso
    de trabajo → Checklist») y el de =PROMPT-proyecto.org=. Si una falla,
    corrige y vuelve al paso 4; no lo dejes para después.
-7. *Informa*: qué has comprobado, qué dijo =lint=, qué decisiones has
+8. *Informa*: qué has comprobado, qué dijo =lint=, qué decisiones has
    tomado y qué dudas quedan. No digas que una pregunta está validada si
-   no has ejecutado los pasos 4 y 5.
-8. *Registra* en =PROMPT-proyecto.org= toda decisión nueva que afecte a
+   no has ejecutado los pasos 4 a 6.
+9. *Registra* en =PROMPT-proyecto.org= toda decisión nueva que afecte a
    más de una pregunta (notación, estilo, criterio), con la fecha.
 
 * Reglas sin excepción
@@ -75,6 +83,12 @@ de trabajo y lo que se exige antes de dar una pregunta por buena.
 - Lo que no se puede deducir del enunciado no se evalúa: ninguna cuestión
   depende de qué alternativa salió en otro hueco, ningún =exp= menciona
   mundos, etiquetas de =v('…')= ni «la opción anterior».
+- Ninguna opción ni =exp= nombra un objeto que el enunciado de esa
+  variante no presente (salvo la notación declarada conocida en
+  =PROMPT-proyecto.org=), y ningún objeto se presenta en dos versiones.
+  Hazlo con la lista escrita del paso 6, no de memoria: al autor y al
+  revisor se les escapa porque tienen el material de origen en la cabeza
+  y rellenan con lo que saben; la lista obliga a leer como el alumno.
 
 * Inspeccionar una pregunta desde Python
 

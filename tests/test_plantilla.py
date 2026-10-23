@@ -1,5 +1,6 @@
 """Tests de la plantilla de proyecto (qbank-init) y de la autoría en Python:
 setup como cadena, semántica/precond como cadena y nombre= en ProblemaTipo."""
+import json
 import shutil
 import subprocess
 import sys
@@ -296,7 +297,7 @@ def test_make_rechaza_un_qbank_antiguo(proyecto, tmp_path):
         r = subprocess.run(["make", "lint", f"PYTHON={py}"], cwd=proyecto,
                            capture_output=True, text=True, timeout=60)
         salida = r.stdout + r.stderr
-        assert r.returncode != 0 and "anterior a la 0.8" in salida and "PYTHON=" in salida, salida
+        assert r.returncode != 0 and "anterior a la 0.9" in salida and "PYTHON=" in salida, salida
 
 
 def test_gen_amc_cuenta_mundos_y_solo_casos_con_setup(proyecto):
@@ -553,3 +554,45 @@ def test_gen_lectura_un_documento_por_leccion(proyecto):
     # segunda ejecución: nada cambia (make no recompila)
     assert "sin cambios" in _run(proyecto, "scripts/gen_lectura.py", "--leccion", "2")
     assert "L-01" not in _run(proyecto, "scripts/gen_lectura.py", "--leccion", "2")
+
+
+@pytest.mark.skipif(shutil.which("make") is None, reason="sin make")
+def test_make_lint_pasa_la_notacion_conocida_de_config(proyecto):
+    """config.NOTACION_CONOCIDA llega a qbank.lint como --conocidos (regla 12, inventario)."""
+    def make(*args):
+        return subprocess.run(["make", *args, f"PYTHON={sys.executable}"],
+                              cwd=proyecto, capture_output=True, text=True, timeout=120)
+    pregunta = proyecto / "preguntas" / "L-08-Inventario.json"
+    config = proyecto / "config.py"
+    original = config.read_text(encoding="utf-8")
+    pregunta.write_text(json.dumps({
+        "version": "1", "tipo": "ProblemaTipo", "nombre": "L-08-Inventario", "export": {"last_choice": True},
+        "componentes": ["Con $\\mathrm{STC}=10$ y $\\mathrm{SEC}=4$:",
+                        [{"tipo": "Cuestion", "enunciado": "$\\mathrm{SRC}=6$", "semantica": "True", "precond": "True", "exp": ""},
+                         {"tipo": "Cuestion", "enunciado": "$\\mathrm{SRC}=14$", "semantica": "False", "precond": "True", "exp": ""},
+                         {"tipo": "Cuestion", "enunciado": "$\\mathrm{SRC}=40$", "semantica": "False", "precond": "True", "exp": ""}]]}),
+        encoding="utf-8")
+    try:
+        r = make("lint", "LECCION=8")
+        assert r.returncode == 0 and r.stdout.count("[inventario]") == 3, r.stdout + r.stderr
+        config.write_text(original + '\nNOTACION_CONOCIDA = [r"\\mathrm{SRC}"]\n', encoding="utf-8")
+        r = make("lint", "LECCION=8")
+        assert r.returncode == 0 and "[inventario]" not in r.stdout, r.stdout + r.stderr
+    finally:
+        pregunta.unlink()
+        config.write_text(original, encoding="utf-8")
+
+
+def test_make_lint_pasa_el_decimal_de_config(proyecto):
+    """config.DECIMAL llega a qbank.lint como --decimal (reglas 11 y 14)."""
+    config = proyecto / "config.py"
+    original = config.read_text(encoding="utf-8")
+    def make_n():
+        return subprocess.run(["make", "-n", "lint", f"PYTHON={sys.executable}"],
+                              cwd=proyecto, capture_output=True, text=True, timeout=120).stdout
+    try:
+        assert "--decimal" not in make_n()
+        config.write_text(original + '\nDECIMAL = "{,}"\n', encoding="utf-8")
+        assert "--decimal '{,}'" in make_n()
+    finally:
+        config.write_text(original, encoding="utf-8")

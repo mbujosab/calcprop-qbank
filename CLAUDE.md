@@ -103,7 +103,8 @@ p = ProblemaTipo([s, [s1, s2], [c1, c2]], setup=None, export=None, seed=None, no
   `export`: hay que pasarles `last_choice=`, `instances=`, `cols=` (los
   scripts de la plantilla sí lo leen).
 - `qbank.__version__` (de los metadatos); el `Makefile` de la plantilla exige
-  ≥ 0.8 en `comprueba` (desde 0.8.0, por `make patrones`; 0.7 traía `make lectura`).
+  ≥ 0.9 en `comprueba` (desde 0.9.0, por `--conocidos`; 0.8 trajo `make patrones`;
+  0.7, `make lectura`).
 - `seed` / `base_seed` siembran `numpy.random` **y** el módulo `random`
   (`_siembra`); `por_partes(base_seed=S)` también actúa con `instances=1`.
   `tabla_mundos` siembra con `seed` (o 42) y, como el motor, cada `Cuestion`
@@ -275,15 +276,15 @@ for r in p.por_partes_lectura(seed=None, verbose=False, descartes=False):
 ### Comprobación automática (`lint`)
 
 ```python
-avisos = lint(problema_o_ruta, instances=None, seed=None, patrones=None)   # -> list[Aviso]
+avisos = lint(problema_o_ruta, instances=None, seed=None, patrones=None, conocidos=(), decimal=None)   # -> list[Aviso]
 print(tabla_mundos(problema_o_ruta))                         # Cuestion × mundo
 ```
 
-CLI: `python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet] [--patrones [N]]`
+CLI: `python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet] [--patrones [N]] [--conocidos LISTA] [--decimal SEP]`
 (también `qbank-lint`). Código de salida 1 si hay algún `ERROR`. `--quiet`
 omite los INFO y los ficheros sin avisos.
 
-Implementación en `src/qbank/_lint.py` (el docstring lista las 11 reglas y
+Implementación en `src/qbank/_lint.py` (el docstring lista las 14 reglas y
 sus códigos). Niveles: `ERROR` (la pregunta está rota: `mezcla`, `negacion`
 sin `unoDe`, `interp` —`@{var}` sin resolver—, `estructura`, `nombre`,
 `tipo`, `carga`, `ejecucion` —el `setup` lanza—, `variantes` —ninguna
@@ -291,7 +292,7 @@ variante válida—, `texto` —`%` sin barra—), `AVISO` (revisar: pocas
 variantes, `pocas-opciones`, `opciones`, `constante`, `lista-1`,
 `seed`/`instances` incoherentes, `negacion` de un Supuesto fijo, `solape`,
 `huerfana`, `texto` sospechoso —comillas rectas, `\(…\)`, `\[…\]`, `\%` en
-`$…$`…—), `INFO` (`setup` —instancias necesarias—, `variantes` —más de ~300—,
+`$…$`…—, `inventario`, `longitud`, `gemela`), `INFO` (`setup` —instancias necesarias—, `variantes` —más de ~300—,
 `constante` de literales o de lambdas con `setup`, `huerfana` con lambdas).
 
 - La regla de negación considera deducible `-v('X')` si hay `unoDe(...)`
@@ -326,7 +327,64 @@ variantes, `pocas-opciones`, `opciones`, `constante`, `lista-1`,
   subconjuntos se omiten; máximo 3 por hueco. Sin lista de palabras ni
   relaciones aritméticas con el enunciado (falsos positivos en preguntas de
   cálculo). Si el muestreo lanza, calla (la regla 2 da `ejecucion`). Diseño
-  y decisiones en `PLAN-detector-patrones.org`.
+  y decisiones en `PLAN-detector-patrones.org`. Desde 0.9.0 mira también,
+  dentro de un tipo de frase, la *forma* de la cifra (entera/decimales,
+  múltiplo de 5 o de 10) con los mismos umbrales que los rasgos (caso real:
+  la cifra redonda era siempre la aproximación $100\beta$, siempre falsa).
+- **Regla 12 `inventario`** (por defecto; AVISO/INFO): objetos que una
+  `Cuestion` o su `exp` nombran y el enunciado de esa variante no presenta,
+  recorriendo `por_partes_lectura` con `_N_SORTEOS_INVENTARIO` (10) sorteos.
+  Objetos: `\text{}`/`\mathrm{}` y productos `\cdot`/`\times` como unidad
+  (familia «texto», AVISO), `\boldsymbol`/`\mathbf` («negrita») y símbolos
+  con subíndice numérico («subindice»; decoraciones y llaves normalizadas:
+  `\hat{\beta}_{3}` ≡ `\beta_3`). Un subíndice es AVISO solo si el enunciado
+  presenta un «hermano» (`\beta_1` sí, `\beta_6` no); negritas y subíndices
+  sueltos van en un único INFO por pregunta (letras de identidades
+  generales o notación del curso). INFO si la opción lo presenta ella misma
+  (`_PRESENTA_TRAS`/`_PRESENTA_ANTES`: «X (…)», «X, que», «en lugar de»).
+  `lint(..., conocidos=)` / `--conocidos` (acumulable, separado por comas)
+  / `NOTACION_CONOCIDA` en `config.py` de la plantilla (el `Makefile` lo
+  pasa en `LINT`): entradas como se escriben o normalizadas; `\beta_` cubre
+  la base. Medido en PEconometria: sin declarar nada, 128 AVISO (casi todo
+  `\mathrm{SRC}` y compañía); declarando 9 operadores quedan ~30, la mitad
+  subíndices «hermanos» por leer. Origen: `ENCARGO-2026-10-22-qbank-
+  inventario-objetos.md` en qbank-PEconometria. Desde el 23-10 (petición
+  del banco): `\beta_1,\dots,\beta_k` en el enunciado presenta todo el
+  rango (`_rangos`; fin simbólico → clave `\beta_`, como en `conocidos`),
+  y un símbolo dentro de una hipótesis escrita en la opción (`H_0\!:…`,
+  `_RE_HIPOTESIS`) cuenta como presentado (INFO).
+- **Reglas 13 `longitud` y 14 `gemela`** (por defecto; 23-10, petición de
+  PE tras su revisión completa): comparten las lecturas de la 12 (`lint`
+  llama a `_lecturas` una vez, `_N_SORTEOS_LECTURAS` = 10). `longitud`
+  (AVISO; formulación de Marcos, 23-10, tras descartar comparar medias por
+  hueco y por parte: el alumno ve una alternativa por hueco, y una larga V
+  junto a una larga F en el mismo hueco no enseña nada): una opción
+  *claramente* más larga o más corta que las que se muestran con ella
+  (`_destaca`: ≥ 2× y ≥ 10 caracteres visibles frente a una alternativa
+  de cada *otro* hueco, en ≥ 50 % de las combinaciones, `_P_DESTACA`) debe
+  tener en su hueco una *pareja* de valor contrario y longitud parecida
+  (razón ≤ 1,3, `_PARECIDA_LONGITUD`); se comprueba mundo a mundo y solo
+  avisa si ≥ 85 % de sus apariciones sin pareja tienen el mismo valor (si
+  no, es su propia pareja). `_visible`: sin `$`, llaves ni macros; cada
+  macro con glifo cuenta 1. Medido en PE: 60 AVISO en 33 preguntas (20
+  corta-F, 14 corta-V, 14 larga-F, 12 larga-V); con factor 1,5 eran 89/45
+  (Marcos subió el umbral al doble), con la media por hueco 71/49 y con
+  la mediana de la parte 124/53. `gemela`: alternativa verdadera siempre que aparece
+  con contenido calculable (`_calculable`: 'cifra' = valor en la prosa o
+  fórmula que es solo un número; 'fórmula' = igualdad/desigualdad/operación
+  con ≤ 30 caracteres de prosa; 'prosa' = fórmula dentro de una frase →
+  INFO) sin falsa que coincida en alguno de los dos esqueletos
+  (`_esqueletos`: bolsa de tokens con cifras → `#` y símbolos conservados,
+  o símbolos de fórmula → `S` y cifras conservadas; antónimos
+  `_ANTONIMOS`, opuestos `_OPUESTOS`, `+ - ^ _` y decoraciones sin peso).
+  Las dos abstracciones a la vez no son gemela: `σ_x²=2/3` frente a
+  `σ_xy=-1` es otra afirmación. Medido en PE (79 preguntas): `gemela`
+  151 AVISO en 58 (más 62 INFO): son las reglas del banco del 14-10
+  aplicadas a su propio estado; los
+  ejemplos de la plantilla se retocaron para pasar sin AVISO. `decimal=` /
+  `--decimal` / `DECIMAL` en `config.py` (`_re_cifra(decimal)`, cacheado):
+  separadores decimales admitidos; `"{,}"` hace que `(2,2,-1)` no lleve un
+  2,2 (reglas 11 y 14).
 
 ## Notebooks de referencia
 

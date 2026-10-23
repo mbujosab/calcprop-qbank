@@ -27,3 +27,19 @@ EXTRAS_LECTURA = 2
 # y cuántos casos distintos (mundo × patrón de marcas) se imprimen como máximo.
 N_SORTEOS_PROFE = 150
 MAX_CASOS_PROFE = 12
+
+# Notación del curso que se da por conocida: el inventario de objetos de
+# `make lint` (regla 12 de qbank.lint) avisa de todo símbolo que una cuestión
+# o una explicación nombra sin que el enunciado de esa variante lo presente,
+# salvo estos. Escríbelos como en las preguntas: r"\mathrm{SRC}",
+# r"\boldsymbol{y}", "H_0"; "\\beta_" (con la barra final) cubre \beta_1,
+# \beta_2… La lista corresponde a la «notación aceptada como conocida» de
+# prompts/PROMPT-proyecto.org: mantén las dos iguales.
+NOTACION_CONOCIDA = []
+
+# Separadores decimales que el lint lee como tales en las cifras (reglas de
+# patrones y de gemelas). Por defecto admite 0{,}5, 0,5 y 0.5. Si el banco
+# escribe siempre los decimales como 0{,}5, declara DECIMAL = "{,}": así una
+# coma desnuda dentro de una fórmula, (2,2,-1), separa componentes y no se lee
+# como el decimal 2,2. Varios separadores, separados por espacios: "{,} .".
+# DECIMAL = "{,}"

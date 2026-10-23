@@ -678,3 +678,261 @@ def test_patron_cli(tmp_path, capsys):
 def test_patron_ignora_palabras_cortas():
     from qbank._lint import _palabras
     assert _palabras("el precio de los coches usados y la edad") == {"precio", "coches", "usados", "edad"}
+
+
+# ---------------------------------------------------------------------------
+# Regla 11, forma de la cifra; regla 12, inventario de objetos
+# ---------------------------------------------------------------------------
+
+def test_patron_cifra_redonda_en_un_tipo_de_frase():
+    # L-16-DiferenciaPorcentualEnLogNivel: la cifra redonda (100·beta) era siempre la aproximación,
+    # y por tanto siempre falsa; la exacta verdadera nunca era redonda. Los valores se solapan,
+    # así que el umbral no lo ve: lo ve la forma de la cifra.
+    comps = ["El coeficiente de la indicadora es $@{b}$. Entonces el salario es, en diferencia porcentual exacta,",
+             [C("un $@{ex}$\\,\\% mayor", "True"), C("un $@{apr}$\\,\\% mayor", "False"),
+              C("un $@{otro}$\\,\\% mayor", "False")]]
+    setup = ("import numpy as np\nb = float(np.random.choice([0.2, 0.3, 0.4]))\n"
+             "ex = {0.2: 22, 0.3: 35, 0.4: 49}[b]; apr = int(round(100 * b))\n"
+             "otro = {0.2: 18, 0.3: 26, 0.4: 33}[b]")
+    av = _patrones(problema(comps, setup=setup, seed=1))
+    assert any("múltiplo de 10" in a.mensaje and "⇒ F" in a.mensaje for a in av)
+    # Con una exacta verdadera redonda a veces (e^0,223 = 1,25; e^0,405 = 1,5) la forma ya no decide.
+    setup2 = ("import numpy as np\nb = float(np.random.choice([0.2, 0.3, 0.4, 0.223, 0.405]))\n"
+              "ex = {0.2: 22, 0.3: 35, 0.4: 49, 0.223: 25, 0.405: 50}[b]; apr = round(100 * b, 1)\n"
+              "apr = int(apr) if apr == int(apr) else apr\n"
+              "otro = {0.2: 18, 0.3: 26, 0.4: 33, 0.223: 20, 0.405: 33}[b]")
+    av = _patrones(problema(comps, setup=setup2, seed=1))
+    assert not any("múltiplo de 10" in a.mensaje for a in av)
+
+
+def test_formas_cifra():
+    from qbank._lint import _formas_cifra, _cifras_y_formas
+    assert _formas_cifra("20") == {"entera", "múltiplo de 5", "múltiplo de 10"}
+    assert _formas_cifra("-15") == {"entera", "múltiplo de 5"}
+    assert _formas_cifra("0{,}80") == {"con decimales", "con 2 decimales"}
+    assert _formas_cifra("22.3") == {"con decimales", "con 1 decimal"}
+    cifras, formas = _cifras_y_formas("un $22{,}3$\\,\\% y 40")
+    assert cifras == [22.3, 40.0] and "múltiplo de 10" in formas[1]
+
+
+def _inventario(d, **kw):
+    return [a for a in lint(d, **kw) if a.codigo == "inventario"]
+
+
+def test_inventario_objeto_que_el_enunciado_no_presenta():
+    # L-16-InteraccionYChow: el enunciado mostraba el modelo con mujer·exper y las opciones hablaban
+    # del modelo con mujer·educ, que no se había presentado; el exp calculaba con sus columnas.
+    comps = ["Se estima $y$ sobre la constante, $\\text{mujer}$, $\\text{educ}$, $\\text{exper}$ y "
+             "$\\text{mujer}\\cdot\\text{exper}$. Entonces",
+             [C("el coeficiente de $\\text{mujer}\\cdot\\text{exper}$ es la diferencia de pendientes", "True"),
+              C("el modelo con $\\text{mujer}\\cdot\\text{educ}$ y $\\text{mujer}\\cdot\\text{exper}$ es el sin restringir",
+                "True", exp="con $\\text{mujer}\\cdot\\text{educ}$ tiene seis columnas"),
+              C("la pendiente de $\\text{exper}$ es común", "False", exp="no: véase $\\mathrm{exper}$ y el modelo con $\\text{mujer}\\cdot\\text{educ}$")]]
+    av = _inventario(problema(comps))
+    assert [(a.nivel, a.donde[:9]) for a in av] == [(AVISO, "comp 1[1]"), (AVISO, "comp 1[2]")]
+    assert "«mujer·educ»" in av[0].mensaje and "1 de las 1 veces" in av[0].mensaje
+    assert av[1].mensaje.startswith("la exp nombra «mujer·educ»")       # \mathrm{exper} = \text{exper}: presentado
+    # El objeto de la exp que ya nombra la cuestión no se avisa dos veces (comp 1[1]).
+
+
+def test_inventario_info_si_la_opcion_lo_presenta_y_por_variante():
+    comps = ["Se estima $y$ sobre la constante y la indicadora $\\text{@{ind}}$. Entonces",
+             [C("con la indicadora $\\text{@{otra}}$ ($1$ en los demás) el coeficiente cambia de signo", "True"),
+              C("con la indicadora $\\text{@{otra}}$ en lugar de $\\text{@{ind}}$ el ajuste no cambia", "True"),
+              C("el coeficiente de $\\text{hombre}$ mide la diferencia", "False")]]
+    setup = "import numpy as np\ni = int(np.random.randint(2)); ind = ['mujer', 'hombre'][i]; otra = ['hombre', 'mujer'][i]"
+    av = _inventario(problema(comps, setup=setup, seed=3))
+    info = [a for a in av if a.nivel == INFO]
+    assert {a.donde[:9] for a in info} == {"comp 1[0]", "comp 1[1]"} and all("presenta ella misma" in a.mensaje for a in info)
+    aviso = [a for a in av if a.nivel == AVISO]
+    assert len(aviso) == 1 and "«hombre»" in aviso[0].mensaje and "de las 10 veces" in aviso[0].mensaje
+    assert not aviso[0].mensaje.split("(en ")[1].startswith("10 de")      # solo falta cuando la indicadora es mujer
+
+
+def test_inventario_subindices_negritas_y_conocidos():
+    from qbank._lint import _objetos
+    assert _objetos(r"$\hat{\beta}_{3}$, $\boldsymbol 1$, $\mathbf{X}_2$ y $y_t$") == {
+        "\\beta_3": ("subindice", False), "\\boldsymbol{X}": ("negrita", False), "X_2": ("subindice", False)}
+    comps = ["Sea $\\hat\\beta_1 + \\hat\\beta_2 x$, con $\\boldsymbol{y}$ e $\\mathrm{SRC}=3$. Entonces",
+             [C("$\\beta_2$ es la pendiente", "True"),                 # presentado (sin el sombrero)
+              C("$\\beta_3$ es cero", "False"),                         # un índice que el enunciado no muestra: AVISO
+              C("$\\boldsymbol{u}$ es el residuo y $\\mathrm{STC}>\\mathrm{SRC}$", "True"),   # STC: AVISO
+              C("para cualesquiera $u_1$, $u_2$ y $\\boldsymbol{v}$ se cumple", "True")]]     # letras generales: INFO
+    av = _inventario(problema(comps))
+    assert [(a.nivel, a.donde[:9]) for a in av if a.nivel == AVISO] == [(AVISO, "comp 1[1]"), (AVISO, "comp 1[2]")]
+    assert "sí presenta \\beta_1, \\beta_2" in av[0].mensaje and "«STC»" in av[1].mensaje
+    resumen = [a for a in av if a.nivel == INFO]
+    assert len(resumen) == 1 and "«\\boldsymbol{u}» (1)" in resumen[0].mensaje and "«u_1» (1)" in resumen[0].mensaje
+    # Notación declarada conocida: como se escribe, normalizada, o toda una base de subíndices.
+    assert _inventario(problema(comps), conocidos=[r"\mathrm{STC}", r"\beta_", r"\boldsymbol{u}", "u_1", "u_2", r"\mathbf{v}"]) == []
+    assert [a.mensaje[:30] for a in _inventario(problema(comps), conocidos="STC,\\beta_3")] == \
+        [a.mensaje[:30] for a in av if a.nivel == INFO]
+
+
+def test_inventario_cli_conocidos(tmp_path, capsys):
+    d = problema(["Con $\\mathrm{STC}=10$:", [C("$\\mathrm{SRC}$ es menor", "True"), C("$\\mathrm{SRC}$ es mayor", "False"),
+                                                C("$\\mathrm{SEC}$ es cero", "False")]])
+    f = tmp_path / "p.json"
+    f.write_text(json.dumps(d), encoding="utf-8")
+    assert main([str(f), "--quiet"]) == 0
+    assert capsys.readouterr().out.count("[inventario]") == 3
+    assert main([str(f), "--quiet", "--conocidos", r"\mathrm{SRC},SEC"]) == 0
+    assert "[inventario]" not in capsys.readouterr().out
+    assert main([str(f), "--quiet", "--conocidos", "SRC", "--conocidos", "SEC"]) == 0
+    assert "[inventario]" not in capsys.readouterr().out
+
+
+# ── Reglas 13 y 14: longitud y gemela ────────────────────────────────────────
+
+def _codigo(d, codigo, **kw):
+    return [a for a in lint(d, **kw) if a.codigo == codigo]
+
+
+def test_longitud_opcion_destacada_sin_pareja():
+    # La verdadera lleva su «porque…» (destaca) y en su hueco solo hay falsas desnudas.
+    largo = C("entonces A o B, porque la hipótesis lo garantiza en cada caso", "True")
+    slot = [largo, C("entonces B", "v('B')"), C("nada de nada", "False")]
+    d = problema(["Sea", [S("si A,", "v('A')"), S("si B,", "v('B')")], "entonces:", slot,
+                  [C("A es cierta", "v('A')"), C("B es cierta", "v('B')"), C("ninguna lo es", "False")]])
+    av = _codigo(d, "longitud")
+    assert len(av) == 1 and av[0].nivel == AVISO and "comp 3[0]" in av[0].donde
+    assert "más larga" in av[0].mensaje and "verdadera" in av[0].mensaje and "siempre" in av[0].mensaje
+    assert "mundos 1, 2 de 2" in av[0].mensaje and "100%" in av[0].mensaje
+    # Con una pareja larga y de valor contrario en el mismo hueco, calla: el alumno ve largas
+    # verdaderas y largas falsas.
+    slot.append(C("entonces ni A ni B, porque la hipótesis lo impide en cada caso", "False"))
+    assert not _codigo(d, "longitud")
+    # Una pareja larga pero del mismo valor no sirve.
+    slot[-1] = C("entonces A o B, porque así lo dice la hipótesis de partida", "True")
+    assert _codigo(d, "longitud")
+    # Si otro hueco muestra casi siempre una opción igual de larga, la primera ya no destaca.
+    slot.pop()
+    d["componentes"][4] = [C("A es cierta, porque la hipótesis de partida lo garantiza", "v('A')"),
+                           C("B es cierta, porque la hipótesis de partida lo garantiza", "v('B')"), C("ninguna", "False")]
+    assert not [a for a in _codigo(d, "longitud") if "comp 3[0]" in a.donde]
+
+
+def test_longitud_mide_lo_visible_y_no_castiga_huecos_compensados():
+    from qbank._lint import _visible
+    assert _visible(r"$\hat\beta_1=\mu_y-\hat\beta_2\mu_x$") == 10          # β1=μy-β2μx
+    assert _visible(r"la media $\boldsymbol{x}$") == len("la media x")
+    assert 10 <= _visible(r"$\text{mujer}\cdot\text{educ}$") <= 12                # mujer · educ
+    # Fórmula larga en LaTeX pero corta a la vista frente a frases: nada destaca.
+    slot = [C(r"$\dfrac{\sigma_{\boldsymbol{x}\boldsymbol{y}}}{\sigma_{\boldsymbol{x}}^{2}}$", "v('A')"),
+            C("la covarianza", "v('B')"), C("la varianza", "False")]
+    d = problema(["Sea", [S("si A,", "v('A')"), S("si B,", "v('B')")], "entonces:", slot])
+    assert not _codigo(d, "longitud")
+    # Medias desplazadas pero sin opción destacada sin pareja (la larga verdadera tiene su larga
+    # falsa): el alumno ve una larga que unas veces es V y otras F.
+    d = problema(["Sea", [S("si A,", "v('A')"), S("si B,", "v('B')")], "entonces:",
+                  [C("entonces A, porque la hipótesis lo garantiza siempre", "v('A')"),
+                   C("entonces B, porque la hipótesis lo garantiza siempre", "v('B')"), C("nada", "False")],
+                  [C("A", "v('A')"), C("B", "v('B')"), C("C", "False")]])
+    assert not _codigo(d, "longitud")
+
+
+def test_longitud_la_corta_tambien_destaca_y_una_variable_es_su_propia_pareja():
+    # Todas largas salvo una corta, siempre falsa.
+    d = problema(["Sea", [S("si A,", "v('A')"), S("si B,", "v('B')")], "entonces:",
+                  [C("entonces A, por la hipótesis de partida", "v('A')"), C("entonces B, por la hipótesis de partida", "v('B')"),
+                   C("nada", "False")],
+                  [C("A se cumple en todos los casos posibles", "v('A')"), C("B se cumple en todos los casos posibles", "v('B')")]])
+    av = _codigo(d, "longitud")
+    assert len(av) == 1 and "más corta" in av[0].mensaje and "falsa" in av[0].mensaje and "comp 3[2]" in av[0].donde
+    # Si la corta es verdadera en un mundo y falsa en el otro, no delata nada.
+    d["componentes"][3][2] = C("nada", "v('A')")
+    assert not _codigo(d, "longitud")
+
+
+def test_gemela_verdadera_fija_con_cifra_sin_version_falsa():
+    base_ = base()
+    base_["componentes"][3] = [C("$\\sigma_x^2 = 2/3$", "True"), C("$\\sigma_{xy} = -1$", "False"),
+                               C("$\\sigma_{xy} = 4$", "False")]
+    av = _codigo(base_, "gemela")
+    assert len(av) == 1 and av[0].nivel == AVISO and "con fórmula" in av[0].mensaje and "comp 3[0]" in av[0].donde
+    # Un valor suelto («$300$ mil euros es…») cuenta como cifra aunque la prosa sea larga.
+    assert "con cifra" in _codigo(problema(["Sea", [S("si A,", "v('A')"), S("si B,", "v('B')")], "entonces:",
+                                            [C("$300$ mil euros es la previsión de la mediana del precio, no de su esperanza", "True"),
+                                             C("la previsión es insesgada", "False"), C("nada", "False")]]), "gemela")[0].mensaje
+    # Con su gemela (misma fórmula, otra cifra) calla…
+    base_["componentes"][3].append(C("$\\sigma_x^2 = 3/2$", "False"))
+    assert not _codigo(base_, "gemela")
+    # … y también si la gemela cambia los símbolos y conserva la cifra.
+    base_["componentes"][3][-1] = C("$\\sigma_y^2 = 2/3$", "False")
+    assert not _codigo(base_, "gemela")
+
+
+def test_gemela_reconoce_antonimos_signo_negacion_y_orden():
+    for v, f in [("la coordenada de $x_2$ pasa a ser $\\hat\\beta_2+\\hat\\beta_3$",
+                  "la coordenada de $x_2$ pasa a ser $\\hat\\beta_2-\\hat\\beta_3$"),
+                 ("$\\sigma_{xy}$ es mayor que $0{,}5$", "$\\sigma_{xy}$ es menor que $0{,}5$"),
+                 ("$\\det(A^\\top) = \\det(A)$", "$\\det(A^\\top) = -\\det(A)$"),
+                 ("$\\mu_{x^2} \\geq \\mu_x^2$", "$\\mu_{x^2} \\leq \\mu_x^2$"),
+                 ("$x$ es $2y$", "$x$ no es $2y$"),
+                 ("$\\hat\\beta_1 = \\mu_y - \\hat\\beta_2\\mu_x$", "$\\hat\\beta_2 = \\mu_x - \\hat\\beta_1\\mu_y$")]:
+        d = base()
+        d["componentes"][3] = [C(v, "True"), C(f, "False"), C("otra cosa", "False")]
+        assert not _codigo(d, "gemela"), (v, f)
+
+
+def test_gemela_info_si_la_formula_va_dentro_de_una_frase_y_calla_sin_calculo():
+    d = base()
+    d["componentes"][3] = [C("la insesgadez del estimador se apoya en que $E[U\\mid X]=0$ para toda muestra", "True"),
+                           C("la insesgadez del estimador se apoya en la normalidad", "False"), C("nada", "False")]
+    av = _codigo(d, "gemela")
+    assert len(av) == 1 and av[0].nivel == INFO
+    d["componentes"][3][0] = C("el estimador $\\hat\\beta$ es insesgado", "True")   # símbolo suelto: nada que calcular
+    assert not _codigo(d, "gemela")
+    # Una verdadera que a veces es falsa no es «siempre cierta».
+    d["componentes"][3][0] = C("$x = 2$", "v('A')")
+    assert not _codigo(d, "gemela")
+
+
+def test_gemela_sin_ninguna_falsa_en_el_hueco():
+    d = base()
+    d["componentes"][3] = [C("$\\det(A) \\neq 0$", "True", "v('A')"), C("$\\det(A) = 0$", "True", "v('B')")]
+    av = _codigo(d, "gemela")
+    assert len(av) == 2 and all("no tiene ninguna falsa" in a.mensaje for a in av)
+
+
+# ── Regla 12: rangos con puntos e hipótesis escritas ─────────────────────────
+
+def test_inventario_rango_con_puntos_presenta_los_subindices_intermedios():
+    enun = r"Sea $\hat{\boldsymbol\beta}=(\hat\beta_1,\dots,\hat\beta_k)$ el vector de coeficientes."
+    cues = [C(r"$\hat\beta_2$ es la segunda coordenada", "v('A')"), C(r"$\hat\beta_3$ es la primera", "v('B')"),
+            C("nada", "False")]
+    d = problema([enun, [S("si A,", "v('A')"), S("si B,", "v('B')")], "entonces:", cues])
+    assert not [a for a in _inventario(d) if a.nivel == AVISO]
+    # Fin numérico: solo el rango; \beta_7 queda fuera y tiene hermanos presentados.
+    d["componentes"][0] = r"Sea $(\beta_1,\ldots,\beta_5)$ el vector de coeficientes."
+    d["componentes"][3][1] = C(r"$\hat\beta_7$ es la primera", "v('B')")
+    av = [a for a in _inventario(d) if a.nivel == AVISO]
+    assert len(av) == 1 and "\\beta_7" in av[0].mensaje and "sí presenta" in av[0].mensaje
+
+
+def test_inventario_hipotesis_escrita_en_la_opcion_es_info():
+    d = problema([r"Con el modelo $y=\beta_1+\beta_2 x+U$ estimado,", [S("si A,", "v('A')"), S("si B,", "v('B')")],
+                  "entonces:", [C(r"el contraste conjunto ($H_0\!:\beta_2=\beta_3=0$) rechaza", "v('A')"),
+                                C(r"el contraste de $\beta_3$ rechaza", "v('B')"), C("nada", "False")]])
+    av = _inventario(d)
+    # \beta_3 dentro de «H_0: …» en la opción: presentado por ella misma (INFO); suelto en la otra: AVISO.
+    assert {a.nivel for a in av if "comp 3[0]" in a.donde} == {INFO}
+    assert [a for a in av if a.nivel == AVISO and "\\beta_3" in a.mensaje and "comp 3[1]" in a.donde]
+
+
+# ── Separador decimal ────────────────────────────────────────────────────────
+
+def test_decimal_del_banco_en_cifras_y_tipo_de_frase(tmp_path, capsys):
+    from qbank._lint import _cifras, _tipo_frase
+    assert _cifras("$(2,2,-1)$ y $0{,}5$") == pytest.approx([2.2, -1.0, 0.5])
+    assert _cifras("$(2,2,-1)$ y $0{,}5$", decimal="{,}") == pytest.approx([2.0, 2.0, -1.0, 0.5])
+    assert _cifras("2.5 y 0{,}5", decimal="{,} .") == pytest.approx([2.5, 0.5])
+    assert _tipo_frase("$(2,2,-1)$", decimal="{,}") == "$(#,#,#)$" and _tipo_frase("$(2,2,-1)$") == "$(#,#)$"
+    # Con decimal="{,}", $(2,2,-1)$ y $(2,3,-1)$ son gemelas (misma forma, otras cifras).
+    d = base()
+    d["componentes"][3] = [C("$\\boldsymbol{v} = (2,2,-1)$", "True"), C("$\\boldsymbol{v} = (2,3,-1)$", "False"),
+                           C("$\\boldsymbol{v} = (1,1,1)$", "False")]
+    assert not _codigo(d, "gemela", decimal="{,}") and not _codigo(d, "gemela")
+    ruta = tmp_path / "p.json"
+    ruta.write_text(json.dumps(d), encoding="utf-8")
+    assert main([str(ruta), "--decimal", "{,}", "--quiet"]) == 0

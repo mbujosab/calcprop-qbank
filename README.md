@@ -341,6 +341,7 @@ Desde la línea de órdenes (código de salida 1 si hay algún `ERROR`):
 
 ``` bash
 python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet] [--patrones [N]]
+                                      [--conocidos LISTA] [--decimal SEP]
 qbank-lint preguntas/*.json --quiet      # equivalente; omite INFO y ficheros OK
 ```
 
@@ -348,16 +349,25 @@ Comprueba, entre otras cosas, la garantía de mezcla (`1 <` correctas \<=
 opciones-1= en toda variante, contando la opción por defecto de
 `last_choice`), el número de variantes, negaciones `-v('X')` que nunca
 podrían deducirse por falta de un `unoDe(...)`, interpolaciones `@{var}`
-sin resolver, etiquetas huérfanas, la estructura del JSON y caracteres
-que rompen la exportación a Moodle. La tabla de mundos muestra el valor
-de cada `Cuestion` en cada combinación de `Supuesto` (`V`, `F` o `-` si
-la rechaza su `precond`), para localizar distractores constantes. Con
-`--patrones` (o `lint(..., patrones=True)`; `make patrones` en un
-proyecto) busca además *patrones memorizables*: lo que un alumno podría
-acertar sin leer el enunciado tras ver varias variantes (una opción casi
-siempre verdadera, una cifra que separa las verdaderas de las falsas, la
-frase larga o la cifra grande siempre falsa…). Es más lento y sus avisos
-son indicios que hay que leer.
+sin resolver, etiquetas huérfanas, la estructura del JSON, caracteres
+que rompen la exportación a Moodle y el *inventario de objetos*: lo que
+una cuestión o su explicación nombran (`\text{mujer}\cdot\text{educ}`,
+*β̂*<sub>3</sub>) sin que el enunciado de esa variante lo presente (la
+notación del curso se declara con `--conocidos`); también dos reglas de
+diseño de la Guía: *la opción larga es la verdadera* (`longitud`: una
+opción claramente más larga, o más corta, que las que se muestran con
+ella y sin pareja de longitud parecida y valor contrario en su hueco) y
+*la verdadera numérica sin gemela* (`gemela`: una verdadera fija con
+cifra o fórmula sin una versión falsa en su hueco). La tabla de mundos
+muestra el valor de cada `Cuestion` en cada combinación de `Supuesto`
+(`V`, `F` o `-` si la rechaza su `precond`), para localizar distractores
+constantes. Con `--patrones` (o `lint(..., patrones=True)`;
+`make patrones` en un proyecto) busca además *patrones memorizables*: lo
+que un alumno podría acertar sin leer el enunciado tras ver varias
+variantes (una opción casi siempre verdadera, una cifra que separa las
+verdaderas de las falsas, la frase larga, la cifra grande o la cifra
+redonda siempre falsa…). Es más lento y sus avisos son indicios que hay
+que leer.
 
 # Documentación
 

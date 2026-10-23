@@ -30,7 +30,7 @@ ficheros ni compila LaTeX. Uso::
 o desde la línea de órdenes::
 
     python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet]
-                                          [--patrones [N]]
+                                          [--patrones [N]] [--conocidos LISTA] [--decimal SEP]
 
 Reglas (código del aviso entre paréntesis):
 
@@ -95,7 +95,9 @@ Reglas (código del aviso entre paréntesis):
     «casi constante» (≥ 85 % de las veces el mismo valor), o constante en
     toda la muestra siendo lambda con ``setup`` (la regla 3 solo dio INFO);
     dentro de un tipo de frase (el texto sin cifras), una cifra cuyo valor
-    separa por completo las V de las F; un rasgo superficial de la opción
+    separa por completo las V de las F, o cuya forma (entera o con
+    decimales, múltiplo de 5 o de 10) predice la verdad; un rasgo
+    superficial de la opción
     —una palabra, una cifra concreta, repetir una cifra del enunciado, tener
     la cifra mayor o menor del hueco, ser más larga que la mediana— que, con
     él o sin él, predice la verdad en ≥ 85 % de los casos, ≥ 15 puntos
@@ -103,6 +105,38 @@ Reglas (código del aviso entre paréntesis):
     < 0,01. Los rasgos que solo reúnen ``Cuestion`` enteras no cuentan (eso
     ya lo dicen ``constante`` y «casi constante»). Son indicios: hay que
     leerlos y decidir.
+12. Inventario de objetos (``inventario``, AVISO/INFO): un objeto concreto
+    que una ``Cuestion`` nombra —``\\text{…}`` o ``\\mathrm{…}`` y sus
+    productos ``\\text{a}\\cdot\\text{b}`` como una unidad, ``\\boldsymbol{…}``
+    o ``\\mathbf{…}``, un símbolo con subíndice numérico (``\\hat\\beta_3``,
+    ``x_2``)— y que el enunciado de esa misma variante no presenta (con
+    unos sorteos del ``setup``); lo mismo para la ``exp``, que además puede
+    apoyarse en lo que nombra su propia ``Cuestion``. Es INFO si la propia
+    opción lo presenta («X (definición)», «X, que …», «en lugar de X»). La
+    notación del curso que no hace falta presentar se declara con
+    ``conocidos=`` / ``--conocidos`` (en un proyecto, ``NOTACION_CONOCIDA``
+    de ``config.py``). Una secuencia ``\\beta_1,\\dots,\\beta_k`` presenta
+    todos los subíndices del rango, y un símbolo escrito dentro de una
+    hipótesis de la propia opción (``H_0\\!:\\beta_3=0``) cuenta como
+    presentado. No ve los objetos nombrados en prosa («el modelo sin
+    restringir»).
+13. Longitud de las opciones (``longitud``, AVISO): una alternativa
+    claramente más larga (o más corta) que las que se muestran con ella
+    —longitud *visible*, sin ``$``, llaves ni nombres de macros; el doble
+    y ``_MIN_DIF_LONGITUD`` caracteres más que una alternativa de cada otro
+    hueco, en al menos la mitad de las combinaciones— es un rasgo
+    memorable; si en su hueco
+    no tiene una pareja de longitud parecida (razón ≤ 1,3) y valor
+    contrario, «la opción larga es la verdadera». Se comprueba mundo a
+    mundo con unos sorteos del ``setup``; una opción que destaca unas veces
+    como verdadera y otras como falsa es su propia pareja.
+14. Verdadera sin gemela (``gemela``, AVISO): una alternativa verdadera
+    siempre que aparece, con contenido calculable (una cifra, o una fórmula
+    con una igualdad, desigualdad u operación), en un hueco donde ninguna
+    falsa comparte su esqueleto: el mismo texto con otras cifras (símbolos
+    iguales) o con otros símbolos (cifras iguales), ignorando el orden, con
+    «mayor»/«menor», ``+``/``-``, ``<``/``>`` y la negación identificados.
+    Sin gemela, el alumno la marca sin comprobar nada.
 """
 
 import argparse as _argparse
@@ -812,14 +846,32 @@ _MEJORA_PATRON      = 0.15   # … y al menos esta mejora sobre la tasa base del
 _P_PATRON           = 0.01   # p-valor hipergeométrico, corregido por el número de rasgos probados
 _MAX_PATRONES_HUECO = 3      # rasgos que se listan por hueco
 _MIN_LETRAS_PALABRA = 4      # palabras más cortas (artículos, preposiciones…) no son señal
+_ORDEN_FORMAS = ('entera', 'con decimales', 'múltiplo de 10', 'múltiplo de 5')   # de la forma más simple a la más fina
 
 _RE_SUBIND  = _re.compile(r'[_^](\{[^}]*\}|\\?\w)')     # subíndices y exponentes: no se leen como cifras
 _RE_NOTACION = _re.compile(r'\\(?:boldsymbol|mathbf|mathbb|mathcal|mathrm|mathit|bm|symbf|textbf|vec|hat|bar|tilde)'
                            r'\s*(?:\{\s*\d+\s*\}|\d)')   # \boldsymbol 1, \mathbf{1}: notación, no cifras
 _RE_CMD     = _re.compile(r'\\[A-Za-z]+')
 _RE_FRAC    = _re.compile(r'(-?)\\[dt]?frac\{(-?\d+(?:[.,]\d+)?)\}\{(-?\d+(?:[.,]\d+)?)\}')
-_RE_CIFRA   = _re.compile(r'(?<![\w.,])-?\d+(?:(?:\{,\}|[.,])\d+)?')
 _RE_PALABRA = _re.compile(r'[^\W\d_]{%d,}' % _MIN_LETRAS_PALABRA)
+_SEP_DECIMAL = ('{,}', ',', '.')     # separadores decimales admitidos por defecto: 0{,}5, 0,5 y 0.5
+_re_cifras   = {}
+
+
+def _re_cifra(decimal=None):
+    """Regex de las cifras con los separadores decimales admitidos: por defecto
+    _SEP_DECIMAL; «{,}» (lint(decimal='{,}'), --decimal, DECIMAL en config.py)
+    si el banco escribe siempre 0{,}5 y una coma desnuda separa componentes,
+    (2,2,-1). Varios separadores, separados por espacios: «{,} .»."""
+    seps = tuple(decimal.split()) if isinstance(decimal, str) else tuple(decimal or _SEP_DECIMAL)
+    if seps not in _re_cifras:
+        sueltos = ''.join(_re.escape(x) for x in seps if len(x) == 1)
+        _re_cifras[seps] = _re.compile(r'(?:(?<!\w)-(?=\d))?(?<![\w%s])\d+(?:(?:%s)\d+)?'
+                                       % (sueltos, '|'.join(map(_re.escape, seps))))
+    return _re_cifras[seps]
+
+
+_RE_CIFRA = _re_cifra()
 
 
 def _sin_fracciones(texto):
@@ -834,20 +886,40 @@ def _limpia(texto):
     return _RE_CMD.sub(' ', _RE_SUBIND.sub(' ', _RE_NOTACION.sub(' ', _sin_fracciones(texto))))
 
 
-def _cifras(texto):
-    """Cifras legibles del texto, como float (coma o punto decimal, {,} de LaTeX)."""
-    out = []
-    for m in _RE_CIFRA.finditer(_limpia(texto)):
+def _formas_cifra(s):
+    """Rasgos de la forma de una cifra tal como está escrita: entera (y múltiplo
+    de 5 o de 10) o con decimales (y cuántos)."""
+    ent, _, dec = s.lstrip('-').replace('{,}', ',').replace('.', ',').partition(',')
+    if not dec:
+        f = {'entera'}
+        if int(ent) % 5 == 0:
+            f.add('múltiplo de 5')
+        if int(ent) % 10 == 0:
+            f.add('múltiplo de 10')
+        return f
+    return {'con decimales', f"con {len(dec)} decimal{'es' if len(dec) > 1 else ''}"}
+
+
+def _cifras_y_formas(texto, decimal=None):
+    """Cifras legibles del texto, como float (coma o punto decimal, {,} de LaTeX;
+    o solo los separadores de `decimal`), y los rasgos de forma de cada una."""
+    out, formas = [], []
+    for m in _re_cifra(decimal).finditer(_limpia(texto)):
         try:
             out.append(float(m.group(0).replace('{,}', '.').replace(',', '.')))
         except ValueError:
-            pass
-    return out
+            continue
+        formas.append(_formas_cifra(m.group(0)))
+    return out, formas
 
 
-def _tipo_frase(texto):
+def _cifras(texto, decimal=None):
+    return _cifras_y_formas(texto, decimal)[0]
+
+
+def _tipo_frase(texto, decimal=None):
     """El texto con cada cifra sustituida por «#»: agrupa las opciones que solo difieren en los números."""
-    return ' '.join(_RE_CIFRA.sub('#', _limpia(texto)).split())
+    return ' '.join(_re_cifra(decimal).sub('#', _limpia(texto)).split())
 
 
 def _palabras(texto):
@@ -883,17 +955,20 @@ def _rasgos(texto, cifras, cifras_enun, cifras_hueco, longitudes):
     return r
 
 
-def _muestra_patrones(p, n_semillas):
-    """Un caso por alternativa no excluida, en cada mundo y en n_semillas sorteos
-    del setup (uno solo si no hay setup), sin alterar los generadores aleatorios.
-    Cada caso: dict con parte k, hueco h, componente i, alternativa j, texto,
-    valor, rasgos, cifras y tipo de frase."""
+def _huecos_comp(p):
+    """{parte k: [índice de componente de cada hueco]}, en el orden de por_partes_lectura."""
     L     = [_normaliza_slot(x) for x in p.e]
     plan  = _plan_partes(L)
-    comps = _defaultdict(list)                     # (parte) -> índices de sus huecos
+    comps = _defaultdict(list)
     for n, slot in enumerate(L):
         if _clasifica_slot(slot) == 'cuestiones':
             comps[plan[n]].append(n)
+    return comps
+
+
+def _lecturas(p, n_semillas):
+    """Las lecturas (un ejemplo por mundo) de n_semillas sorteos del setup (uno
+    solo si no hay setup), sin alterar los generadores aleatorios."""
     semillas = range(n_semillas) if p.setup is not None else [None]
     import random as _random
     estado = _random.getstate()
@@ -902,27 +977,37 @@ def _muestra_patrones(p, n_semillas):
         estado_np = _np.random.get_state()
     except ImportError:
         _np = None
-    casos = []
+    out = []
     try:
         for s in semillas:
-            for r in p.por_partes_lectura(seed=s):
-                for k, parte in enumerate(r.partes):
-                    cifras_enun = _cifras(parte.enunciado)
-                    for h, hueco in enumerate(parte.huecos):
-                        activas = [(j, a) for j, a in enumerate(hueco) if a.valor is not None]
-                        if not activas:
-                            continue
-                        cifras = {j: _cifras(a.texto) for j, a in activas}
-                        con_cifras = [c for c in cifras.values() if c]
-                        longitudes = [len(a.texto) for _, a in activas]
-                        for j, a in activas:
-                            casos.append(dict(k=k, h=h, i=comps[k][h], j=j, texto=a.texto, valor=bool(a.valor),
-                                              rasgos=_rasgos(a.texto, cifras[j], cifras_enun, con_cifras, longitudes),
-                                              cifras=cifras[j], tipo=_tipo_frase(a.texto)))
+            out.extend(p.por_partes_lectura(seed=s))
     finally:
         _random.setstate(estado)
         if _np is not None:
             _np.random.set_state(estado_np)
+    return out
+
+
+def _muestra_patrones(p, n_semillas, decimal=None):
+    """Un caso por alternativa no excluida, en cada mundo y en n_semillas sorteos
+    del setup. Cada caso: dict con parte k, hueco h, componente i, alternativa j,
+    texto, valor, rasgos, cifras (y sus formas) y tipo de frase."""
+    comps = _huecos_comp(p)
+    casos = []
+    for r in _lecturas(p, n_semillas):
+        for k, parte in enumerate(r.partes):
+            cifras_enun = _cifras(parte.enunciado, decimal)
+            for h, hueco in enumerate(parte.huecos):
+                activas = [(j, a) for j, a in enumerate(hueco) if a.valor is not None]
+                if not activas:
+                    continue
+                cifras = {j: _cifras_y_formas(a.texto, decimal) for j, a in activas}
+                con_cifras = [c for c, _ in cifras.values() if c]
+                longitudes = [len(a.texto) for _, a in activas]
+                for j, a in activas:
+                    casos.append(dict(k=k, h=h, i=comps[k][h], j=j, texto=a.texto, valor=bool(a.valor),
+                                      rasgos=_rasgos(a.texto, cifras[j][0], cifras_enun, con_cifras, longitudes),
+                                      cifras=cifras[j][0], formas=cifras[j][1], tipo=_tipo_frase(a.texto, decimal)))
     return casos
 
 
@@ -962,16 +1047,46 @@ def _patrones_cuestiones(p, avisos, por_j, i):
                                 _donde(i, j, lst[0]['texto'])))
 
 
-def _patrones_umbral(casos):
-    """Candidatos (precision, soporte, cubre, nombre, hacia, ejemplo): dentro de un
-    tipo de frase, una cifra cuyo valor separa por completo las V de las F."""
+def _tasa(casos):
+    """(nº de V, tasa base de V y de F, soporte mínimo por lado) de un grupo de casos."""
+    N = len(casos)
+    nV = sum(c['valor'] for c in casos)
+    return nV, {True: nV / N, False: 1 - nV / N}, max(3, _math.ceil(_SOPORTE_PATRON * N))
+
+
+def _predice(casos, con, m):
+    """Si el subconjunto `con` de `casos` predice la verdad (acierto ≥ _PRECISION_PATRON,
+    ≥ _MEJORA_PATRON sobre la tasa base, soporte mínimo a ambos lados y p-valor
+    hipergeométrico corregido por las m pruebas < _P_PATRON), devuelve
+    (precision, soporte, cubre, hacia, ejemplo); si no, None."""
+    N, n = len(casos), len(con)
+    nV, base, minimo = _tasa(casos)
+    if n < minimo or N - n < minimo:
+        return None
+    v = sum(c['valor'] for c in con)
+    for hacia, k in ((True, v), (False, n - v)):
+        prec = k / n
+        if prec < _PRECISION_PATRON or prec - base[hacia] < _MEJORA_PATRON:
+            continue
+        if _p_cola(N, nV if hacia else N - nV, n, k) * m > _P_PATRON:
+            continue
+        return (prec, n, frozenset(id(c) for c in con), hacia,
+                next(c['texto'] for c in con if c['valor'] == hacia))
+    return None
+
+
+def _por_tipo_frase(casos):
     por_tipo = _defaultdict(list)
     for c in casos:
         por_tipo[(c['tipo'], len(c['cifras']))].append(c)
+    return [(tipo, nc, G) for (tipo, nc), G in por_tipo.items() if nc and len(G) >= _MIN_CASOS_PATRON]
+
+
+def _patrones_umbral(casos):
+    """Candidatos (precision, soporte, cubre, nombre, hacia, ejemplo): dentro de un
+    tipo de frase, una cifra cuyo valor separa por completo las V de las F."""
     out = []
-    for (tipo, nc), G in por_tipo.items():
-        if nc == 0 or len(G) < _MIN_CASOS_PATRON:
-            continue
+    for tipo, nc, G in _por_tipo_frase(casos):
         for pos in range(nc):
             V = [c['cifras'][pos] for c in G if c['valor']]
             F = [c['cifras'][pos] for c in G if not c['valor']]
@@ -984,42 +1099,53 @@ def _patrones_umbral(casos):
     return out
 
 
+def _patrones_forma(casos):
+    """Candidatos: dentro de un tipo de frase, la forma de una cifra (entera o con
+    decimales, múltiplo de 5 o de 10) que, con ella o sin ella, predice la verdad:
+    la cifra redonda es siempre la aproximación, y la aproximación siempre falsa."""
+    out = {}                                        # (cubre, hacia) -> candidato: «con decimales» y «no entera» son lo mismo
+    for tipo, nc, G in _por_tipo_frase(casos):
+        formas = set().union(*(f for c in G for f in c['formas']))
+        formas = [f for f in _ORDEN_FORMAS if f in formas] + sorted(formas - set(_ORDEN_FORMAS))
+        m = 2 * nc * len(formas)
+        for pos in range(nc):
+            for f in formas:
+                for neg in (False, True):
+                    con = [c for c in G if (f in c['formas'][pos]) != neg]
+                    r = _predice(G, con, m)
+                    if r is not None:
+                        prec, n, cubre, hacia, ejemplo = r
+                        cual = '' if nc == 1 else f" nº {pos + 1}"
+                        out.setdefault((cubre, hacia), (prec, n, cubre, f"en «{_rec(tipo, 50)}» la cifra{cual} "
+                                                        f"{'no ' if neg else ''}{f}", hacia, ejemplo))
+    return list(out.values())
+
+
 def _patrones_rasgos(casos, por_j):
     """Candidatos: rasgos superficiales (con o sin ellos) que predicen la verdad en
     el hueco. Se descartan los que solo reúnen Cuestiones enteras: esos reexpresan
     «constante» o «casi constante»."""
-    N = len(casos)
-    nV = sum(c['valor'] for c in casos)
-    base = {True: nV / N, False: 1 - nV / N}
+    _, base, _ = _tasa(casos)
     rasgos = set().union(*(c['rasgos'] for c in casos))
     m = 2 * len(rasgos)
-    minimo = max(3, _math.ceil(_SOPORTE_PATRON * N))
     ids_j = [frozenset(id(c) for c in lst) for lst in por_j.values()]
     out = []
     for f in rasgos:
         for neg in (False, True):
             con = [c for c in casos if (f in c['rasgos']) != neg]
-            n = len(con)
-            if n < minimo or N - n < minimo:
+            r = _predice(casos, con, m)
+            if r is None:
                 continue
-            v = sum(c['valor'] for c in con)
-            for hacia, k in ((True, v), (False, n - v)):
-                prec = k / n
-                if prec < _PRECISION_PATRON or prec - base[hacia] < _MEJORA_PATRON:
-                    continue
-                if _p_cola(N, nV if hacia else N - nV, n, k) * m > _P_PATRON:
-                    continue
-                cubre = frozenset(id(c) for c in con)
-                if all(ids <= cubre or not (ids & cubre) for ids in ids_j):
-                    continue
-                ejemplo = next(c['texto'] for c in con if c['valor'] == hacia)
-                out.append((prec, n, cubre, ('sin ' if neg else 'con ') + f, hacia, ejemplo))
-    return out, base, N
+            prec, n, cubre, hacia, ejemplo = r
+            if all(ids <= cubre or not (ids & cubre) for ids in ids_j):
+                continue
+            out.append((prec, n, cubre, ('sin ' if neg else 'con ') + f, hacia, ejemplo))
+    return out, base, len(casos)
 
 
-def _regla_patrones(p, avisos, n_semillas=N_SEMILLAS_PATRONES):
+def _regla_patrones(p, avisos, n_semillas=N_SEMILLAS_PATRONES, decimal=None):
     try:
-        casos = _muestra_patrones(p, n_semillas)
+        casos = _muestra_patrones(p, n_semillas, decimal)
     except Exception:                               # noqa: BLE001
         return                                      # la regla 2 ya informa (ejecucion)
     por_hueco = _defaultdict(list)
@@ -1032,7 +1158,7 @@ def _regla_patrones(p, avisos, n_semillas=N_SEMILLAS_PATRONES):
         _patrones_cuestiones(p, avisos, por_j, i)
         if len(R) < _MIN_CASOS_PATRON:
             continue
-        candidatos = _patrones_umbral(R)
+        candidatos = _patrones_umbral(R) + _patrones_forma(R)
         rasgos, base, N = _patrones_rasgos(R, por_j)
         candidatos += rasgos
         # Un candidato que cubre los mismos casos que otro mejor se funde con él; uno
@@ -1061,9 +1187,351 @@ def _regla_patrones(p, avisos, n_semillas=N_SEMILLAS_PATRONES):
             avisos.append(Aviso(INFO, 'patron', f"… y {len(aceptados) - _MAX_PATRONES_HUECO} rasgo(s) más", donde))
 
 
+# ── Regla 12: inventario de objetos ──────────────────────────────────────────
+
+_N_SORTEOS_LECTURAS = 10          # sorteos del setup con que se recorren las lecturas (reglas 12 a 14)
+_ALCANCE_RANGO      = 80          # caracteres entre \beta_1 y los puntos de «\beta_1,\dots,\beta_k»
+_PRESENTA_TRAS  = ('(', ', que ', ', cuy', 'en lugar de ', 'en vez de ')   # «X (…)», «X, que …», «X en lugar de Y»
+_PRESENTA_ANTES = ('en lugar de', 'en vez de')                              # «… en lugar de X»
+
+_OBJ_TEXTO    = r'\\(?:text|textrm|textit|mathrm|mathit|operatorname)\s*\{[^{}]*\}'
+_RE_OBJ_TEXTO = _re.compile(_OBJ_TEXTO + r'(?:\s*\\(?:cdot|times)\s*' + _OBJ_TEXTO + r')*')
+_RE_OBJ_NEGRITA = _re.compile(r'\\(?:boldsymbol|mathbf|bm|symbf)\s*(?:\{([^{}]*)\}|(\\?[A-Za-z]+))')
+_DECORACION     = r'(?:\\(?:hat|widehat|bar|overline|tilde|widetilde|vec|dot|boldsymbol|mathbf|bm|symbf|mathrm|text)\s*\{?\s*)*'
+_RE_OBJ_SUBIND  = _re.compile(_DECORACION + r'(\\?[A-Za-z]+)\s*\}*\s*_\s*(?:\{\s*(\d+)\s*\}|(\d))(?!\d)')
+_RE_SUBIND_FIN  = _re.compile(_DECORACION + r'(\\?[A-Za-z]+)\s*\}*\s*_\s*(?:\{\s*(\w+)\s*\}|(\w))')   # también simbólico: \beta_k
+_RE_PUNTOS      = _re.compile(r'\\[lc]?dots\b|…|\.\.\.')
+_RE_HIPOTESIS   = _re.compile(r'H_(?:\{[^}]*\}|\w)\s*(?:\\[!,;:]\s*)*(?::|\\colon)')   # «H_0\!:» antes del objeto
+
+
+def _presentado(texto, ini, fin):
+    """¿Presenta el propio texto el objeto que ocupa texto[ini:fin]? «X (…)»,
+    «X, que …», «en lugar de X», o X dentro de una hipótesis escrita, «H_0: X = 0»."""
+    tras  = texto[fin:].lstrip('$ \t\n')
+    antes = texto[:ini].rstrip('$ \t\n')
+    return (tras.startswith(_PRESENTA_TRAS) or antes.endswith(_PRESENTA_ANTES)
+            or bool(_RE_HIPOTESIS.search(texto[:ini].rsplit('$', 1)[-1])))
+
+
+def _rangos(texto, out):
+    """«\\beta_1,\\dots,\\beta_k» presenta también los subíndices intermedios: con
+    fin numérico, cada uno del rango; con fin simbólico (k, n), todos los de esa
+    base, que se anota con la clave «\\beta_» (como en conocidos=)."""
+    for m in _RE_OBJ_SUBIND.finditer(texto):
+        resto = texto[m.end():m.end() + _ALCANCE_RANGO]
+        mp = _RE_PUNTOS.search(resto)
+        if not mp or '$' in resto[:mp.start()]:
+            continue
+        mf = _RE_SUBIND_FIN.search(resto, mp.end())
+        if not mf or mf.group(1) != m.group(1):
+            continue
+        base, a, fin = m.group(1), int(m.group(2) or m.group(3)), mf.group(2) or mf.group(3)
+        if fin.isdigit():
+            for n in range(a, int(fin) + 1):
+                out.setdefault(f"{base}_{n}", ('subindice', False))
+        else:
+            out.setdefault(base + '_', ('subindice', False))
+
+
+def _objetos(texto, rangos=False):
+    """Objetos concretos que nombra un texto: {clave normalizada: (familia, lo
+    presenta el propio texto)}; familias 'texto', 'negrita' y 'subindice'. Con
+    rangos=True (el enunciado) añade los que presenta una secuencia con puntos."""
+    out = {}
+
+    def anota(familia, clave, m):
+        out[clave] = (familia, out.get(clave, (None, False))[1] or _presentado(texto, m.start(), m.end()))
+
+    for m in _RE_OBJ_TEXTO.finditer(texto):
+        partes = [' '.join(x.split()) for x in _re.findall(r'\{([^{}]*)\}', m.group(0))]
+        if all(partes) and not all(x.replace('.', '').isdigit() for x in partes):
+            anota('texto', '·'.join(partes), m)
+    for m in _RE_OBJ_NEGRITA.finditer(texto):
+        c = ''.join((m.group(1) or m.group(2)).split())
+        if c and not c.isdigit():
+            anota('negrita', '\\boldsymbol{' + c + '}', m)
+    for m in _RE_OBJ_SUBIND.finditer(texto):
+        anota('subindice', m.group(1) + '_' + (m.group(2) or m.group(3)), m)
+    if rangos:
+        _rangos(texto, out)
+    return out
+
+
+def _en(clave, enun):
+    """¿Presenta el enunciado la clave, o toda su base («\\beta_», por un rango con puntos)?"""
+    return clave in enun or clave.rsplit('_', 1)[0] + '_' in enun
+
+
+def _hermanos(clave, enun):
+    """Objetos del enunciado con la misma base y otro subíndice: \\beta_1, \\beta_2 para \\beta_6."""
+    base = clave.rsplit('_', 1)[0] + '_'
+    return sorted(k for k in enun if k.startswith(base) and k != clave and not k.endswith('_'))
+
+
+def _conocidos(entradas):
+    """Claves normalizadas de la notación declarada conocida: cada entrada se lee
+    como se escribiría en una pregunta (\\mathrm{SRC}, \\boldsymbol{y}, \\hat\\beta_2) o ya
+    normalizada (SRC); una que termina en «_» cubre todos los subíndices (\\beta_)."""
+    out = set()
+    for e in entradas or ():
+        e = e.strip()
+        if e:
+            out |= set(_objetos(e)) or {e}
+    return out
+
+
+def _es_conocido(clave, conocidos):
+    return clave in conocidos or any(c.endswith('_') and clave.startswith(c) for c in conocidos)
+
+
+def _regla_inventario(p, avisos, conocidos=(), lecturas=None):
+    if lecturas is None:
+        try:
+            lecturas = _lecturas(p, _N_SORTEOS_LECTURAS)
+        except Exception:                           # noqa: BLE001
+            return                                  # la regla 2 ya informa (ejecucion)
+    conocidos = _conocidos(conocidos)
+    comps  = _huecos_comp(p)
+    faltan = {}                                     # (i, j, tipo, clave) -> [veces, presentado, texto, hermanos]
+    dudosos = _defaultdict(set)                     # clave -> {(i, j, tipo)}: negritas y subíndices sueltos
+    veces  = _defaultdict(int)                      # (i, j) -> apariciones de la alternativa
+    for r in lecturas:
+        enun = _objetos(' '.join(parte.enunciado for parte in r.partes), rangos=True)
+        for k, parte in enumerate(r.partes):
+            for h, hueco in enumerate(parte.huecos):
+                i = comps[k][h]
+                for j, a in enumerate(hueco):
+                    if a.valor is None:
+                        continue
+                    veces[(i, j)] += 1
+                    opcion = _objetos(a.texto)
+                    pares = [('cuestión', a.texto, clave, fam, pres) for clave, (fam, pres) in opcion.items()
+                             if not _en(clave, enun) and not _es_conocido(clave, conocidos)]
+                    if a.exp:
+                        pares += [('exp', a.exp, clave, fam, pres) for clave, (fam, pres) in _objetos(a.exp).items()
+                                  if not _en(clave, enun) and clave not in opcion and not _es_conocido(clave, conocidos)]
+                    for tipo, texto, clave, fam, pres in pares:
+                        hermanos = _hermanos(clave, enun) if fam == 'subindice' else []
+                        if fam == 'negrita' or (fam == 'subindice' and not hermanos):
+                            dudosos[clave].add((i, j, tipo))      # letras de una identidad general, notación…
+                            continue
+                        reg = faltan.setdefault((i, j, tipo, clave), [0, True, texto, hermanos])
+                        reg[0] += 1
+                        reg[1] = reg[1] and pres
+    for (i, j, tipo, clave), (nf, pres, texto, hermanos) in sorted(faltan.items()):
+        cuantas = f"en {nf} de las {veces[(i, j)]} veces que aparece"
+        if pres:
+            avisos.append(Aviso(INFO, 'inventario',
+                                f"la {tipo} presenta ella misma «{clave}», que no está en el enunciado ({cuantas})",
+                                _donde(i, j, texto)))
+        else:
+            quien = "el enunciado no presenta" if tipo == 'cuestión' else "ni el enunciado ni la cuestión presentan"
+            si = f" (sí presenta {', '.join(hermanos[:3])})" if hermanos else ''
+            avisos.append(Aviso(AVISO, 'inventario',
+                                f"la {tipo} nombra «{clave}», que {quien}{si} ({cuantas})",
+                                _donde(i, j, texto)))
+    if dudosos:
+        lista = ', '.join(f"«{clave}» ({len(d)})" for clave, d in sorted(dudosos.items()))
+        avisos.append(Aviso(INFO, 'inventario',
+                            "símbolos que el enunciado no presenta, con el nº de cuestiones o exp que los usan: "
+                            f"{lista}. Pueden ser notación del curso (decláralos en conocidos=) o las letras de "
+                            "una identidad general; si no, preséntalos"))
+
+
+# ── Reglas 13 y 14: longitud de las opciones y gemelas ───────────────────────
+
+_DESTACA_LONGITUD  = 2.0    # una opción es claramente más larga que otra si mide el doble (y _MIN_DIF_LONGITUD más)
+_P_DESTACA         = 0.5    # … y destaca si lo es frente a todas las que el alumno ve con ella en al menos esta fracción de las variantes
+_PARECIDA_LONGITUD = 1.3    # su pareja mide parecido: razón de longitudes ≤ 1,3 (el 30 % de la regla del banco)
+_MIN_DIF_LONGITUD  = 10     # diferencia mínima, en caracteres visibles, para que algo destaque
+_MAX_PROSA_FORMULA = 30     # caracteres visibles fuera de $…$ para que una opción cuente como fórmula
+
+_RE_TEXTO_VISIBLE = _re.compile(r'\\(?:text|textrm|textit|textbf|mathrm|mathit|mathsf|mathfrak|mathcal|mathbb|operatorname)\s*\{([^{}]*)\}')
+_RE_INVISIBLE     = _re.compile(r'\\(?:hat|widehat|bar|overline|tilde|widetilde|vec|dot|boldsymbol|mathbf|bm|symbf|mathop|left|right|'
+                                r'displaystyle|frac|dfrac|tfrac|quad|qquad|,|!|;|:| )\s*')
+_RE_MACRO_VISIBLE = _re.compile(r'\\[A-Za-z]+\s*')
+
+
+def _visible(texto):
+    """Caracteres que ve el alumno: sin $, llaves ni nombres de macros (cada macro
+    con glifo, \\beta o \\le, cuenta uno; las decoraciones y los espacios, nada)."""
+    t = _RE_TEXTO_VISIBLE.sub(r' \1 ', texto)
+    t = _re.sub(r'\\([%$&#_{}])', r'\1', t)
+    t = _RE_MACRO_VISIBLE.sub('x', _RE_INVISIBLE.sub('', t))
+    return len(' '.join(_re.sub(r'[${}_^&~]', '', t).split()))
+
+
+def _mas(l, otra):
+    """¿Es l claramente mayor que otra?"""
+    return l >= _DESTACA_LONGITUD * otra and l - otra >= _MIN_DIF_LONGITUD
+
+
+def _destaca(l, companeras):
+    """Con qué probabilidad una opción de longitud l es claramente la más larga (o la
+    más corta) de las que el alumno ve con ella: una alternativa activa de cada otro
+    hueco, equiprobables. Devuelve ('larga'|'corta', probabilidad) o (None, 0)."""
+    p_larga = p_corta = 1.0
+    for lst in companeras:
+        p_larga *= sum(_mas(l, x) for x in lst) / len(lst)
+        p_corta *= sum(_mas(x, l) for x in lst) / len(lst)
+    if p_larga >= _P_DESTACA:
+        return 'larga', p_larga
+    if p_corta >= _P_DESTACA:
+        return 'corta', p_corta
+    return None, 0.0
+
+
+def _regla_longitud(p, avisos, lecturas):
+    comps  = _huecos_comp(p)
+    orden  = {}                                     # mundo -> número de orden (su primera lectura)
+    veces  = _defaultdict(int)                      # (i, j) -> apariciones
+    solas  = {}                                     # (i, j) -> [nV, nF, mundos, (lado, l, prob), texto]
+    for r in lecturas:
+        orden.setdefault(r.mundo, len(orden) + 1)
+        for k, parte in enumerate(r.partes):
+            activas = {h: [(j, _visible(a.texto), bool(a.valor)) for j, a in enumerate(hueco) if a.valor is not None]
+                       for h, hueco in enumerate(parte.huecos)}
+            activas = {h: lst for h, lst in activas.items() if lst}
+            if len(activas) < 2:
+                continue                            # sin compañeras no hay con qué destacar
+            for h, lst in activas.items():
+                companeras = [[l2 for _, l2, _ in lst2] for h2, lst2 in activas.items() if h2 != h]
+                for j, l, valor in lst:
+                    i = comps[k][h]
+                    veces[(i, j)] += 1
+                    lado, prob = _destaca(l, companeras)
+                    if lado is None:
+                        continue
+                    pareja = any(v2 != valor and max(l, l2) <= _PARECIDA_LONGITUD * min(l, l2) for j2, l2, v2 in lst if j2 != j)
+                    if not pareja:
+                        reg = solas.setdefault((i, j), [0, 0, set(), (lado, l, prob), parte.huecos[h][j].texto])
+                        reg[0 if valor else 1] += 1
+                        reg[2].add(orden[r.mundo])
+    for (i, j), (nV, nF, mundos, (lado, l, prob), texto) in sorted(solas.items()):
+        n = nV + nF
+        if max(nV, nF) < _PRECISION_PATRON * n:
+            continue                                # unas veces verdadera y otras falsa: es su propia pareja
+        valor = "verdadera" if nV >= nF else "falsa"
+        en = f"en {n} de las {veces[(i, j)]} veces que aparece" if n < veces[(i, j)] else "siempre"
+        donde_m = (f"; mundo{'s' if len(mundos) > 1 else ''} {', '.join(map(str, sorted(mundos)))} de {len(orden)}"
+                   if len(orden) > 1 else '')
+        avisos.append(Aviso(AVISO, 'longitud',
+                            f"opción claramente más {lado} que las que se muestran con ella ({l} caracteres visibles; lo es en "
+                            f"el {prob:.0%} de las variantes) y {valor}, sin pareja de longitud parecida y valor contrario en "
+                            f"su hueco ({en}{donde_m}): recórtala (el porqué va al exp) o dale una gemela",
+                            _donde(i, j, texto)))
+
+
+_RE_NUMERO_SUELTO = _re.compile(r'^\s*-?\d[\d{},.\s]*$')     # una fórmula que es solo un número: $-2{,}5$
+_RE_CALCULO = _re.compile(r'\$[^$]*(?:[=<>+\-/]|\\(?:le|ge|leq|geq|ne|neq|approx|frac|dfrac|tfrac|sqrt|cdot|times|sum|pm|mp)\b)[^$]*\$')
+_RE_TOKEN   = _re.compile(r'§[^§]*§|\\[A-Za-z]+|\\.|[^\W\d_]+|\S')
+_ANTONIMOS  = (('mayor', 'menor'), ('mayores', 'menores'), ('más', 'menos'), ('máximo', 'mínimo'), ('máxima', 'mínima'),
+               ('multiplica', 'divide'), ('multiplicada', 'dividida'), ('multiplicado', 'dividido'), ('multiplicar', 'dividir'),
+               ('aumenta', 'disminuye'), ('aumentar', 'disminuir'), ('crece', 'decrece'), ('sube', 'baja'), ('mejor', 'peor'),
+               ('positivo', 'negativo'), ('positiva', 'negativa'), ('positivos', 'negativos'), ('positivas', 'negativas'),
+               ('numerador', 'denominador'), ('izquierda', 'derecha'), ('antes', 'después'), ('par', 'impar'),
+               ('creciente', 'decreciente'), ('convexa', 'cóncava'), ('verdadera', 'falsa'), ('cierta', 'falsa'),
+               ('siempre', 'nunca'), ('todos', 'ninguno'), ('alguno', 'ninguno'), ('directa', 'inversa'),
+               ('superior', 'inferior'), ('encima', 'debajo'), ('grande', 'pequeño'), ('alto', 'bajo'), ('alta', 'baja'),
+               ('largo', 'corto'), ('primero', 'último'), ('primera', 'última'), ('suma', 'resta'), ('sumar', 'restar'),
+               ('producto', 'cociente'), ('igual', 'distinto'), ('iguales', 'distintos'), ('independiente', 'dependiente'),
+               ('exógena', 'endógena'), ('sesgado', 'insesgado'), ('eficiente', 'ineficiente'), ('consistente', 'inconsistente'),
+               ('rechaza', 'acepta'), ('rechazar', 'aceptar'), ('sobreestima', 'subestima'), ('exacta', 'aproximada'),
+               ('exacto', 'aproximado'))
+_OPUESTOS   = {'>': '<', '\\le': '<', '\\leq': '<', '\\ge': '<', '\\geq': '<', '\\ne': '=', '\\neq': '=',
+               '\\approx': '=', '/': '\\cdot', '\\times': '\\cdot', '*': '\\cdot', '\\dfrac': '\\frac', '\\tfrac': '\\frac',
+               '\\mp': '\\pm'}
+_CANON      = {**{b: a for a, b in _ANTONIMOS}, **_OPUESTOS}
+_SIN_PESO   = {'no', 'ni', ',', '.', ';', ':', '(', ')', '[', ']', '|', '{', '}', '_', '^', '+', '-', '\\left', '\\right', '\\mathop', '\\displaystyle',
+               '\\quad', '\\qquad', '\\,', '\\!', '\\;', '\\:', '\\ ', '\\hat', '\\widehat', '\\bar', '\\overline', '\\tilde',
+               '\\widetilde', '\\vec', '\\dot', '\\boldsymbol', '\\mathbf', '\\bm', '\\symbf', '\\mathrm', '\\mathit', '\\text',
+               '\\textrm', '\\textit', '\\mathsf', '\\mathcal', '\\mathbb', '\\mathfrak', '\\operatorname'}
+_GRIEGAS    = {'\\' + g for g in ('alpha beta gamma delta epsilon varepsilon zeta eta theta vartheta iota kappa lambda mu nu '
+                                   'xi pi varpi rho varrho sigma varsigma tau upsilon phi varphi chi psi omega Gamma Delta '
+                                   'Theta Lambda Xi Pi Sigma Upsilon Phi Psi Omega ell').split()}
+
+
+def _calculable(texto, decimal=None):
+    """Contenido calculable de una opción: 'cifra' si lleva un valor (en la prosa o
+    como fórmula suelta, $-2{,}5$; una cifra dentro de una ecuación no cuenta); 'fórmula' si es
+    una fórmula con igualdad, desigualdad u operación y poca prosa alrededor; 'prosa'
+    si la fórmula va dentro de una frase (una propiedad enunciada, no un cálculo);
+    None si no hay nada que calcular."""
+    trozos = texto.split('$')
+    prosa, formulas = ' '.join(trozos[::2]), trozos[1::2]
+    if _cifras(prosa, decimal) or any(_RE_NUMERO_SUELTO.match(f) for f in formulas):
+        return 'cifra'                              # un valor: en la prosa o como fórmula suelta
+    if not (_RE_CALCULO.search(texto) or _cifras(texto, decimal)):
+        return None
+    return 'fórmula' if _visible(prosa) <= _MAX_PROSA_FORMULA else 'prosa'
+
+
+def _esqueletos(texto, decimal=None):
+    """Dos bolsas de tokens del texto: con las cifras abstraídas («#») y con los
+    símbolos de las fórmulas abstraídos («S»). Antónimos y operadores opuestos
+    identificados, negación y decoraciones fuera."""
+    t = _re_cifra(decimal).sub(lambda m: f" §{_fmt_cifra(float(m.group(0).replace('{,}', '.').replace(',', '.')))}§ ",
+                               texto)
+    trozos = t.split('$')
+    cifras, simbolos = [], []
+    for n, trozo in enumerate(trozos):
+        formula = n % 2 == 1 and len(trozos) % 2 == 1
+        for tok in _RE_TOKEN.findall(trozo):
+            if tok in _SIN_PESO:
+                continue
+            tok = _CANON.get(tok.lower() if tok.isalpha() else tok, tok.lower() if tok.isalpha() else tok)
+            if tok.startswith('§'):
+                cifras.append('#')
+                simbolos.append(tok)
+            elif formula and (tok in _GRIEGAS or tok.isalpha()):
+                cifras.append(tok)
+                simbolos.append('S')
+            else:
+                cifras.append(tok)
+                simbolos.append(tok)
+    return tuple(sorted(cifras)), tuple(sorted(simbolos))
+
+
+def _regla_gemela(p, avisos, lecturas, decimal=None):
+    comps  = _huecos_comp(p)
+    valores = _defaultdict(set)                     # (i, j) -> {True, False} con que aparece
+    textos  = {}                                    # (i, j) -> último texto
+    veces   = _defaultdict(int)
+    falsas  = _defaultdict(set)                     # i -> textos de las alternativas falsas alguna vez
+    for r in lecturas:
+        for k, parte in enumerate(r.partes):
+            for h, hueco in enumerate(parte.huecos):
+                i = comps[k][h]
+                for j, a in enumerate(hueco):
+                    if a.valor is None:
+                        continue
+                    valores[(i, j)].add(bool(a.valor))
+                    textos[(i, j)] = a.texto
+                    veces[(i, j)] += 1
+                    if not a.valor:
+                        falsas[i].add(a.texto)
+    for (i, j), vs in sorted(valores.items()):
+        texto = textos[(i, j)]
+        que = _calculable(texto, decimal) if vs == {True} else None
+        if que is None:
+            continue
+        e1, e2 = _esqueletos(texto, decimal)
+        if any(e1 == f1 or e2 == f2 for f1, f2 in (_esqueletos(f, decimal) for f in falsas[i])):
+            continue
+        n = veces[(i, j)]
+        siempre = f"verdadera siempre que aparece ({n} lectura{'s' if n > 1 else ''})"
+        sin = "el hueco no tiene ninguna falsa" if not falsas[i] else "ninguna falsa del hueco es su gemela"
+        if que == 'prosa':
+            avisos.append(Aviso(INFO, 'gemela', f"{siempre}, con una fórmula dentro de la frase; {sin}. Si es un "
+                                "cálculo y no una propiedad, dale una versión falsa", _donde(i, j, texto)))
+        else:
+            avisos.append(Aviso(AVISO, 'gemela', f"{siempre} y con {que}; {sin}: sortéala con una versión falsa "
+                                "(otras cifras o símbolos, el signo o la desigualdad al revés)", _donde(i, j, texto)))
+
+
 # ── API ──────────────────────────────────────────────────────────────────────
 
-def lint(problema, instances=None, seed=None, patrones=None):
+def lint(problema, instances=None, seed=None, patrones=None, conocidos=(), decimal=None):
     """Revisa un problema y devuelve la lista de :class:`Aviso` (errores primero).
 
     problema  : ProblemaTipo, dict JSON o ruta a un fichero JSON.
@@ -1071,7 +1539,17 @@ def lint(problema, instances=None, seed=None, patrones=None):
     seed      : semilla base para ``por_partes`` (por defecto la del problema).
     patrones  : True (o un número de sorteos del setup) activa además la regla 11,
                 patrones memorizables (más lenta); por defecto no corre.
+    conocidos : notación del curso que la regla 12 (inventario) no exige presentar
+                en el enunciado: una lista de objetos tal como se escriben
+                (``\\mathrm{SRC}``, ``\\boldsymbol{y}``, ``H_0``; ``\\beta_`` cubre
+                todos los subíndices) o una cadena separada por comas.
+    decimal   : separadores decimales que las reglas 11 y 14 leen como tales
+                (por defecto ``{,}``, ``,`` y ``.``; ``"{,}"`` si el banco escribe
+                siempre ``0{,}5`` y una coma desnuda separa componentes, ``(2,2,-1)``;
+                varios, separados por espacios).
     """
+    if isinstance(conocidos, str):
+        conocidos = conocidos.split(',')
     avisos = []
     p, ruta = _carga(problema, avisos)
     if p is None:
@@ -1083,8 +1561,16 @@ def lint(problema, instances=None, seed=None, patrones=None):
     _regla_etiquetas(p, avisos)
     _regla_variantes(p, avisos, instances, seed)
     _regla_mundos(p, avisos)
+    try:
+        lecturas = _lecturas(p, _N_SORTEOS_LECTURAS)   # reglas 12 a 14
+    except Exception:                               # noqa: BLE001
+        lecturas = None                             # la regla 2 ya informa (ejecucion)
+    if lecturas is not None:
+        _regla_inventario(p, avisos, conocidos, lecturas)
+        _regla_longitud(p, avisos, lecturas)
+        _regla_gemela(p, avisos, lecturas, decimal)
     if patrones:
-        _regla_patrones(p, avisos, N_SEMILLAS_PATRONES if patrones is True else int(patrones))
+        _regla_patrones(p, avisos, N_SEMILLAS_PATRONES if patrones is True else int(patrones), decimal)
     avisos.sort(key=lambda a: _ORDEN[a.nivel])
     return avisos
 
@@ -1113,7 +1599,14 @@ def main(argv=None):
     ap.add_argument('--patrones', nargs='?', const=True, default=None, metavar='N',
                     help="busca además patrones memorizables (regla 11, más lenta), "
                          f"con N sorteos del setup (por defecto {N_SEMILLAS_PATRONES})")
+    ap.add_argument('--conocidos', action='append', default=[], metavar='LISTA',
+                    help="notación del curso que el inventario de objetos (regla 12) no exige "
+                         "presentar en el enunciado, separada por comas (\\mathrm{SRC},\\boldsymbol{y},H_0,\\beta_)")
+    ap.add_argument('--decimal', default=None, metavar='SEP',
+                    help="separadores decimales (por defecto «{,} , .»); con '{,}' una coma desnuda "
+                         "separa componentes, (2,2,-1), y no es un decimal (reglas 11 y 14)")
     args = ap.parse_args(argv)
+    conocidos = [c for lista in args.conocidos for c in lista.split(',')]
     if isinstance(args.patrones, str):              # «--patrones fichero.json»: N era un fichero
         try:
             args.patrones = int(args.patrones)
@@ -1125,7 +1618,8 @@ def main(argv=None):
 
     hay_error = False
     for f in args.ficheros:
-        avisos = lint(f, instances=args.instances, seed=args.seed, patrones=args.patrones)
+        avisos = lint(f, instances=args.instances, seed=args.seed, patrones=args.patrones, conocidos=conocidos,
+                      decimal=args.decimal)
         hay_error |= any(a.nivel == ERROR for a in avisos)
         if args.quiet:
             avisos = [a for a in avisos if a.nivel != INFO]

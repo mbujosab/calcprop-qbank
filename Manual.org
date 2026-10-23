@@ -1219,7 +1219,9 @@ un =INFO= es información. Las reglas, con el código de cada aviso:
   constante en toda la muestra (donde =constante= solo pudo dar INFO), de una cifra
   que dentro de un «tipo de frase» (el texto sin cifras) separa por completo las
   verdaderas de las falsas (una elasticidad verdadera siempre menor que 1 y su gemela
-  inversa siempre mayor), y de un rasgo superficial de la opción —una palabra, una
+  inversa siempre mayor) o cuya /forma/ —entera o con decimales, múltiplo de 5 o de
+  10— predice la verdad (la cifra redonda era siempre la aproximación $100\beta$, y
+  por tanto siempre falsa), y de un rasgo superficial de la opción —una palabra, una
   cifra concreta, repetir una cifra del enunciado, tener la cifra mayor o menor del
   hueco, ser más larga que la mediana— que, con él o sin él, predice la verdad en el
   hueco (≥ 85 % de acierto, ≥ 15 puntos sobre la tasa base, soporte a ambos lados y
@@ -1229,6 +1231,55 @@ un =INFO= es información. Las reglas, con el código de cada aviso:
   ellos. Es más lenta que el resto del =lint=, por eso no corre por defecto; sus avisos
   son indicios que hay que leer: a veces el remedio es una gemela más (que la cifra
   grande sea a veces la verdadera), a veces no hay nada que corregir.
+- =inventario= (AVISO/INFO) :: inventario de objetos: una =Cuestion= (o su =exp=) nombra
+  un objeto concreto que el enunciado de esa misma variante no presenta, recorriendo
+  unas lecturas con varios sorteos del =setup=. Objetos: nombres en =\text{…}= o
+  =\mathrm{…}= y sus productos (=\text{mujer}\cdot\text{educ}= es una unidad: que el
+  enunciado presente =mujer= y =educ= por separado no presenta el producto), vectores
+  en =\boldsymbol{…}= o =\mathbf{…}=, y símbolos con subíndice numérico ($\hat\beta_3$,
+  $x_2$; las decoraciones no cuentan, así que un enunciado con $\hat\beta_3$ presenta
+  $\beta_3$). El aviso dice en cuántas de sus apariciones faltó el objeto («12 de 12»
+  fue el caso real: las opciones hablaban del modelo con =mujer·educ= y el enunciado
+  mostraba otro). Es INFO si la propia opción lo presenta («$\text{hombre}$ ($1$ en los
+  hombres…)», «X, que …», «en lugar de X»); los vectores y los subíndices que no
+  tienen un «hermano» presentado (el enunciado muestra $\beta_1$, $\beta_2$ y la
+  opción $\beta_6$) van en un único INFO por pregunta, porque suelen ser las letras
+  de una identidad general ($\boldsymbol{u}$, $\boldsymbol{v}$) o notación del curso.
+  La notación que no hace falta presentar se declara con =conocidos== (lista o cadena
+  separada por comas, escrita como en las preguntas: =\mathrm{SRC}=, =\boldsymbol{y}=,
+  =H_0=; =\beta_= cubre todos los subíndices), =--conocidos= en la CLI y, en un
+  proyecto, =NOTACION_CONOCIDA= de =config.py=. Una secuencia con puntos,
+  $\beta_1,\dots,\beta_k$, presenta todos los subíndices del rango (con fin simbólico,
+  todos los de esa base), y un símbolo escrito dentro de una hipótesis de la propia
+  opción («el contraste conjunto ($H_0\!:\beta_2=\beta_3=0$)») cuenta como presentado.
+  Lo que la regla no ve: los objetos nombrados en prosa («el modelo sin restringir») y
+  un objeto presentado en dos versiones; para eso está el inventario escrito de la
+  Guía de diseño.
+- =longitud= (AVISO) :: la opción larga es la verdadera: una alternativa /claramente/ más
+  larga (o más corta) que las que el alumno ve con ella es un rasgo memorable, y debe
+  tener en su hueco una /pareja/ de longitud parecida (a menos de un 30 %) y valor
+  contrario; si no, ese rasgo delata la respuesta. Longitud /visible/: sin =$=, llaves
+  ni nombres de macros, que =len()= contaría. «Las que ve con ella» son una alternativa
+  de cada otro hueco, así que destacar es probabilístico: la opción destaca si mide el doble
+  (y 10 caracteres) más que todas sus compañeras —o menos que todas— en al menos
+  la mitad de las combinaciones; el aviso dice en qué fracción. Se comprueba mundo a
+  mundo con unos sorteos del =setup=; una opción que destaca unas veces como verdadera
+  y otras como falsa es su propia pareja. No compara medias ni castiga huecos
+  compensados (una larga verdadera junto a una larga falsa): el remedio es local,
+  recortar la destacada (el porqué va al =exp=) o darle una gemela, que suele ser la
+  misma que pide =gemela=.
+- =gemela= (AVISO/INFO) :: una alternativa verdadera siempre que aparece (en todos los
+  mundos y sorteos de la muestra), con contenido calculable —un valor, o una fórmula
+  con igualdad, desigualdad u operación— y sin una falsa /gemela/ en su hueco: el mismo
+  texto con otras cifras (y los mismos símbolos) o con otros símbolos (y las mismas
+  cifras), sin importar el orden, con «mayor»/«menor», el signo, la desigualdad y la
+  negación identificados. Sin gemela, el alumno la marca sin comprobar nada. Es INFO
+  cuando la fórmula va dentro de una frase (una propiedad enunciada, no un cálculo). La
+  regla =constante= ya señala las verdaderas fijas; esta dice cuáles de ellas, por ser
+  calculables, necesitan una versión falsa. Con =decimal== (=--decimal=, =DECIMAL= en
+  =config.py=) se fija qué separadores decimales admiten las cifras: con ="{,}"=, una coma
+  desnuda dentro de una fórmula, $(2,2,-1)$, separa componentes y no es el decimal 2,2
+  (vale también para los patrones de la regla 11).
 
 =tabla_mundos(problema)= devuelve una tabla de texto con el valor de cada =Cuestion=
 (=V=, =F=, o =-= si la rechaza su =precond=) en cada combinación de =Supuesto=, para
@@ -1243,11 +1294,15 @@ INFO y los ficheros sin avisos):
 python -m qbank.lint preguntas/*.json --quiet
 qbank-lint preguntas/L-01-Nombre.json --tabla      # equivalente, con la tabla de mundos
 qbank-lint preguntas/*.json --quiet --patrones     # además, patrones memorizables (--patrones 100: más sorteos)
+qbank-lint preguntas/*.json --conocidos '\mathrm{SRC},\boldsymbol{y},\beta_'   # notación que no hay que presentar
+qbank-lint preguntas/*.json --decimal '{,}'   # los decimales van siempre como 0{,}5: (2,2,-1) no lleva un 2,2
 #+end_example
 
 En un proyecto de =qbank-init=: =make lint=, =make tabla PREGUNTA=L-01-Nombre=,
 =make patrones= (=SEMILLAS=N= para cambiar los sorteos), y =make amc= / =make moodle=
-pasan =lint= antes de exportar.
+pasan =lint= antes de exportar; todos leen de =config.py= la notación conocida
+(=NOTACION_CONOCIDA=, que pasan como =--conocidos=) y los separadores decimales
+(=DECIMAL=, como =--decimal=).
 
 * Referencia rápida de la API
 
@@ -1319,11 +1374,15 @@ ProblemaTipo.por_partes_lectura(seed=None, verbose=False, descartes=False)
 ** Comprobación automática
 
 #+begin_example
-lint(problema_o_ruta, instances=None, seed=None, patrones=None)  → list[Aviso]
+lint(problema_o_ruta, instances=None, seed=None, patrones=None, conocidos=(), decimal=None)
+                                                  → list[Aviso]
     # Aviso(nivel, codigo, mensaje, donde); nivel ∈ {ERROR, AVISO, INFO}; errores primero
     # patrones=True (o nº de sorteos): añade la regla 11, patrones memorizables (más lenta)
+    # conocidos: notación que el inventario de objetos (regla 12) no exige presentar
+    # decimal: separadores decimales de las cifras ("{,}" si una coma desnuda separa componentes)
 tabla_mundos(problema_o_ruta)                     → str   # tabla Cuestion × mundo
 python -m qbank.lint FICHEROS.json [--instances N] [--seed S] [--tabla] [--quiet] [--patrones [N]]
+                                   [--conocidos LISTA] [--decimal SEP]
     # también `qbank-lint`; código de salida 1 si hay algún ERROR
 #+end_example
 

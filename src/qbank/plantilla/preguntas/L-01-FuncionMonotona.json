@@ -34,9 +34,12 @@
        "exp": "Una función estrictamente monótona no repite valores: $@{a} \\neq @{b}$ implica $f(@{a}) \\neq f(@{b})$."}
     ],
     [
-      {"tipo": "Cuestion", "enunciado": "$f(@{c})$ está entre $f(@{a})$ y $f(@{b})$",
-       "semantica": "True", "precond": "True",
-       "exp": "Como $@{a} < @{c} < @{b}$ y $f$ es estrictamente monótona, $f(@{c})$ queda entre $f(@{a})$ y $f(@{b})$ sea cual sea el sentido."},
+      {"tipo": "Cuestion", "enunciado": "$f(@{a}) < f(@{c}) < f(@{b})$",
+       "semantica": "v('crec')", "precond": "True",
+       "exp": "Como $@{a} < @{c} < @{b}$ y $f$ es estrictamente creciente, $f(@{a}) < f(@{c}) < f(@{b})$; si decrece, las desigualdades se invierten."},
+      {"tipo": "Cuestion", "enunciado": "$f(@{b}) < f(@{c}) < f(@{a})$",
+       "semantica": "v('decr')", "precond": "True",
+       "exp": "Como $@{a} < @{c} < @{b}$ y $f$ es estrictamente decreciente, $f(@{b}) < f(@{c}) < f(@{a})$; si crece, las desigualdades se invierten."},
       {"tipo": "Cuestion", "enunciado": "$f(@{c}) > f(@{a})$",
        "semantica": "v('crec')", "precond": "True",
        "exp": "Como $@{a} < @{c}$: $f(@{c}) > f(@{a})$ si $f$ crece y $f(@{c}) < f(@{a})$ si decrece."},
