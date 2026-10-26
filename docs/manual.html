@@ -364,7 +364,8 @@ Si en cambio sale <code>AttributeError: … no attribute '__version__'</code> o 
 existe, tienes una versión anterior a la 0.6: actualiza con
 <code>pip install -U calcprop-qbank</code>.
 Para los PDF y el XML de Moodle hace falta
-además <code>pdflatex</code> con los paquetes <code>automultiplechoice</code> (lo instala el programa
+además \LaTeX{} (<code>lualatex</code> para AMC y la lectura, <code>pdflatex</code> para Moodle, en los
+proyectos de <code>qbank-init</code>) con los paquetes <code>automultiplechoice</code> (lo instala el programa
 <a href="https://www.auto-multiple-choice.net/">Auto Multiple Choice</a>) y <code>moodle</code> (<code>tlmgr install moodle</code> en TeX Live).
 </p>
 </div>
@@ -1486,7 +1487,9 @@ enunciado."</code>): <code>{a}</code> y <code>{b}</code> se sustituyen por <code
 la última pregunta, y termina en <code>\par</code> (sin él, el <code>\hspace</code> negativo que algunos
 <code>\AMCbeginQuestion</code> ponen al principio de la pregunta se pegaría a la frase). AMC
 prefija las etiquetas con el número de copia, de modo que valen en todas las copias,
-y <b>los números salen tras la segunda pasada de LaTeX</b> (en la primera, <code>??</code>). Con una
+y <b>los números salen tras la segunda pasada de LaTeX</b> (en la primera, <code>??</code>; el
+<code>Makefile</code> de la plantilla compila dos veces cuando hace falta). La frase va seguida de
+<code>\nopagebreak</code>, para que no quede sola al pie de una página. Con una
 sola parte no hay frase ni etiquetas. En un banco, los scripts de la plantilla eligen
 el modo por pregunta con <code>export.amc_partes</code>: <code>"juntas"</code> (por defecto) o <code>"separadas"</code>.
 Moodle no cambia: su <i>cloze</i> ya puntúa bloque a bloque.
@@ -1852,10 +1855,11 @@ opción por defecto, y una serie de ejemplos: el enunciado en un recuadro y,
 debajo, las alternativas agrupadas por hueco («Hueco 1, 2, …»; el alumno
 recibe una de cada hueco), cada una marcada V (verde) o F (rojo) con su <code>exp</code>
 ya interpolada debajo, en gris («la misma retroalimentación que la anterior»
-si se repite), y las que la precondición excluye en ese mundo en gris claro
-con su motivo (el <code>motivo</code> del componente si lo tiene; si no, la precondición en
-letra de máquina). Al final de la pregunta se listan los mundos que un <code>Supuesto</code>
-descarta, con el mismo criterio.
+si se repite), y aparte, al final de cada hueco y bajo «Excluidas en este ejemplo»,
+las que la precondición excluye en ese mundo, atenuadas y con su motivo debajo (el
+<code>motivo</code> del componente si lo tiene; si no, la precondición en letra de máquina). Al
+final de la pregunta se listan los mundos que un <code>Supuesto</code> descarta: su texto y,
+debajo, el motivo.
 </p>
 
 <div class="org-src-container">
@@ -1964,7 +1968,7 @@ que varía entre variantes.</dd>
 <dt><code>variantes</code></dt><dd>ERROR si la pregunta no genera ninguna variante válida. AVISO con menos
 de 16 variantes sin <code>setup</code>, o menos de 60 con <code>setup</code> (contando <code>export.instances</code>).
 INFO con más de 300: la vista alumno de AMC en un solo <code>examcopy</code> puede agotar la
-memoria de <code>pdflatex</code>.</dd>
+memoria de <code>pdflatex</code> (con <code>lualatex</code>, el motor de la plantilla, no).</dd>
 <dt><code>ejecucion</code> (ERROR)</dt><dd>el <code>setup</code> o el recorrido de las variantes lanzan una excepción.</dd>
 <dt><code>constante</code> (AVISO)</dt><dd>una <code>Cuestion</code> verdadera (o falsa) en todos los mundos en que
 puede aparecer, candidata a distractor memorizable. Es INFO si la semántica es el

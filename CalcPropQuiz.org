@@ -300,16 +300,21 @@ class Rechazo(str):
     es el texto para la consola: el motivo en prosa del componente, si lo
     tiene, o «rechazada por <precond>». tex() da el mismo texto en LaTeX,
     con la precondición en letra de máquina."""
-    def __new__(cls, componente, genero='a', delante=''):
+    def __new__(cls, componente, genero='a', delante='', texto=''):
         motivo = getattr(componente, 'motivo', '') or ''
         fuente = _fuente_precond(componente)
         obj = super().__new__(cls, delante + (motivo or f'rechazad{genero} por {fuente}'))
         obj.motivo, obj.fuente, obj.genero, obj.delante = motivo, fuente, genero, delante
+        obj.texto = texto                   # el texto (LaTeX) del componente rechazado
         return obj
 
+    def tex_motivo(self):
+        """Solo el motivo, en LaTeX: el del autor o la precondición en \\texttt."""
+        return self.motivo or (f'rechazad{self.genero} por \\texttt{{'
+                               + _tex_escapa(self.fuente).replace("'", '\\textquotesingle{}') + '}')
+
     def tex(self):
-        return (_tex_escapa(self.delante) + (self.motivo or f'rechazad{self.genero} por \\texttt{{'
-                + _tex_escapa(self.fuente).replace("'", '\\textquotesingle{}') + '}'))
+        return _tex_escapa(self.delante) + self.tex_motivo()
 
 
 def _tex_escapa(s):
@@ -319,7 +324,7 @@ def _tex_escapa(s):
             .replace('}', r'\}').replace('~', r'\textasciitilde{}').replace('^', r'\^{}'))
 #+end_src
 
-Lo que reciben las vistas profe y de lectura como motivo de una exclusión es un =Rechazo=: una cadena (así la tratan la consola, los widgets y quien la compare) con el =motivo= del componente si el autor lo escribió (una frase en prosa, como las =exp=) o, si no, «rechazada por» y el código de la precondición. Su método =tex()= da lo mismo para un documento \LaTeX{}: el motivo tal cual (es texto \LaTeX{} del autor, como =exp=) o la precondición en =\texttt{}= y escapada, porque en texto normal =ns['both_ns']= partiría los =_= en subíndices.
+Lo que reciben las vistas profe y de lectura como motivo de una exclusión es un =Rechazo=: una cadena (así la tratan la consola, los widgets y quien la compare) con el =motivo= del componente si el autor lo escribió (una frase en prosa, como las =exp=) o, si no, «rechazada por» y el código de la precondición. Su método =tex()= da lo mismo para un documento \LaTeX{}: el motivo tal cual (es texto \LaTeX{} del autor, como =exp=) o la precondición en =\texttt{}= y escapada, porque en texto normal =ns['both_ns']= partiría los =_= en subíndices. =tex_motivo()= da solo esa segunda parte, sin el prefijo =delante=, y =texto= guarda el texto del componente: la vista de lectura los imprime por separado.
 
 
 ** Clase =Marcador=
@@ -895,7 +900,8 @@ def _variantes_lectura(self, seed=None, verbose=False):
                     hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
                 else:
                     descarte = Rechazo(componente, 'o', 'Supuesto ' + repr(texto)
-                                       + (': ' if getattr(componente, 'motivo', '') else ' '))
+                                       + (': ' if getattr(componente, 'motivo', '') else ' '),
+                                       texto=texto)
                     if verbose:
                         print('\n ' + descarte + '\n')
                     break
@@ -3185,7 +3191,7 @@ Reglas (código del aviso entre paréntesis):
 2. Número de variantes (``variantes``): ninguna variante válida, ERROR;
    < 16 sin ``setup`` o < 60 con ``setup`` (contando ``instances``), AVISO;
    más de 300, INFO (un solo examcopy AMC con tantas variantes puede agotar
-   la memoria de pdflatex). Si el ``setup`` o el recorrido lanzan una
+   la memoria de pdflatex; con lualatex, el motor de la plantilla, no). Si el ``setup`` o el recorrido lanzan una
    excepción, ERROR ``ejecucion``.
 3. Tabla texto → mundo (``constante``, AVISO/INFO; ``solape``, AVISO): una
    ``Cuestion`` verdadera (o falsa) en TODOS los mundos en que puede
@@ -3875,7 +3881,8 @@ def _regla_variantes(p, avisos, instances, seed):
     if n > MAX_VARIANTES_AMC:
         avisos.append(Aviso(INFO, 'variantes',
                             f"{n} variantes: por encima de ~{MAX_VARIANTES_AMC} la vista alumno AMC "
-                            "en un solo examcopy puede agotar la memoria de pdflatex"))
+                            "en un solo examcopy puede agotar la memoria de pdflatex "
+                            "(compila con lualatex, como el Makefile de la plantilla)"))
     if p.setup is None:
         if n < MIN_VARIANTES_SIN_SETUP:
             avisos.append(Aviso(AVISO, 'variantes',

@@ -259,11 +259,16 @@ QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="",
   `export.amc_partes` (`"juntas"` por defecto / `"separadas"`); lint:
   valor inválido ERROR `estructura`, varias partes sin declararlo INFO
   `amc-partes`. Probado con lualatex y la plantilla de examen de PE.
+  La frase lleva `\par\nopagebreak`. Plantilla: `LATEX_AMC` = lualatex y
+  segunda pasada si el `.log` pide `Rerun`/referencias sin definir;
+  `documento_amc` y la cabecera de `QuizLectura` cargan `fontspec` con
+  lualatex/xelatex (`\ifPDFTeX`; con T1 a secas «·» salía «ů»).
 - `cols` solo actúa si se pasa: `QuizAMCProfe(..., cols=N)` y
   `AMCblock(..., cols=N)`. Un script que genere la vista profe sin pasar
   `export.cols` la mostrará a una columna aunque la vista alumno use dos.
 - La vista alumno AMC pone todas las variantes en un `examcopy`; por encima
-  de ~300 `pdflatex` puede agotar la memoria (el lint lo informa).
+  de ~300 `pdflatex` puede agotar la memoria (el lint lo informa y remite a
+  lualatex, el `LATEX_AMC` de la plantilla).
 
 ### Vista de lectura
 

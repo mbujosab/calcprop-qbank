@@ -119,13 +119,18 @@ Si un script falla con <code>UnicodeEncodeError</code> al escribir en la termina
 define <code>PYTHONUTF8=1</code>. Auto Multiple Choice no existe para Windows (sí
 para Linux y, vía MacPorts, macOS): fuera de WSL, usa solo <code>make lint</code>,
 <code>make tabla</code> y <code>make moodle</code>.</li>
-<li>Para los PDF y el XML: <code>pdflatex</code> con los paquetes <code>automultiplechoice</code>
+<li>Para los PDF y el XML: <code>lualatex</code> (AMC y lectura) y <code>pdflatex</code> (Moodle),
+con los paquetes <code>automultiplechoice</code>
 (AMC) y <code>moodle</code> (en TeX Live: <code>tlmgr install moodle</code>, con <code>sudo</code> en
 BasicTeX/MacTeX; MiKTeX instala los paquetes por su cuenta la primera vez
 que hacen falta; AMC se instala con el programa
 <a href="https://www.auto-multiple-choice.net/">Auto Multiple Choice</a>). El preámbulo carga además <code>babel</code> en español.
-Los <code>.tex</code> de Moodle compilan también con <code>xelatex</code> (<code>LATEX_MOODLE</code>
-en el <code>Makefile</code>); con <code>pdflatex</code>, <code>scripts/fix_moodle_xml.py</code> corrige
+Los motores se cambian en el <code>Makefile</code> (<code>LATEX_AMC</code>, <code>LATEX_MOODLE</code>):
+los documentos AMC y de lectura compilan también con <code>pdflatex</code> (que
+con muchas variantes puede agotar la memoria), y los de Moodle con
+<code>xelatex</code>. Los PDF de AMC se compilan dos veces cuando hace falta, para
+que «Las preguntas N a M…» de las multiparte separadas muestre los
+números; con <code>pdflatex</code>, <code>scripts/fix_moodle_xml.py</code> corrige
 después la declaración de codificación del XML.
 Sin LaTeX puedes igualmente escribir preguntas y pasar <code>make lint</code> y
 <code>make tabla</code>; <code>make</code> a secas (= <code>make all</code>) lanza los tres exportadores y

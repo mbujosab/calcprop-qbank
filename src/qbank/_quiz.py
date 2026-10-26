@@ -120,16 +120,21 @@ class Rechazo(str):
     es el texto para la consola: el motivo en prosa del componente, si lo
     tiene, o «rechazada por <precond>». tex() da el mismo texto en LaTeX,
     con la precondición en letra de máquina."""
-    def __new__(cls, componente, genero='a', delante=''):
+    def __new__(cls, componente, genero='a', delante='', texto=''):
         motivo = getattr(componente, 'motivo', '') or ''
         fuente = _fuente_precond(componente)
         obj = super().__new__(cls, delante + (motivo or f'rechazad{genero} por {fuente}'))
         obj.motivo, obj.fuente, obj.genero, obj.delante = motivo, fuente, genero, delante
+        obj.texto = texto                   # el texto (LaTeX) del componente rechazado
         return obj
 
+    def tex_motivo(self):
+        """Solo el motivo, en LaTeX: el del autor o la precondición en \\texttt."""
+        return self.motivo or (f'rechazad{self.genero} por \\texttt{{'
+                               + _tex_escapa(self.fuente).replace("'", '\\textquotesingle{}') + '}')
+
     def tex(self):
-        return (_tex_escapa(self.delante) + (self.motivo or f'rechazad{self.genero} por \\texttt{{'
-                + _tex_escapa(self.fuente).replace("'", '\\textquotesingle{}') + '}'))
+        return _tex_escapa(self.delante) + self.tex_motivo()
 
 
 def _tex_escapa(s):
@@ -431,7 +436,8 @@ class ProblemaTipo:
                         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
                     else:
                         descarte = Rechazo(componente, 'o', 'Supuesto ' + repr(texto)
-                                           + (': ' if getattr(componente, 'motivo', '') else ' '))
+                                           + (': ' if getattr(componente, 'motivo', '') else ' '),
+                                           texto=texto)
                         if verbose:
                             print('\n ' + descarte + '\n')
                         break

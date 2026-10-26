@@ -171,7 +171,7 @@ def test_amc_multipart_separadas_una_pregunta_por_parte():
     assert r"\AMCqlabel{" + ids[0] + "}" in tex and r"\AMCqlabel{" + ids[2] + "}" in tex
     assert r"\AMCqlabel{" + ids[1] + "}" not in tex
     assert (r"\textbf{Las preguntas \AMCref{" + ids[0] + r"} a \AMCref{" + ids[2]
-            + r"} se refieren al mismo enunciado.}\par") in tex
+            + r"} se refieren al mismo enunciado.}\par\nopagebreak") in tex
     assert tex.index("Las preguntas") < tex.index(r"\begin{questionmult}")
     assert tex.count(r"\AMCnoCompleteMulti") == 3 and tex.count(r"\lastchoices") == 3
     # las intros no van en cursiva; el enunciado común va en la primera pregunta

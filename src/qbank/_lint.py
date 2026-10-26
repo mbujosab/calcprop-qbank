@@ -46,7 +46,7 @@ Reglas (código del aviso entre paréntesis):
 2. Número de variantes (``variantes``): ninguna variante válida, ERROR;
    < 16 sin ``setup`` o < 60 con ``setup`` (contando ``instances``), AVISO;
    más de 300, INFO (un solo examcopy AMC con tantas variantes puede agotar
-   la memoria de pdflatex). Si el ``setup`` o el recorrido lanzan una
+   la memoria de pdflatex; con lualatex, el motor de la plantilla, no). Si el ``setup`` o el recorrido lanzan una
    excepción, ERROR ``ejecucion``.
 3. Tabla texto → mundo (``constante``, AVISO/INFO; ``solape``, AVISO): una
    ``Cuestion`` verdadera (o falsa) en TODOS los mundos en que puede
@@ -704,7 +704,8 @@ def _regla_variantes(p, avisos, instances, seed):
     if n > MAX_VARIANTES_AMC:
         avisos.append(Aviso(INFO, 'variantes',
                             f"{n} variantes: por encima de ~{MAX_VARIANTES_AMC} la vista alumno AMC "
-                            "en un solo examcopy puede agotar la memoria de pdflatex"))
+                            "en un solo examcopy puede agotar la memoria de pdflatex "
+                            "(compila con lualatex, como el Makefile de la plantilla)"))
     if p.setup is None:
         if n < MIN_VARIANTES_SIN_SETUP:
             avisos.append(Aviso(AVISO, 'variantes',

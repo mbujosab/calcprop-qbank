@@ -197,10 +197,11 @@ def _amc_partes_separadas(nombre, etiqueta, enunciado, partes, last_choice, cols
     ids = [f'{nombre_tex}-{etiqueta}-p{k + 1}' for k in range(len(partes))]
     frase = (ref_text.replace('{a}', '\\AMCref{' + ids[0] + '}')
                      .replace('{b}', '\\AMCref{' + ids[-1] + '}'))
-    # El \\par final separa la frase del \\AMCbeginQuestion de la primera
-    # pregunta (si no, su \\hspace negativo se pega a la frase).
+    # El \par final separa la frase del \AMCbeginQuestion de la primera
+    # pregunta (si no, su \hspace negativo se pega a la frase); \nopagebreak
+    # impide que la frase quede sola al pie de una página.
     s  = '\\element{' + nombre_tex + '}{' + aux_latex + '\n'
-    s += ' \\par\\vspace{1ex}\\noindent\\textbf{' + frase + '}\\par\n'
+    s += ' \\par\\vspace{1ex}\\noindent\\textbf{' + frase + '}\\par\\nopagebreak\n'
     for k, (intro, cuestiones) in enumerate(partes):
         etiquetada = k in (0, len(partes) - 1)
         s += (' \\begin{questionmult}{' + ids[k] + '}'
@@ -491,11 +492,17 @@ def _fecha_lectura():
     return f'{hoy.day} de {meses[hoy.month - 1]} de {hoy.year}'
 
 
+# Codificación según el motor: con lualatex o xelatex, fontenc T1 sin fontspec
+# coloca cada carácter en la casilla T1 de su código Unicode («·» sale «ů»).
+_TEX_FUENTES = ('\\usepackage{iftex}\n'
+                '\\ifPDFTeX\\usepackage[utf8]{inputenc}\\usepackage[T1]{fontenc}'
+                '\\else\\usepackage{fontspec}\\fi\n')
+
+
 def _tex_lectura_cabecera(titulo, aux_latex):
     return (
         '\\documentclass[11pt,a4paper]{article}\n'
-        '\\usepackage[utf8]{inputenc}\n'
-        '\\usepackage[T1]{fontenc}\n'
+        + _TEX_FUENTES +
         '\\usepackage{amsmath,amssymb}\n'
         '\\usepackage[margin=2.2cm]{geometry}\n'
         '\\usepackage{xcolor,enumitem,graphicx}\n'
@@ -505,6 +512,7 @@ def _tex_lectura_cabecera(titulo, aux_latex):
         '\\newcommand{\\qbF}{\\textbf{\\textcolor{qbrojo}{F}}}\n'
         '\\newcommand{\\qbX}{\\textcolor{black!40}{--}}\n'
         '\\newcommand{\\qbExp}[1]{\\par\\vspace{1pt}{\\small\\color{black!65}\\emph{#1}}\\par}\n'
+        '\\newcommand{\\qbMotivo}[1]{\\par\\vspace{1pt}{\\small\\color{black!65}\\emph{motivo: #1}}\\par}\n'
         '\\newcommand{\\qbRecuadro}[1]{\\noindent\\fbox{\\parbox{\\dimexpr\\linewidth-2\\fboxsep-2\\fboxrule}{#1}}}\n'
         '\\setlength{\\parindent}{0pt}\\setlength{\\parskip}{4pt}\n'
         '\\title{' + titulo + '}\\date{' + _fecha_lectura() + '}\n'
@@ -513,7 +521,8 @@ def _tex_lectura_cabecera(titulo, aux_latex):
         'combinación de valores de su \\texttt{setup}). En cada hueco el alumno recibe '
         '\\emph{una} de las alternativas listadas. \\qbV/\\qbF{} es el valor de verdad en ese '
         'ejemplo; debajo, en gris, la retroalimentación. Las alternativas que la precondición '
-        'excluye en ese mundo van en gris claro, con su motivo.\n\n')
+        'excluye en ese mundo van aparte, al final de su hueco («Excluidas en este ejemplo»), '
+        'con su motivo debajo.\n\n')
 
 
 def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, last_choice_text):
@@ -559,22 +568,37 @@ def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, l
                 L.append('\\qbRecuadro{' + pa.enunciado.strip() + '}\\par\\medskip\n')
             for hueco in pa.huecos:
                 h += 1
-                L.append('\\par\\textbf{Hueco ' + str(h) + '}\\begin{itemize}[leftmargin=2.2em,itemsep=3pt]\n')
-                prev = None
-                for a in hueco:
-                    if a.valor is None:
-                        L.append('\\item[\\qbX] {\\color{black!40} ' + a.texto + ' --- '
-                                 + _motivo_lectura(a.motivo) + '}\n')
-                        continue
-                    exp = ('la misma retroalimentación que la anterior'
-                           if a.exp and a.exp == prev else a.exp)
-                    L.append('\\item[' + ('\\qbV' if a.valor else '\\qbF') + '] ' + a.texto
-                             + ('\\qbExp{' + exp + '}' if exp else '') + '\n')
-                    prev = a.exp
-                L.append('\\end{itemize}\n')
+                activas   = [a for a in hueco if a.valor is not None]
+                excluidas = [a for a in hueco if a.valor is None]
+                L.append('\\par\\textbf{Hueco ' + str(h) + '}')
+                if activas:
+                    L.append('\\begin{itemize}[leftmargin=2.2em,itemsep=3pt]\n')
+                    prev = None
+                    for a in activas:
+                        exp = ('la misma retroalimentación que la anterior'
+                               if a.exp and a.exp == prev else a.exp)
+                        L.append('\\item[' + ('\\qbV' if a.valor else '\\qbF') + '] ' + a.texto
+                                 + ('\\qbExp{' + exp + '}' if exp else '') + '\n')
+                        prev = a.exp
+                    L.append('\\end{itemize}\n')
+                if excluidas:
+                    L.append('\\par{\\small\\textbf{Excluidas en este ejemplo:}}'
+                             '\\begin{itemize}[leftmargin=2.2em,itemsep=3pt]\n')
+                    for a in excluidas:
+                        L.append('\\item[\\qbX] {\\color{black!55} ' + a.texto + '}'
+                                 '\\qbMotivo{' + _motivo_lectura(a.motivo) + '}\n')
+                    L.append('\\end{itemize}\n')
     if descartes:
-        L.append('\\par{\\small\\color{black!65}Mundos descartados: '
-                 + '; '.join(_motivo_lectura(d) for d in descartes) + '.}\n')
+        L.append('\\par\\medskip\\textbf{Mundos descartados}'
+                 '\\begin{itemize}[leftmargin=2.2em,itemsep=3pt]\n')
+        for d in descartes:
+            texto = getattr(d, 'texto', '').strip()
+            if texto and hasattr(d, 'tex_motivo'):
+                L.append('\\item[\\qbX] {\\color{black!55} ' + texto + '}'
+                         '\\qbMotivo{' + d.tex_motivo() + '}\n')
+            else:
+                L.append('\\item[\\qbX] {\\color{black!65}' + _motivo_lectura(d) + '}\n')
+        L.append('\\end{itemize}\n')
     if faltan:
         L.append('\\par{\\small\\color{black!65}Combinaciones no encontradas: '
                  + '; '.join(nombre_mundo(m) + ' con '

@@ -180,7 +180,8 @@ Si en cambio sale =AttributeError: … no attribute '__version__'= o =qbank-init
 existe, tienes una versión anterior a la 0.6: actualiza con
 =pip install -U calcprop-qbank=.
 Para los PDF y el XML de Moodle hace falta
-además =pdflatex= con los paquetes =automultiplechoice= (lo instala el programa
+además \LaTeX{} (=lualatex= para AMC y la lectura, =pdflatex= para Moodle, en los
+proyectos de =qbank-init=) con los paquetes =automultiplechoice= (lo instala el programa
 [[https://www.auto-multiple-choice.net/][Auto Multiple Choice]]) y =moodle= (=tlmgr install moodle= en TeX Live).
 
 ** Nota para usuarios de Windows
@@ -907,7 +908,9 @@ enunciado."=): ={a}= y ={b}= se sustituyen por =\AMCref= a las etiquetas de la p
 la última pregunta, y termina en =\par= (sin él, el =\hspace= negativo que algunos
 =\AMCbeginQuestion= ponen al principio de la pregunta se pegaría a la frase). AMC
 prefija las etiquetas con el número de copia, de modo que valen en todas las copias,
-y *los números salen tras la segunda pasada de LaTeX* (en la primera, =??=). Con una
+y *los números salen tras la segunda pasada de LaTeX* (en la primera, =??=; el
+=Makefile= de la plantilla compila dos veces cuando hace falta). La frase va seguida de
+=\nopagebreak=, para que no quede sola al pie de una página. Con una
 sola parte no hay frase ni etiquetas. En un banco, los scripts de la plantilla eligen
 el modo por pregunta con =export.amc_partes=: ="juntas"= (por defecto) o ="separadas"=.
 Moodle no cambia: su /cloze/ ya puntúa bloque a bloque.
@@ -1142,10 +1145,11 @@ opción por defecto, y una serie de ejemplos: el enunciado en un recuadro y,
 debajo, las alternativas agrupadas por hueco («Hueco 1, 2, …»; el alumno
 recibe una de cada hueco), cada una marcada V (verde) o F (rojo) con su =exp=
 ya interpolada debajo, en gris («la misma retroalimentación que la anterior»
-si se repite), y las que la precondición excluye en ese mundo en gris claro
-con su motivo (el =motivo= del componente si lo tiene; si no, la precondición en
-letra de máquina). Al final de la pregunta se listan los mundos que un =Supuesto=
-descarta, con el mismo criterio.
+si se repite), y aparte, al final de cada hueco y bajo «Excluidas en este ejemplo»,
+las que la precondición excluye en ese mundo, atenuadas y con su motivo debajo (el
+=motivo= del componente si lo tiene; si no, la precondición en letra de máquina). Al
+final de la pregunta se listan los mundos que un =Supuesto= descarta: su texto y,
+debajo, el motivo.
 
 #+begin_src python :eval no
 QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
@@ -1232,7 +1236,7 @@ un =INFO= es información. Las reglas, con el código de cada aviso:
 - =variantes= :: ERROR si la pregunta no genera ninguna variante válida. AVISO con menos
   de 16 variantes sin =setup=, o menos de 60 con =setup= (contando =export.instances=).
   INFO con más de 300: la vista alumno de AMC en un solo =examcopy= puede agotar la
-  memoria de =pdflatex=.
+  memoria de =pdflatex= (con =lualatex=, el motor de la plantilla, no).
 - =ejecucion= (ERROR) :: el =setup= o el recorrido de las variantes lanzan una excepción.
 - =constante= (AVISO) :: una =Cuestion= verdadera (o falsa) en todos los mundos en que
   puede aparecer, candidata a distractor memorizable. Es INFO si la semántica es el

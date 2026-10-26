@@ -24,7 +24,9 @@
 # ─────────────────────────────────────────────────────────────────────────
 
 PYTHON       ?= python3
-LATEX_AMC    ?= pdflatex -interaction=nonstopmode
+# lualatex para AMC y lectura: Unicode nativo y sin el tope de memoria de
+# pdflatex con muchas variantes (los documentos también compilan con pdflatex).
+LATEX_AMC    ?= lualatex -interaction=nonstopmode
 LATEX_MOODLE ?= pdflatex -interaction=nonstopmode -halt-on-error
 NOMBRES      := $(shell $(PYTHON) scripts/_comun.py --leccion "$(LECCION)")
 # Notación del curso (config.NOTACION_CONOCIDA) que el inventario de objetos del
@@ -103,21 +105,26 @@ moodle: lint-previo
 # \element roto también «producen» un PDF (vacío), así que además se buscan en
 # el .log los errores que de verdad lo invalidan.
 ERRORES_LATEX := 'Emergency stop|File ended while|No group mode|Undefined control sequence|Runaway argument'
+# Segunda pasada solo si hace falta: \AMCref («Las preguntas N a M…» de las
+# multiparte con "amc_partes": "separadas") se resuelve en la segunda.
+RERUN_LATEX := 'Rerun to get|There were undefined references'
 
 build/amc/%.pdf: build/amc/%-doc.tex build/amc/%.tex
-	@echo "  pdflatex $*"
+	@echo "  $(firstword $(LATEX_AMC)) $*"
 	@cd build/amc && rm -f $*.pdf; $(LATEX_AMC) -jobname=$* $*-doc.tex > /dev/null; \
+	 if grep -qE $(RERUN_LATEX) $*.log; then $(LATEX_AMC) -jobname=$* $*-doc.tex > /dev/null; fi; \
 	 if ! test -f $*.pdf || grep -qE $(ERRORES_LATEX) $*.log; then \
 	   rm -f $*.pdf; echo "  ERROR en $* (ver build/amc/$*.log)"; exit 1; fi
 
 build/amc-student/%.pdf: build/amc-student/%-doc.tex build/amc-student/%.tex
-	@echo "  pdflatex $*"
+	@echo "  $(firstword $(LATEX_AMC)) $*"
 	@cd build/amc-student && rm -f $*.pdf; $(LATEX_AMC) -jobname=$* $*-doc.tex > /dev/null; \
+	 if grep -qE $(RERUN_LATEX) $*.log; then $(LATEX_AMC) -jobname=$* $*-doc.tex > /dev/null; fi; \
 	 if ! test -f $*.pdf || grep -qE $(ERRORES_LATEX) $*.log; then \
 	   rm -f $*.pdf; echo "  ERROR en $* (ver build/amc-student/$*.log)"; exit 1; fi
 
 build/lectura/%.pdf: build/lectura/%.tex
-	@echo "  pdflatex $*"
+	@echo "  $(firstword $(LATEX_AMC)) $*"
 	@cd build/lectura && rm -f $*.pdf; $(LATEX_AMC) $*.tex > /dev/null; \
 	 if ! test -f $*.pdf || grep -qE $(ERRORES_LATEX) $*.log; then \
 	   rm -f $*.pdf; echo "  ERROR en $* (ver build/lectura/$*.log)"; exit 1; fi

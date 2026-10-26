@@ -617,6 +617,41 @@ un banco de tres preguntas desde =qbank-init= siguiendo solo los documentos;
 anotar dónde se atasca y corregir. Revisar también D2 (¿prefirió Python o
 JSON?) y comprobar los notebooks en MyBinder.
 
+Las hojas se recogen y tabulan fuera del repositorio (=Fase5-recogida.org=
+y las respuestas no se versionan: llevan datos personales).
+
+*** Primera respuesta (26 de octubre de 2026)
+En Windows y sin experiencia previa con Python, la prueba se detuvo
+*antes de instalar qbank*: tras instalar Python, no logró ejecutar las
+órdenes del README; todo indica que las escribía en el intérprete de
+Python y no en una terminal. En su lugar preparó preguntas tipo test en un
+procesador de textos. Confirma H1 (Windows) y H2 (punto de entrada) en su
+forma más básica. Una sola respuesta: ideas para cuando haya más, no
+cambios todavía.
+
+Ideas para el futuro:
+- *Antes de nada, una terminal.* El README y el de la plantilla dan por
+  sabido qué es una terminal y que las órdenes no se escriben dentro de
+  Python. Un paso 0 para Windows: abrir PowerShell (o Git Bash), cómo se
+  reconoce que se está en la terminal y no en =>>>=, y qué hacer con
+  =python: command not found= (casilla «Add python.exe to PATH» del
+  instalador, el atajo de la Microsoft Store, =py= en lugar de =python=).
+  Quizá con una captura de cada ventana.
+- *Un camino sin terminal.* Para quien no ha usado nunca Python, MyBinder
+  (los cuadernos ya funcionan ahí) o un cuaderno de «primer banco» puede ser
+  mejor puerta que =qbank-init= + =make=; valorar si se ofrece como camino
+  de entrada y no solo como demostración.
+- *Del Word a JSON con una IA.* Quien prepara exámenes tipo test los tiene
+  ya en un procesador de textos (enunciado, cuatro opciones, la correcta
+  marcada). Un prompt en =prompts/= que convierta esa lista en preguntas de
+  qbank —primero tal cual (una pregunta fija por cada ítem) y después
+  proponiendo los mundos y las alternativas por hueco— aprovecha el
+  material que ya existe y retrasa el momento de aprender la mecánica.
+  Faltaría decidir qué devuelve la IA (JSON o la lista Python de
+  =nueva_pregunta.py=) y cómo lo comprueba quien no ejecuta =lint=.
+- *Señal para la hoja.* Añadir a «Antes de empezar» si se ha usado alguna
+  vez una terminal; separa los tropiezos de entorno de los de qbank.
+
 * Orden de ejecución
 
 Fase 0 → 1 → 2 → 3 → 4 → 5. La plantilla (1) va antes que los textos

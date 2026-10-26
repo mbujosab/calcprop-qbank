@@ -414,9 +414,16 @@ class TestMotivoExclusion:
         QuizLectura("L", str(tmp_path), [self._problema(motivo_s="solo con $x$ positivo")])
         tex = (tmp_path / "L.tex").read_text(encoding="utf-8")
         assert "solo con $x$ positivo" in tex           # el mundo descartado, en prosa
+        # excluidas aparte, con su rótulo, y el motivo debajo (no en la misma línea)
+        assert r"\textbf{Excluidas en este ejemplo:}" in tex
+        assert r"$x$ es grande}\qbMotivo{rechazada por \texttt{" in tex
+        assert r"\textbf{Mundos descartados}" in tex
+        assert r"Sea $x=1$.}\qbMotivo{solo con $x$ positivo}" in tex
         QuizLectura("L2", str(tmp_path), [self._problema()])
         tex = (tmp_path / "L2.tex").read_text(encoding="utf-8")
         assert r"rechazado por \texttt{lambda ns: ns[\textquotesingle{}x\textquotesingle{}] < 0}" in tex
+        # fontspec con lualatex/xelatex: con T1 a secas, «·» sale «ů»
+        assert r"\ifPDFTeX" in tex and r"\usepackage{fontspec}" in tex
 
     def test_json_y_python_conservan_el_motivo(self, tmp_path):
         from qbank import (Cuestion, load_problema, problema_to_dict, problema_to_python,

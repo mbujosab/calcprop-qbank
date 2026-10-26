@@ -45,13 +45,18 @@ procesan; solo quedan fuera cuando se filtra con =LECCION=.
   define =PYTHONUTF8=1=. Auto Multiple Choice no existe para Windows (sí
   para Linux y, vía MacPorts, macOS): fuera de WSL, usa solo =make lint=,
   =make tabla= y =make moodle=.
-- Para los PDF y el XML: =pdflatex= con los paquetes =automultiplechoice=
+- Para los PDF y el XML: =lualatex= (AMC y lectura) y =pdflatex= (Moodle),
+  con los paquetes =automultiplechoice=
   (AMC) y =moodle= (en TeX Live: =tlmgr install moodle=, con =sudo= en
   BasicTeX/MacTeX; MiKTeX instala los paquetes por su cuenta la primera vez
   que hacen falta; AMC se instala con el programa
   [[https://www.auto-multiple-choice.net/][Auto Multiple Choice]]). El preámbulo carga además =babel= en español.
-  Los =.tex= de Moodle compilan también con =xelatex= (=LATEX_MOODLE=
-  en el =Makefile=); con =pdflatex=, =scripts/fix_moodle_xml.py= corrige
+  Los motores se cambian en el =Makefile= (=LATEX_AMC=, =LATEX_MOODLE=):
+  los documentos AMC y de lectura compilan también con =pdflatex= (que
+  con muchas variantes puede agotar la memoria), y los de Moodle con
+  =xelatex=. Los PDF de AMC se compilan dos veces cuando hace falta, para
+  que «Las preguntas N a M…» de las multiparte separadas muestre los
+  números; con =pdflatex=, =scripts/fix_moodle_xml.py= corrige
   después la declaración de codificación del XML.
   Sin LaTeX puedes igualmente escribir preguntas y pasar =make lint= y
   =make tabla=; =make= a secas (= =make all=) lanza los tres exportadores y

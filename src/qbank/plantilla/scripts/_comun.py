@@ -92,8 +92,10 @@ def documento_amc(nombre, explain=False):
     exclusiones = r'  \AMCtext{explain}{\textbf{Exclusiones:}}' + '\n' if explain else ''
     return (
         '\\documentclass[a4paper]{article}\n'
-        '\\usepackage[utf8]{inputenc}\n'
-        '\\usepackage[T1]{fontenc}\n'
+        # con lualatex (el LATEX_AMC del Makefile), fontspec; con pdflatex, T1
+        '\\usepackage{iftex}\n'
+        '\\ifPDFTeX\\usepackage[utf8]{inputenc}\\usepackage[T1]{fontenc}'
+        '\\else\\usepackage{fontspec}\\fi\n'
         '\\usepackage{multicol}\n'
         '\\usepackage{graphicx}\n'
         + config.PREAMBULO_AMC.strip() + '\n'
