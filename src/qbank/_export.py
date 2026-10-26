@@ -139,7 +139,7 @@ def AMC_VF(nombre, etiqueta, enunciado, cuestiones, opc=None):
     s = s + '}\n\n'
     return s
 
-AMC_REF_TEXT = "Las preguntas {a} a {b} se refieren al mismo enunciado."
+AMC_REF_TEXT = "Las preguntas {a} a {b} se refieren al siguiente enunciado."
 
 
 def AMC_multipart(nombre, etiqueta, enunciado, partes,

@@ -885,7 +885,7 @@ pregunta =N= con tres partes sale:
 
 #+begin_example
 \element{N}{<aux_latex>
- \par\vspace{1ex}\noindent\textbf{Las preguntas \AMCref{N-E-p1} a \AMCref{N-E-p3} se refieren al mismo enunciado.}\par
+ \par\vspace{1ex}\noindent\textbf{Las preguntas \AMCref{N-E-p1} a \AMCref{N-E-p3} se refieren al siguiente enunciado.}\par\nopagebreak
  \begin{questionmult}{N-E-p1}\AMCqlabel{N-E-p1}
   <enunciado común y de la parte 1>
   {\AMCnoCompleteMulti <casillas de la parte 1> }
@@ -903,7 +903,7 @@ pregunta =N= con tres partes sale:
 
 Las intros de las partes no van en cursiva (son el enunciado de su pregunta); con
 =profe=True=, cada pregunta lleva su propio =\explain= con sus rechazadas. La frase es
-=ref_text= (por defecto =AMC_REF_TEXT=, ="Las preguntas {a} a {b} se refieren al mismo
+=ref_text= (por defecto =AMC_REF_TEXT=, ="Las preguntas {a} a {b} se refieren al siguiente
 enunciado."=): ={a}= y ={b}= se sustituyen por =\AMCref= a las etiquetas de la primera y
 la última pregunta, y termina en =\par= (sin él, el =\hspace= negativo que algunos
 =\AMCbeginQuestion= ponen al principio de la pregunta se pegaría a la frase). AMC

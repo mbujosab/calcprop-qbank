@@ -1463,7 +1463,7 @@ pregunta <code>N</code> con tres partes sale:
 
 <pre class="example" id="orgd528858">
 \element{N}{&lt;aux_latex&gt;
- \par\vspace{1ex}\noindent\textbf{Las preguntas \AMCref{N-E-p1} a \AMCref{N-E-p3} se refieren al mismo enunciado.}\par
+ \par\vspace{1ex}\noindent\textbf{Las preguntas \AMCref{N-E-p1} a \AMCref{N-E-p3} se refieren al siguiente enunciado.}\par\nopagebreak
  \begin{questionmult}{N-E-p1}\AMCqlabel{N-E-p1}
   &lt;enunciado común y de la parte 1&gt;
   {\AMCnoCompleteMulti &lt;casillas de la parte 1&gt; }
@@ -1482,7 +1482,7 @@ pregunta <code>N</code> con tres partes sale:
 <p>
 Las intros de las partes no van en cursiva (son el enunciado de su pregunta); con
 <code>profe=True</code>, cada pregunta lleva su propio <code>\explain</code> con sus rechazadas. La frase es
-<code>ref_text</code> (por defecto <code>AMC_REF_TEXT</code>, <code>"Las preguntas {a} a {b} se refieren al mismo
+<code>ref_text</code> (por defecto <code>AMC_REF_TEXT</code>, <code>"Las preguntas {a} a {b} se refieren al siguiente
 enunciado."</code>): <code>{a}</code> y <code>{b}</code> se sustituyen por <code>\AMCref</code> a las etiquetas de la primera y
 la última pregunta, y termina en <code>\par</code> (sin él, el <code>\hspace</code> negativo que algunos
 <code>\AMCbeginQuestion</code> ponen al principio de la pregunta se pegaría a la frase). AMC

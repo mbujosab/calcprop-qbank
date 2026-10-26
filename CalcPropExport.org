@@ -1296,7 +1296,7 @@ Genera un único bloque =\begin{questionmult}= (un solo identificador por varian
 #+NAME: AMC multi-parte
 #+begin_src python :noweb yes
 
-AMC_REF_TEXT = "Las preguntas {a} a {b} se refieren al mismo enunciado."
+AMC_REF_TEXT = "Las preguntas {a} a {b} se refieren al siguiente enunciado."
 
 
 def AMC_multipart(nombre, etiqueta, enunciado, partes,
@@ -1377,7 +1377,7 @@ def _amc_partes_separadas(nombre, etiqueta, enunciado, partes, last_choice, cols
 
 #+end_src
 
-Con =separadas=True= cada parte es una pregunta AMC propia (=\begin{questionmult}{nombre-etiqueta-pK}=), todas dentro del mismo =\element=: como =\shufflegroup= y =\copygroup= mueven elementos enteros, las partes viajan juntas y en orden y se numeran consecutivamente. Cada una tiene su fila en la hoja de respuestas y puntúa como una pregunta normal; un bloque de /k/ partes cuenta, pues, como /k/ preguntas del examen (aunque =\copygroup[4]{…}= sigue escogiendo cuatro /elementos/). Delante va =ref_text= (por defecto =AMC_REF_TEXT=, «Las preguntas {a} a {b} se refieren al mismo enunciado.»), en negrita y terminada en =\par\nopagebreak= (para que no quede sola al pie de una página); ={a}= y ={b}= se sustituyen por =\AMCref= a las etiquetas que =\AMCqlabel= pone en la primera y la última pregunta. AMC prefija esas etiquetas con el número de copia, así que el mismo nombre vale en todas las copias; los números reales aparecen tras la segunda pasada de \LaTeX{}. Las intros de las partes no van en cursiva (son el enunciado de su pregunta) y, con =profe=True=, cada pregunta lleva su propio =\explain=. Con una sola parte no hay frase ni etiquetas: sale lo mismo que en el modo por defecto.
+Con =separadas=True= cada parte es una pregunta AMC propia (=\begin{questionmult}{nombre-etiqueta-pK}=), todas dentro del mismo =\element=: como =\shufflegroup= y =\copygroup= mueven elementos enteros, las partes viajan juntas y en orden y se numeran consecutivamente. Cada una tiene su fila en la hoja de respuestas y puntúa como una pregunta normal; un bloque de /k/ partes cuenta, pues, como /k/ preguntas del examen (aunque =\copygroup[4]{…}= sigue escogiendo cuatro /elementos/). Delante va =ref_text= (por defecto =AMC_REF_TEXT=, «Las preguntas {a} a {b} se refieren al siguiente enunciado.»), en negrita y terminada en =\par\nopagebreak= (para que no quede sola al pie de una página); ={a}= y ={b}= se sustituyen por =\AMCref= a las etiquetas que =\AMCqlabel= pone en la primera y la última pregunta. AMC prefija esas etiquetas con el número de copia, así que el mismo nombre vale en todas las copias; los números reales aparecen tras la segunda pasada de \LaTeX{}. Las intros de las partes no van en cursiva (son el enunciado de su pregunta) y, con =profe=True=, cada pregunta lleva su propio =\explain=. Con una sola parte no hay frase ni etiquetas: sale lo mismo que en el modo por defecto.
 
 Se usa en un bucle sobre =por_partes()=, pasando la lista de partes entera (el enunciado común va vacío: cada parte lleva el suyo):
 

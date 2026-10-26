@@ -202,7 +202,7 @@ En AMC hay dos modos, que se eligen con =export.amc_partes=:
   quieras de verdad /una/ pregunta con varios grupos de casillas.
 - ="separadas"=: una pregunta numerada por parte (cada una con sus
   casillas y su puntuación normal), juntas y en orden, precedidas de «Las
-  preguntas N a M se refieren al mismo enunciado». Reproduce los exámenes
+  preguntas N a M se refieren al siguiente enunciado». Reproduce los exámenes
   clásicos: un enunciado largo (la primera pregunta lleva las tablas) y
   varias preguntas que se remiten a él.
 
