@@ -242,6 +242,7 @@ del mismo nombre):
 | =semantica= | Fórmula =calcprop= como cadena: ="v('A')"=, ="alguno(v('A'), v('B'))"=, ="True"=, ="False"=, o ="lambda ns: ns['x'] > 0"=. |
 | =precond=   | Condición para que el componente pueda aparecer; mismo formato. Por defecto ="True"=.                                   |
 | =exp=       | Solo =Cuestion=: explicación que Moodle muestra tras responder; admite =@{variable}=. Opcional.                         |
+| =motivo=    | La =precond= en una frase, para las vistas profe y de lectura (si no, muestran el código). Se redacta como =exp=. Opcional. |
 
 Campo =export=:
 

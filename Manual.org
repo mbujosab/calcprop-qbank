@@ -625,7 +625,13 @@ de =qbank-init=).
 
 Cada =Supuesto= es un objeto con =tipo=, =enunciado=, =semantica= y =precond=; cada
 =Cuestion= añade =exp=. Las fórmulas y lambdas van como cadenas, exactamente como se
-escribirían en Python. Las barras de LaTeX se doblan (=\\mathcal=).
+escribirían en Python. Las barras de LaTeX se doblan (=\\mathcal=). Los dos admiten
+además =motivo= (opcional): la =precond= explicada en una frase, que las vistas profe y
+de lectura imprimen en lugar del código cuando el componente queda excluido (sin él,
+imprimen «rechazada por» y la precondición en letra de máquina). Se redacta como las
+=exp=, para quien no ha diseñado la pregunta: sin jerga del diseño ni etiquetas
+=v('…')=, p. ej. ="motivo": "solo si ninguno de los dos regresores es significativo
+por separado"=. En Python, =Cuestion(..., motivo="…")=.
 
 Puedes añadir claves propias de nivel superior, como ="_nivel": "M"= o ="_tema"=: =qbank=
 las ignora al cargar y =save_problema= las conserva.
@@ -1137,8 +1143,9 @@ debajo, las alternativas agrupadas por hueco («Hueco 1, 2, …»; el alumno
 recibe una de cada hueco), cada una marcada V (verde) o F (rojo) con su =exp=
 ya interpolada debajo, en gris («la misma retroalimentación que la anterior»
 si se repite), y las que la precondición excluye en ese mundo en gris claro
-con su motivo. Al final de la pregunta se listan los mundos que un =Supuesto=
-descarta.
+con su motivo (el =motivo= del componente si lo tiene; si no, la precondición en
+letra de máquina). Al final de la pregunta se listan los mundos que un =Supuesto=
+descarta, con el mismo criterio.
 
 #+begin_src python :eval no
 QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,

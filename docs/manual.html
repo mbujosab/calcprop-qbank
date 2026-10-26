@@ -1102,7 +1102,13 @@ de <code>qbank-init</code>).
 <p>
 Cada <code>Supuesto</code> es un objeto con <code>tipo</code>, <code>enunciado</code>, <code>semantica</code> y <code>precond</code>; cada
 <code>Cuestion</code> añade <code>exp</code>. Las fórmulas y lambdas van como cadenas, exactamente como se
-escribirían en Python. Las barras de LaTeX se doblan (<code>\\mathcal</code>).
+escribirían en Python. Las barras de LaTeX se doblan (<code>\\mathcal</code>). Los dos admiten
+además <code>motivo</code> (opcional): la <code>precond</code> explicada en una frase, que las vistas profe y
+de lectura imprimen en lugar del código cuando el componente queda excluido (sin él,
+imprimen «rechazada por» y la precondición en letra de máquina). Se redacta como las
+<code>exp</code>, para quien no ha diseñado la pregunta: sin jerga del diseño ni etiquetas
+<code>v('…')</code>, p. ej. <code>"motivo": "solo si ninguno de los dos regresores es significativo
+por separado"</code>. En Python, <code>Cuestion(..., motivo</code>"…")=.
 </p>
 
 <p>
@@ -1847,8 +1853,9 @@ debajo, las alternativas agrupadas por hueco («Hueco 1, 2, …»; el alumno
 recibe una de cada hueco), cada una marcada V (verde) o F (rojo) con su <code>exp</code>
 ya interpolada debajo, en gris («la misma retroalimentación que la anterior»
 si se repite), y las que la precondición excluye en ese mundo en gris claro
-con su motivo. Al final de la pregunta se listan los mundos que un <code>Supuesto</code>
-descarta.
+con su motivo (el <code>motivo</code> del componente si lo tiene; si no, la precondición en
+letra de máquina). Al final de la pregunta se listan los mundos que un <code>Supuesto</code>
+descarta, con el mismo criterio.
 </p>
 
 <div class="org-src-container">

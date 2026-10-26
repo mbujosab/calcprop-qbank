@@ -511,6 +511,13 @@ también se puede filtrar así (~precond="lambda ns: ns['k'] != 2"~): en la
 vista alumno la variante se descarta igual; en la vista profe la cuestión
 aparece al final, en «Exclusiones», con su condición.
 
+La condición en crudo (=lambda ns: ns['both_ns'] and ns['rechaza']=) la
+entiende quien escribió la pregunta, no quien la revisa. Dale un =motivo=:
+una frase que diga cuándo tiene sentido la cuestión, redactada como las
+=exp= (sin jerga del diseño ni etiquetas =v('…')=), p. ej. ~motivo="solo si
+ninguno de los dos regresores es significativo por separado"~. Las vistas
+profe y de lectura la imprimen en lugar del código.
+
 Las lambdas se escriben *como cadena* también en Python
 (~precond="lambda ns: …"~): así la pregunta puede guardarse en JSON. Una
 lambda escrita como función Python no se puede guardar.

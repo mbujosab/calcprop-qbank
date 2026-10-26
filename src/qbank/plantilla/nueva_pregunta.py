@@ -109,7 +109,7 @@ def main(argv):
             print(f"\n[{i}] {enunciado}")
             for texto, correcto, activa, *resto in cuestiones:
                 marca = ('✓' if correcto else '✗') if activa else '·'
-                print(f"   {marca} {texto}")
+                print(f"   {marca} {texto}" + ("" if activa else f"  [{correcto}]"))
     if len(variantes) >= MAX_VARIANTES:
         print("\n   … (el resto, con las explicaciones y las exclusiones, en make amc)")
 

@@ -113,6 +113,30 @@ def _fuente_precond(componente):
     if orig and isinstance(orig[1], str):
         return orig[1]
     return repr(componente.p)
+
+
+class Rechazo(str):
+    """Por qué un componente queda excluido por su precondición. Como cadena
+    es el texto para la consola: el motivo en prosa del componente, si lo
+    tiene, o «rechazada por <precond>». tex() da el mismo texto en LaTeX,
+    con la precondición en letra de máquina."""
+    def __new__(cls, componente, genero='a', delante=''):
+        motivo = getattr(componente, 'motivo', '') or ''
+        fuente = _fuente_precond(componente)
+        obj = super().__new__(cls, delante + (motivo or f'rechazad{genero} por {fuente}'))
+        obj.motivo, obj.fuente, obj.genero, obj.delante = motivo, fuente, genero, delante
+        return obj
+
+    def tex(self):
+        return (_tex_escapa(self.delante) + (self.motivo or f'rechazad{self.genero} por \\texttt{{'
+                + _tex_escapa(self.fuente).replace("'", '\\textquotesingle{}') + '}'))
+
+
+def _tex_escapa(s):
+    """Escapa en texto LaTeX los caracteres especiales de una cadena de código."""
+    return (str(s).replace('\\', r'\textbackslash{}').replace('_', r'\_').replace('%', r'\%')
+            .replace('&', r'\&').replace('#', r'\#').replace('$', r'\$').replace('{', r'\{')
+            .replace('}', r'\}').replace('~', r'\textasciitilde{}').replace('^', r'\^{}'))
 def CuestionesJuntas(lista):
     def CreaLista(t):
         return t if isinstance(t, list) else [t]
@@ -155,21 +179,23 @@ class Marcador:
         return n
 
 class Supuesto:
-    def __init__(self, enunciado, semantica, precond=True):
+    def __init__(self, enunciado, semantica, precond=True, *, motivo=""):
         self.e = enunciado
         self.s = _eval_campo(semantica, 'semantica', 'Supuesto', enunciado)
         self.p = _eval_campo(precond, 'precond', 'Supuesto', enunciado)
+        self.motivo = motivo                # la precond en prosa, para las vistas profe y de lectura
         self._orig = (semantica, precond)   # tal como se escribieron, para serializar
 
     def __repr__(self):
         """Método de representación"""
         return f"Supuesto(enunciado={self.e!r}, semantica={self.s!r}, precond={self.p!r})"
 class Cuestion:
-    def __init__(self, enunciado, semantica, precond=True, exp=""):
+    def __init__(self, enunciado, semantica, precond=True, exp="", *, motivo=""):
         self.e = enunciado
         self.s = _eval_campo(semantica, 'semantica', 'Cuestion', enunciado)
         self.p = _eval_campo(precond, 'precond', 'Cuestion', enunciado)
         self.x = exp
+        self.motivo = motivo                # la precond en prosa, para las vistas profe y de lectura
         self._orig = (semantica, precond)   # tal como se escribieron, para serializar
 
     def __repr__(self):
@@ -359,7 +385,7 @@ class ProblemaTipo:
                             (texto, (True if test(semantica, hipotesis) else False), 1, exp))
                     else:
                         cuestiones[parte].append(
-                            (texto, 'rechazada por ' + _fuente_precond(componente), 0))
+                            (texto, Rechazo(componente), 0))
             if not descartada:
                 c += 1
                 yield (str(c), list(zip(enunciados, cuestiones)))
@@ -391,7 +417,7 @@ class ProblemaTipo:
                             hueco.append(Alternativa(texto, bool(test(semantica, hipotesis)), exp, None))
                         else:
                             hueco.append(Alternativa(texto, None, '',
-                                                     'rechazada por ' + _fuente_precond(componente)))
+                                                     Rechazo(componente)))
                     huecos[parte].append(hueco)
                     continue
                 componente = L[n][variante[n]]
@@ -404,8 +430,8 @@ class ProblemaTipo:
                         enunciados[parte] = _une_enunciado(enunciados[parte], texto)
                         hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
                     else:
-                        descarte = ('Supuesto ' + repr(texto) + ' rechazado por '
-                                    + _fuente_precond(componente))
+                        descarte = Rechazo(componente, 'o', 'Supuesto ' + repr(texto)
+                                           + (': ' if getattr(componente, 'motivo', '') else ' '))
                         if verbose:
                             print('\n ' + descarte + '\n')
                         break
@@ -552,7 +578,7 @@ class ProblemaTipoProfe:
                             [(texto, (True if test(semantica, hipotesis) else False), 1, exp)]
                     else:
                         cuestiones = cuestiones + \
-                            [(texto, 'rechazada por ' + _fuente_precond(componente), 0)]
+                            [(texto, Rechazo(componente), 0)]
                 
 from random import sample
 class ProblemaVF():

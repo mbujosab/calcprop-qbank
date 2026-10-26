@@ -123,6 +123,12 @@ p = ProblemaTipo([s, [s1, s2], [c1, c2]], setup=None, export=None, seed=None, no
   revientan); `@@{x}` no es ERROR `interp`; `constante` es INFO si la
   `Cuestion` es lambda con `setup`; las reglas de `%` miran también el texto
   interpolado; espacios en `nombre` o en el fichero son ERROR `nombre`.
+- `motivo=` (solo por palabra clave; clave JSON `motivo`, opcional, en
+  `Supuesto` y `Cuestion`): la `precond` en prosa. Las exclusiones de la
+  vista profe/lectura son `Rechazo` (`str` con el motivo o «rechazada por
+  <precond>»; `.tex()` da el motivo o la precond en `\texttt` escapada);
+  `_amc_choices` y `QuizLectura` usan `.tex()`. `_json` solo guarda
+  `motivo` si existe; el editor de widgets lo conserva sin mostrarlo.
 - Flujo recomendado para escribir a mano: lista Python → `save_problema` →
   JSON en `preguntas/` (es lo que hace `plantilla/nueva_pregunta.py`).
 

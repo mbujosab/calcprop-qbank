@@ -293,7 +293,33 @@ def _fuente_precond(componente):
     if orig and isinstance(orig[1], str):
         return orig[1]
     return repr(componente.p)
+
+
+class Rechazo(str):
+    """Por qué un componente queda excluido por su precondición. Como cadena
+    es el texto para la consola: el motivo en prosa del componente, si lo
+    tiene, o «rechazada por <precond>». tex() da el mismo texto en LaTeX,
+    con la precondición en letra de máquina."""
+    def __new__(cls, componente, genero='a', delante=''):
+        motivo = getattr(componente, 'motivo', '') or ''
+        fuente = _fuente_precond(componente)
+        obj = super().__new__(cls, delante + (motivo or f'rechazad{genero} por {fuente}'))
+        obj.motivo, obj.fuente, obj.genero, obj.delante = motivo, fuente, genero, delante
+        return obj
+
+    def tex(self):
+        return (_tex_escapa(self.delante) + (self.motivo or f'rechazad{self.genero} por \\texttt{{'
+                + _tex_escapa(self.fuente).replace("'", '\\textquotesingle{}') + '}'))
+
+
+def _tex_escapa(s):
+    """Escapa en texto LaTeX los caracteres especiales de una cadena de código."""
+    return (str(s).replace('\\', r'\textbackslash{}').replace('_', r'\_').replace('%', r'\%')
+            .replace('&', r'\&').replace('#', r'\#').replace('$', r'\$').replace('{', r'\{')
+            .replace('}', r'\}').replace('~', r'\textasciitilde{}').replace('^', r'\^{}'))
 #+end_src
+
+Lo que reciben las vistas profe y de lectura como motivo de una exclusión es un =Rechazo=: una cadena (así la tratan la consola, los widgets y quien la compare) con el =motivo= del componente si el autor lo escribió (una frase en prosa, como las =exp=) o, si no, «rechazada por» y el código de la precondición. Su método =tex()= da lo mismo para un documento \LaTeX{}: el motivo tal cual (es texto \LaTeX{} del autor, como =exp=) o la precondición en =\texttt{}= y escapada, porque en texto normal =ns['both_ns']= partiría los =_= en subíndices.
 
 
 ** Clase =Marcador=
@@ -433,15 +459,18 @@ La clase =Supuesto= define la estructura para almacenar tres aspectos (atributos
 - =precond= :: es una proposición o bien cualquiera de los valores =True= o =False=.
   El objeto =Supuesto= será incluido en el problema solo si la evaluación de =precond= es =True=.
 
+- =motivo= :: (opcional, solo por palabra clave) la =precond= explicada en prosa. Las vistas profe y de lectura la imprimen en lugar del código de la precondición cuando el componente queda excluido (véase =Rechazo=).
+
 Tanto =semantica= como =precond= admiten, además de la fórmula =calcprop= o el booleano, la *cadena* que los representa (="v('A') >> v('B')"=, ="lambda ns: ns['x'] > 0"=), que se evalúa con =_eval_expr= igual que al cargar un JSON. Los valores originales se conservan en =_orig= para que =problema_to_dict= pueda guardar el problema aunque contenga lambdas.
 
 #+NAME: Definición de la clase Supuesto
 #+begin_src python :noweb yes
 class Supuesto:
-    def __init__(self, enunciado, semantica, precond=True):
+    def __init__(self, enunciado, semantica, precond=True, *, motivo=""):
         self.e = enunciado
         self.s = _eval_campo(semantica, 'semantica', 'Supuesto', enunciado)
         self.p = _eval_campo(precond, 'precond', 'Supuesto', enunciado)
+        self.motivo = motivo                # la precond en prosa, para las vistas profe y de lectura
         self._orig = (semantica, precond)   # tal como se escribieron, para serializar
 
     def __repr__(self):
@@ -462,14 +491,17 @@ De manera análoga, la clase =Cuestion= define la estructura para almacenar cuat
 
 - =exp= :: al exportar las preguntas al formato =xml= de Moodle, cabe la posibilidad de que Moodle ofrezca al alumno una explicación una vez ha contestado a las preguntas. En el atributo =exp= se especifica la cadena de texto con la explicación que debe mostrar Moodle.
 
+- =motivo= :: como en =Supuesto=: la =precond= en prosa, para quien lea las exclusiones.
+
 #+NAME: Definición de la clase Cuestion
 #+begin_src python :noweb yes
 class Cuestion:
-    def __init__(self, enunciado, semantica, precond=True, exp=""):
+    def __init__(self, enunciado, semantica, precond=True, exp="", *, motivo=""):
         self.e = enunciado
         self.s = _eval_campo(semantica, 'semantica', 'Cuestion', enunciado)
         self.p = _eval_campo(precond, 'precond', 'Cuestion', enunciado)
         self.x = exp
+        self.motivo = motivo                # la precond en prosa, para las vistas profe y de lectura
         self._orig = (semantica, precond)   # tal como se escribieron, para serializar
 
     def __repr__(self):
@@ -790,7 +822,7 @@ def _variantes_profe(self, verbose=True):
                         (texto, (True if test(semantica, hipotesis) else False), 1, exp))
                 else:
                     cuestiones[parte].append(
-                        (texto, 'rechazada por ' + _fuente_precond(componente), 0))
+                        (texto, Rechazo(componente), 0))
         if not descartada:
             c += 1
             yield (str(c), list(zip(enunciados, cuestiones)))
@@ -849,7 +881,7 @@ def _variantes_lectura(self, seed=None, verbose=False):
                         hueco.append(Alternativa(texto, bool(test(semantica, hipotesis)), exp, None))
                     else:
                         hueco.append(Alternativa(texto, None, '',
-                                                 'rechazada por ' + _fuente_precond(componente)))
+                                                 Rechazo(componente)))
                 huecos[parte].append(hueco)
                 continue
             componente = L[n][variante[n]]
@@ -862,8 +894,8 @@ def _variantes_lectura(self, seed=None, verbose=False):
                     enunciados[parte] = _une_enunciado(enunciados[parte], texto)
                     hipotesis = hipotesis + [_ns_eval(componente.s, ns)]
                 else:
-                    descarte = ('Supuesto ' + repr(texto) + ' rechazado por '
-                                + _fuente_precond(componente))
+                    descarte = Rechazo(componente, 'o', 'Supuesto ' + repr(texto)
+                                       + (': ' if getattr(componente, 'motivo', '') else ' '))
                     if verbose:
                         print('\n ' + descarte + '\n')
                     break
@@ -1316,7 +1348,7 @@ elif isinstance(componente, Cuestion):
             [(texto, (True if test(semantica, hipotesis) else False), 1, exp)]
     else:
         cuestiones = cuestiones + \
-            [(texto, 'rechazada por ' + _fuente_precond(componente), 0)]
+            [(texto, Rechazo(componente), 0)]
 
 #+end_src
 
@@ -1843,17 +1875,21 @@ def _componente_from_dict(d):
     semantica = _eval_expr(semantica_str)
     precond   = _eval_expr(precond_str)
 
+    motivo    = d.get("motivo", "")
+
     if tipo == "Supuesto":
-        obj = Supuesto(enunciado, semantica, precond)
+        obj = Supuesto(enunciado, semantica, precond, motivo=motivo)
         obj._json = {"tipo": "Supuesto", "enunciado": enunciado,
                      "semantica": semantica_str, "precond": precond_str}
     elif tipo == "Cuestion":
         exp = d.get("exp", "")
-        obj = Cuestion(enunciado, semantica, precond, exp)
+        obj = Cuestion(enunciado, semantica, precond, exp, motivo=motivo)
         obj._json = {"tipo": "Cuestion", "enunciado": enunciado,
                      "semantica": semantica_str, "precond": precond_str, "exp": exp}
     else:
         raise ValueError(f"Tipo de componente desconocido: {tipo!r}")
+    if "motivo" in d:
+        obj._json["motivo"] = motivo
     return obj
 #+end_src
 
@@ -1913,6 +1949,8 @@ def _slot_to_json(slot):
         }
         if isinstance(slot, Cuestion):
             d['exp'] = None if slot.x is None else _expr_to_str(slot.x, 'exp')
+        if getattr(slot, 'motivo', ''):
+            d['motivo'] = slot.motivo
         return d
     elif isinstance(slot, list):
         return [_slot_to_json(item) for item in slot]
@@ -2184,6 +2222,9 @@ def _slot_to_python(slot, nivel=1):
         if tipo == "Cuestion":
             args[-1] += ","
             args.append(f"{ipad}exp = {_py_text(slot.get('exp', ''))}")
+        if slot.get('motivo'):
+            args[-1] += ","
+            args.append(f"{ipad}motivo = {_py_text(slot['motivo'])}")
         cuerpo = "\n".join(args)
         return f"{pad}{tipo}(\n{cuerpo}\n{pad}),"
 
@@ -2429,6 +2470,7 @@ class _AltWidget:
                     value=d.get('exp', ''), placeholder='explicación',
                     layout=_w.Layout(width='120px'))
                 fila += [_w.Label('exp:', layout=_w.Layout(width='30px')), self.x]
+            self._motivo = d.get('motivo', '')     # sin campo en el formulario: se conserva
 
         self.box = _w.HBox(fila + [up_btn, dn_btn, del_btn])
 
@@ -2441,6 +2483,8 @@ class _AltWidget:
             d['precond']   = self.p.value
         if self._kind == 'Cuestion':
             d['exp'] = self.x.value
+        if self._kind != 'texto' and self._motivo:
+            d['motivo'] = self._motivo
         return d
 
     def to_json(self):
@@ -2450,6 +2494,8 @@ class _AltWidget:
              'semantica': self.s.value, 'precond': self.p.value}
         if self._kind == 'Cuestion':
             d['exp'] = self.x.value
+        if self._motivo:
+            d['motivo'] = self._motivo
         return d
 #+end_src
 
@@ -4372,7 +4418,7 @@ def _regla_patrones(p, avisos, n_semillas=N_SEMILLAS_PATRONES, decimal=None):
 
 ** Regla 12: inventario de objetos
 
-Otro caso real (=L-16-InteraccionYChow=, 22-10-2026): el enunciado mostraba estimado un modelo con cinco columnas, y las opciones hablaban del modelo con los productos =mujer·educ= y =mujer·exper= —el sin restringir del contraste de Chow—, que no se había presentado en ningún sitio; el $n-k$ de las explicaciones usaba sus seis columnas. Ni el autor ni el revisor independiente lo vieron, porque los dos tenían el material de origen en la cabeza y rellenaban con lo que sabían; lo vio el instructor leyendo como un alumno. Esta regla hace esa lectura de forma mecánica para los objetos que se pueden reconocer en el \LaTeX{}: nombres en =\text{…}= o =\mathrm{…}= (y sus productos =\text{a}\cdot\text{b}=, como una unidad: que el enunciado presente =mujer= y =educ= por separado no presenta su producto), vectores y matrices en =\boldsymbol{…}= o =\mathbf{…}= (salvo los numéricos, =\boldsymbol 1=, que son notación), y símbolos con subíndice numérico (=\hat\beta_3=, =x_2=; los subíndices de índice, =y_t=, no identifican un objeto concreto). Las claves se normalizan para comparar: espacios, llaves y las decoraciones =\hat=, =\bar=, =\boldsymbol=… no cuentan, de modo que un enunciado con $\hat\beta_3$ presenta $\beta_3$.
+Otro caso real (=L-16-InteraccionYChow=, 22-10-2026): el enunciado mostraba estimado un modelo con cinco columnas, y las opciones hablaban del modelo con los productos =mujer·educ= y =mujer·exper= —el sin restringir del contraste de Chow—, que no se había presentado en ningún sitio; el $n-k$ de las explicaciones usaba sus seis columnas. Ni el autor ni el revisor independiente lo vieron, porque los dos tenían el material de origen en la cabeza y rellenaban con lo que sabían; lo vio el instructor leyendo como un alumno. Esta regla hace esa lectura de forma mecánica para los objetos que se pueden reconocer en el \LaTeX{}: nombres en =\text{…}= o =\mathrm{…}= (y sus productos =\text{a}\cdot\text{b}=, como una unidad: que el enunciado presente =mujer= y =educ= por separado no presenta su producto), vectores y matrices en =\boldsymbol{…}= o =\mathbf{…}= (salvo los numéricos, =\boldsymbol 1=, que son notación), y símbolos con subíndice numérico (=\hat\beta_3=, =x_2=; los subíndices de índice, =y_t=, no identifican un objeto concreto). Las claves se normalizan para comparar: espacios, llaves y las decoraciones =\hat=, =\bar=, =\boldsymbol=, etc., no cuentan, de modo que un enunciado con $\hat\beta_3$ presenta $\beta_3$.
 
 Recorre unas lecturas (=_lecturas=, con =_N_SORTEOS_INVENTARIO= sorteos del =setup=, porque los objetos pueden depender de él: una indicadora sorteada) y, en cada una, compara los objetos de cada alternativa activa con los del enunciado completo de esa lectura (todas las partes); para la =exp=, cuenta también lo que nombra su propia =Cuestion=, y así un objeto se avisa una vez. El aviso dice en cuántas de sus apariciones faltó el objeto: «12 de 12» es el caso de Chow; «6 de 12» suele ser un objeto que solo presenta uno de los mundos. Es INFO, no AVISO, cuando la propia opción presenta el objeto (=_PRESENTA_TRAS=, =_PRESENTA_ANTES=): «con la indicadora $\text{hombre}$ ($1$ en los hombres, $0$ en las mujeres)», «$\text{hombre}$, que…», «$\text{hombre}$ en lugar de $\text{mujer}$». Lo que la regla no puede ver queda para la Guía de diseño: los objetos nombrados en prosa («el modelo sin restringir», «la segunda muestra») y la lectura inversa del inventario (un objeto presentado en dos versiones es un fallo de diseño).
 
@@ -4531,7 +4577,7 @@ def _regla_inventario(p, avisos, conocidos=(), lecturas=None):
 
 Dos reglas de diseño de la Guía que hasta ahora solo se comprobaban a mano, y que la revisión completa de un banco (22-10-2026) señaló como la fuente de la mayoría de sus hallazgos: /la opción larga es la verdadera/ y /la afirmación numérica siempre cierta y sin gemela/. Las dos recorren las mismas lecturas que el inventario (=_lecturas=, con =_N_SORTEOS_LECTURAS= sorteos del =setup=), que =lint= calcula una sola vez.
 
-*Regla 13, longitud.* La primera versión comparaba las medias de verdaderas y falsas de cada hueco, como pedía el banco; pero el alumno no ve los huecos, ve una alternativa de cada uno, y la única regla que puede aprender es «entre las que veo, la larga es la buena». Esa regla solo funciona si existe una opción que /destaca/ y destacar es /informativo/. De ahí la formulación final, estructural y no estadística: una alternativa claramente más larga (o más corta) que las que se muestran con ella tiene un rasgo memorable. «Las que se muestran con ella» son una alternativa activa de cada /otro/ hueco (las de su propio hueco nunca las ve a la vez), así que destacar es probabilístico: =_destaca= calcula la fracción de combinaciones de compañeras en que la opción mide al menos =_DESTACA_LONGITUD= veces (el doble; con 1,5 salían 89 avisos en PE frente a 60, y Marcos prefirió el umbral más alto) y =_MIN_DIF_LONGITUD= caracteres más que todas ellas, o menos que todas, y la opción destaca si esa fracción llega a =_P_DESTACA=. Compararla con la mediana de la parte era más simple pero contaba como compañeras a las de su propio hueco, y señalaba una opción larga aunque otro hueco mostrara casi siempre una igual de larga. Una opción que destaca, y debe ir acompañada en su hueco de una /pareja/ de longitud parecida (=_parecida=: razón ≤ =_PARECIDA_LONGITUD=, el 30 % de la regla del banco, o menos de =_MIN_DIF_LONGITUD= caracteres de diferencia: entre «$F=4$» y «$F=14$» la razón es 1,33 y nada destaca) y valor contrario; así el alumno ve opciones largas verdaderas y falsas con la misma frecuencia y el rasgo no le sirve. La longitud es la /visible/ (=_visible=): sin =$=, sin llaves y sin nombres de macros, porque =len()= cuenta el \LaTeX{} y una fórmula corta pesaría como una frase. Se comprueba mundo a mundo y sorteo a sorteo; una opción que destaca unas veces como verdadera y otras como falsa es su propia pareja, y solo se avisa si en al menos el 85 % de sus apariciones sin pareja tiene el mismo valor. Queda una compensación que la pareja en el mismo hueco no ve: en L-12-CambioDeUnidadesEnLaTabla avisaban tres opciones cortas de un hueco, pero otro hueco de la misma parte mostraba cortas verdaderas con la misma frecuencia, y entre todas las variantes la claramente más corta de lo mostrado era verdadera 66 veces de 144. PE lo propuso (23-10) y Marcos lo aceptó: =_destacadas= recorre, por parte y lectura, las combinaciones de una alternativa por hueco (todas, o una muestra de =_MAX_COMBINACIONES= con un generador propio) y cuenta cuántas veces la claramente más corta (o más larga) es verdadera; si esa fracción cae en =_COMPENSADA= (30-70 %), los avisos de ese lado en esa parte callan. Es el criterio que de verdad ve el alumno; la pareja en el mismo hueco es la manera de conseguirlo. Medido en PE: de 49 avisos a 23. Frente a comparar medias, esta formulación no castiga los huecos compensados (una larga verdadera y una larga falsa, y las demás cortas) ni empuja a alargar las falsas para igualar: el remedio es local, recortar la destacada (el porqué va al =exp=) o darle una gemela, que de paso suele ser la que pide la regla 14.
+*Regla 13, longitud.* La primera versión comparaba las medias de verdaderas y falsas de cada hueco, como pedía el banco; pero el alumno no ve los huecos, ve una alternativa de cada uno, y la única regla que puede aprender es «entre las que veo, la larga es la buena». Esa regla solo funciona si existe una opción que /destaca/ y destacar es /informativo/. De ahí la formulación final, estructural y no estadística: una alternativa claramente más larga (o más corta) que las que se muestran con ella tiene un rasgo memorable. «Las que se muestran con ella» son una alternativa activa de cada /otro/ hueco (las de su propio hueco nunca las ve a la vez), así que destacar es probabilístico: =_destaca= calcula la fracción de combinaciones de compañeras en que la opción mide al menos =_DESTACA_LONGITUD= veces (el doble; con 1,5 salían 89 avisos en PE frente a 60, y Marcos prefirió el umbral más alto) y =_MIN_DIF_LONGITUD= caracteres más que todas ellas, o menos que todas, y la opción destaca si esa fracción llega a =_P_DESTACA=. Compararla con la mediana de la parte era más simple pero contaba como compañeras a las de su propio hueco, y señalaba una opción larga aunque otro hueco mostrara casi siempre una igual de larga. Una opción que destaca, y debe ir acompañada en su hueco de una /pareja/ de longitud parecida (=_parecida=: razón $\le$ =_PARECIDA_LONGITUD=, el 30 % de la regla del banco, o menos de =_MIN_DIF_LONGITUD= caracteres de diferencia: entre «$F=4$» y «$F=14$» la razón es 1,33 y nada destaca) y valor contrario; así el alumno ve opciones largas verdaderas y falsas con la misma frecuencia y el rasgo no le sirve. La longitud es la /visible/ (=_visible=): sin =$=, sin llaves y sin nombres de macros, porque =len()= cuenta el \LaTeX{} y una fórmula corta pesaría como una frase. Se comprueba mundo a mundo y sorteo a sorteo; una opción que destaca unas veces como verdadera y otras como falsa es su propia pareja, y solo se avisa si en al menos el 85 % de sus apariciones sin pareja tiene el mismo valor. Queda una compensación que la pareja en el mismo hueco no ve: en L-12-CambioDeUnidadesEnLaTabla avisaban tres opciones cortas de un hueco, pero otro hueco de la misma parte mostraba cortas verdaderas con la misma frecuencia, y entre todas las variantes la claramente más corta de lo mostrado era verdadera 66 veces de 144. PE lo propuso (23-10) y Marcos lo aceptó: =_destacadas= recorre, por parte y lectura, las combinaciones de una alternativa por hueco (todas, o una muestra de =_MAX_COMBINACIONES= con un generador propio) y cuenta cuántas veces la claramente más corta (o más larga) es verdadera; si esa fracción cae en =_COMPENSADA= (30-70 %), los avisos de ese lado en esa parte callan. Es el criterio que de verdad ve el alumno; la pareja en el mismo hueco es la manera de conseguirlo. Medido en PE: de 49 avisos a 23. Frente a comparar medias, esta formulación no castiga los huecos compensados (una larga verdadera y una larga falsa, y las demás cortas) ni empuja a alargar las falsas para igualar: el remedio es local, recortar la destacada (el porqué va al =exp=) o darle una gemela, que de paso suele ser la que pide la regla 14.
 
 *Regla 14, gemela.* Una alternativa verdadera siempre que aparece (en todos los mundos y sorteos de la muestra), con /contenido calculable/ —una cifra, o una fórmula con igualdad, desigualdad u operación (=_RE_CALCULO=)—, debe tener en su hueco una falsa /gemela/: el mismo texto con las cifras o los símbolos sustituidos, o con «mayor»/«menor», el signo o la desigualdad al revés; si no, el alumno la marca sin comprobar nada. Dos esqueletos (=_esqueletos=): uno abstrae las cifras y conserva los símbolos ($\sigma_x^2=2/3$ y $\sigma_x^2=3/2$ coinciden), el otro abstrae los símbolos de las fórmulas y conserva las cifras ($\mu_x=1$ y $\mu_y=1$ coinciden); una falsa es gemela si coincide con la verdadera en alguno de los dos. No en ambos a la vez: $\sigma_x^2=2/3$ frente a $\sigma_{xy}=-1$ cambia símbolo y cifra, y es otra afirmación, no una versión falsa de la misma. Cada esqueleto es la bolsa de /tokens/ del texto (sin orden: los papeles intercambiados son gemelas), con los antónimos y los operadores opuestos identificados (=_ANTONIMOS=, =_OPUESTOS=), la negación suprimida y las decoraciones (=\hat=, =\boldsymbol=…) y la puntuación fuera. La regla 3 (=constante=) ya señala las verdaderas constantes; esta dice cuáles de ellas, por ser calculables, necesitan una gemela y no la tienen.
 

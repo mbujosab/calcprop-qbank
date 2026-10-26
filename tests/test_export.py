@@ -366,3 +366,68 @@ def test_codchar_cubre_los_caracteres_del_espanol():
     s = codchar("¿Antigüedad? ¡Índice! Árbol Él Óleo Último Ñu Ü")
     assert all(ord(ch) < 128 for ch in s)
     assert s.startswith("\\textquestiondown Antig\\\"{u}edad? \\textexclamdown \\'{I}ndice!")
+
+
+# ---------------------------------------------------------------------------
+# Motivo legible de las exclusiones (encargo de PE del 26-10)
+# ---------------------------------------------------------------------------
+
+class TestMotivoExclusion:
+    @staticmethod
+    def _problema(motivo_c="", motivo_s=""):
+        from qbank import load_problema
+        sup = {"tipo": "Supuesto", "enunciado": "Sea $x=@{x}$.", "semantica": "True",
+               "precond": "lambda ns: ns['x'] < 0"}
+        cue = {"tipo": "Cuestion", "enunciado": "$x$ es grande", "semantica": "True",
+               "precond": "lambda ns: ns['x_max'] > 5", "exp": ""}
+        if motivo_s:
+            sup["motivo"] = motivo_s
+        if motivo_c:
+            cue["motivo"] = motivo_c
+        return load_problema({"version": "1", "tipo": "ProblemaTipo", "nombre": "M",
+                              "setup": "x = 1\nx_max = 3", "componentes": [
+                                  [sup, {"tipo": "Supuesto", "enunciado": "Otro.",
+                                         "semantica": "True"}], cue,
+                                  {"tipo": "Cuestion", "enunciado": "a", "semantica": "True"},
+                                  {"tipo": "Cuestion", "enunciado": "b", "semantica": "False"}]})
+
+    def test_sin_motivo_la_precondicion_en_texttt(self):
+        _, partes = next(iter(self._problema().por_partes_profe(verbose=False)))
+        r = partes[0][1][0][1]
+        assert r == "rechazada por lambda ns: ns['x_max'] > 5"
+        assert r.tex() == (r"rechazada por \texttt{lambda ns: ns[\textquotesingle{}x\_max"
+                           r"\textquotesingle{}] > 5}")
+
+    def test_con_motivo_se_usa_el_motivo(self):
+        from qbank import AMC_multipart, AMCblock
+        p = self._problema("solo si $x$ supera el máximo")
+        etiqueta, partes = next(iter(p.por_partes_profe(verbose=False)))
+        r = partes[0][1][0][1]
+        assert r == "solo si $x$ supera el máximo" and r.tex() == r
+        tex = AMCblock("M", etiqueta, partes[0][0], partes[0][1], profe=True)
+        assert r"\explain{ cuestión: $x$ es grande; solo si $x$ supera el máximo" in tex
+        lect = next(iter(p.por_partes_lectura()))
+        assert lect.partes[0].huecos[0][0].motivo == "solo si $x$ supera el máximo"
+
+    def test_quiz_lectura_y_descartes(self, tmp_path):
+        from qbank import QuizLectura
+        QuizLectura("L", str(tmp_path), [self._problema(motivo_s="solo con $x$ positivo")])
+        tex = (tmp_path / "L.tex").read_text(encoding="utf-8")
+        assert "solo con $x$ positivo" in tex           # el mundo descartado, en prosa
+        QuizLectura("L2", str(tmp_path), [self._problema()])
+        tex = (tmp_path / "L2.tex").read_text(encoding="utf-8")
+        assert r"rechazado por \texttt{lambda ns: ns[\textquotesingle{}x\textquotesingle{}] < 0}" in tex
+
+    def test_json_y_python_conservan_el_motivo(self, tmp_path):
+        from qbank import (Cuestion, load_problema, problema_to_dict, problema_to_python,
+                           save_problema)
+        p = self._problema("en prosa", "también")
+        d = problema_to_dict(p)
+        assert d["componentes"][0][0]["motivo"] == "también"
+        assert d["componentes"][1]["motivo"] == "en prosa"
+        assert "motivo" not in d["componentes"][2]
+        assert "motivo = " in problema_to_python(p) and "en prosa" in problema_to_python(p)
+        q = ProblemaTipo(["E ", Cuestion("a", True, "lambda ns: False", motivo="nunca"),
+                          Cuestion("b", True), Cuestion("c", False)], nombre="Q")
+        save_problema(q, str(tmp_path / "Q.json"))
+        assert load_problema(str(tmp_path / "Q.json")).e[1].motivo == "nunca"

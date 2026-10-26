@@ -90,17 +90,21 @@ def _componente_from_dict(d):
     semantica = _eval_expr(semantica_str)
     precond   = _eval_expr(precond_str)
 
+    motivo    = d.get("motivo", "")
+
     if tipo == "Supuesto":
-        obj = Supuesto(enunciado, semantica, precond)
+        obj = Supuesto(enunciado, semantica, precond, motivo=motivo)
         obj._json = {"tipo": "Supuesto", "enunciado": enunciado,
                      "semantica": semantica_str, "precond": precond_str}
     elif tipo == "Cuestion":
         exp = d.get("exp", "")
-        obj = Cuestion(enunciado, semantica, precond, exp)
+        obj = Cuestion(enunciado, semantica, precond, exp, motivo=motivo)
         obj._json = {"tipo": "Cuestion", "enunciado": enunciado,
                      "semantica": semantica_str, "precond": precond_str, "exp": exp}
     else:
         raise ValueError(f"Tipo de componente desconocido: {tipo!r}")
+    if "motivo" in d:
+        obj._json["motivo"] = motivo
     return obj
 def _slot_from_json(slot):
     if isinstance(slot, str):
@@ -143,6 +147,8 @@ def _slot_to_json(slot):
         }
         if isinstance(slot, Cuestion):
             d['exp'] = None if slot.x is None else _expr_to_str(slot.x, 'exp')
+        if getattr(slot, 'motivo', ''):
+            d['motivo'] = slot.motivo
         return d
     elif isinstance(slot, list):
         return [_slot_to_json(item) for item in slot]
@@ -319,6 +325,9 @@ def _slot_to_python(slot, nivel=1):
         if tipo == "Cuestion":
             args[-1] += ","
             args.append(f"{ipad}exp = {_py_text(slot.get('exp', ''))}")
+        if slot.get('motivo'):
+            args[-1] += ","
+            args.append(f"{ipad}motivo = {_py_text(slot['motivo'])}")
         cuerpo = "\n".join(args)
         return f"{pad}{tipo}(\n{cuerpo}\n{pad}),"
 

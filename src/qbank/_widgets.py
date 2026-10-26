@@ -111,6 +111,7 @@ class _AltWidget:
                     value=d.get('exp', ''), placeholder='explicación',
                     layout=_w.Layout(width='120px'))
                 fila += [_w.Label('exp:', layout=_w.Layout(width='30px')), self.x]
+            self._motivo = d.get('motivo', '')     # sin campo en el formulario: se conserva
 
         self.box = _w.HBox(fila + [up_btn, dn_btn, del_btn])
 
@@ -123,6 +124,8 @@ class _AltWidget:
             d['precond']   = self.p.value
         if self._kind == 'Cuestion':
             d['exp'] = self.x.value
+        if self._kind != 'texto' and self._motivo:
+            d['motivo'] = self._motivo
         return d
 
     def to_json(self):
@@ -132,6 +135,8 @@ class _AltWidget:
              'semantica': self.s.value, 'precond': self.p.value}
         if self._kind == 'Cuestion':
             d['exp'] = self.x.value
+        if self._motivo:
+            d['motivo'] = self._motivo
         return d
 # ── Widget de un hueco (texto | supuestos | cuestiones) ───────────────────────
 

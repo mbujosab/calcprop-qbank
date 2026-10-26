@@ -370,6 +370,12 @@ def AMCblock(nombre, etiqueta, enunciado, cuestiones,
     return s
 
 
+def _motivo_tex(m):
+    """Motivo de una exclusión en LaTeX: Rechazo.tex() (el motivo en prosa o la
+    precondición en letra de máquina); cualquier otra cadena, tal cual."""
+    return m.tex() if hasattr(m, 'tex') else str(m)
+
+
 def _fix_display(t):
     """``$$…$$`` → ``\\[…\\]`` (automultiplechoice se lleva mal con ``$$``)."""
     return _re.sub(r'\$\$(.+?)\$\$', r'\\[\1\\]', t, flags=_re.DOTALL)
@@ -392,7 +398,7 @@ def _amc_choices(cuestiones, last_choice, cols, profe, last_choice_text):
         if c[2]:
             s += ' ' * 7 + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + texto + '}\n'
         elif profe:
-            ex += ' cuestión: ' + texto + '; ' + str(c[1]) + '\n'
+            ex += ' cuestión: ' + texto + '; ' + _motivo_tex(c[1]) + '\n'
 
     if last_choice:
         s += ' ' * 7 + '\\lastchoices\n'
@@ -405,7 +411,7 @@ def _amc_choices(cuestiones, last_choice, cols, profe, last_choice_text):
     return s, ex
 #+end_src
 
-=AMCblock= delega en dos auxiliares que comparte con =AMC_multipart=: =_fix_display=, que convierte =$$…$$= en =\[…\]=, y =_amc_choices=, que escribe el bloque de casillas de /una/ parte (con =multicols=, la opción por defecto y, para la vista profe, el registro de las cuestiones rechazadas).
+=AMCblock= delega en dos auxiliares que comparte con =AMC_multipart=: =_fix_display=, que convierte =$$…$$= en =\[…\]=, y =_amc_choices=, que escribe el bloque de casillas de /una/ parte (con =multicols=, la opción por defecto y, para la vista profe, el registro de las cuestiones rechazadas). El motivo de cada rechazada lo escribe =_motivo_tex=: el =motivo= en prosa de la =Cuestion= si lo tiene o, si no, su precondición en =\texttt{}= (=Rechazo.tex()=).
 
 *** Variante para preguntas Verdadero/Falso en formato para exámenes en el aula
 
@@ -939,7 +945,7 @@ Los ejemplos salen de =_ejemplos_lectura=, que recorre =por_partes_lectura()= y 
 - Con =setup= y sin =lectura.cubrir=: un ejemplo por mundo con la =seed= del problema y, con =extras=N=, hasta =N= sorteos más por mundo cuyo enunciado (sin cifras) sea distinto de los ya vistos.
 - Con =lectura.cubrir=: recorre semillas (hasta =max_semillas=) y guarda, en cada mundo, el primer ejemplo de cada combinación de valores de las variables de =cubrir= (comparadas por =repr=). Como no se sabe de antemano qué combinaciones son posibles (una =precond= puede excluir algunas), se recorren todas las semillas; las combinaciones del producto cartesiano de los valores vistos que no hayan aparecido se listan en el documento como /no encontradas/. =MAX_EJEMPLOS_LECTURA= acota los ejemplos por pregunta.
 
-Los ejemplos se ordenan por mundo y después por los valores de =cubrir=. =QuizLectura= acepta un =ProblemaTipo=, una lista de ellos (un documento por lección es el uso previsto) o un diccionario ={nombre: ProblemaTipo}=; con una lista, el nombre de cada pregunta es su =_nombre=. Escribe solo =directorio/nombre.tex= (un documento completo, en UTF-8) y devuelve el número de ejemplos; compilarlo queda para el =Makefile=. El preámbulo del proyecto (macros del curso, =babel=) llega por =aux_latex=, como en AMC y Moodle. =last_choice=None= significa leer =export.last_choice= de cada pregunta: es una excepción documentada a la regla de que los exportadores no leen =export=, porque en un mismo documento las preguntas difieren; la nota inicial de cada pregunta dice cuántas opciones ve el alumno y cuál es la opción por defecto. Los comandos del preámbulo llevan el prefijo =qb= (=\qbV=, =\qbF=, =\qbX=, =\qbExp=) para no chocar con macros de los proyectos.
+Los ejemplos se ordenan por mundo y después por los valores de =cubrir=. =QuizLectura= acepta un =ProblemaTipo=, una lista de ellos (un documento por lección es el uso previsto) o un diccionario ={nombre: ProblemaTipo}=; con una lista, el nombre de cada pregunta es su =_nombre=. Escribe solo =directorio/nombre.tex= (un documento completo, en UTF-8) y devuelve el número de ejemplos; compilarlo queda para el =Makefile=. El preámbulo del proyecto (macros del curso, =babel=) llega por =aux_latex=, como en AMC y Moodle. =last_choice=None= significa leer =export.last_choice= de cada pregunta: es una excepción documentada a la regla de que los exportadores no leen =export=, porque en un mismo documento las preguntas difieren; la nota inicial de cada pregunta dice cuántas opciones ve el alumno y cuál es la opción por defecto. Las excluidas llevan su motivo con =_motivo_lectura= (el =motivo= en prosa del componente o su precondición en letra de máquina, =Rechazo.tex()=), igual que los mundos descartados. Los comandos del preámbulo llevan el prefijo =qb= (=\qbV=, =\qbF=, =\qbX=, =\qbExp=) para no chocar con macros de los proyectos.
 
 #+NAME: Quiz de lectura
 #+begin_src python :noweb no-export
@@ -1034,6 +1040,12 @@ def _tex_lectura_escapa(s):
             .replace('}', r'\}').replace('~', r'\textasciitilde{}').replace('^', r'\^{}'))
 
 
+def _motivo_lectura(m):
+    """Motivo de una exclusión en la vista de lectura: Rechazo.tex() o, para
+    una cadena cualquiera, el texto escapado."""
+    return m.tex() if hasattr(m, 'tex') else _tex_lectura_escapa(m)
+
+
 def _fecha_lectura():
     import datetime as _dt
     hoy = _dt.date.today()
@@ -1115,7 +1127,7 @@ def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, l
                 for a in hueco:
                     if a.valor is None:
                         L.append('\\item[\\qbX] {\\color{black!40} ' + a.texto + ' --- '
-                                 + _tex_lectura_escapa(a.motivo) + '}\n')
+                                 + _motivo_lectura(a.motivo) + '}\n')
                         continue
                     exp = ('la misma retroalimentación que la anterior'
                            if a.exp and a.exp == prev else a.exp)
@@ -1125,7 +1137,7 @@ def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, l
                 L.append('\\end{itemize}\n')
     if descartes:
         L.append('\\par{\\small\\color{black!65}Mundos descartados: '
-                 + '; '.join(_tex_lectura_escapa(d) for d in descartes) + '.}\n')
+                 + '; '.join(_motivo_lectura(d) for d in descartes) + '.}\n')
     if faltan:
         L.append('\\par{\\small\\color{black!65}Combinaciones no encontradas: '
                  + '; '.join(nombre_mundo(m) + ' con '

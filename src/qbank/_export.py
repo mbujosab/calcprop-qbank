@@ -77,6 +77,12 @@ def AMCblock(nombre, etiqueta, enunciado, cuestiones,
     return s
 
 
+def _motivo_tex(m):
+    """Motivo de una exclusión en LaTeX: Rechazo.tex() (el motivo en prosa o la
+    precondición en letra de máquina); cualquier otra cadena, tal cual."""
+    return m.tex() if hasattr(m, 'tex') else str(m)
+
+
 def _fix_display(t):
     """``$$…$$`` → ``\\[…\\]`` (automultiplechoice se lleva mal con ``$$``)."""
     return _re.sub(r'\$\$(.+?)\$\$', r'\\[\1\\]', t, flags=_re.DOTALL)
@@ -99,7 +105,7 @@ def _amc_choices(cuestiones, last_choice, cols, profe, last_choice_text):
         if c[2]:
             s += ' ' * 7 + ('\\correctchoice{' if c[1] else '\\wrongchoice  {') + texto + '}\n'
         elif profe:
-            ex += ' cuestión: ' + texto + '; ' + str(c[1]) + '\n'
+            ex += ' cuestión: ' + texto + '; ' + _motivo_tex(c[1]) + '\n'
 
     if last_choice:
         s += ' ' * 7 + '\\lastchoices\n'
@@ -471,6 +477,12 @@ def _tex_lectura_escapa(s):
             .replace('}', r'\}').replace('~', r'\textasciitilde{}').replace('^', r'\^{}'))
 
 
+def _motivo_lectura(m):
+    """Motivo de una exclusión en la vista de lectura: Rechazo.tex() o, para
+    una cadena cualquiera, el texto escapado."""
+    return m.tex() if hasattr(m, 'tex') else _tex_lectura_escapa(m)
+
+
 def _fecha_lectura():
     import datetime as _dt
     hoy = _dt.date.today()
@@ -552,7 +564,7 @@ def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, l
                 for a in hueco:
                     if a.valor is None:
                         L.append('\\item[\\qbX] {\\color{black!40} ' + a.texto + ' --- '
-                                 + _tex_lectura_escapa(a.motivo) + '}\n')
+                                 + _motivo_lectura(a.motivo) + '}\n')
                         continue
                     exp = ('la misma retroalimentación que la anterior'
                            if a.exp and a.exp == prev else a.exp)
@@ -562,7 +574,7 @@ def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, l
                 L.append('\\end{itemize}\n')
     if descartes:
         L.append('\\par{\\small\\color{black!65}Mundos descartados: '
-                 + '; '.join(_tex_lectura_escapa(d) for d in descartes) + '.}\n')
+                 + '; '.join(_motivo_lectura(d) for d in descartes) + '.}\n')
     if faltan:
         L.append('\\par{\\small\\color{black!65}Combinaciones no encontradas: '
                  + '; '.join(nombre_mundo(m) + ' con '

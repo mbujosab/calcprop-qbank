@@ -689,6 +689,15 @@ aparece al final, en «Exclusiones», con su condición.
 </p>
 
 <p>
+La condición en crudo (<code>lambda ns: ns['both_ns'] and ns['rechaza']</code>) la
+entiende quien escribió la pregunta, no quien la revisa. Dale un <code>motivo</code>:
+una frase que diga cuándo tiene sentido la cuestión, redactada como las
+<code>exp</code> (sin jerga del diseño ni etiquetas <code>v('…')</code>), p. ej. <code>motivo="solo si
+ninguno de los dos regresores es significativo por separado"</code>. Las vistas
+profe y de lectura la imprimen en lugar del código.
+</p>
+
+<p>
 Las lambdas se escriben <b>como cadena</b> también en Python
 (<code>precond="lambda ns: …"</code>): así la pregunta puede guardarse en JSON. Una
 lambda escrita como función Python no se puede guardar.
