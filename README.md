@@ -356,18 +356,18 @@ una cuestión o su explicación nombran (`\text{mujer}\cdot\text{educ}`,
 notación del curso se declara con `--conocidos`); también dos reglas de
 diseño de la Guía: *la opción larga es la verdadera* (`longitud`: una
 opción claramente más larga, o más corta, que las que se muestran con
-ella y sin pareja de longitud parecida y valor contrario en su hueco) y
-*la verdadera numérica sin gemela* (`gemela`: una verdadera fija con
-cifra o fórmula sin una versión falsa en su hueco). La tabla de mundos
-muestra el valor de cada `Cuestion` en cada combinación de `Supuesto`
-(`V`, `F` o `-` si la rechaza su `precond`), para localizar distractores
-constantes. Con `--patrones` (o `lint(..., patrones=True)`;
-`make patrones` en un proyecto) busca además *patrones memorizables*: lo
-que un alumno podría acertar sin leer el enunciado tras ver varias
-variantes (una opción casi siempre verdadera, una cifra que separa las
-verdaderas de las falsas, la frase larga, la cifra grande o la cifra
-redonda siempre falsa…). Es más lento y sus avisos son indicios que hay
-que leer.
+ella, sin pareja de longitud parecida y valor contrario en su hueco ni
+compensación en la parte) y *la verdadera numérica sin gemela*
+(`gemela`: una verdadera fija con cifra o fórmula sin una versión falsa
+en su hueco). La tabla de mundos muestra el valor de cada `Cuestion` en
+cada combinación de `Supuesto` (`V`, `F` o `-` si la rechaza su
+`precond`), para localizar distractores constantes. Con `--patrones` (o
+`lint(..., patrones=True)`; `make patrones` en un proyecto) busca además
+*patrones memorizables*: lo que un alumno podría acertar sin leer el
+enunciado tras ver varias variantes (una opción casi siempre verdadera,
+una cifra que separa las verdaderas de las falsas, la frase larga, la
+cifra grande o la cifra redonda siempre falsa…). Es más lento y sus
+avisos son indicios que hay que leer.
 
 # Documentación
 

@@ -82,7 +82,7 @@ Todos los comandos se lanzan *desde esta carpeta* (la que contiene el
    que no hay que presentar se declara en =NOTACION_CONOCIDA= de =config.py=),
    de las opciones claramente más largas (o más cortas) que las que se
    muestran con ellas sin una pareja de longitud parecida y valor contrario
-   en su hueco (=longitud=) y de las verdaderas fijas con cifra o fórmula que no tienen una
+   en su hueco ni compensación en la parte (=longitud=) y de las verdaderas fijas con cifra o fórmula que no tienen una
    falsa gemela en su hueco (=gemela=). Si el banco escribe los decimales
    siempre como =0{,}5=, declara =DECIMAL = "{,}"= en =config.py= para que
    una coma desnuda, =(2,2,-1)=, no se lea como decimal.
@@ -248,6 +248,7 @@ Campo =export=:
 | =last_choice= | Añade la opción por defecto («Ninguna de las anteriores» / «Las demás opciones son falsas»), correcta solo si las demás son falsas. |
 | =cols=        | Columnas en que se disponen las opciones en AMC.                                                                                   |
 | =instances=   | Solo con =setup= aleatorio: cuántas instancias (recorridos con números distintos) se generan. Objetivo: ≥ 60 variantes (=lint= lo calcula); con pocos valores posibles se repiten, mira =make amc-student=. |
+| =amc_partes=  | Solo con varias partes: ="juntas"= (por defecto) da en AMC una sola pregunta con un bloque de casillas por parte; ="separadas"=, una pregunta numerada por parte, juntas y en orden, tras la frase «Las preguntas N a M se refieren al mismo enunciado» (compila dos veces para que salgan los números). Moodle no cambia. |
 
 * Más documentación
 

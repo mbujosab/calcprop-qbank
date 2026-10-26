@@ -10,7 +10,8 @@ setup aleatorio se imprime un caso por cada combinación distinta de enunciado
 sorteos y hasta config.MAX_CASOS_PROFE casos, etiquetados mundoM-casoK: así la
 revisión ve cada rama de la pregunta sin repetir casos numéricos que no
 cambian nada. Las preguntas multiparte salen como una sola pregunta AMC con
-un bloque de casillas por parte (AMC_multipart).
+un bloque de casillas por parte (AMC_multipart) o, con
+"amc_partes": "separadas" en export, como preguntas numeradas consecutivas.
 
 Termina con error si alguna pregunta no produce ninguna variante (pasa
 `make lint`, que dice por qué).
@@ -40,10 +41,11 @@ def con_exp(cuestiones):
              *c[1:]) for c in cuestiones]
 
 
-def bloque(nombre, etiqueta, partes, cols):
+def bloque(nombre, etiqueta, partes, cols, separadas=False):
     partes = [(enunciado, con_exp(cuestiones)) for enunciado, cuestiones in partes]
     if len(partes) > 1:
-        return AMC_multipart(nombre, etiqueta, '', partes, cols=cols, profe=True)
+        return AMC_multipart(nombre, etiqueta, '', partes, cols=cols, profe=True,
+                             separadas=separadas)
     return AMCblock(nombre, etiqueta, partes[0][0], partes[0][1], cols=cols, profe=True)
 
 
@@ -51,8 +53,9 @@ def bloques_profe(p, nombre):
     """(bloques, número de mundos). Sin setup, una entrada por mundo; con
     setup, una por caso (mundo × patrón de marcas)."""
     cols = p.export.get('cols', 1)
+    separadas = p.export.get('amc_partes', 'juntas') == 'separadas'
     if p.setup is None:
-        bloques = [bloque(nombre, etiqueta, partes, cols)
+        bloques = [bloque(nombre, etiqueta, partes, cols, separadas)
                    for etiqueta, partes in p.por_partes_profe(verbose=False)]
         return bloques, len(bloques)
     p.seed = None                       # manda la semilla de cada sorteo
@@ -74,7 +77,7 @@ def bloques_profe(p, nombre):
             m = mundos.setdefault(mundo, len(mundos) + 1)
             k = sum(1 for mu, _ in casos if mu == mundo) + 1
             casos[(mundo, marcas)] = (m, k)
-            bloques.append(bloque(nombre, f'mundo{m}-caso{k}', partes, cols))
+            bloques.append(bloque(nombre, f'mundo{m}-caso{k}', partes, cols, separadas))
     return bloques, len(mundos)
 
 

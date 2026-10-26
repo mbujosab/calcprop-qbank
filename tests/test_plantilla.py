@@ -149,6 +149,75 @@ def test_amc_multipart_un_questionmult_con_un_bloque_por_parte():
     assert r"{\relax" in tex and "Común." in tex and r"\emph{Sea $A$" in tex
 
 
+def _tres_partes(**export):
+    return ProblemaTipo(["Sea $A$ ", [Supuesto("invertible.", v('inv')), Supuesto("singular.", v('sing'))],
+                         " Determinante:", Cuestion("$\\det A \\neq 0$", v('inv')), Cuestion("$\\det A = 0$", v('sing')),
+                         " Sistema:", Cuestion("solución única", v('inv')), Cuestion("infinitas", v('sing')),
+                         " Rango:", Cuestion("completo", v('inv')),
+                         [Cuestion("menor", v('sing'), precond=v('sing')), Cuestion("nulo", False)]],
+                        export=export, nombre="M")
+
+
+def test_amc_multipart_separadas_una_pregunta_por_parte():
+    p = _tres_partes()
+    etiqueta, partes = next(iter(p.por_partes()))
+    tex = AMC_multipart("M", etiqueta, "", partes, last_choice=True, cols=2, separadas=True,
+                        aux_latex=r"\relax")
+    assert tex.count(r"\element{M}{\relax") == 1 and tex.rstrip().endswith("}")
+    ids = [f"M-{etiqueta}-p{k}" for k in (1, 2, 3)]
+    for i in ids:
+        assert tex.count(r"\begin{questionmult}{" + i + "}") == 1
+    # etiquetas solo en la primera y la última, y la frase con sus \AMCref, terminada en \par
+    assert r"\AMCqlabel{" + ids[0] + "}" in tex and r"\AMCqlabel{" + ids[2] + "}" in tex
+    assert r"\AMCqlabel{" + ids[1] + "}" not in tex
+    assert (r"\textbf{Las preguntas \AMCref{" + ids[0] + r"} a \AMCref{" + ids[2]
+            + r"} se refieren al mismo enunciado.}\par") in tex
+    assert tex.index("Las preguntas") < tex.index(r"\begin{questionmult}")
+    assert tex.count(r"\AMCnoCompleteMulti") == 3 and tex.count(r"\lastchoices") == 3
+    # las intros no van en cursiva; el enunciado común va en la primera pregunta
+    assert r"\emph" not in tex and "Sea $A$ invertible. Determinante:" in tex
+    assert tex.index("Sea $A$") < tex.index(r"\begin{questionmult}{" + ids[1])
+    assert "Sistema:" in tex.split(r"\begin{questionmult}{" + ids[1])[1]
+    # ref_text propio y enunciado común
+    tex = AMC_multipart("M", "7", "Común.", partes, separadas=True,
+                        ref_text="De la {a} a la {b}:")
+    assert r"\textbf{De la \AMCref{M-7-p1} a la \AMCref{M-7-p3}:}\par" in tex
+    assert tex.index("Común.") < tex.index(r"\begin{questionmult}{M-7-p2}")
+    # una sola parte: igual que el modo por defecto
+    uno = [partes[0]]
+    assert AMC_multipart("M", "1", "", uno, separadas=True) == AMC_multipart("M", "1", "", uno)
+
+
+def test_amc_multipart_separadas_profe_explain_en_cada_parte():
+    p = _tres_partes()
+    for etiqueta, partes in p.por_partes_profe(verbose=False):
+        if any(not c[2] for c in partes[2][1]):
+            break
+    tex = AMC_multipart("M", etiqueta, "", partes, profe=True, separadas=True)
+    preguntas = tex.split(r"\begin{questionmult}")[1:]
+    assert len(preguntas) == 3
+    assert r"\explain" in preguntas[2] and r"\explain" not in preguntas[0] + preguntas[1]
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        n = QuizAMCProfe("M", d, p, separadas=True, ref_text="{a}-{b}")
+        tex = open(d + "/M_profe.tex").read()
+    assert n == 2 and tex.count(r"\element{") == 2 and tex.count(r"\begin{questionmult}") == 6
+    assert tex.count(r"\AMCref{M-1-p1}-\AMCref{M-1-p3}") == 1
+
+
+def test_lint_amc_partes():
+    def codigos(**export):
+        return [(a.nivel, a.codigo) for a in lint(_tres_partes(**export))
+                if a.codigo in ("amc-partes", "estructura")]
+    assert codigos() == [(INFO, "amc-partes")]
+    assert codigos(amc_partes="separadas") == [] and codigos(amc_partes="juntas") == []
+    assert codigos(amc_partes="separada") == [(ERROR, "estructura")]
+    # una sola parte: no hace falta declararlo
+    assert not [a for a in lint(ProblemaTipo(["Sea ", Cuestion("a", True), Cuestion("b", False),
+                                               Cuestion("c", False)], nombre="U"))
+                if a.codigo == "amc-partes"]
+
+
 def test_lint_parte_vacia_no_aconseja_sobre_listas():
     av = lint(_d(["Sea ", [_S("A.", "v('A')"), _S("B.", "v('B')")],
                   _C("A", "v('A')"), _C("B", "v('B')"), _C("ni", "False"), " Y además:"]))
@@ -426,6 +495,21 @@ def test_scripts_generan_tex(proyecto):
     assert "{L-02-MatrizInvertible-1}" in alumno and alumno.count("{L-02-MatrizInvertible-1}") == 1
     # segunda pasada: nada cambia, no se reescribe (y make no recompila)
     assert "sin cambios" in _run(proyecto, "scripts/gen_amc.py")
+
+
+def test_scripts_amc_partes_separadas(tmp_path):
+    proyecto = crear(tmp_path / "banco")
+    ruta = proyecto / "preguntas" / "L-02-MatrizInvertible.json"
+    d = json.loads(ruta.read_text())
+    d["export"]["amc_partes"] = "separadas"
+    ruta.write_text(json.dumps(d, ensure_ascii=False))
+    _run(proyecto, "scripts/gen_amc.py", "--leccion", "2")
+    _run(proyecto, "scripts/gen_amc_student.py", "--leccion", "2")
+    for vista in ("amc", "amc-student"):
+        tex = (proyecto / "build" / vista / "L-02-MatrizInvertible.tex").read_text()
+        n = tex.count(r"\element{")
+        assert n and tex.count(r"\begin{questionmult}") == 2 * n, vista
+        assert tex.count("se refieren al mismo enunciado") == n and r"\AMCref{" in tex
 
 
 def test_nueva_pregunta_guarda_un_json_valido(proyecto):

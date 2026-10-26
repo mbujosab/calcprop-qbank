@@ -620,7 +620,7 @@ de =qbank-init=).
 | =nombre=       | Identificador; debe coincidir con el nombre del fichero sin =.json= y no contener =:= (rompe =make=).                                       |
 | =seed=         | Entero, =null= o ausente. Solo con =setup= aleatorio.                                                                                        |
 | =setup=        | Código Python como cadena (saltos de línea como =\n=) o =null=.                                                                              |
-| =export=       | Opcional. =last_choice= (bool): opción por defecto. =cols= (int): columnas en AMC. =instances= (int): instancias con =setup= aleatorio.      |
+| =export=       | Opcional. =last_choice= (bool): opción por defecto. =cols= (int): columnas en AMC. =instances= (int): instancias con =setup= aleatorio. =amc_partes= (="juntas"= o ="separadas"=): cómo salen en AMC las preguntas de varias partes (ver [[*=AMC_multipart= — preguntas con varias partes][=AMC_multipart=]]). |
 | =componentes=  | La lista plana: cadenas, objetos =Supuesto= y =Cuestion= y listas de ellos.                                                                  |
 
 Cada =Supuesto= es un objeto con =tipo=, =enunciado=, =semantica= y =precond=; cada
@@ -842,12 +842,14 @@ with open("preguntas.tex", "w") as f:
 
 Un =AMCblock= por parte produciría dos preguntas con el mismo identificador y la
 segunda sin las hipótesis. =AMC_multipart= genera un único =questionmult= con un bloque
-de casillas por parte, cada uno con su propia opción por defecto si =last_choice=:
+de casillas por parte, cada uno con su propia opción por defecto si =last_choice=; con
+=separadas=True=, una pregunta AMC por parte (ver más abajo):
 
 #+begin_src python :eval no
 AMC_multipart(nombre, etiqueta, enunciado, partes,
               last_choice=False, cols=1, profe=False, *,
-              aux_latex="", last_choice_text="Ninguna de las anteriores")
+              aux_latex="", last_choice_text="Ninguna de las anteriores",
+              separadas=False, ref_text=AMC_REF_TEXT)
 #+end_src
 
 =partes= es la lista de pares =(enunciado, cuestiones)= que devuelven =por_partes()= y
@@ -865,17 +867,61 @@ with open("preguntas_multi.tex", "w") as f:
             f.write(AMCblock("Superheroes", etiqueta, partes[0][0], partes[0][1], last_choice=True))
 #+end_src
 
+*** Partes separadas: preguntas numeradas consecutivas
+
+En el modo por defecto la multiparte es /una/ pregunta del examen: puntúa con la
+fórmula de =\scoringDefaultM= sobre todas sus casillas y ocupa una fila de la hoja de
+respuestas. Con =separadas=True= cada parte es una pregunta AMC propia, todas dentro
+del mismo =\element=; como =\shufflegroup= y =\copygroup= mueven elementos enteros,
+viajan juntas y en orden y se numeran consecutivamente. Para la variante =E= de la
+pregunta =N= con tres partes sale:
+
+#+begin_example
+\element{N}{<aux_latex>
+ \par\vspace{1ex}\noindent\textbf{Las preguntas \AMCref{N-E-p1} a \AMCref{N-E-p3} se refieren al mismo enunciado.}\par
+ \begin{questionmult}{N-E-p1}\AMCqlabel{N-E-p1}
+  <enunciado común y de la parte 1>
+  {\AMCnoCompleteMulti <casillas de la parte 1> }
+ \end{questionmult}
+ \begin{questionmult}{N-E-p2}
+  <enunciado de la parte 2>
+  {\AMCnoCompleteMulti <casillas de la parte 2> }
+ \end{questionmult}
+ \begin{questionmult}{N-E-p3}\AMCqlabel{N-E-p3}
+  <enunciado de la parte 3>
+  {\AMCnoCompleteMulti <casillas de la parte 3> }
+ \end{questionmult}
+}
+#+end_example
+
+Las intros de las partes no van en cursiva (son el enunciado de su pregunta); con
+=profe=True=, cada pregunta lleva su propio =\explain= con sus rechazadas. La frase es
+=ref_text= (por defecto =AMC_REF_TEXT=, ="Las preguntas {a} a {b} se refieren al mismo
+enunciado."=): ={a}= y ={b}= se sustituyen por =\AMCref= a las etiquetas de la primera y
+la última pregunta, y termina en =\par= (sin él, el =\hspace= negativo que algunos
+=\AMCbeginQuestion= ponen al principio de la pregunta se pegaría a la frase). AMC
+prefija las etiquetas con el número de copia, de modo que valen en todas las copias,
+y *los números salen tras la segunda pasada de LaTeX* (en la primera, =??=). Con una
+sola parte no hay frase ni etiquetas. En un banco, los scripts de la plantilla eligen
+el modo por pregunta con =export.amc_partes=: ="juntas"= (por defecto) o ="separadas"=.
+Moodle no cambia: su /cloze/ ya puntúa bloque a bloque.
+
+Al componer el examen, un bloque de /k/ partes cuenta como /k/ preguntas, pero
+=\copygroup[4]{LeccN}= sigue escogiendo cuatro /elementos/.
+
 ** =QuizAMCProfe= — la vista profe en un fichero
 
 #+begin_src python :eval no
 QuizAMCProfe(nombre, directorio, problema, cols=1, *, last_choice=False,
-             aux_latex="", last_choice_text="Ninguna de las anteriores")
+             aux_latex="", last_choice_text="Ninguna de las anteriores",
+             separadas=False, ref_text=AMC_REF_TEXT)
 # Devuelve int: número de entradas escritas (una por mundo)
 #+end_src
 
 Recorre =por_partes_profe()= y escribe en =directorio/nombre_profe.tex= una pregunta AMC
 por mundo (con =AMC_multipart= si tiene varias partes), con todas las cuestiones de
-cada hueco marcadas y las rechazadas en =\explain{}=. =problema= puede ser un
+cada hueco marcadas y las rechazadas en =\explain{}=; =separadas= y =ref_text= son los
+de =AMC_multipart=. =problema= puede ser un
 =ProblemaTipo= o un diccionario ={nombre: ProblemaTipo}=. =directorio= admite =/= final
 o no.
 
@@ -1201,7 +1247,9 @@ un =INFO= es información. Las reglas, con el código de cada aviso:
   está vacía, mezcla tipos o va anidada, o =export= o =seed= están mal tipados
   (=estructura=; ="seed": true= tampoco vale). =lista-1=, =seed=, =instances= (AVISO):
   listas de un solo elemento, =seed= incoherente con el uso de aleatorios,
-  =instances > 1= sin =setup=.
+  =instances > 1= sin =setup=. =export.amc_partes= distinto de ="juntas"= o
+  ="separadas"= es ERROR =estructura=; una pregunta de varias partes que no lo declara
+  da INFO =amc-partes= (saldrá en el modo ="juntas"=).
 - =texto= :: un =%= sin barra es ERROR (en LaTeX empieza un comentario y el PDF sale
   vacío o roto sin que =pdflatex= pare). Son AVISO: =\%= dentro de =$…$= (Moodle lo
   pierde), =°=, =«»= y comillas rectas (no existen en la codificación del paquete
@@ -1356,9 +1404,11 @@ AMCblock     (nombre, etiqueta, enunciado, cuestiones,
               aux_latex="", last_choice_text="Ninguna de las anteriores")      → str
 AMC_multipart(nombre, etiqueta, enunciado, partes,
               last_choice=False, cols=1, profe=False, *,
-              aux_latex="", last_choice_text="Ninguna de las anteriores")      → str
+              aux_latex="", last_choice_text="Ninguna de las anteriores",
+              separadas=False, ref_text=AMC_REF_TEXT)                          → str
 QuizAMCProfe (nombre, directorio, problema, cols=1, *, last_choice=False,
-              aux_latex="", last_choice_text="Ninguna de las anteriores")      → int (mundos)
+              aux_latex="", last_choice_text="Ninguna de las anteriores",
+              separadas=False, ref_text=AMC_REF_TEXT)                          → int (mundos)
 AMC_VF       (nombre, etiqueta, enunciado, cuestiones, opc=None)               → str (ProblemaVF)
 #+end_example
 

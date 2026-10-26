@@ -1089,7 +1089,7 @@ de <code>qbank-init</code>).
 
 <tr>
 <td class="org-left"><code>export</code></td>
-<td class="org-left">Opcional. <code>last_choice</code> (bool): opción por defecto. <code>cols</code> (int): columnas en AMC. <code>instances</code> (int): instancias con <code>setup</code> aleatorio.</td>
+<td class="org-left">Opcional. <code>last_choice</code> (bool): opción por defecto. <code>cols</code> (int): columnas en AMC. <code>instances</code> (int): instancias con <code>setup</code> aleatorio. <code>amc_partes</code> (<code>"juntas"</code> o <code>"separadas"</code>): cómo salen en AMC las preguntas de varias partes (ver <a href="#org2d7ca16"><code>AMC_multipart</code></a>).</td>
 </tr>
 
 <tr>
@@ -1412,13 +1412,15 @@ Para escribir todas las variantes de la vista alumno:
 <p>
 Un <code>AMCblock</code> por parte produciría dos preguntas con el mismo identificador y la
 segunda sin las hipótesis. <code>AMC_multipart</code> genera un único <code>questionmult</code> con un bloque
-de casillas por parte, cada uno con su propia opción por defecto si <code>last_choice</code>:
+de casillas por parte, cada uno con su propia opción por defecto si <code>last_choice</code>; con
+<code>separadas=True</code>, una pregunta AMC por parte (ver más abajo):
 </p>
 
 <div class="org-src-container">
 <pre class="src src-python">AMC_multipart(nombre, etiqueta, enunciado, partes,
               last_choice=False, cols=1, profe=False, *,
-              aux_latex="", last_choice_text="Ninguna de las anteriores")
+              aux_latex="", last_choice_text="Ninguna de las anteriores",
+              separadas=False, ref_text=AMC_REF_TEXT)
 </pre>
 </div>
 
@@ -1440,13 +1442,64 @@ with open("preguntas_multi.tex", "w") as f:
 </pre>
 </div>
 </div>
+<div id="outline-container-orgdceabbe" class="outline-4">
+<h4 id="orgdceabbe"><span class="section-number-4">5.2.1.</span> Partes separadas: preguntas numeradas consecutivas</h4>
+<div class="outline-text-4" id="text-5-2-1">
+<p>
+En el modo por defecto la multiparte es <i>una</i> pregunta del examen: puntúa con la
+fórmula de <code>\scoringDefaultM</code> sobre todas sus casillas y ocupa una fila de la hoja de
+respuestas. Con <code>separadas=True</code> cada parte es una pregunta AMC propia, todas dentro
+del mismo <code>\element</code>; como <code>\shufflegroup</code> y <code>\copygroup</code> mueven elementos enteros,
+viajan juntas y en orden y se numeran consecutivamente. Para la variante <code>E</code> de la
+pregunta <code>N</code> con tres partes sale:
+</p>
+
+<pre class="example" id="orgd528858">
+\element{N}{&lt;aux_latex&gt;
+ \par\vspace{1ex}\noindent\textbf{Las preguntas \AMCref{N-E-p1} a \AMCref{N-E-p3} se refieren al mismo enunciado.}\par
+ \begin{questionmult}{N-E-p1}\AMCqlabel{N-E-p1}
+  &lt;enunciado común y de la parte 1&gt;
+  {\AMCnoCompleteMulti &lt;casillas de la parte 1&gt; }
+ \end{questionmult}
+ \begin{questionmult}{N-E-p2}
+  &lt;enunciado de la parte 2&gt;
+  {\AMCnoCompleteMulti &lt;casillas de la parte 2&gt; }
+ \end{questionmult}
+ \begin{questionmult}{N-E-p3}\AMCqlabel{N-E-p3}
+  &lt;enunciado de la parte 3&gt;
+  {\AMCnoCompleteMulti &lt;casillas de la parte 3&gt; }
+ \end{questionmult}
+}
+</pre>
+
+<p>
+Las intros de las partes no van en cursiva (son el enunciado de su pregunta); con
+<code>profe=True</code>, cada pregunta lleva su propio <code>\explain</code> con sus rechazadas. La frase es
+<code>ref_text</code> (por defecto <code>AMC_REF_TEXT</code>, <code>"Las preguntas {a} a {b} se refieren al mismo
+enunciado."</code>): <code>{a}</code> y <code>{b}</code> se sustituyen por <code>\AMCref</code> a las etiquetas de la primera y
+la última pregunta, y termina en <code>\par</code> (sin él, el <code>\hspace</code> negativo que algunos
+<code>\AMCbeginQuestion</code> ponen al principio de la pregunta se pegaría a la frase). AMC
+prefija las etiquetas con el número de copia, de modo que valen en todas las copias,
+y <b>los números salen tras la segunda pasada de LaTeX</b> (en la primera, <code>??</code>). Con una
+sola parte no hay frase ni etiquetas. En un banco, los scripts de la plantilla eligen
+el modo por pregunta con <code>export.amc_partes</code>: <code>"juntas"</code> (por defecto) o <code>"separadas"</code>.
+Moodle no cambia: su <i>cloze</i> ya puntúa bloque a bloque.
+</p>
+
+<p>
+Al componer el examen, un bloque de <i>k</i> partes cuenta como <i>k</i> preguntas, pero
+<code>\copygroup[4]{LeccN}</code> sigue escogiendo cuatro <i>elementos</i>.
+</p>
+</div>
+</div>
 </div>
 <div id="outline-container-org5132ab8" class="outline-3">
 <h3 id="org5132ab8"><span class="section-number-3">5.3.</span> <code>QuizAMCProfe</code> — la vista profe en un fichero</h3>
 <div class="outline-text-3" id="text-5-3">
 <div class="org-src-container">
 <pre class="src src-python">QuizAMCProfe(nombre, directorio, problema, cols=1, *, last_choice=False,
-             aux_latex="", last_choice_text="Ninguna de las anteriores")
+             aux_latex="", last_choice_text="Ninguna de las anteriores",
+             separadas=False, ref_text=AMC_REF_TEXT)
 # Devuelve int: número de entradas escritas (una por mundo)
 </pre>
 </div>
@@ -1454,7 +1507,8 @@ with open("preguntas_multi.tex", "w") as f:
 <p>
 Recorre <code>por_partes_profe()</code> y escribe en <code>directorio/nombre_profe.tex</code> una pregunta AMC
 por mundo (con <code>AMC_multipart</code> si tiene varias partes), con todas las cuestiones de
-cada hueco marcadas y las rechazadas en <code>\explain{}</code>. <code>problema</code> puede ser un
+cada hueco marcadas y las rechazadas en <code>\explain{}</code>; <code>separadas</code> y <code>ref_text</code> son los
+de <code>AMC_multipart</code>. <code>problema</code> puede ser un
 <code>ProblemaTipo</code> o un diccionario <code>{nombre: ProblemaTipo}</code>. <code>directorio</code> admite <code>/</code> final
 o no.
 </p>
@@ -1484,7 +1538,7 @@ Moodle XML</i>). Como las de AMC, no leen <code>export</code>: pasa <code>last_c
 (los scripts de un banco sí lo leen).
 </p>
 
-<pre class="example" id="orgd528858">
+<pre class="example" id="org5735552">
 Python (qbank)  →  nombre.tex  →  xelatex / pdflatex  →  nombre.pdf + nombre-moodle.xml  →  Moodle
 </pre>
 
@@ -1672,7 +1726,7 @@ print(len(list(p.por_partes())), "variantes")
 </pre>
 </div>
 
-<pre class="example" id="orgdceabbe">
+<pre class="example" id="orgeca0e2d">
 Conteste qué afirmaciones sobre Spider-Man (Peter Parker) son ciertas. Uno de sus superpoderes consiste en
     ✓ tener sentidos superdesarrollados
     ✗ volar
@@ -1728,7 +1782,7 @@ tras una hora de inactividad); si un script dice que no hay sesión, copia otra.
 ejecútalos primero así y compara con lo que esperas.
 </p>
 
-<pre class="example" id="org5735552">
+<pre class="example" id="orgfaa5c47">
 PY=~/ruta/a/qbank/.venv/bin/python
 $PY scripts/moodle_sync.py categorias                      # categorías y nº de preguntas
 $PY scripts/moodle_sync.py preguntas L-14-LeerElVIF        # ids de una categoría
@@ -1925,7 +1979,9 @@ lleva <code>:</code> o espacios, que los scripts del banco no admiten (<code>nom
 está vacía, mezcla tipos o va anidada, o <code>export</code> o <code>seed</code> están mal tipados
 (<code>estructura</code>; <code>"seed": true</code> tampoco vale). <code>lista-1</code>, <code>seed</code>, <code>instances</code> (AVISO):
 listas de un solo elemento, <code>seed</code> incoherente con el uso de aleatorios,
-<code>instances &gt; 1</code> sin <code>setup</code>.</dd>
+<code>instances &gt; 1</code> sin <code>setup</code>. <code>export.amc_partes</code> distinto de <code>"juntas"</code> o
+<code>"separadas"</code> es ERROR <code>estructura</code>; una pregunta de varias partes que no lo declara
+da INFO <code>amc-partes</code> (saldrá en el modo <code>"juntas"</code>).</dd>
 <dt><code>texto</code></dt><dd>un <code>%</code> sin barra es ERROR (en LaTeX empieza un comentario y el PDF sale
 vacío o roto sin que <code>pdflatex</code> pare). Son AVISO: <code>\%</code> dentro de <code>$…$</code> (Moodle lo
 pierde), <code>°</code>, <code>«»</code> y comillas rectas (no existen en la codificación del paquete
@@ -1943,16 +1999,81 @@ apariciones; las constantes del todo las da <code>constante</code>), de una lamb
 constante en toda la muestra (donde <code>constante</code> solo pudo dar INFO), de una cifra
 que dentro de un «tipo de frase» (el texto sin cifras) separa por completo las
 verdaderas de las falsas (una elasticidad verdadera siempre menor que 1 y su gemela
-inversa siempre mayor), y de un rasgo superficial de la opción —una palabra, una
+inversa siempre mayor) o cuya <i>forma</i> —entera o con decimales, múltiplo de 5 o de
+10— predice la verdad (la cifra redonda era siempre la aproximación \(100\beta\), y
+por tanto siempre falsa), y de un rasgo superficial de la opción —una palabra, una
 cifra concreta, repetir una cifra del enunciado, tener la cifra mayor o menor del
 hueco, ser más larga que la mediana— que, con él o sin él, predice la verdad en el
 hueco (≥ 85 % de acierto, ≥ 15 puntos sobre la tasa base, soporte a ambos lados y
-p-valor corregido). Los rasgos salen del propio banco (no hay lista de palabras ni
+p-valor corregido). Un rasgo que solo reúne <code>Cuestion</code> enteras se descarta (eso lo
+dice <code>constante</code>), salvo que sea un rasgo de cifras —lleva cifras, un intervalo
+\([a,b]\), la cifra mayor— y reúna dos o más <code>Cuestion</code> enteras dejando fuera otras
+dos o más: «las dos opciones que escriben un intervalo son siempre falsas» se
+aprende sin leer. Los rasgos salen del propio banco (no hay lista de palabras ni
 dependencia del idioma), y no se miran relaciones aritméticas con los datos del
 enunciado: en una pregunta de cálculo la respuesta correcta <i>debe</i> ser función de
 ellos. Es más lenta que el resto del <code>lint</code>, por eso no corre por defecto; sus avisos
 son indicios que hay que leer: a veces el remedio es una gemela más (que la cifra
 grande sea a veces la verdadera), a veces no hay nada que corregir.</dd>
+<dt><code>inventario</code> (AVISO/INFO)</dt><dd>inventario de objetos: una <code>Cuestion</code> (o su <code>exp</code>) nombra
+un objeto concreto que el enunciado de esa misma variante no presenta, recorriendo
+unas lecturas con varios sorteos del <code>setup</code>. Objetos: nombres en <code>\text{…}</code> o
+<code>\mathrm{…}</code> y sus productos (<code>\text{mujer}\cdot\text{educ}</code> es una unidad: que el
+enunciado presente <code>mujer</code> y <code>educ</code> por separado no presenta el producto), vectores
+en <code>\boldsymbol{…}</code> o <code>\mathbf{…}</code>, y símbolos con subíndice numérico (\(\hat\beta_3\),
+\(x_2\); las decoraciones no cuentan, así que un enunciado con \(\hat\beta_3\) presenta
+\(\beta_3\)). El aviso dice en cuántas de sus apariciones faltó el objeto («12 de 12»
+fue el caso real: las opciones hablaban del modelo con <code>mujer·educ</code> y el enunciado
+mostraba otro). Es INFO si la propia opción lo presenta («\(\text{hombre}\) (\(1\) en los
+hombres…)», «X, que …», «en lugar de X»); los vectores y los subíndices que no
+tienen un «hermano» presentado (el enunciado muestra \(\beta_1\), \(\beta_2\) y la
+opción \(\beta_6\)) van en un único INFO por pregunta, porque suelen ser las letras
+de una identidad general (\(\boldsymbol{u}\), \(\boldsymbol{v}\)) o notación del curso.
+La notación que no hace falta presentar se declara con <code>conocidos=</code> (lista o cadena
+separada por comas, escrita como en las preguntas: <code>\mathrm{SRC}</code>, <code>\boldsymbol{y}</code>,
+<code>H_0</code>; <code>\beta_</code> cubre todos los subíndices), <code>--conocidos</code> en la CLI y, en un
+proyecto, <code>NOTACION_CONOCIDA</code> de <code>config.py</code>. Una secuencia con puntos,
+\(\beta_1,\dots,\beta_k\), presenta todos los subíndices del rango (con fin simbólico,
+todos los de esa base), y un símbolo escrito dentro de una hipótesis de la propia
+opción («el contraste conjunto (\(H_0\!:\beta_2=\beta_3=0\))») cuenta como presentado.
+Lo que la regla no ve: los objetos nombrados en prosa («el modelo sin restringir») y
+un objeto presentado en dos versiones; para eso está el inventario escrito de la
+Guía de diseño.</dd>
+<dt><code>longitud</code> (AVISO)</dt><dd>la opción larga es la verdadera: una alternativa <i>claramente</i> más
+larga (o más corta) que las que el alumno ve con ella es un rasgo memorable, y debe
+tener en su hueco una <i>pareja</i> de longitud parecida (a menos de un 30 %, o de 10
+caracteres) y valor contrario; si no, ese rasgo delata la respuesta. Longitud <i>visible</i>: sin <code>$</code>, llaves
+ni nombres de macros, que <code>len()</code> contaría. «Las que ve con ella» son una alternativa
+de cada otro hueco, así que destacar es probabilístico: la opción destaca si mide el doble
+(y 10 caracteres) más que todas sus compañeras —o menos que todas— en al menos
+la mitad de las combinaciones; el aviso dice en qué fracción. Se comprueba mundo a
+mundo con unos sorteos del <code>setup</code>; una opción que destaca unas veces como verdadera
+y otras como falsa es su propia pareja. Y si, entre lo que se muestra en esa parte,
+la claramente más corta (o más larga) es verdadera entre el 30 % y el 70 % de las
+veces (una larga verdadera en un hueco y una larga falsa en otro), los avisos de ese
+lado callan: el alumno no puede sacar regla. No compara medias ni castiga huecos
+compensados (una larga verdadera junto a una larga falsa): el remedio es local,
+recortar la destacada (el porqué va al <code>exp</code>) o darle una gemela, que suele ser la
+misma que pide <code>gemela</code>.</dd>
+<dt><code>gemela</code> (AVISO/INFO)</dt><dd>una alternativa verdadera siempre que aparece (en todos los
+mundos y sorteos de la muestra), con contenido calculable —un valor, o una fórmula
+con igualdad, desigualdad u operación— y sin una falsa <i>gemela</i> en su hueco: el mismo
+texto con otras cifras (y los mismos símbolos) o con otros símbolos (y las mismas
+cifras), sin importar el orden, con «mayor»/«menor», el signo, la desigualdad y la
+negación identificados; basta con que coincidan en el 80 % de las palabras, así que
+una coletilla no rompe la gemela. Sin gemela, el alumno la marca sin comprobar nada.
+No cuentan como cifra los subíndices, los rótulos «(1)», el 0 y el 1 (una
+indicadora, «un 1 % más») ni un porcentaje que el enunciado ya da; y una verdadera
+que solo repite cifras del enunciado («la constante, 22, es…») no avisa si alguna
+falsa del hueco lleva una de ellas con otra lectura: la cifra no delata. Es INFO
+cuando la fórmula va dentro de una frase (una propiedad enunciada, no un cálculo),
+salvo que la fórmula opere con dos o más objetos del enunciado («la coordenada pasa
+a ser \(\hat\beta_2+\hat\beta_3\)»): eso es un cálculo con los datos, y es AVISO. La
+regla <code>constante</code> ya señala las verdaderas fijas; esta dice cuáles de ellas, por ser
+calculables, necesitan una versión falsa. Con <code>decimal=</code> (<code>--decimal</code>, <code>DECIMAL</code> en
+<code>config.py</code>) se fija qué separadores decimales admiten las cifras: con <code>"{,}"</code>, una coma
+desnuda dentro de una fórmula, \((2,2,-1)\), separa componentes y no es el decimal 2,2
+(vale también para los patrones de la regla 11).</dd>
 </dl>
 
 <p>
@@ -1968,16 +2089,20 @@ Desde la línea de órdenes (código de salida 1 si hay algún ERROR; <code>--qu
 INFO y los ficheros sin avisos):
 </p>
 
-<pre class="example" id="orgeca0e2d">
+<pre class="example" id="org4e290a0">
 python -m qbank.lint preguntas/*.json --quiet
 qbank-lint preguntas/L-01-Nombre.json --tabla      # equivalente, con la tabla de mundos
 qbank-lint preguntas/*.json --quiet --patrones     # además, patrones memorizables (--patrones 100: más sorteos)
+qbank-lint preguntas/*.json --conocidos '\mathrm{SRC},\boldsymbol{y},\beta_'   # notación que no hay que presentar
+qbank-lint preguntas/*.json --decimal '{,}'   # los decimales van siempre como 0{,}5: (2,2,-1) no lleva un 2,2
 </pre>
 
 <p>
 En un proyecto de <code>qbank-init</code>: <code>make lint</code>, <code>make tabla PREGUNTA=L-01-Nombre</code>,
 <code>make patrones</code> (<code>SEMILLAS=N</code> para cambiar los sorteos), y <code>make amc</code> / <code>make moodle</code>
-pasan <code>lint</code> antes de exportar.
+pasan <code>lint</code> antes de exportar; todos leen de <code>config.py</code> la notación conocida
+(<code>NOTACION_CONOCIDA</code>, que pasan como <code>--conocidos</code>) y los separadores decimales
+(<code>DECIMAL</code>, como <code>--decimal</code>).
 </p>
 </div>
 </div>
@@ -1988,7 +2113,7 @@ pasan <code>lint</code> antes de exportar.
 <div id="outline-container-org0c2d36c" class="outline-3">
 <h3 id="org0c2d36c"><span class="section-number-3">9.1.</span> Clases</h3>
 <div class="outline-text-3" id="text-9-1">
-<pre class="example" id="orgfaa5c47">
+<pre class="example" id="org2f5cf8b">
 Supuesto(enunciado, semantica, precond=True)
 Cuestion(enunciado, semantica, precond=True, exp="")
     semantica y precond: fórmula calcprop, True/False, lambda ns: …, o la cadena de cualquiera de ellos
@@ -2005,7 +2130,7 @@ qbank.__version__                                                versión instal
 <div id="outline-container-orgfd4725b" class="outline-3">
 <h3 id="orgfd4725b"><span class="section-number-3">9.2.</span> Funciones JSON</h3>
 <div class="outline-text-3" id="text-9-2">
-<pre class="example" id="org4e290a0">
+<pre class="example" id="org4ec034c">
 problema_from_dict(d)              → ProblemaTipo o ProblemaVF
 problema_to_dict(problema)         → dict (conserva las claves propias del JSON)
 load_problema(ruta_o_dict)         → ProblemaTipo o ProblemaVF
@@ -2020,15 +2145,17 @@ save_problema_py(problema, ruta, varname="ejercicio")
 <div id="outline-container-org8be0b68" class="outline-3">
 <h3 id="org8be0b68"><span class="section-number-3">9.3.</span> Funciones AMC</h3>
 <div class="outline-text-3" id="text-9-3">
-<pre class="example" id="org2f5cf8b">
+<pre class="example" id="orgb26c10b">
 AMCblock     (nombre, etiqueta, enunciado, cuestiones,
               last_choice=False, cols=1, profe=False, *,
               aux_latex="", last_choice_text="Ninguna de las anteriores")      → str
 AMC_multipart(nombre, etiqueta, enunciado, partes,
               last_choice=False, cols=1, profe=False, *,
-              aux_latex="", last_choice_text="Ninguna de las anteriores")      → str
+              aux_latex="", last_choice_text="Ninguna de las anteriores",
+              separadas=False, ref_text=AMC_REF_TEXT)                          → str
 QuizAMCProfe (nombre, directorio, problema, cols=1, *, last_choice=False,
-              aux_latex="", last_choice_text="Ninguna de las anteriores")      → int (mundos)
+              aux_latex="", last_choice_text="Ninguna de las anteriores",
+              separadas=False, ref_text=AMC_REF_TEXT)                          → int (mundos)
 AMC_VF       (nombre, etiqueta, enunciado, cuestiones, opc=None)               → str (ProblemaVF)
 </pre>
 </div>
@@ -2036,7 +2163,7 @@ AMC_VF       (nombre, etiqueta, enunciado, cuestiones, opc=None)               �
 <div id="outline-container-org631e3be" class="outline-3">
 <h3 id="org631e3be"><span class="section-number-3">9.4.</span> Funciones Moodle</h3>
 <div class="outline-text-3" id="text-9-4">
-<pre class="example" id="org4ec034c">
+<pre class="example" id="org52ab030">
 QuizMoodle      (nombre, directorio, problema, last_choice=False, instances=1, *,
                  aux_latex="", last_choice_text="Las demás opciones son falsas")  → int (variantes)
 QuizMoodleProfe (nombre, directorio, problema, *, aux_latex="",
@@ -2050,7 +2177,7 @@ codchar(s)      vocales acentuadas minúsculas y ñ → secuencias LaTeX (lo apl
 <div id="outline-container-org53b7f09" class="outline-3">
 <h3 id="org53b7f09"><span class="section-number-3">9.5.</span> Vista de lectura</h3>
 <div class="outline-text-3" id="text-9-5">
-<pre class="example" id="orgb26c10b">
+<pre class="example" id="org9ca9813">
 QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
             last_choice=None, last_choice_text="Ninguna de las anteriores",
             extras=0, max_semillas=400)                                    → int (ejemplos)
@@ -2063,12 +2190,16 @@ ProblemaTipo.por_partes_lectura(seed=None, verbose=False, descartes=False)
 <div id="outline-container-orgf575406" class="outline-3">
 <h3 id="orgf575406"><span class="section-number-3">9.6.</span> Comprobación automática</h3>
 <div class="outline-text-3" id="text-9-6">
-<pre class="example" id="org52ab030">
-lint(problema_o_ruta, instances=None, seed=None, patrones=None)  → list[Aviso]
+<pre class="example" id="org7a01898">
+lint(problema_o_ruta, instances=None, seed=None, patrones=None, conocidos=(), decimal=None)
+                                                  → list[Aviso]
     # Aviso(nivel, codigo, mensaje, donde); nivel ∈ {ERROR, AVISO, INFO}; errores primero
     # patrones=True (o nº de sorteos): añade la regla 11, patrones memorizables (más lenta)
+    # conocidos: notación que el inventario de objetos (regla 12) no exige presentar
+    # decimal: separadores decimales de las cifras ("{,}" si una coma desnuda separa componentes)
 tabla_mundos(problema_o_ruta)                     → str   # tabla Cuestion × mundo
 python -m qbank.lint FICHEROS.json [--instances N] [--seed S] [--tabla] [--quiet] [--patrones [N]]
+                                   [--conocidos LISTA] [--decimal SEP]
     # también `qbank-lint`; código de salida 1 si hay algún ERROR
 </pre>
 </div>
@@ -2076,7 +2207,7 @@ python -m qbank.lint FICHEROS.json [--instances N] [--seed S] [--tabla] [--quiet
 <div id="outline-container-orgfa91d47" class="outline-3">
 <h3 id="orgfa91d47"><span class="section-number-3">9.7.</span> Proyecto de banco</h3>
 <div class="outline-text-3" id="text-9-7">
-<pre class="example" id="org9ca9813">
+<pre class="example" id="org58f23e4">
 qbank-init DIR [--forzar]        copia la plantilla (preguntas/, scripts/, Makefile, config.py,
                                  nueva_pregunta.py, README.org, prompts/, CLAUDE.md) en DIR; equivale a
                                  python -m qbank._plantilla DIR
@@ -2086,7 +2217,7 @@ qbank-init DIR [--forzar]        copia la plantilla (preguntas/, scripts/, Makef
 <div id="outline-container-org07936e4" class="outline-3">
 <h3 id="org07936e4"><span class="section-number-3">9.8.</span> Operadores de <code>calcprop</code> (disponibles tras <code>from qbank import *</code>)</h3>
 <div class="outline-text-3" id="text-9-8">
-<pre class="example" id="org7a01898">
+<pre class="example" id="orgd630c0a">
 v("X")           variable proposicional X
 -v("X")          negación de X
 v("X") &amp; v("Y")  conjunción (X ∧ Y)
@@ -2299,7 +2430,7 @@ for _ in range(2):
 </pre>
 </div>
 
-<pre class="example" id="org58f23e4">
+<pre class="example" id="org31cada9">
 Variante 1: Indique qué afirmaciones son verdaderas:
   ✗ Todo alumno que va a clase aprueba
   ✗ Si aprueban todos eres buen profesor
@@ -2326,7 +2457,7 @@ emite <code>DeprecationWarning</code>; usa
 <code>ProblemaTipo(...).por_partes_profe()</code>. Firma:
 </p>
 
-<pre class="example" id="orgd630c0a">
+<pre class="example" id="org37f2e30">
 ProblemaTipoProfe(lista, setup=None)
 </pre></dd>
 <dt><code>ProblemaMultiParte</code> y <code>SubPregunta</code></dt><dd><p>
@@ -2336,7 +2467,7 @@ ProblemaTipoProfe(lista, setup=None)
 <code>ProblemaTipo</code> y recórrelo con <code>por_partes()</code>. Firmas:
 </p>
 
-<pre class="example" id="org31cada9">
+<pre class="example" id="org4782ad1">
 ProblemaMultiParte(componentes, subpreguntas, setup=None)
 SubPregunta(intro, cuestiones)
 </pre></dd>

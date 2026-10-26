@@ -3,9 +3,11 @@
 \\element, una variante por combinación e instancia) y <pregunta>-doc.tex
 (documento autónomo); `make amc-student` los compila a PDF.
 
-Lee last_choice, cols e instances del campo export de cada pregunta. Las
-preguntas multiparte salen como una sola pregunta AMC con un bloque de
-casillas por parte (AMC_multipart). También escribe
+Lee last_choice, cols, instances y amc_partes del campo export de cada
+pregunta. Las preguntas multiparte salen como una sola pregunta AMC con un
+bloque de casillas por parte (AMC_multipart) o, con
+"amc_partes": "separadas", como preguntas numeradas consecutivas dentro del
+mismo \\element. También escribe
 build/amc-student/_catalogo.tex, con un \\input por pregunta, para incluir
 el banco entero en un examen AMC real.
 """
@@ -31,10 +33,12 @@ for ruta in preguntas(args.leccion):
                     cols=p.export.get('cols', 1),
                     last_choice_text=config.LAST_CHOICE_TEXT_AMC)
     np.random.seed(42)                  # reproducible aunque la pregunta no tenga seed
+    separadas = p.export.get('amc_partes', 'juntas') == 'separadas'
     bloques = []
     for etiqueta, partes in p.por_partes(instances=p.export.get('instances', 1)):
         if len(partes) > 1:
-            bloques.append(AMC_multipart(nombre, etiqueta, '', partes, **opciones))
+            bloques.append(AMC_multipart(nombre, etiqueta, '', partes, separadas=separadas,
+                                         **opciones))
         else:
             bloques.append(AMCblock(nombre, etiqueta, partes[0][0], partes[0][1], **opciones))
     cambiado = escribe_si_cambia(SALIDA / f'{nombre}.tex', ''.join(bloques))

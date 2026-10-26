@@ -8,6 +8,7 @@
 <meta name="generator" content="Org Mode" />
 <link rel="stylesheet" href="style.css">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
 <div id="content" class="content">
@@ -482,6 +483,7 @@ Desde la línea de órdenes (código de salida 1 si hay algún <code>ERROR</code
 
 <div class="org-src-container">
 <pre class="src src-bash">python -m qbank.lint preguntas/*.json [--instances N] [--seed S] [--tabla] [--quiet] [--patrones [N]]
+                                      [--conocidos LISTA] [--decimal SEP]
 qbank-lint preguntas/*.json --quiet      # equivalente; omite INFO y ficheros OK
 </pre>
 </div>
@@ -491,15 +493,23 @@ Comprueba, entre otras cosas, la garantía de mezcla (<code>1 &lt;</code> correc
 opciones-1= en toda variante, contando la opción por defecto de <code>last_choice</code>),
 el número de variantes, negaciones <code>-v('X')</code> que nunca podrían deducirse por
 falta de un <code>unoDe(...)</code>, interpolaciones <code>@{var}</code> sin resolver, etiquetas
-huérfanas, la estructura del JSON y caracteres que rompen la exportación a
-Moodle. La tabla de mundos muestra el valor de cada <code>Cuestion</code> en cada
+huérfanas, la estructura del JSON, caracteres que rompen la exportación a
+Moodle y el <i>inventario de objetos</i>: lo que una cuestión o su explicación
+nombran (<code>\text{mujer}\cdot\text{educ}</code>, \(\hat\beta_3\)) sin que el enunciado de
+esa variante lo presente (la notación del curso se declara con
+<code>--conocidos</code>); también dos reglas de diseño de la Guía: <i>la opción larga es
+la verdadera</i> (<code>longitud</code>: una opción claramente más larga, o más corta, que las
+que se muestran con ella, sin pareja de longitud parecida y valor contrario en
+su hueco ni compensación en la parte) y <i>la verdadera numérica sin gemela</i>
+(<code>gemela</code>: una verdadera fija con cifra o fórmula sin una versión falsa en su
+hueco). La tabla de mundos muestra el valor de cada <code>Cuestion</code> en cada
 combinación de <code>Supuesto</code> (<code>V</code>, <code>F</code> o <code>-</code> si la rechaza su <code>precond</code>), para
 localizar distractores constantes. Con <code>--patrones</code> (o <code>lint(..., patrones=True)</code>;
 <code>make patrones</code> en un proyecto) busca además <i>patrones memorizables</i>: lo que un
 alumno podría acertar sin leer el enunciado tras ver varias variantes (una
 opción casi siempre verdadera, una cifra que separa las verdaderas de las
-falsas, la frase larga o la cifra grande siempre falsa…). Es más lento y sus
-avisos son indicios que hay que leer.
+falsas, la frase larga, la cifra grande o la cifra redonda siempre falsa…).
+Es más lento y sus avisos son indicios que hay que leer.
 </p>
 </div>
 </div>

@@ -72,7 +72,10 @@ Reglas (código del aviso entre paréntesis):
    lee o ``load_problema`` falla. ``nombre``: no coincide con el fichero,
    lleva ``:`` o espacios (los scripts del banco ignoran esos ficheros).
    ``estructura``: listas vacías, mixtas o anidadas; ``seed`` que no es un
-   entero (``true`` tampoco); ``export`` mal tipado.
+   entero (``true`` tampoco); ``export`` mal tipado (también
+   ``export.amc_partes`` distinto de ``"juntas"`` o ``"separadas"``).
+   Una pregunta de varias partes sin ``export.amc_partes`` da INFO
+   ``amc-partes`` (en AMC saldrá en el modo ``"juntas"``).
 8. Texto (``texto``): un ``%`` sin barra es ERROR (en LaTeX empieza un
    comentario y el PDF sale vacío o roto sin que pdflatex pare); son AVISO
    ``\\%`` dentro de ``$...$`` (Moodle lo pierde), ``°``/``«»`` y comillas
@@ -99,12 +102,14 @@ Reglas (código del aviso entre paréntesis):
     decimales, múltiplo de 5 o de 10) predice la verdad; un rasgo
     superficial de la opción
     —una palabra, una cifra concreta, repetir una cifra del enunciado, tener
-    la cifra mayor o menor del hueco, ser más larga que la mediana— que, con
-    él o sin él, predice la verdad en ≥ 85 % de los casos, ≥ 15 puntos
-    sobre la tasa base, con soporte en ambos lados y p-valor corregido
-    < 0,01. Los rasgos que solo reúnen ``Cuestion`` enteras no cuentan (eso
-    ya lo dicen ``constante`` y «casi constante»). Son indicios: hay que
-    leerlos y decidir.
+    la cifra mayor o menor del hueco, un intervalo ``[a, b]``, ser más larga
+    que la mediana— que, con él o sin él, predice la verdad en ≥ 85 % de
+    los casos, ≥ 15 puntos sobre la tasa base, con soporte en ambos lados y
+    p-valor corregido < 0,01. Los rasgos que solo reúnen ``Cuestion``
+    enteras no cuentan (eso ya lo dicen ``constante`` y «casi constante»),
+    salvo un rasgo de cifras que reúne dos o más y deja fuera otras dos o
+    más («las que escriben un intervalo son siempre falsas»). Son indicios:
+    hay que leerlos y decidir.
 12. Inventario de objetos (``inventario``, AVISO/INFO): un objeto concreto
     que una ``Cuestion`` nombra —``\\text{…}`` o ``\\mathrm{…}`` y sus
     productos ``\\text{a}\\cdot\\text{b}`` como una unidad, ``\\boldsymbol{…}``
@@ -174,6 +179,7 @@ _ORDEN = {ERROR: 0, AVISO: 1, INFO: 2}
 
 MIN_VARIANTES_SIN_SETUP = 16
 MIN_VARIANTES_CON_SETUP = 60
+AMC_PARTES              = ('juntas', 'separadas')  # valores de export.amc_partes
 MIN_OPCIONES            = 3       # opciones que debe ver el alumno en cada parte (con last_choice)
 MAX_VARIANTES_AMC       = 300     # por encima, la vista alumno AMC en un solo examcopy agota pdflatex
 MAX_COMBINACIONES_LECTURA = 24    # combinaciones de lectura.cubrir a partir de las cuales se avisa
@@ -361,6 +367,20 @@ def _regla_estructura(p, avisos, ruta):
     cols = export.get('cols', 1)
     if not isinstance(cols, int) or isinstance(cols, bool) or cols < 1:
         avisos.append(Aviso(ERROR, 'estructura', f"export.cols debe ser un entero >= 1, no {cols!r}"))
+    modo = export.get('amc_partes', 'juntas')
+    if modo not in AMC_PARTES:
+        avisos.append(Aviso(ERROR, 'estructura',
+                            f"export.amc_partes debe ser {' o '.join(map(repr, AMC_PARTES))}, no {modo!r}"))
+    elif 'amc_partes' not in export:
+        try:
+            n_partes = len(_huecos_comp(p))
+        except Exception:
+            n_partes = 0
+        if n_partes > 1:
+            avisos.append(Aviso(INFO, 'amc-partes',
+                                f"{n_partes} partes sin export.amc_partes: en AMC saldrán como una "
+                                "sola pregunta con varios bloques de casillas ('juntas'); "
+                                "'separadas' las numera como preguntas consecutivas"))
     return True
 
 

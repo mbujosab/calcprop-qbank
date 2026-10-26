@@ -81,12 +81,20 @@ si lo dejas, explica por qué. Un <code>INFO</code> es información.</li>
 LaTeX, <code>por_partes_profe()</code> desde Python, abajo). Comprueba los
 enunciados, el número de opciones, las marcas en cada mundo y, con
 <code>setup</code>, varias semillas. Repasa cada <code>exp</code>.</li>
+<li><b>Inventario de objetos</b>: lee solo el enunciado de una variante y
+escribe la lista de objetos que presenta (modelos, columnas, cifras,
+símbolos, muestras). Después, por cada opción y cada <code>exp</code>, comprueba
+que no habla de nada fuera de esa lista, y que ningún objeto de la
+lista tiene dos versiones (dos modelos sin restringir, dos ajustes de
+lo mismo). <code>lint</code> avisa (<code>inventario</code>) de los objetos que reconoce en
+el LaTeX; los nombrados en prosa («el modelo sin restringir») solo los
+ve la lista escrita.</li>
 <li><b>Pasa los dos checklists</b> casilla por casilla: el de la Guía («Proceso
 de trabajo → Checklist») y el de <code>PROMPT-proyecto.org</code>. Si una falla,
 corrige y vuelve al paso 4; no lo dejes para después.</li>
 <li><b>Informa</b>: qué has comprobado, qué dijo <code>lint</code>, qué decisiones has
 tomado y qué dudas quedan. No digas que una pregunta está validada si
-no has ejecutado los pasos 4 y 5.</li>
+no has ejecutado los pasos 4 a 6.</li>
 <li><b>Registra</b> en <code>PROMPT-proyecto.org</code> toda decisión nueva que afecte a
 más de una pregunta (notación, estilo, criterio), con la fecha.</li>
 </ol>
@@ -109,6 +117,12 @@ dificultad sin decirlo expresamente.</li>
 <li>Lo que no se puede deducir del enunciado no se evalúa: ninguna cuestión
 depende de qué alternativa salió en otro hueco, ningún <code>exp</code> menciona
 mundos, etiquetas de <code>v('…')</code> ni «la opción anterior».</li>
+<li>Ninguna opción ni <code>exp</code> nombra un objeto que el enunciado de esa
+variante no presente (salvo la notación declarada conocida en
+<code>PROMPT-proyecto.org</code>), y ningún objeto se presenta en dos versiones.
+Hazlo con la lista escrita del paso 6, no de memoria: al autor y al
+revisor se les escapa porque tienen el material de origen en la cabeza
+y rellenan con lo que saben; la lista obliga a leer como el alumno.</li>
 </ul>
 </div>
 </div>

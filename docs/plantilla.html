@@ -155,7 +155,16 @@ el JSON en <code>preguntas/</code>.</li>
 </ul></li>
 <li><b>Compruébala:</b> <code>make lint</code> (o <code>make lint LECCION=3</code> para una sola lección);
 antes de dar la pregunta por buena, también <code>make patrones</code> (más lento:
-busca lo que un alumno podría acertar sin leer el enunciado).
+busca lo que un alumno podría acertar sin leer el enunciado). <code>make lint</code>
+avisa también de los objetos que una cuestión o su explicación nombran
+sin que el enunciado los presente (<code>inventario</code>; la notación del curso
+que no hay que presentar se declara en <code>NOTACION_CONOCIDA</code> de <code>config.py</code>),
+de las opciones claramente más largas (o más cortas) que las que se
+muestran con ellas sin una pareja de longitud parecida y valor contrario
+en su hueco ni compensación en la parte (<code>longitud</code>) y de las verdaderas fijas con cifra o fórmula que no tienen una
+falsa gemela en su hueco (<code>gemela</code>). Si el banco escribe los decimales
+siempre como <code>0{,}5</code>, declara <code>DECIMAL = "{,}"</code> en <code>config.py</code> para que
+una coma desnuda, <code>(2,2,-1)</code>, no se lea como decimal.
 Un <code>ERROR</code> significa que la pregunta está rota (p. ej. una variante con
 todas las opciones correctas); un <code>AVISO</code> hay que leerlo y decidir; un
 <code>INFO</code> es información. <code>make tabla PREGUNTA=L-01-Nombre</code> (con o sin
@@ -434,6 +443,11 @@ Campo <code>export</code>:
 <tr>
 <td class="org-left"><code>instances</code></td>
 <td class="org-left">Solo con <code>setup</code> aleatorio: cuántas instancias (recorridos con números distintos) se generan. Objetivo: ≥ 60 variantes (<code>lint</code> lo calcula); con pocos valores posibles se repiten, mira <code>make amc-student</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>amc_partes</code></td>
+<td class="org-left">Solo con varias partes: <code>"juntas"</code> (por defecto) da en AMC una sola pregunta con un bloque de casillas por parte; <code>"separadas"</code>, una pregunta numerada por parte, juntas y en orden, tras la frase «Las preguntas N a M se refieren al mismo enunciado» (compila dos veces para que salgan los números). Moodle no cambia.</td>
 </tr>
 </tbody>
 </table>

@@ -133,11 +133,16 @@ def AMC_VF(nombre, etiqueta, enunciado, cuestiones, opc=None):
     s = s + '}\n\n'
     return s
 
+AMC_REF_TEXT = "Las preguntas {a} a {b} se refieren al mismo enunciado."
+
+
 def AMC_multipart(nombre, etiqueta, enunciado, partes,
                   last_choice=False, cols=1, profe=False, *,
-                  aux_latex="", last_choice_text="Ninguna de las anteriores", opc=None):
+                  aux_latex="", last_choice_text="Ninguna de las anteriores", opc=None,
+                  separadas=False, ref_text=AMC_REF_TEXT):
     """Bloque AMC de una pregunta multiparte: un único questionmult con un
-    bloque de casillas por parte.
+    bloque de casillas por parte o, con separadas=True, un questionmult por
+    parte dentro del mismo \\element (preguntas numeradas consecutivas).
 
     partes    : [(enunciado_parte, cuestiones), ...] tal como lo devuelven
                 por_partes() y por_partes_profe()
@@ -148,9 +153,16 @@ def AMC_multipart(nombre, etiqueta, enunciado, partes,
                 propia opción por defecto)
     opc       : forma antigua de pasar aux_latex ([aux_latex]); se mantiene
                 por compatibilidad
+    separadas : si True, una pregunta AMC por parte (identificadores
+                nombre-etiqueta-pK), precedidas de ref_text
+    ref_text  : frase previa del modo separado; {a} y {b} se sustituyen por
+                los números de la primera y la última pregunta (\\AMCref)
     """
     if opc:
         aux_latex = opc[0]
+    if separadas and len(partes) > 1:
+        return _amc_partes_separadas(nombre, etiqueta, enunciado, partes, last_choice,
+                                     cols, profe, aux_latex, last_choice_text, ref_text)
     nombre_tex = _sanitize_name(nombre)
     s  = '\\element{' + nombre_tex + '}{' + aux_latex + '\n'
     s += ' \\begin{questionmult}{' + nombre_tex + '-' + str(etiqueta) + '}\n'
@@ -167,6 +179,35 @@ def AMC_multipart(nombre, etiqueta, enunciado, partes,
     if profe and ex:
         s += '   \\explain{' + ex + '            }\n'
     s += ' \\end{questionmult} '
+    s += '}\n\n'
+    return s
+
+
+def _amc_partes_separadas(nombre, etiqueta, enunciado, partes, last_choice, cols,
+                          profe, aux_latex, last_choice_text, ref_text):
+    """Modo separado de AMC_multipart: un questionmult por parte en un solo
+    \\element, con la frase «las preguntas N a M…» delante."""
+    nombre_tex = _sanitize_name(nombre)
+    ids = [f'{nombre_tex}-{etiqueta}-p{k + 1}' for k in range(len(partes))]
+    frase = (ref_text.replace('{a}', '\\AMCref{' + ids[0] + '}')
+                     .replace('{b}', '\\AMCref{' + ids[-1] + '}'))
+    # El \\par final separa la frase del \\AMCbeginQuestion de la primera
+    # pregunta (si no, su \\hspace negativo se pega a la frase).
+    s  = '\\element{' + nombre_tex + '}{' + aux_latex + '\n'
+    s += ' \\par\\vspace{1ex}\\noindent\\textbf{' + frase + '}\\par\n'
+    for k, (intro, cuestiones) in enumerate(partes):
+        etiquetada = k in (0, len(partes) - 1)
+        s += (' \\begin{questionmult}{' + ids[k] + '}'
+              + ('\\AMCqlabel{' + ids[k] + '}' if etiquetada else '') + '\n')
+        if k == 0 and enunciado:
+            s += '  ' + _fix_display(enunciado) + '\n\n'
+        if intro.strip():
+            s += '  ' + _fix_display(intro.strip()) + '\n'
+        choices, ex = _amc_choices(cuestiones, last_choice, cols, profe, last_choice_text)
+        s += '  {\\AMCnoCompleteMulti\n' + choices + '  }\n'
+        if profe and ex:
+            s += '   \\explain{' + ex + '            }\n'
+        s += ' \\end{questionmult}\n'
     s += '}\n\n'
     return s
 
@@ -292,7 +333,8 @@ def QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="",
 
 def QuizAMCProfe(nombre, directorio, problema, cols=1, *,
                  last_choice=False, aux_latex="",
-                 last_choice_text="Ninguna de las anteriores"):
+                 last_choice_text="Ninguna de las anteriores",
+                 separadas=False, ref_text=AMC_REF_TEXT):
     """Vista profe para AMC: todas las cuestiones de cada hueco.
 
     Usa por_partes_profe() para mostrar TODAS las cuestiones de cada hueco
@@ -311,10 +353,12 @@ def QuizAMCProfe(nombre, directorio, problema, cols=1, *,
     last_choice      : si True, añade la opción por defecto (como en la vista alumno)
     aux_latex        : instrucciones LaTeX extra dentro del bloque \\element{}
     last_choice_text : texto de la opción por defecto (solo con last_choice)
+    separadas, ref_text : como en AMC_multipart (multiparte como preguntas
+                       numeradas consecutivas)
 
     Retorna
     -------
-    int : número de entradas escritas (una pregunta AMC por mundo)
+    int : número de entradas escritas (un \\element por mundo)
     """
     def creaDiccionario(x, key='key'):
         return x if isinstance(x, dict) else {key: x}
@@ -327,7 +371,8 @@ def QuizAMCProfe(nombre, directorio, problema, cols=1, *,
                     f.write(AMC_multipart(nom, etiqueta, "", partes,
                                           last_choice=last_choice, cols=cols, profe=True,
                                           aux_latex=aux_latex,
-                                          last_choice_text=last_choice_text))
+                                          last_choice_text=last_choice_text,
+                                          separadas=separadas, ref_text=ref_text))
                 else:
                     f.write(AMCblock(nom, etiqueta, partes[0][0], partes[0][1],
                                      last_choice=last_choice, cols=cols, profe=True,

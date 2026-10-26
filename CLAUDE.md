@@ -243,6 +243,16 @@ QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="",
   produce identificadores duplicados y la segunda parte sin hipótesis;
   `QuizAMCProfe` y los scripts de la plantilla ya usan `AMC_multipart`
   cuando `len(partes) > 1`, igual que los `gen_amc*.py` de los dos bancos.
+- **Partes separadas en AMC** (26-10, encargo de PE):
+  `AMC_multipart(..., separadas=True, ref_text=AMC_REF_TEXT)` (y
+  `QuizAMCProfe(..., separadas=, ref_text=)`) escribe un `\element` con un
+  `questionmult{N-E-pK}` por parte, `\AMCqlabel` en la primera y la última
+  y delante `\textbf{ref_text}\par` con `{a}`/`{b}` → `\AMCref` (números
+  tras la 2.ª pasada). Intros sin `\emph`; `\explain` por parte; con una
+  parte, igual que el modo por defecto. Los scripts de la plantilla leen
+  `export.amc_partes` (`"juntas"` por defecto / `"separadas"`); lint:
+  valor inválido ERROR `estructura`, varias partes sin declararlo INFO
+  `amc-partes`. Probado con lualatex y la plantilla de examen de PE.
 - `cols` solo actúa si se pasa: `QuizAMCProfe(..., cols=N)` y
   `AMCblock(..., cols=N)`. Un script que genere la vista profe sin pasar
   `export.cols` la mostrará a una columna aunque la vista alumno use dos.
