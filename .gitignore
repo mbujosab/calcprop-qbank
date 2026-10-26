@@ -53,3 +53,7 @@ ejemplosManual/exportaciones/
 !ejemplosManual/*.json
 !ejemplosManual/*.ipynb
 
+
+# Fase 5: respuestas de compañeros y su tabulación (datos personales; no se publican)
+respuestasCompañeros/
+Fase5-recogida.org
