@@ -1860,6 +1860,8 @@ las que la precondición excluye en ese mundo, atenuadas y con su motivo debajo 
 <code>motivo</code> del componente si lo tiene; si no, la precondición en letra de máquina). Al
 final de la pregunta se listan los mundos que un <code>Supuesto</code> descarta: su texto y,
 debajo, el motivo.
+El documento empieza con un índice pulsable, con una entrada por pregunta y otra
+por ejemplo; necesita dos pasadas de LaTeX (<code>make lectura</code> las hace).
 </p>
 
 <div class="org-src-container">
@@ -1873,11 +1875,12 @@ debajo, el motivo.
 <li><code>problemas</code> es un <code>ProblemaTipo</code>, una <b>lista</b> de ellos (un documento por
 lección es el uso previsto; el nombre de cada uno es su <code>nombre</code>) o un
 diccionario <code>{nombre: ProblemaTipo}</code>. Escribe solo <code>directorio/nombre.tex</code>
-(UTF-8); compilarlo con <code>pdflatex</code> es cosa del <code>Makefile</code> (<code>make lectura</code>
-en la plantilla).</li>
+(UTF-8); compilarlo (dos pasadas, por el índice) es cosa del <code>Makefile</code>
+(<code>make lectura</code> en la plantilla, con <code>lualatex</code>).</li>
 <li><code>aux_latex</code> es el preámbulo del proyecto (macros, <code>babel</code>), como en AMC y
-Moodle; el documento carga por su cuenta <code>inputenc</code>, <code>fontenc</code>,
-<code>amsmath</code>, <code>amssymb</code>, <code>geometry</code>, <code>xcolor</code>, <code>enumitem</code> y <code>graphicx</code>.</li>
+Moodle; el documento carga por su cuenta <code>inputenc</code> y <code>fontenc</code> (o
+<code>fontspec</code>), <code>amsmath</code>, <code>amssymb</code>, <code>geometry</code>, <code>xcolor</code>, <code>enumitem</code> y
+<code>graphicx</code> y, después del preámbulo, <code>hyperref</code> (si este no lo cargaba ya).</li>
 <li><code>last_choice=None</code> lee <code>export.last_choice</code> de cada pregunta (una
 excepción a la regla de que los exportadores no leen <code>export</code>, porque
 en un mismo documento las preguntas difieren); solo afecta a la nota

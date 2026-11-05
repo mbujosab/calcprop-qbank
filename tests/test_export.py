@@ -356,6 +356,11 @@ def test_quiz_lectura_escribe_un_documento(problema_simple, tmp_path):
     assert "El alumno ve 1 opción." in tex                            # problema_simple: un hueco, sin last_choice
     assert tex.count("la misma retroalimentación que la anterior") == 1
     assert "\\subsection*{Mundo 1}" in tex and "\\subsection*{Mundo único}" in tex
+    assert "\\tableofcontents" in tex and "{hyperref}" in tex
+    assert tex.index("% preambulo del proyecto") < tex.index("{hyperref}")      # hyperref, lo último
+    assert "\\addcontentsline{toc}{section}{L-01-Dos\\_partes}" in tex
+    assert tex.count("\\addcontentsline{toc}{subsection}") == 3                # una por ejemplo
+    assert tex.count("\\phantomsection") == 2 + 3
     assert QuizLectura("uno", str(tmp_path), problema_simple, last_choice=True) == 2
     assert "la opción 2 es" in (tmp_path / "uno.tex").read_text(encoding="utf-8")   # 1 hueco + opción por defecto
 

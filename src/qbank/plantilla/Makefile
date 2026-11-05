@@ -123,9 +123,11 @@ build/amc-student/%.pdf: build/amc-student/%-doc.tex build/amc-student/%.tex
 	 if ! test -f $*.pdf || grep -qE $(ERRORES_LATEX) $*.log; then \
 	   rm -f $*.pdf; echo "  ERROR en $* (ver build/amc-student/$*.log)"; exit 1; fi
 
+# Lectura: siempre dos pasadas, la segunda llena el índice (\tableofcontents).
 build/lectura/%.pdf: build/lectura/%.tex
 	@echo "  $(firstword $(LATEX_AMC)) $*"
 	@cd build/lectura && rm -f $*.pdf; $(LATEX_AMC) $*.tex > /dev/null; \
+	 $(LATEX_AMC) $*.tex > /dev/null; \
 	 if ! test -f $*.pdf || grep -qE $(ERRORES_LATEX) $*.log; then \
 	   rm -f $*.pdf; echo "  ERROR en $* (ver build/lectura/$*.log)"; exit 1; fi
 

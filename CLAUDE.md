@@ -283,7 +283,11 @@ for r in p.por_partes_lectura(seed=None, verbose=False, descartes=False):
 - Documento completo para *leer* las preguntas (no para el examen): tabla
   de mundos, un ejemplo por mundo (y por combinación de valores de
   `lectura.cubrir` con `setup`), alternativas por hueco con V/F y `exp`,
-  excluidas en gris con motivo, mundos descartados. `problemas` admite
+  excluidas en gris con motivo, mundos descartados. Índice pulsable (05-11, encargo
+  de PE): `\section*`/`\subsection*` con `\phantomsection` y
+  `\addcontentsline`, `hyperref` tras `aux_latex` (o `\hypersetup` si ya
+  está), `\contentsname` «Índice»; dos pasadas (la regla de la plantilla
+  las hace siempre). `problemas` admite
   lista (un documento por lección) o dict; `last_choice=None` lee
   `export.last_choice` de cada pregunta (excepción documentada).
 - Clave JSON oficial `lectura` (`{"cubrir": [...]}`) → `p.lectura`;

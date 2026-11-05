@@ -507,6 +507,12 @@ def _tex_lectura_cabecera(titulo, aux_latex):
         '\\usepackage[margin=2.2cm]{geometry}\n'
         '\\usepackage{xcolor,enumitem,graphicx}\n'
         + aux_latex.strip() + '\n'
+        # hyperref, después del preámbulo del proyecto (y solo si este no lo carga ya):
+        # el índice y los nombres de pregunta quedan pulsables.
+        '\\makeatletter\\@ifpackageloaded{hyperref}{\\hypersetup{hidelinks}}'
+        '{\\usepackage[hidelinks]{hyperref}}\\makeatother\n'
+        # El título del índice; babel, si el preámbulo lo carga, pone el de su idioma.
+        "\\renewcommand{\\contentsname}{\\'{I}ndice}\n"
         '\\definecolor{qbverde}{rgb}{0,0.5,0}\\definecolor{qbrojo}{rgb}{0.75,0,0}\n'
         '\\newcommand{\\qbV}{\\textbf{\\textcolor{qbverde}{V}}}\n'
         '\\newcommand{\\qbF}{\\textbf{\\textcolor{qbrojo}{F}}}\n'
@@ -522,12 +528,20 @@ def _tex_lectura_cabecera(titulo, aux_latex):
         '\\emph{una} de las alternativas listadas. \\qbV/\\qbF{} es el valor de verdad en ese '
         'ejemplo; debajo, en gris, la retroalimentación. Las alternativas que la precondición '
         'excluye en ese mundo van aparte, al final de su hueco («Excluidas en este ejemplo»), '
-        'con su motivo debajo.\n\n')
+        'con su motivo debajo.\n\n'
+        '\\tableofcontents\n\n')
+
+
+def _tex_lectura_entrada(nivel, titulo):
+    """Título sin numerar (\\section*, \\subsection*) con su entrada en el índice."""
+    return ('\\phantomsection\\' + nivel + '*{' + titulo + '}'
+            '\\addcontentsline{toc}{' + nivel + '}{' + titulo + '}\n')
 
 
 def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, last_choice_text):
     from qbank._lint import tabla_mundos
-    L = ['\\clearpage\\section*{' + _tex_lectura_escapa(nombre) + '}\n']
+    # Sin numerar, pero en el índice: \\phantomsection da a hyperref el destino del enlace.
+    L = ['\\clearpage' + _tex_lectura_entrada('section', _tex_lectura_escapa(nombre))]
     if ejemplos:
         n_huecos = [len(pa.huecos) for pa in ejemplos[0][2].partes]
         opciones = [n + (1 if last_choice else 0) for n in n_huecos]
@@ -561,7 +575,7 @@ def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, l
         if valores:
             cab += ' · ' + ' · '.join(f'{_tex_lectura_escapa(v)} = {_tex_lectura_escapa(x)}'
                                       for v, x in valores)
-        L.append('\\subsection*{' + cab + '}\n')
+        L.append(_tex_lectura_entrada('subsection', cab))
         h = 0
         for k, pa in enumerate(r.partes):
             if pa.enunciado.strip():

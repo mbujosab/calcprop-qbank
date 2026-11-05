@@ -1150,6 +1150,8 @@ las que la precondición excluye en ese mundo, atenuadas y con su motivo debajo 
 =motivo= del componente si lo tiene; si no, la precondición en letra de máquina). Al
 final de la pregunta se listan los mundos que un =Supuesto= descarta: su texto y,
 debajo, el motivo.
+El documento empieza con un índice pulsable, con una entrada por pregunta y otra
+por ejemplo; necesita dos pasadas de LaTeX (=make lectura= las hace).
 
 #+begin_src python :eval no
 QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
@@ -1160,11 +1162,12 @@ QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
 - =problemas= es un =ProblemaTipo=, una *lista* de ellos (un documento por
   lección es el uso previsto; el nombre de cada uno es su =nombre=) o un
   diccionario ={nombre: ProblemaTipo}=. Escribe solo =directorio/nombre.tex=
-  (UTF-8); compilarlo con =pdflatex= es cosa del =Makefile= (=make lectura=
-  en la plantilla).
+  (UTF-8); compilarlo (dos pasadas, por el índice) es cosa del =Makefile=
+  (=make lectura= en la plantilla, con =lualatex=).
 - =aux_latex= es el preámbulo del proyecto (macros, =babel=), como en AMC y
-  Moodle; el documento carga por su cuenta =inputenc=, =fontenc=,
-  =amsmath=, =amssymb=, =geometry=, =xcolor=, =enumitem= y =graphicx=.
+  Moodle; el documento carga por su cuenta =inputenc= y =fontenc= (o
+  =fontspec=), =amsmath=, =amssymb=, =geometry=, =xcolor=, =enumitem= y
+  =graphicx= y, después del preámbulo, =hyperref= (si este no lo cargaba ya).
 - =last_choice=None= lee =export.last_choice= de cada pregunta (una
   excepción a la regla de que los exportadores no leen =export=, porque
   en un mismo documento las preguntas difieren); solo afecta a la nota
