@@ -275,7 +275,7 @@ QuizMoodleProfe(nombre, directorio, problema, *, aux_latex="",
 ```python
 QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
             last_choice=None, last_choice_text="Ninguna de las anteriores",
-            extras=0, max_semillas=400)        # escribe directorio/nombre.tex; -> nº ejemplos
+            extras=0, max_semillas=400, etiqueta=None)   # escribe directorio/nombre.tex; -> nº ejemplos
 for r in p.por_partes_lectura(seed=None, verbose=False, descartes=False):
     r.etiqueta, r.mundo, r.ns, r.partes, r.descarte      # Lectura; partes: ParteLectura(enunciado, huecos)
 ```
@@ -294,6 +294,11 @@ for r in p.por_partes_lectura(seed=None, verbose=False, descartes=False):
   `ProblemaTipo(..., lectura=)`, `save_problema` y `problema_to_python` la
   conservan. `lint` regla 10 (`lectura`): var ausente del `setup` o
   `cubrir` sin `setup` ERROR; valores reales o > 24 combinaciones AVISO.
+- `etiqueta=` (09-11, petición de PE): función `ProblemaTipo -> str|None` o
+  dict `{nombre: str}`; el texto (p. ej. el nivel de `p._extra['_nivel']`) va
+  a la derecha del título de la pregunta (`\hfill`, letra normal) y entre
+  paréntesis en el índice, como LaTeX sin escapar. Plantilla:
+  `config.ETIQUETA_LECTURA`.
 - Plantilla: `scripts/gen_lectura.py` y `make lectura [LECCION=N]` →
   `build/lectura/L-NN-lectura.pdf` (preámbulo `config.PREAMBULO_AMC` o
   `PREAMBULO_LECTURA`; `config.EXTRAS_LECTURA` sorteos extra sin `cubrir`).

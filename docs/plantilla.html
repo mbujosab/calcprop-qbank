@@ -262,7 +262,10 @@ pregunta puede pedir ejemplos para todas las combinaciones de valores de
 algunas variables: <code>"lectura": {"cubrir": ["ctx", "rech"]}</code> en su JSON (los
 valores deben ser discretos; <code>lint</code> lo comprueba). Sin esa clave, un
 ejemplo por mundo más <code>config.EXTRAS_LECTURA</code> sorteos con enunciado
-distinto.
+distinto. Con <code>config.ETIQUETA_LECTURA</code> (una función que recibe el
+<code>ProblemaTipo</code> y devuelve un texto o <code>None</code>), ese texto —el nivel de
+dificultad guardado en una clave propia del JSON, por ejemplo— acompaña al
+nombre de cada pregunta en su título y en el índice.
 </p>
 
 <p>

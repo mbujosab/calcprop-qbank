@@ -173,7 +173,10 @@ pregunta puede pedir ejemplos para todas las combinaciones de valores de
 algunas variables: ="lectura": {"cubrir": ["ctx", "rech"]}= en su JSON (los
 valores deben ser discretos; =lint= lo comprueba). Sin esa clave, un
 ejemplo por mundo más =config.EXTRAS_LECTURA= sorteos con enunciado
-distinto.
+distinto. Con =config.ETIQUETA_LECTURA= (una función que recibe el
+=ProblemaTipo= y devuelve un texto o =None=), ese texto —el nivel de
+dificultad guardado en una clave propia del JSON, por ejemplo— acompaña al
+nombre de cada pregunta en su título y en el índice.
 
 La vista profe *no incluye la opción por defecto*: su valor depende de qué
 cuestión le toque al alumno en cada hueco. Para comprobarla, mira las

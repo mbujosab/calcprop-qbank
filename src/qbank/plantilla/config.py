@@ -22,6 +22,11 @@ LAST_CHOICE_TEXT_MOODLE = "Las demás opciones son falsas"
 # PREAMBULO_LECTURA. EXTRAS_LECTURA: sorteos extra por mundo (con enunciado
 # distinto) en las preguntas con setup que no declaran "lectura": {"cubrir": [...]}.
 EXTRAS_LECTURA = 2
+# ETIQUETA_LECTURA: texto junto al nombre de cada pregunta en la vista de lectura
+# (en su título y en el índice), por ejemplo el nivel de dificultad guardado en
+# una clave propia del JSON. Función ProblemaTipo -> str | None (LaTeX, sin escapar).
+# ETIQUETA_LECTURA = lambda p: getattr(p, '_extra', {}).get('_nivel') and 'nivel ' + p._extra['_nivel']
+ETIQUETA_LECTURA = None
 
 # Vista profe de las preguntas con setup aleatorio: cuántos sorteos se exploran
 # y cuántos casos distintos (mundo × patrón de marcas) se imprimen como máximo.

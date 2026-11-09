@@ -532,16 +532,25 @@ def _tex_lectura_cabecera(titulo, aux_latex):
         '\\tableofcontents\n\n')
 
 
-def _tex_lectura_entrada(nivel, titulo):
-    """Título sin numerar (\\section*, \\subsection*) con su entrada en el índice."""
+def _tex_lectura_entrada(nivel, titulo, indice=None):
+    """Título sin numerar (\\section*, \\subsection*) con su entrada en el índice
+    (indice, si el texto del índice debe diferir del título)."""
     return ('\\phantomsection\\' + nivel + '*{' + titulo + '}'
-            '\\addcontentsline{toc}{' + nivel + '}{' + titulo + '}\n')
+            '\\addcontentsline{toc}{' + nivel + '}{' + (titulo if indice is None else indice) + '}\n')
 
 
-def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, last_choice_text):
+def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, last_choice_text,
+                          etiqueta=None):
     from qbank._lint import tabla_mundos
     # Sin numerar, pero en el índice: \\phantomsection da a hyperref el destino del enlace.
-    L = ['\\clearpage' + _tex_lectura_entrada('section', _tex_lectura_escapa(nombre))]
+    titulo = _tex_lectura_escapa(nombre)
+    if etiqueta:
+        # La etiqueta (el nivel de dificultad, por ejemplo) a la derecha del nombre, en letra
+        # normal, y entre paréntesis en el índice; es LaTeX del proyecto y no se escapa.
+        L = ['\\clearpage' + _tex_lectura_entrada(
+            'section', titulo + '\\hfill{\\normalsize\\mdseries ' + etiqueta + '}', titulo + ' (' + etiqueta + ')')]
+    else:
+        L = ['\\clearpage' + _tex_lectura_entrada('section', titulo)]
     if ejemplos:
         n_huecos = [len(pa.huecos) for pa in ejemplos[0][2].partes]
         opciones = [n + (1 if last_choice else 0) for n in n_huecos]
@@ -625,7 +634,7 @@ def _tex_lectura_pregunta(nombre, p, ejemplos, descartes, faltan, last_choice, l
 
 def QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
                 last_choice=None, last_choice_text="Ninguna de las anteriores",
-                extras=0, max_semillas=400):
+                extras=0, max_semillas=400, etiqueta=None):
     """Vista de lectura: escribe directorio/nombre.tex, un documento LaTeX
     completo con, por cada pregunta, un ejemplo por mundo (y por combinación
     de valores de lectura.cubrir), las alternativas por hueco con V/F y su
@@ -641,6 +650,10 @@ def QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
     extras           : sin lectura.cubrir, sorteos extra por mundo con enunciado
                        distinto (solo con setup)
     max_semillas     : semillas que se recorren buscando combinaciones
+    etiqueta         : texto que acompaña al nombre de cada pregunta en su
+                       título y en el índice (el nivel de dificultad, por
+                       ejemplo): función ProblemaTipo -> str | None, o dict
+                       {nombre: str}; LaTeX del proyecto, no se escapa
 
     Devuelve el número de ejemplos escritos."""
     if isinstance(problemas, dict):
@@ -656,7 +669,9 @@ def QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
         ejemplos, descartes, faltan = _ejemplos_lectura(p, extras=extras, max_semillas=max_semillas)
         lc = (p.export.get('last_choice', False) if isinstance(p.export, dict) else False) \
              if last_choice is None else last_choice
-        partes.append(_tex_lectura_pregunta(nom, p, ejemplos, descartes, faltan, lc, last_choice_text))
+        et = (etiqueta.get(nom) if isinstance(etiqueta, dict)
+              else etiqueta(p) if callable(etiqueta) else None)
+        partes.append(_tex_lectura_pregunta(nom, p, ejemplos, descartes, faltan, lc, last_choice_text, et))
         total += len(ejemplos)
     partes.append('\\end{document}\n')
     with open(_os.path.join(directorio, nombre + '.tex'), 'w', encoding='utf-8') as f:

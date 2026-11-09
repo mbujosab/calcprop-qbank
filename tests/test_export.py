@@ -365,6 +365,21 @@ def test_quiz_lectura_escribe_un_documento(problema_simple, tmp_path):
     assert "la opción 2 es" in (tmp_path / "uno.tex").read_text(encoding="utf-8")   # 1 hueco + opción por defecto
 
 
+def test_quiz_lectura_etiqueta(problema_simple, tmp_path):
+    from qbank import QuizLectura
+    p2 = ProblemaTipo(["Texto.", Cuestion("x", "True")], nombre="L-01-Con_nivel")
+    p2._extra = {"_nivel": "M"}
+    nivel = lambda p: getattr(p, "_extra", {}).get("_nivel") and "nivel " + p._extra["_nivel"]
+    QuizLectura("doc", str(tmp_path), [problema_simple, p2], etiqueta=nivel)
+    tex = (tmp_path / "doc.tex").read_text(encoding="utf-8")
+    assert "\\section*{L-01-Con\\_nivel\\hfill{\\normalsize\\mdseries nivel M}}" in tex
+    assert "\\addcontentsline{toc}{section}{L-01-Con\\_nivel (nivel M)}" in tex
+    assert tex.count("\\hfill{\\normalsize") == 1                      # problema_simple, sin _nivel: título a secas
+    QuizLectura("dic", str(tmp_path), {"a": problema_simple, "b": p2}, etiqueta={"b": "difícil"})
+    tex = (tmp_path / "dic.tex").read_text(encoding="utf-8")
+    assert "\\section*{b\\hfill{\\normalsize\\mdseries difícil}}" in tex and "\\section*{a}" in tex
+
+
 def test_codchar_cubre_los_caracteres_del_espanol():
     # moodle.sty pasa las órdenes de acento a entidades HTML; un carácter sin
     # convertir llega al XML en UTF-8 y Moodle lo muestra mal (antigÃ¼edad).

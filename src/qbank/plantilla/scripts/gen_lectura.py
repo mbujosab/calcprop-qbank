@@ -13,6 +13,8 @@ profe de AMC (make amc) sigue siendo la del examen.
 Las preguntas con setup que no declaran "lectura" añaden config.EXTRAS_LECTURA
 sorteos más por mundo con enunciado distinto (--extras N lo cambia). El
 preámbulo es config.PREAMBULO_LECTURA si existe; si no, config.PREAMBULO_AMC.
+config.ETIQUETA_LECTURA (función ProblemaTipo -> str | None) añade un texto, como
+el nivel de dificultad, junto al nombre de cada pregunta y en el índice.
 Las preguntas que no siguen la convención L-NN- van a otras-lectura.tex.
 """
 import os
@@ -48,7 +50,7 @@ for grupo, rutas in sorted(grupos.items()):
               else 'Preguntas para leer')
     with tempfile.TemporaryDirectory() as tmp:        # QuizLectura escribe; make solo si cambia
         n = QuizLectura(nombre, tmp, problemas, aux_latex=PREAMBULO, titulo=titulo,
-                        extras=args.extras)
+                        extras=args.extras, etiqueta=getattr(config, 'ETIQUETA_LECTURA', None))
         texto = (Path(tmp) / f'{nombre}.tex').read_text(encoding='utf-8')
     cambiado = escribe_si_cambia(SALIDA / f'{nombre}.tex', texto)
     print(f'  {nombre}.tex  ({len(problemas)} pregunta(s), {n} ejemplo(s)'

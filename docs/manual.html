@@ -1867,7 +1867,7 @@ por ejemplo; necesita dos pasadas de LaTeX (<code>make lectura</code> las hace).
 <div class="org-src-container">
 <pre class="src src-python">QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
             last_choice=None, last_choice_text="Ninguna de las anteriores",
-            extras=0, max_semillas=400)                 # → número de ejemplos
+            extras=0, max_semillas=400, etiqueta=None)  # → número de ejemplos
 </pre>
 </div>
 
@@ -1885,6 +1885,15 @@ Moodle; el documento carga por su cuenta <code>inputenc</code> y <code>fontenc</
 excepción a la regla de que los exportadores no leen <code>export</code>, porque
 en un mismo documento las preguntas difieren); solo afecta a la nota
 inicial.</li>
+<li><code>etiqueta</code> añade un texto junto al nombre de cada pregunta, a la derecha
+del título y entre paréntesis en el índice: el nivel de dificultad que el
+proyecto guarde en una clave propia del JSON, por ejemplo. Es una función
+<code>ProblemaTipo -&gt; str | None</code> (o un diccionario <code>{nombre: str}</code>) y el texto
+se inserta como LaTeX, sin escapar:
+<code>etiqueta=lambda p: getattr(p, '_extra', {}).get('_nivel') and 'nivel ' + p._extra['_nivel']</code>
+(<code>_extra</code>, las claves no reconocidas del JSON, solo existe en un problema
+cargado con <code>load_problema</code>).
+En la plantilla, <code>config.ETIQUETA_LECTURA</code>.</li>
 </ul>
 
 <p>
@@ -2194,7 +2203,7 @@ codchar(s)      vocales acentuadas minúsculas y ñ → secuencias LaTeX (lo apl
 <pre class="example" id="org9ca9813">
 QuizLectura(nombre, directorio, problemas, *, aux_latex="", titulo=None,
             last_choice=None, last_choice_text="Ninguna de las anteriores",
-            extras=0, max_semillas=400)                                    → int (ejemplos)
+            extras=0, max_semillas=400, etiqueta=None)                     → int (ejemplos)
 ProblemaTipo.por_partes_lectura(seed=None, verbose=False, descartes=False)
     # → Lectura(etiqueta, mundo, ns, partes, descarte); ParteLectura(enunciado, huecos);
     #   Alternativa(texto, valor, exp, motivo)
