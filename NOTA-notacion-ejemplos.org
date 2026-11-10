@@ -1,0 +1,32 @@
+#+TITLE: Nota: la notación de los ejemplos de econometría
+#+DATE: 10 de noviembre de 2026
+#+LANGUAGE: es
+
+* Qué se cambió
+=Ejemplos.ipynb= y =tools/cuadernos/gen_ejemplos.py= pasaban a los
+exportadores =aux_latex=r"\usepackage{nacal-moodle}"=. Ahora pasan
+=\usepackage{ectrnot-moodle}=.
+
+* Por qué
+El ejemplo de multicolinealidad usa =\ajusteMLG= y =\res=, que son notación
+de econometría. El paquete =nacal= (y =nacal-moodle=) va a quedar solo con
+la notación de álgebra lineal (=\Mat=, =\Vect=, =\MV=...) a partir de su
+versión 2.0; la notación de probabilidad y econometría del curso de
+Econometría pasa a los paquetes =ectrnot= y =ectrnot-moodle=
+(https://github.com/mbujosab/ectrnot cuando esté publicado).
+=ectrnot-moodle= carga =nacal-moodle= y =ectrnot=, así que el ejemplo sigue
+dando exactamente el mismo XML y el mismo PDF (comprobado con
+=mis_problemas/multicolinealidad.tex=).
+
+* Pendiente de decidir cuando se retome qbank
+El cambio es provisional. Opciones:
+1. Dejarlo así: el ejemplo depende de =ectrnot-moodle=.
+2. Reescribir el ejemplo para que no use =\ajusteMLG= ni =\res= (solo
+   álgebra lineal, o LaTeX estándar), y volver a =nacal-moodle= o a ningún
+   paquete. El repositorio dejaría de depender de la notación de un curso.
+
+Las menciones de =\usepackage{nacal-moodle}= en =README=, =Manual= y
+=tests/test_export.py= son solo texto de ejemplo y no se han tocado. Los
+=.tex= ya generados en =mis_problemas/= y =banco_preguntas_econometria/=
+(fuera de git) siguen con =nacal-moodle=: se regeneran al ejecutar los
+ejemplos, o dejarán de compilar con =nacal-moodle= 2.0.

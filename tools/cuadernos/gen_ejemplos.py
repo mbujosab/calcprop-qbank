@@ -256,7 +256,7 @@ para todas las preguntas.
 
 code(r'''
 n = QuizMoodle("multicolinealidad", "mis_problemas/", pt,
-               last_choice=True, aux_latex=r"\usepackage{nacal-moodle}")
+               last_choice=True, aux_latex=r"\usepackage{ectrnot-moodle}")
 print(f"{n} variantes → mis_problemas/multicolinealidad.tex (xelatex → multicolinealidad-moodle.xml)")
 
 n = QuizAMCProfe("multicolinealidad", "mis_problemas/", pt, cols=2, last_choice=True)
